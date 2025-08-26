@@ -41,15 +41,15 @@ export default function SideMenu({
   return (
     <div className="w-full h-full bg-white pt-[7px] px-[12px] overflow-y-auto">
       {/* logo section */}
-      <img src={Logo} alt="Logo" className="w-[72px] h-[59px] mx-[4px] " />
-      <div className="flex flex-col gap-[6px] mt-[6px]">
+      <img src={Logo} alt="Logo" className="w-[100px] h-[87px] mx-[4px] " />
+      <div className="flex flex-col gap-[2px] mt-12">
         {/* Dashboard */}
         <div
           className={`${
             currentPath.includes("dashboard")
-              ? "bg-gradient-to-r from-[#e51d24] to-[#f28b8d] text-white"
+              ? "bg-primaryColor text-white"
               : ""
-          } hover:bg-gradient-to-r hover:from-[#e51d24] to-[#f28b8d] hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.5rem] px-[0.75rem] cursor-pointer mt-[0.5rem]`}
+          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.5rem] transition-all duration-150`}
           onClick={() => handleNavigate("dashboard", "/admin/dashboard")}
         >
           <div className="flex items-center gap-[0.5rem]">
@@ -63,10 +63,8 @@ export default function SideMenu({
         {viewAccess.includes("Order") && (
           <div
             className={`${
-              currentPath.includes("Order")
-                ? "bg-gradient-to-r from-[#e51d24] to-[#f28b8d] text-white"
-                : ""
-            } hover:bg-gradient-to-r hover:from-[#e51d24] to-[#f28b8d] hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.5rem] px-[0.75rem] cursor-pointer mt-[0.5rem]`}
+              currentPath.includes("order") ? "bg-primaryColor text-white" : ""
+            } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem] transition-all duration-150`}
             onClick={() => handleNavigate("request", "/admin/order/list")}
           >
             <div className="flex items-center gap-[0.5rem]">
@@ -90,7 +88,7 @@ export default function SideMenu({
               {each.menu ? (
                 subMenuList.some((item) => viewAccess.includes(item)) && (
                   <div
-                    className="text-[#2F2B3D] bg-[#EEEEEF] flex justify-between items-center rounded-[0.25rem] py-[0.5rem] px-[0.75rem] cursor-pointer"
+                    className=" flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer hover:bg-primaryColor hover:text-white"
                     onClick={() => {
                       if (each.path) {
                         handleNavigate(each.name, each.path);
@@ -125,12 +123,12 @@ export default function SideMenu({
                 <>
                   {viewAccess.includes(each.name) && (
                     <div
-                      className={`text-[#2F2B3D] bg-[#EEEEEF] flex justify-between items-center rounded-[0.25rem] py-[0.5rem] px-[0.75rem] hover:text-white hover:bg-gradient-to-r hover:from-[#e51d24] hover:to-[#f28b8d] cursor-pointer ${
+                      className={` flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] hover:text-white hover:bg-primaryColor cursor-pointer transition-all duration-150 ${
                         currentPath.includes(each.name.toLowerCase()) ||
                         currentPath.includes(
                           each.name.toLowerCase() + "-category",
                         )
-                          ? "bg-gradient-to-r from-[#e51d24] to-[#f28b8d] text-white"
+                          ? "bg-primaryColor text-white"
                           : ""
                       }`}
                       onClick={() => {
@@ -166,10 +164,10 @@ export default function SideMenu({
                       {viewAccess.includes(item.name) && (
                         <div
                           key={index}
-                          className={`flex items-center gap-[0.5rem] text-[#2F2B3D] hover:text-white px-[1.5rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer hover:bg-gradient-to-r hover:from-[#e51d24] hover:to-[#f28b8d] ${
+                          className={`flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer transition-all duration-150 ${
                             isActive === item.name ||
                             currentPath.includes(item.name.toLowerCase())
-                              ? "bg-gradient-to-r from-[#e51d24] to-[#f28b8d] text-white"
+                              ? "text-white bg-primaryColor "
                               : ""
                           }`}
                           onClick={() => handleNavigate(item.name, item.path)}

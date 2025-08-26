@@ -25,7 +25,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
           onBlur={() => setIsFocused(false)}
           className={cn(
             "peer w-full px-3 py-3 border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out",
-            "focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none",
+            "focus:border-[0.5px] focus:border-inputBg focus:ring-[0.5px] focus:ring-inputBg focus:outline-none",
             "placeholder-transparent",
             icon && "pl-10",
             className,
@@ -39,7 +39,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
             className={cn(
               "absolute left-3 transition-all duration-200 ease-in-out",
               isFocused || hasValue
-                ? "top-2 text-red-500"
+                ? "top-2 text-black"
                 : "top-3 text-gray-500",
             )}
           >
@@ -53,7 +53,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
             "text-gray-500 bg-white px-1",
             icon && "left-10",
             isFocused || hasValue
-              ? "-top-2 text-xs text-red-500 font-medium"
+              ? "-top-2 text-xs text-black font-medium"
               : "top-3 text-base",
           )}
         >

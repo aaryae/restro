@@ -30,7 +30,7 @@ export const FilterSelect = forwardRef<HTMLDivElement, FloatingSelectProps>(
             <button
               className={cn(
                 "w-full px-3 py-3 h-full border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out text-left",
-                "focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none",
+                "focus:border-[0.5px] focus:border-inputBg focus:ring-[0.5px] focus:ring-inputBg focus:outline-none",
                 "hover:border-gray-400",
                 className,
               )}
@@ -67,7 +67,7 @@ export const FilterSelect = forwardRef<HTMLDivElement, FloatingSelectProps>(
             "absolute left-3 transition-all duration-200 ease-in-out pointer-events-none",
             "text-gray-500 bg-white px-1",
             isOpen || hasValue
-              ? "-top-2 text-xs text-red-500 font-medium"
+              ? "-top-2 text-xs text-black font-medium"
               : "top-3 text-base",
           )}
         >

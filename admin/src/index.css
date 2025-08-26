@@ -9,8 +9,10 @@
   --font-japanese: "Noto Sans JP", "Nunito", sans-serif;
   --font-english: "Montserrat", sans-serif;
 
-  --primary-color: #e51d24;
+  --primary-color: #032768;
   --secondary-color: #ffba00;
+  --secondaryBtn-color: #9036f5;
+  --input-bg-color: #4c5663;
 
   line-height: 1.5;
   font-weight: 400;
@@ -175,7 +177,7 @@ h3 {
 
 .form-container {
   background-color: white;
-  border: solid 1px #b3b0ff;
+  /* border: solid 1px #b3b0ff; */
   width: 100%;
   padding: 1rem;
   box-shadow:

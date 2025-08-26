@@ -129,7 +129,7 @@ export default function Media() {
       <div className="flex justify-end gap-[1rem]">
         {accessList.includes("add") && (
           <button
-            className="bg-[#FF80C5] px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] cursor-pointer"
+            className="bg-secondaryBtn px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] cursor-pointer"
             onClick={handleOpenModel}
           >
             <FaPlus size={16} />

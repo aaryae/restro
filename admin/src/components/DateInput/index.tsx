@@ -17,7 +17,7 @@ export default function DateInput({
     <div className="relative">
       <Popover>
         <PopoverTrigger asChild>
-          <button className="w-full h-full px-3 py-3 border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out text-left focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none hover:border-gray-400">
+          <button className="w-full h-full px-3 py-3 border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out text-left focus:border-bg-inputBg focus:ring-1 focus:ring-bg-inputBg focus:outline-none hover:border-gray-400">
             <div className="flex items-center justify-between">
               <span
                 className={`transition-all duration-200 ${value ? "text-gray-900" : "text-transparent"}`}
@@ -40,7 +40,7 @@ export default function DateInput({
 
       <label
         className={`absolute left-3 transition-all duration-200 ease-in-out pointer-events-none text-gray-500 bg-white px-1 ${
-          value ? "-top-2 text-xs text-red-500 font-medium" : "top-3 text-base"
+          value ? "-top-2 text-xs text-black font-medium" : "top-3 text-base"
         }`}
       >
         {label}

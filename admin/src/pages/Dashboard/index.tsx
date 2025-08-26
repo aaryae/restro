@@ -79,15 +79,14 @@ function Tables({ chooseTable }: { chooseTable: (id: number) => void }) {
 
 function Header() {
   const userName = useAppSelector((state) => state.profile.username);
-  const todayDate = format(new Date(), "PPP");
+  const todayDate = format(new Date(), "PPPP");
   return (
     <div className="w-full flex justify-between">
       <div className="flex flex-col">
         <div className="text-left text-2xl font-bold">
           Good {getPartOfDay()}, {userName}
         </div>
-        <div>
-          Here are your stats for today{" "}
+        <div className="flex">
           <span className="text-blue-500 font-semibold">{todayDate}</span>
         </div>
       </div>

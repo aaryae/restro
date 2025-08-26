@@ -142,10 +142,10 @@ export default function Customer() {
   };
 
   const tableHeaders = [
-    "username",
-    "email",
+    "Username",
+    "Email",
     "Mobile Number",
-    "Is Email Verfied",
+    "Is Email Verified",
     "Created At",
     "Actions",
   ];

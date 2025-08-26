@@ -51,7 +51,7 @@ export default function PageFilterSample(
         )}
         <Button
           onClick={handleSubmit}
-          className="bg-red-600 hover:bg-red-700 h-full text-white px-6"
+          className="bg-primaryColor h-full text-white px-6"
         >
           Search
         </Button>

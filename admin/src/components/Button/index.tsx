@@ -25,7 +25,9 @@ const Button: React.FC<ButtonProps> = ({
     >
       {isLoading && <span className="loading-spinner"></span>}
       {leftSection && <div className="button-left-section">{leftSection}</div>}
-      <span className="button-text">{children}</span>
+      <span className="button-text flex justify-center items-center">
+        {children}
+      </span>
       {rightSection && (
         <div className="button-right-section">{rightSection}</div>
       )}

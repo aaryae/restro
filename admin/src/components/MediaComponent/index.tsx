@@ -237,7 +237,7 @@ export default function MediaComponent({
         ref={modelRef}
         className="w-full md:w-[calc(100vw-20rem)] h-[calc(100vh-10rem)] overflow-y-auto overflow-x-hidden lg:max-h-[80%]"
       >
-        <DialogHeader className="p-[2rem]">
+        <DialogHeader className="p-[0.75rem]">
           <DialogTitle>Choose Image</DialogTitle>
           <DialogDescription>
             {/* for buttons */}
@@ -275,7 +275,7 @@ export default function MediaComponent({
                   />
                   {accessListFolder.includes("add") && (
                     <button
-                      className={`bg-[#FF80C5] px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] whitespace-nowrap ${
+                      className={`bg-secondaryBtn px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] whitespace-nowrap ${
                         currentFolder ? "hidden" : "cursor-pointer"
                       }`}
                       onClick={handleOpenModel}

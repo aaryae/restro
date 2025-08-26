@@ -131,7 +131,7 @@ export default function TopMenu({ sideMenuOpen, setSideMenuOpen }) {
                       : user_image
                   }
                   alt="Profile"
-                  className="h-[38px] w-[38px] rounded-full cursor-pointer border border-black object-contain"
+                  className="h-[38px] w-[38px] rounded-full cursor-pointer border-[0.5px] border-[#BFBFBF] object-contain"
                   // crossOrigin="anonymous"
                 />
               </DropdownMenuTrigger>

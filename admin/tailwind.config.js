@@ -13,6 +13,9 @@ export default {
         primaryColor: "var(--primary-color)",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        secondaryBtn: "var(--secondaryBtn-color)",
+        inputBg: "var(--input-bg-color)",
+
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",

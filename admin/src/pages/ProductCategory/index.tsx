@@ -84,7 +84,7 @@ export default function ProductCategory() {
 
   const tableHeaders = [
     "Product Category",
-    "slug",
+    "Slug",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
   ];
 
