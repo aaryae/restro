@@ -104,7 +104,7 @@ const updateOrderItems = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { orderId } = req.params;
-    const { items = [] } = req.body;
+    const { orderItems = [] } = req.body;
 
     const order = await orderModel.findByPk(orderId, {
       include: [{ model: orderItemModel, as: "orderItems" }],
@@ -115,8 +115,8 @@ const updateOrderItems = async (req) => {
       await transaction.rollback();
       return { status: 404, success: false, message: "Order not found" };
     }
-    const newItems = items.filter((i) => !i.id);
-    const oldItems = items.filter((i) => i.id);
+    const newItems = orderItems.filter((i) => !i.id);
+    const oldItems = orderItems.filter((i) => i.id);
     for (const incoming of oldItems) {
       const existing = order.orderItems.find((oi) => oi.id === incoming.id);
       if (!existing) {
@@ -367,16 +367,14 @@ const checkoutOrder = async (req) => {
     );
 
     // if table has other active order than
-    const stillOrderInTable = await orderModel.findOne(
-      {
-        where: {
-          tableId: order.tableId,
-          sessionId: order.sessionId,
-          status: { [Op.notIn]: ["completed", "cancelled"] },
-        },
+    const stillOrderInTable = await orderModel.findOne({
+      where: {
+        tableId: order.tableId,
+        sessionId: order.sessionId,
+        status: { [Op.notIn]: ["completed", "cancelled"] },
       },
-      { transaction },
-    );
+      transaction,
+    });
 
     if (!stillOrderInTable) {
       await tableModel.update(
@@ -637,12 +635,12 @@ const updateOrderItemsStatus = async (req) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const orderItems = await orderItemModel.findAll({
+    const orderItem = await orderItemModel.findOne({
       where: { id: orderItemIds },
       transaction,
     });
 
-    if (!orderItems.length) {
+    if (!orderItem) {
       await transaction.rollback();
       return {
         status: 404,
@@ -651,42 +649,37 @@ const updateOrderItemsStatus = async (req) => {
       };
     }
 
-    const invalidItems = [];
-
-    for (const item of orderItems) {
-      // enforce transitions: pending->preparing, preparing->ready
-      if (
-        (status === "preparing" && item.status !== "pending") ||
-        (status === "ready" && item.status !== "preparing")
-      ) {
-        invalidItems.push({
-          id: item.id,
-          currentStatus: item.status,
-          attemptedStatus: status,
-        });
-        continue;
-      }
-
-      await item.update({ status }, { transaction });
-    }
-
-    if (invalidItems.length > 0) {
-      await transaction.rollback();
+    // enforce transitions: pending->preparing, preparing->ready
+    if (
+      (status === "preparing" && orderItem.status !== "pending") ||
+      (status === "ready" && orderItem.status !== "preparing")
+    ) {
+      transaction.rollback();
       return {
         status: 400,
         success: false,
         message:
           "Some order items could not be updated due to invalid transitions",
-        invalidItems,
       };
     }
+    await orderItemModel.update(
+      {
+        status,
+      },
+      {
+        where: {
+          id: orderItem.id,
+        },
+      },
+      transaction,
+    );
 
     await transaction.commit();
     return {
       status: 200,
       success: true,
       message: `Order item(s) updated to ${status} successfully`,
-      data: orderItems,
+      data: orderItem,
     };
   } catch (error) {
     await transaction.rollback();

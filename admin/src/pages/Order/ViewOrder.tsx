@@ -68,8 +68,47 @@ export default function ViewOrder({
       </div>
       {success && (
         <div>
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="flex gap-8">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-yellow-400"></div>
+                <span className="text-sm text-gray-600">Pending</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-400"></div>
+                <span className="text-sm text-gray-600">Preparing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-400"></div>
+                <span className="text-sm text-gray-600">Ready</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-purple-400"></div>
+                <span className="text-sm text-gray-600">Served</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-400"></div>
+                <span className="text-sm text-gray-600">Cancelled</span>
+              </div>
+            </div>
+          </div>
           {orderData?.data?.orderItems.map((item) => (
-            <div className="border rounded-lg p-4 bg-white shadow-sm mb-4 flex gap-4">
+            <div
+              className={`border-l-4 p-4 bg-white shadow-sm mb-4 flex gap-4
+  ${
+    item?.status === "pending"
+      ? "border-yellow-400"
+      : item?.status === "preparing"
+        ? "border-blue-400"
+        : item?.status === "ready"
+          ? "border-green-400"
+          : item?.status === "served"
+            ? "border-purple-400"
+            : item?.status === "cancelled"
+              ? "border-red-400"
+              : "border-gray-400"
+  }`}
+            >
               {/* Image Section */}
               <div className="w-24 h-24 flex-shrink-0">
                 <img
@@ -108,11 +147,17 @@ export default function ViewOrder({
                     <select
                       className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
                       value={item?.status}
-                      onChange={(e) => handleStatusUpdate(e.target.value, id)}
+                      onChange={(e) =>
+                        handleStatusUpdate(e.target.value, item.id)
+                      }
                     >
                       {statusOptions.map((option) => (
-                        <option className="text-center" value={option}>
-                          {option}
+                        <option
+                          className="text-center"
+                          value={option}
+                          key={option}
+                        >
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
                         </option>
                       ))}
                     </select>

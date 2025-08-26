@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import Toast from "./components/Toast";
 import { useDispatch } from "react-redux";
 import { setAuthData } from "./redux/feature/authSlice";
-import Logo from "./assets/logo.svg";
+import Logo from "./assets/fav.webp";
 import { jwtDecode } from "jwt-decode";
 import { clearProfile } from "./redux/feature/profileSlice";
 import { trimFormData } from "./utils/validationHelper";
@@ -23,7 +23,7 @@ import { sk } from "./constants";
 interface FormValues {
   username: string;
   password: string;
-  captchaToken: string;
+  captchaToken?: string;
 }
 
 interface DecodedToken {
@@ -35,10 +35,10 @@ interface DecodedToken {
 export default function App() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [captchaToken, setCaptchaToken] = useState<string>();
+  // const [captchaToken, setCaptchaToken] = useState<string>();
   const [login] = useLoginMutation();
 
-  const turnstileRef = useRef<any>(null);
+  // const turnstileRef = useRef<any>(null);
 
   useEffect(() => {
     const token = getToken("token");
@@ -74,7 +74,7 @@ export default function App() {
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     try {
       const trimmedData = trimFormData(data);
-      trimmedData.captchaToken = captchaToken as string;
+      // trimmedData.captchaToken = captchaToken as string;
       const response = await login(trimmedData).unwrap();
       setToken("token", response.data.token);
       dispatch(setAuthData(response.data));
@@ -84,10 +84,10 @@ export default function App() {
       });
     } catch (error) {
       handleError({ error });
-      if (turnstileRef.current) {
-        turnstileRef.current.reset();
-      }
-      setCaptchaToken("");
+      // if (turnstileRef.current) {
+      //   turnstileRef.current.reset();
+      // }
+      // setCaptchaToken("");
     }
   };
 
@@ -111,7 +111,7 @@ export default function App() {
             error={errors.password}
           />
 
-          <Turnstile
+          {/* <Turnstile
             ref={turnstileRef}
             className="text-red-500 "
             options={{ size: "flexible", theme: "light" }}
@@ -119,7 +119,7 @@ export default function App() {
               setCaptchaToken(token);
             }}
             siteKey={sk as string}
-          />
+          /> */}
 
           <Button type="submit" className="submit-button">
             <div className="flex justify-center items-center gap-[0.5rem] text-white">

@@ -14,8 +14,13 @@ import Model from "@/components/Model";
 import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
 
-import { useGetApiQuery, useCreateApiMutation } from "@/redux/services/crudApi";
+import {
+  useGetApiQuery,
+  useCreateApiMutation,
+  useUpdateApiMutation,
+} from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
+import { handleResponse } from "@/utils/responseHandler";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -26,6 +31,7 @@ interface OrderItem {
   productPrice: number;
   quantity: number;
   specialInstructions?: string;
+  status?: string;
   subtotal: number;
 }
 
@@ -140,7 +146,7 @@ export default function AddEditOrder({
       updateOrderItemQuantity(existingItem.id, existingItem.quantity + 1);
     } else {
       const newItem: OrderItem = {
-        id: `item_${Date.now()}_${Math.random()}`,
+        id: `newitem_${Date.now()}_${Math.random()}`,
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
@@ -186,6 +192,8 @@ export default function AddEditOrder({
 
   // Create order mutation (generic)
   const [createApi, { isLoading: isOrderSubmitting }] = useCreateApiMutation();
+  const [updateOrderApi, { isLoading: isOrderUpdating }] =
+    useUpdateApiMutation();
 
   const onSubmit = async (data: OrderFormType) => {
     console.log("now submitting");
@@ -198,18 +206,39 @@ export default function AddEditOrder({
     try {
       const payload = {
         ...data,
-        orderItems: orderItems.map((item: OrderItem) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })), // Remove local id
+        orderItems: orderItems.map((item: OrderItem) => {
+          if (String(item.id).includes("newitem_")) {
+            return { productId: item.productId, quantity: item.quantity };
+          }
+          return {
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+          };
+        }),
       };
 
-      await createApi({ url: ORDER_URL + "create", body: payload }).unwrap();
-      handleSuccess();
-    } catch (error: any) {
-      setError("root", {
-        message: error?.data?.message || "Failed to create order",
+      console.log(isEditMode, "edit mode");
+      console.log(payload, "payload");
+
+      const response = isEditMode
+        ? await updateOrderApi({
+            url: `${ORDER_URL}items/${orderId}`,
+            body: payload,
+          }).unwrap()
+        : await createApi({
+            url: ORDER_URL + "create",
+            body: payload,
+          }).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => navigate(ORDER_LIST_ROUTE),
       });
+    } catch (error: any) {
+      console.error(error, "error message");
+      // setError("root", {
+      //   message: error?.data?.message || "Failed to create order",
+      // });
     }
   };
 
@@ -371,14 +400,15 @@ export default function AddEditOrder({
                           NPR {Number(item.subtotal).toFixed(2)}
                         </p>
                       </div>
-
-                      <Button
-                        type="button"
-                        onClick={() => removeOrderItem(item.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-600 w-8 h-8 rounded-full flex items-center justify-center"
-                      >
-                        <FaTrash size={12} />
-                      </Button>
+                      {item?.status === "pending" && (
+                        <Button
+                          type="button"
+                          onClick={() => removeOrderItem(item.id)}
+                          className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center text-white"
+                        >
+                          Cancel Order
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

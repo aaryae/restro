@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { FaMoneyBillWave, FaQrcode } from "react-icons/fa";
+import { FaMoneyBillWave, FaPlus, FaQrcode } from "react-icons/fa";
 import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
 import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
+import { handleResponse } from "@/utils/responseHandler";
+import CustomDialog from "@/components/Dialog";
+import AddEditCustomer from "../Customer/AddEditCustomer";
 
 // Define interfaces
 interface OrderItem {
@@ -63,9 +66,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 }) => {
   const [paymentType, setPaymentType] = useState<"cash" | "qr">("cash");
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
-  const [totalAmount, setTotalAmount] = useState(null);
+  const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
+  const [selectedMember, setSelectedMember] = useState(null);
 
   const [checkoutOrderApi] = useCreateApiMutation();
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
   const { data: order } = useGetApiQuery(
     { url: `order/${orderId}` },
@@ -73,6 +78,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       skip: orderId === null || orderId === undefined,
     },
   );
+
   const { data: table } = useGetApiQuery(
     { url: `table/${tableId}` },
     {
@@ -80,16 +86,49 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     },
   );
 
-  console.log(order, "checkout order ----------------------");
-  console.log(table, "checkout order ----------------------");
+  const {
+    data: allCustomers,
+    isSuccess: customerSuccess,
+    isLoading: customerDataLoading,
+    refetch: customerRefetch,
+  } = useGetApiQuery({ url: "customer-auth/list" });
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+  };
+
+  const handleCheckoutTypeChange = (type: "guest" | "member") => {
+    setCheckoutType(type);
+    if (type === "guest") {
+      setSelectedMember(null);
+    }
+  };
+
+  const handleMemberSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const memberId = Number(e.target.value);
+    const member = allCustomers?.data?.data?.find(
+      (customer: any) => customer.id === memberId,
+    );
+    console.log("memberId", allCustomers?.data?.data);
+    setSelectedMember(member);
+  };
 
   const handlePayment = async () => {
+    const payload =
+      checkoutType === "member" && selectedMember
+        ? {
+            paymentMethod: paymentType,
+            customerId: selectedMember.id,
+          }
+        : {};
+
     if (paymentType === "cash") {
       const response = await checkoutOrderApi({
         url: `${ORDER_URL}checkout/${orderId}`,
-        body: { paymentMethod: paymentType },
+        body: payload,
       }).unwrap();
       if (response?.success) {
+        handleResponse({ res: response });
         setIsPaymentSuccess(true);
       }
     }
@@ -131,10 +170,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         ) : (
           <>
             <h2 className={styles.modalTitle}>
-              Checkout for Table {order?.data?.table?.tableNo}
+              Checkout for Table{" "}
+              {order?.data?.table?.tableNo || table?.data?.tableNo}
             </h2>
             <p className={styles.totalAmount}>
-              Total Amount: ${order?.data?.totalAmount}
+              Total Amount: ${order?.data?.totalAmount || "N/A"}
             </p>
             <div className={styles.paymentOptions}>
               <p className={styles.paymentLabel}>Select Payment Type:</p>
@@ -164,11 +204,112 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 />
               </div>
             )}
+            <div className="mt-4">
+              <p className={styles.paymentLabel}>Checkout As:</p>
+              <div className="flex gap-4 mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="guest"
+                    checked={checkoutType === "guest"}
+                    onChange={() => handleCheckoutTypeChange("guest")}
+                    className="mr-2"
+                  />
+                  <span className={styles.paymentText}>Guest</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="member"
+                    checked={checkoutType === "member"}
+                    onChange={() => handleCheckoutTypeChange("member")}
+                    className="mr-2"
+                  />
+                  <span className={styles.paymentText}>Member</span>
+                </label>
+                {checkoutType === "member" && (
+                  <CustomDialog
+                    buttonTitle={
+                      <button
+                        type="button"
+                        className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
+                      >
+                        <FaPlus />
+                        Add
+                      </button>
+                    }
+                    dialogOpen={dialogOpen}
+                    setDialogOpen={setDialogOpen}
+                    title="Add User"
+                  >
+                    <AddEditCustomer
+                      isComponent={true}
+                      closeModal={closeDialog}
+                    />
+                  </CustomDialog>
+                )}
+              </div>
+              {checkoutType === "member" && (
+                <div className="mb-4">
+                  <label className={`${styles.paymentLabel} block mb-1`}>
+                    Select Member
+                  </label>
+                  {customerDataLoading ? (
+                    <p className="text-gray-500">Loading members...</p>
+                  ) : customerSuccess &&
+                    allCustomers?.data?.data?.length > 0 ? (
+                    <select
+                      onChange={handleMemberSelect}
+                      value={selectedMember?.id || ""}
+                      className="bg-white w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="" disabled>
+                        Select a member
+                      </option>
+                      {allCustomers?.data?.data.map((customer: any) => (
+                        <option key={customer.id} value={customer.id}>
+                          {customer.email || `Member ${customer.id}`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div>
+                      <p className="text-red-500">Failed to load members</p>
+                      <button
+                        onClick={customerRefetch}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {selectedMember && (
+                <div className="mt-4 p-4 bg-gray-100 rounded-md">
+                  <p className={styles.paymentLabel}>Selected Member</p>
+                  <p>
+                    Name:{" "}
+                    {selectedMember.firstName + " " + selectedMember.lastName ||
+                      "N/A"}
+                  </p>
+                  <p>Email: {selectedMember.email || "N/A"}</p>
+                </div>
+              )}
+            </div>
             <div className={styles.buttonContainer}>
               <button onClick={onClose} className={styles.cancelButton}>
                 Cancel
               </button>
-              <button onClick={handlePayment} className={styles.actionButton}>
+              <button
+                onClick={handlePayment}
+                disabled={checkoutType === "member" && !selectedMember}
+                className={`${styles.actionButton} ${
+                  checkoutType === "member" && !selectedMember
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
                 {paymentType === "cash" ? "Submit" : "Complete Payment"}
               </button>
             </div>

@@ -40,10 +40,10 @@ router.get(
 );
 // Customer/Staff routes
 router.post("/create", authentication, createOrderValidation, createOrder);
-router.patch(
-  "/items/:id",
-  authenticateUser,
-  updateOrderItemsValidation,
+router.put(
+  "/items/:orderId",
+  // authenticateUser,
+  // updateOrderItemsValidation,
   updateOrderItems,
 );
 

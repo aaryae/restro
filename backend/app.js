@@ -62,8 +62,7 @@ const allowedOrigins = [
   "http://localhost:3000", // local dev
   "http://localhost:5171", // local dev
   "http://localhost:7001",
-  "http://192.168.1.66:9001",
-
+  "http://192.168.1.200:7001",
 ];
 
 app.use(
@@ -168,7 +167,6 @@ app.use("/setup/", setupPath);
 
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
-
 
 app.use((req, res, next) => {
   const err = new Error("Not Found");

@@ -1,5 +1,5 @@
 import { MdKeyboardArrowRight } from "react-icons/md";
-import Logo from "../assets/logo.svg";
+import Logo from "../assets/fav.webp";
 import { SideListMenuType, SideMenuList } from "./sideMenuList";
 import { SetStateAction, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -41,7 +41,11 @@ export default function SideMenu({
   return (
     <div className="w-full h-full bg-white pt-[7px] px-[12px] overflow-y-auto">
       {/* logo section */}
-      <img src={Logo} alt="Logo" className="w-[72px] h-[59px] mx-[4px] " />
+      <img
+        src={Logo}
+        alt="Logo"
+        className="w-[72px] h-[59px] object-cover mx-[4px] "
+      />
       <div className="flex flex-col gap-[6px] mt-[6px]">
         {/* Dashboard */}
         <div

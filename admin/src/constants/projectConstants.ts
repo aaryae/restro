@@ -1,4 +1,4 @@
-export const PROJECT_NAME = "Unimomo";
+export const PROJECT_NAME = "Nirvana Restro";
 
 export const PROJECT_LOGO = "@/assets/logo.svg";
 

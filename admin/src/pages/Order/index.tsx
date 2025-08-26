@@ -189,7 +189,7 @@ export default function Order() {
 
   const statusOptions = [
     "pending",
-    "confirmed",
+    "completed",
     "shipped",
     "delivered",
     "cancelled",
@@ -228,17 +228,18 @@ export default function Order() {
             orderStartTime,
             paymentMethod,
             paymentStatus,
-            <select
-              className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              value={status}
-              onChange={(e) => handleStatusUpdate(e.target.value, id)}
-            >
-              {statusOptions.map((option) => (
-                <option className="text-center" value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>,
+            // <select
+            //   className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
+            //   value={status}
+            //   onChange={(e) => handleStatusUpdate(e.target.value, id)}
+            // >
+            //   {statusOptions.map((option) => (
+            //     <option className="text-center" value={option}>
+            //       {option}
+            //     </option>
+            //   ))}
+            // </select>
+            status,
             totalAmount,
             <div
               key={id}
