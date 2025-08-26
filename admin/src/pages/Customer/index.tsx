@@ -1,7 +1,7 @@
 import Drawer from "@/components/Drawer";
 import PageHeader from "@/components/PageHeader";
 import Table from "@/components/Table";
-import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import moment from "moment";
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
@@ -19,13 +19,23 @@ import { FilterSelect } from "@/components/Select/FilterSelect";
 import { buildQueryString } from "@/utils/generalHelper";
 import DateInput from "@/components/DateInput";
 import Spinner from "@/components/Spinner";
+import { CUSTOMER_ADD_ROUTE } from "@/routes/routeNames";
+import { useNavigate } from "react-router-dom";
+import { MdEditSquare } from "react-icons/md";
+import DeleteModal from "@/components/DeleteModal";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { CUSTOMER_URL } from "@/constants/apiUrlConstants";
 
 export default function Customer() {
+  const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
+  const [deleteId, setDeletedId] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [isExportTriggered, setIsExportTriggered] = useState<boolean>(false);
+  const [deleteTable] = useDeleteApiMutation();
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+  const navigate = useNavigate();
 
   const { control, handleSubmit, reset, setValue, getValues } =
     useForm<CustomerFilterType>({
@@ -40,6 +50,33 @@ export default function Customer() {
 
   const handleDateInput = (value: Date) => {
     setValue("createdAt", value);
+  };
+
+  const handleNewButton = (id: number | null) => {
+    id === null
+      ? navigate(CUSTOMER_ADD_ROUTE)
+      : navigate(`${CUSTOMER_ADD_ROUTE}${id}`);
+  };
+
+  const handleDeleteTrigger = (id: number) => {
+    setDeletedId(id);
+    setDeleteModelOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await deleteTable(`${CUSTOMER_URL}${deleteId}`).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          refetch();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setDeleteModelOpen(false);
+    }
   };
 
   const filterField = useMemo(
@@ -145,7 +182,6 @@ export default function Customer() {
     "Username",
     "Email",
     "Mobile Number",
-    "Is Email Verified",
     "Created At",
     "Actions",
   ];
@@ -153,18 +189,18 @@ export default function Customer() {
   const tableData =
     success && allCustomers?.data?.data
       ? allCustomers?.data?.data.map(
-          ({ id, username, email, mobileNo, isEmailVerified, createdAt }) => [
-            username,
+          ({
+            id,
+            firstName,
+            lastName,
             email,
             mobileNo,
-
-            <span className="flex justify-center">
-              {isEmailVerified ? (
-                <FaCircleCheck className="text-primaryColor" />
-              ) : (
-                <FaCircleXmark className="text-red-500" />
-              )}
-            </span>,
+            isEmailVerified,
+            createdAt,
+          }) => [
+            `${firstName} ${lastName}`,
+            email,
+            mobileNo,
             moment(createdAt).format("MMM DD, YYYY"),
             <div
               key={id}
@@ -174,6 +210,17 @@ export default function Customer() {
                 size={18}
                 className="text-[#0090DD] cursor-pointer"
                 onClick={() => handleViewCustomer(id)}
+              />
+              <MdEditSquare
+                size={18}
+                className="text-[#0090DD]"
+                onClick={() => handleNewButton(id)}
+              />
+              <DeleteModal
+                open={deleteModelOpen}
+                setOpen={setDeleteModelOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
               />
             </div>,
           ],
@@ -216,7 +263,12 @@ export default function Customer() {
 
   return (
     <div>
-      <PageHeader hasAddButton={false} handleReloadButton={handleReload}>
+      <PageHeader
+        hasAddButton={true}
+        newButtonText="Add New Customer"
+        handleNewButton={() => handleNewButton(null)}
+        handleReloadButton={handleReload}
+      >
         {success && (
           <ExportToExcel
             title="Customer Report"

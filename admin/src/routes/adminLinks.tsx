@@ -27,6 +27,7 @@ import AddEditFloor from "@/pages/Floor/AddEditFloor";
 import OrderTable from "@/pages/Table";
 import AddEditTable from "@/pages/Table/AddEditTable";
 import AddEditOrder from "@/pages/Order/AddEditOrder";
+import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
 
 export const adminLinks = [
   {
@@ -126,8 +127,16 @@ export const adminLinks = [
     element: <AddEditProductVariant />,
   },
   {
-    path: "customer",
+    path: "/customer/list",
     element: <Customer />,
+  },
+  {
+    path: "/customer/:id",
+    element: <AddEditCustomer />,
+  },
+  {
+    path: "/customer/",
+    element: <AddEditCustomer />,
   },
   {
     path: "/order/list",
@@ -138,7 +147,11 @@ export const adminLinks = [
     element: <AddEditOrder />,
   },
   {
-    path: "/order/:id",
+    path: "/order/:tableId/:orderId",
+    element: <AddEditOrder />,
+  },
+  {
+    path: "/order/:tableId",
     element: <AddEditOrder />,
   },
   {

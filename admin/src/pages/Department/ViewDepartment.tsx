@@ -1,16 +1,16 @@
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
-import { CONTACT_URL } from "@/constants/apiUrlConstants";
+import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { RiSeoLine } from "react-icons/ri";
 
-export default function ViewContact({ id }: { id: number | null }) {
+export default function ViewDepartment({ id }: { id: number | null }) {
   const {
-    data: contactData,
+    data: departmentData,
     isSuccess: success,
     isLoading: loading,
   } = useGetApiQuery(
-    { url: `${CONTACT_URL}${id}` },
+    { url: `${DEPARTMENT_URL}${id}` },
     {
       skip: id === null || id === undefined,
     },
@@ -22,7 +22,7 @@ export default function ViewContact({ id }: { id: number | null }) {
       <div className="flex mt-[4rem] mb-[1.5rem]">
         <p className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white">
           <RiSeoLine />
-          <p className="font-[500] text-[15px]">Contact {id}</p>
+          <p className="font-[500] text-[15px]">Department {id}</p>
         </p>
       </div>
       {loading ? (
@@ -33,24 +33,30 @@ export default function ViewContact({ id }: { id: number | null }) {
             <Input
               label="Name"
               type="text"
-              value={contactData?.data?.full_name}
-              disabled
-            />
-            <Input
-              label="Email"
-              type="text"
-              value={contactData?.data?.email}
-              disabled
-            />
-            <Input
-              label="Subject"
-              type="text"
-              value={contactData?.data?.subject}
+              value={departmentData?.data?.name || ""}
               disabled
             />
             <TextArea
-              label="Message"
-              value={contactData?.data?.message}
+              label="Description"
+              value={departmentData?.data?.description || ""}
+              disabled
+            />
+            <Input
+              label="Average Preparation Time (minutes)"
+              type="number"
+              value={departmentData?.data?.AvgPreparationTime ?? ""}
+              disabled
+            />
+            <Input
+              label="Display Order"
+              type="number"
+              value={departmentData?.data?.displayOrder ?? ""}
+              disabled
+            />
+            <Input
+              label="Color (Hex Code)"
+              type="color"
+              value={departmentData?.data?.color || "#000000"}
               disabled
             />
           </form>

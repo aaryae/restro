@@ -14,8 +14,13 @@ import Model from "@/components/Model";
 import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
 
-import { useGetApiQuery, useCreateApiMutation } from "@/redux/services/crudApi";
-import { TABLE_URL } from "@/constants/apiUrlConstants";
+import {
+  useGetApiQuery,
+  useCreateApiMutation,
+  useUpdateApiMutation,
+} from "@/redux/services/crudApi";
+import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
+import { handleResponse } from "@/utils/responseHandler";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -26,6 +31,7 @@ interface OrderItem {
   productPrice: number;
   quantity: number;
   specialInstructions?: string;
+  status?: string;
   subtotal: number;
 }
 
@@ -38,9 +44,9 @@ export default function AddEditOrder({
   isComponent = false,
   closeModal = () => {},
 }: Props) {
-  const { id } = useParams();
+  const { tableId, orderId } = useParams();
   const navigate = useNavigate();
-  const isEditMode = !!id;
+  const isEditMode = !!orderId;
 
   const {
     register,
@@ -49,7 +55,7 @@ export default function AddEditOrder({
     setError,
     watch,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<OrderFormType>({
     resolver: zodResolver(OrderSchema),
     defaultValues: {
@@ -65,8 +71,41 @@ export default function AddEditOrder({
 
   const watchedOrderType = watch("orderType");
 
+  console.log(errors, "form errors");
+  console.log(isValid, "is form valid");
+
+  const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
+    useGetApiQuery(
+      { url: `${ORDER_URL}${orderId}` },
+      {
+        skip: !orderId,
+      },
+    );
+
   useEffect(() => {
-    const total = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+    console.log(currentOrders, "order items");
+    if (currentOrders?.data?.orderItems?.length > 0) {
+      console.log("setting orders");
+      setOrderItems(
+        currentOrders?.data?.orderItems.map(
+          (item): OrderItem => ({
+            id: item.id,
+            productId: item.product.id,
+            productName: item.product.name,
+            productPrice: Number(item.product.price),
+            quantity: item.quantity,
+            subtotal: Number(item.subtotal),
+          }),
+        ),
+      );
+    }
+  }, [currentOrders, currentOrderIsSuccess]);
+
+  useEffect(() => {
+    const total = orderItems.reduce(
+      (sum, item) => sum + Number(item.subtotal),
+      0,
+    );
     setTotalAmount(total);
     setValue("orderItems", orderItems);
   }, [orderItems, setValue]);
@@ -76,8 +115,13 @@ export default function AddEditOrder({
 
   // Fetch products from backend (generic)
   const { data: productData, isLoading: isProductLoading } = useGetApiQuery({
-    url: `/product?search=${encodeURIComponent(productSearchTerm)}`,
+    url: `/product/list`,
   });
+
+  console.log(productData?.data?.data, "proucts");
+  console.log("orders items length", orderItems.length);
+  console.log("errors", errors);
+  console.log("valid", isValid);
 
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
@@ -102,7 +146,7 @@ export default function AddEditOrder({
       updateOrderItemQuantity(existingItem.id, existingItem.quantity + 1);
     } else {
       const newItem: OrderItem = {
-        id: `item_${Date.now()}_${Math.random()}`,
+        id: `newitem_${Date.now()}_${Math.random()}`,
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
@@ -148,8 +192,11 @@ export default function AddEditOrder({
 
   // Create order mutation (generic)
   const [createApi, { isLoading: isOrderSubmitting }] = useCreateApiMutation();
+  const [updateOrderApi, { isLoading: isOrderUpdating }] =
+    useUpdateApiMutation();
 
   const onSubmit = async (data: OrderFormType) => {
+    console.log("now submitting");
     if (orderItems.length === 0) {
       setError("orderItems", {
         message: "At least one order item is required",
@@ -159,15 +206,39 @@ export default function AddEditOrder({
     try {
       const payload = {
         ...data,
-        orderItems: orderItems.map(({ id, ...rest }) => rest), // Remove local id
-        totalAmount,
+        orderItems: orderItems.map((item: OrderItem) => {
+          if (String(item.id).includes("newitem_")) {
+            return { productId: item.productId, quantity: item.quantity };
+          }
+          return {
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+          };
+        }),
       };
-      await createApi({ url: "/order", body: payload }).unwrap();
-      handleSuccess();
-    } catch (error: any) {
-      setError("root", {
-        message: error?.data?.message || "Failed to create order",
+
+      console.log(isEditMode, "edit mode");
+      console.log(payload, "payload");
+
+      const response = isEditMode
+        ? await updateOrderApi({
+            url: `${ORDER_URL}items/${orderId}`,
+            body: payload,
+          }).unwrap()
+        : await createApi({
+            url: ORDER_URL + "create",
+            body: payload,
+          }).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => navigate(ORDER_LIST_ROUTE),
       });
+    } catch (error: any) {
+      console.error(error, "error message");
+      // setError("root", {
+      //   message: error?.data?.message || "Failed to create order",
+      // });
     }
   };
 
@@ -216,6 +287,7 @@ export default function AddEditOrder({
               {/* Table (for dineIn) */}
               {watchedOrderType === "dineIn" && (
                 <Controller
+                  defaultValue={tableId || ""}
                   name="tableId"
                   control={control}
                   render={({ field }) => (
@@ -264,15 +336,16 @@ export default function AddEditOrder({
               <h3 className="text-lg font-semibold text-gray-900">
                 Order Items
               </h3>
-              <Button
-                handleClick={() => {
+              <button
+                type="button"
+                onClick={() => {
                   setIsProductModalOpen(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
               >
                 <FaPlus className="mr-2" />
                 Add Items
-              </Button>
+              </button>
             </div>
 
             {orderItems.length === 0 ? (
@@ -295,7 +368,7 @@ export default function AddEditOrder({
                         {item.productName}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        NPR {item.productPrice.toFixed(2)} each
+                        NPR {Number(item.productPrice).toFixed(2)} each
                       </p>
                     </div>
 
@@ -324,17 +397,18 @@ export default function AddEditOrder({
 
                       <div className="text-right">
                         <p className="font-semibold text-gray-900">
-                          NPR {item.subtotal.toFixed(2)}
+                          NPR {Number(item.subtotal).toFixed(2)}
                         </p>
                       </div>
-
-                      <Button
-                        type="button"
-                        onClick={() => removeOrderItem(item.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-600 w-8 h-8 rounded-full flex items-center justify-center"
-                      >
-                        <FaTrash size={12} />
-                      </Button>
+                      {item?.status === "pending" && (
+                        <Button
+                          type="button"
+                          onClick={() => removeOrderItem(item.id)}
+                          className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center text-white"
+                        >
+                          Cancel Order
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -344,7 +418,7 @@ export default function AddEditOrder({
                   <div className="flex justify-between items-center text-xl font-bold">
                     <span>Total Amount:</span>
                     <span className="text-green-600">
-                      NPR {totalAmount.toFixed(2)}
+                      NPR {Number(totalAmount).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -360,13 +434,15 @@ export default function AddEditOrder({
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-4">
-            <Button
-              handleClick={() => navigate(-1)}
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-md"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
+              type="submit"
               disabled={isSubmitting || orderItems.length === 0}
               className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md flex items-center"
             >
@@ -381,7 +457,7 @@ export default function AddEditOrder({
                   {isEditMode ? "Update Order" : "Create Order"}
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </form>
       </div>
@@ -410,9 +486,9 @@ export default function AddEditOrder({
               <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
               <p className="text-gray-500 text-lg mb-2">Loading products...</p>
             </div>
-          ) : productData?.data?.length > 0 ? (
+          ) : productData?.data?.data?.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-              {productData.data.map(
+              {productData?.data?.data.map(
                 (product: {
                   id: string;
                   name: string;
@@ -428,12 +504,13 @@ export default function AddEditOrder({
                     <h4 className="font-semibold text-gray-900 mb-2 text-sm">
                       {product.name}
                     </h4>
-                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
+                    <p
+                      dangerouslySetInnerHTML={{ __html: product?.description }}
+                      className="text-xs text-gray-600 mb-3 line-clamp-2"
+                    ></p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-green-600">
-                        NPR {product.price?.toFixed(2)}
+                        NPR {Number(product.price).toFixed(2)}
                       </span>
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                         Stock: {product.quantity}

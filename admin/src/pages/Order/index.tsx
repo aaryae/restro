@@ -189,18 +189,18 @@ export default function Order() {
 
   const statusOptions = [
     "pending",
-    "confirmed",
+    "completed",
     "shipped",
     "delivered",
     "cancelled",
   ];
 
   const tableHeader = [
-    "Email",
-    "Mobile No",
+    "Table Id",
+    "Session Id",
     // "Address",
-    "Order Date",
-    "Delivery Time",
+    "Order Type",
+    "Order StartedAt",
     "Payment Method",
     "Payment Status",
     "Order Status",
@@ -213,36 +213,33 @@ export default function Order() {
       ? allOrders?.data?.data?.map(
           ({
             id,
-            pinCode,
-            address,
-            city,
-            deliveryTime,
-            email,
-            mobileNumber,
-            orderDate,
+            tableId,
+            sessionId,
+            orderType,
+            orderStartTime,
             paymentMethod,
             paymentStatus,
             status,
             totalAmount,
           }) => [
-            email,
-            mobileNumber,
-            // `${pinCode} - ${address} , ${city}`,
-            moment(orderDate).format("MMM D, YY hh:mm"),
-            deliveryTime,
+            tableId,
+            sessionId,
+            orderType,
+            orderStartTime,
             paymentMethod,
             paymentStatus,
-            <select
-              className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
-              value={status}
-              onChange={(e) => handleStatusUpdate(e.target.value, id)}
-            >
-              {statusOptions.map((option) => (
-                <option className="text-center" value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>,
+            // <select
+            //   className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
+            //   value={status}
+            //   onChange={(e) => handleStatusUpdate(e.target.value, id)}
+            // >
+            //   {statusOptions.map((option) => (
+            //     <option className="text-center" value={option}>
+            //       {option}
+            //     </option>
+            //   ))}
+            // </select>
+            status,
             totalAmount,
             <div
               key={id}
@@ -306,7 +303,7 @@ export default function Order() {
         handleNewButton={() => handleNewButton(null)}
         handleReloadButton={handleReload}
       >
-        {success && (
+        {/* {success && (
           <ExportToExcel
             title="Order Report"
             headers={tableHeader}
@@ -315,7 +312,7 @@ export default function Order() {
             refetch={reportRefetch}
             setIsExportTriggered={setIsExportTriggered}
           />
-        )}
+        )} */}
       </PageHeader>
       <PageFilterWrapper title="Order Filters">{Component}</PageFilterWrapper>
       <Table
@@ -325,7 +322,7 @@ export default function Order() {
         pagination={pagination}
         handlePagination={handlePagination}
       />
-      <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[70%]">
+      <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
         <ViewOrder id={orderId} isOpen={open} setIsOpen={setOpen} />
       </Drawer>
     </div>

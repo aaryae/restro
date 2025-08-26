@@ -13,7 +13,7 @@ export const OrderSchema = z.object({
   orderType: z.enum(["dineIn", "takeaway", "delivery"]),
   tableId: z.string().optional(),
   customerId: z.string().optional(),
-  customerName: z.string().min(1, "Customer name is required"),
+  // customerName: z.string().min(1, "Customer name is required"),
   customerPhone: z.string().optional(),
   customerEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   deliveryAddress: z.string().optional(),
@@ -25,12 +25,10 @@ export const OrderSchema = z.object({
   orderItems: z
     .array(
       z.object({
-        id: z.string(),
-        productId: z.string(),
-        productName: z.string(),
-        productPrice: z.number(),
+        // id: z.string(),
+        productId: z.coerce.number(),
+        productPrice: z.coerce.number(),
         quantity: z.number().min(1),
-        subtotal: z.number(),
         specialInstructions: z.string().optional(),
       }),
     )

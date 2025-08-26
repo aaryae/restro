@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PageContent from "@/components/PageContent";
 import { dummyTables } from "../../tempDatas/table";
 import { ExternalLink } from "lucide-react";
@@ -10,6 +10,11 @@ import Drawer from "@/components/Drawer";
 import ViewTableOrder from "./ViewTableOrder";
 import { dummyOrders } from "../../tempDatas/order";
 import CheckoutModal from "./CheckoutModal";
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
+import usePagination from "@/hooks/usePagination";
+import { useNavigate } from "react-router-dom";
+import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -20,59 +25,88 @@ const getPartOfDay = (date: Date = new Date()): string => {
 };
 
 export default function Dashboard() {
-  const [restroTableId, setRestroTableId] = useState<number | null>(null);
-  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [checkoutTableId, setCheckoutTableId] = useState<number | null>(null);
 
-  function handleTableClick(id: number) {
-    setRestroTableId(id);
-    setOpenDrawer(true);
-  }
+  const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
-  function handleCheckout(tableId: number) {
+  const { data: allTables } = useGetApiQuery({
+    url: `${TABLE_URL}list`,
+    ...query,
+  });
+
+  console.log(allTables, "all tables");
+  const [checkoutOrderId, setCheckoutOrderId] = useState<number | null>(null);
+
+  function handleCheckout(tableId: number, orderId: number | null) {
+    console.log("checkiiing out", tableId);
+    console.log("checkiiing out", orderId);
     setCheckoutTableId(tableId);
+    setCheckoutOrderId(orderId);
   }
 
   function closeCheckoutModal() {
     setCheckoutTableId(null);
   }
 
-  const selectedTable = dummyTables.find(
-    (table) => table.id === checkoutTableId,
-  );
-  const selectedOrder = dummyOrders.find(
-    (order) => order.tableId === String(checkoutTableId),
-  );
+  const [restroTableId, setRestroTableId] = useState<number | null>(null);
+  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+  const navigate = useNavigate();
+
+  console.log(allTables, "all tables");
+
+  function handleTableClick(id: number, status: string) {
+    if (status === "available") {
+      navigate(`${ORDER_ADD_ROUTE}${id}`);
+    } else {
+      setRestroTableId(id);
+      setOpenDrawer(true);
+    }
+  }
+
+  console.log(allTables, "tables all tabls");
 
   return (
     <PageContent>
       <div>
         <Header />
-        <Tables chooseTable={handleTableClick} />
+
+        {allTables?.data?.data && (
+          <Tables
+            tables={allTables?.data?.data}
+            chooseTable={handleTableClick}
+          />
+        )}
       </div>
       <Drawer
         isOpen={openDrawer}
         setIsOpen={setOpenDrawer}
         width="w-full lg:w-[30%]"
       >
-        <ViewTableOrder id={restroTableId} onCheckout={handleCheckout} />
+        <ViewTableOrder id={restroTableId} handleCheckout={handleCheckout} />
       </Drawer>
       <CheckoutModal
         isOpen={checkoutTableId !== null}
         onClose={closeCheckoutModal}
-        table={selectedTable}
-        order={selectedOrder}
+        tableId={checkoutTableId}
+        orderId={checkoutOrderId}
       />
     </PageContent>
   );
 }
 
-function Tables({ chooseTable }: { chooseTable: (id: number) => void }) {
+function Tables({
+  tables,
+  chooseTable,
+}: {
+  tables: any;
+  chooseTable: (id: number) => void;
+}) {
   return (
     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {dummyTables.map((table) => (
-        <RestroTable key={table.id} onClick={chooseTable} table={table} />
-      ))}
+      {tables &&
+        tables?.map((table) => (
+          <RestroTable key={table.id} onClick={chooseTable} table={table} />
+        ))}
     </div>
   );
 }

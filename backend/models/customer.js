@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       //   foreignKey: "customerId",
       //   as: "orders",
       // });
-      Customer.belongsTo(models.orderModel, {
+      Customer.hasMany(models.orderModel, {
         foreignKey: "customerId",
         as: "orders",
       });
@@ -39,7 +39,6 @@ module.exports = (sequelize, DataTypes) => {
       mobileNo: {
         type: DataTypes.STRING,
       },
-     
     },
     {
       sequelize,

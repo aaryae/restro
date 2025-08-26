@@ -9,12 +9,12 @@ import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
-import ViewContact from "./ViewContact";
 import Spinner from "@/components/Spinner";
 import { DEPARTMENT_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
 import { MdEditSquare } from "react-icons/md";
 import { FaEye } from "react-icons/fa";
+import ViewDepartment from "./ViewDepartment";
 
 interface DepartmentResponseType {
   id: number;
@@ -164,7 +164,7 @@ export default function Department() {
         setIsOpen={setOpenDrawer}
         width="w-full lg:w-[30%]"
       >
-        <ViewContact id={drawerId} />
+        <ViewDepartment id={drawerId} />
       </Drawer>
     </>
   );

@@ -34,6 +34,8 @@ export const CONTACT_LIST_ROUTE = "/admin/contact";
 
 export const ORDER_LIST_ROUTE = "/admin/order/list";
 export const ORDER_ADD_ROUTE = "/admin/order/";
+export const CUSTOMER_LIST_ROUTE = "/admin/customer/list";
+export const CUSTOMER_ADD_ROUTE = "/admin/customer/";
 export const BANNER_LIST_ROUTE = "/admin/banner/list";
 export const BANNER_ADD_ROUTE = "/admin/banner/";
 

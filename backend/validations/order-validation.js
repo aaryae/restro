@@ -15,7 +15,7 @@ const createOrderValidation = async (req, res, next) => {
       otherwise: joi.optional(),
     }),
     customerId: joi.number().integer().optional(),
-    customerName: joi.string().min(2).max(255).required(),
+    customerName: joi.string().min(2).max(255).optional(),
     customerPhone: joi.string().min(10).max(20).optional(),
     customerEmail: joi.string().email().optional(),
     orderItems: joi
@@ -24,13 +24,13 @@ const createOrderValidation = async (req, res, next) => {
         joi.object({
           productId: joi.number().integer().required(),
           quantity: joi.number().integer().min(1).required(),
-          specialInstructions: joi.string().max(500).optional(),
+          specialInstructions: joi.string().allow("").max(500).optional(),
           departmentId: joi.number().integer().optional(),
         }),
       )
       .min(1)
       .required(),
-    orderNote: joi.string().max(1000).optional(),
+    orderNote: joi.string().allow("").max(1000).optional(),
     estimatedTime: joi.number().integer().min(1).max(300).optional(),
     deliveryAddress: joi.string().max(500).when("orderType", {
       is: "delivery",
@@ -224,7 +224,7 @@ const checkoutOrderValidation = async (req, res, next) => {
         phone: joi.string().min(10).max(20).optional(),
       })
       .optional(),
-    paymentMethod: joi.string().valid("cash", "card", "online").optional(),
+    paymentMethod: joi.string().valid("cash", "card", "online"),
     isGuestOrder: joi.boolean().optional(),
   });
   const errors = await validateRequestBody(req, res, joiModel);

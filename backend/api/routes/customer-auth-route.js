@@ -4,9 +4,9 @@ const {
   paginationValidation,
 } = require("../../validations/common-validation");
 const {
-  resetPasswordValidation,
-  updateByAdminValidation,
-} = require("../../validations/customer-validation");
+  createValidation,
+  updateValidation,
+} = require("../../validations/customer-auth-validation");
 const {
   authentication,
   authorization,
@@ -14,53 +14,50 @@ const {
 
 const router = require("express").Router();
 const {
-  getByIdCustomer,
-  updateByAdmin,
-  block,
-  archive,
-  resetPassword,
-  getAllCustomer,
+  create,
+  deleteData,
+  getById,
+  list,
+  update,
 } = require("../controllers/customer-controller");
+
+router.post(
+  "/create",
+  // authentication,
+  // authorization,
+  // createValidation,
+  create,
+);
 
 router.get(
   "/list",
-  authentication,
-  authorization,
+  // authentication,
+  // authorization,
   paginationValidation,
-  getAllCustomer,
+  list,
 );
 router.get(
   "/:id",
-  authentication,
-  authorization,
+  // authentication,
+  // authorization,
   idValidation,
-  getByIdCustomer,
+  getById,
 );
 
 router.put(
   "/:id",
-  authentication,
-  authorization,
+  // authentication,
+  // authorization,
   idValidation,
-  updateByAdminValidation,
-  updateByAdmin,
+  updateValidation,
+  update,
 );
-
-router.patch("/block/:id", authentication, authorization, idValidation, block);
-router.patch(
-  "/soft-delete/:id",
-  authentication,
-  authorization,
+router.delete(
+  "/:id",
+  // authentication,
+  // authorization,
   idValidation,
-  archive,
-);
-router.patch(
-  "/reset-password/:id",
-  authentication,
-  authorization,
-  idValidation,
-  resetPasswordValidation,
-  resetPassword,
+  deleteData,
 );
 
 module.exports = router;

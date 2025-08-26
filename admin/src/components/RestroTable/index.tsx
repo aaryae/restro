@@ -22,7 +22,9 @@ interface RestroTableProps {
 const RestroTable: React.FC<RestroTableProps> = ({ table, onClick }) => {
   return (
     <div
-      onClick={() => table.status !== "maintenance" && onClick(table.id)}
+      onClick={() =>
+        table.status !== "maintenance" && onClick(table.id, table.status)
+      }
       className={`p-4 bg-white hover:cursor-pointer rounded-lg shadow-md border-l-4 
         ${
           table.status === "available"

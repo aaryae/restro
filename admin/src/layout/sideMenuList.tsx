@@ -58,7 +58,7 @@ export const SideMenuList: SideListMenuType[] = [
     key: 3,
     name: "Customer",
     icon: <UserCheck />,
-    path: "/admin/customer",
+    path: "/admin/customer/list",
   },
   {
     key: 4,

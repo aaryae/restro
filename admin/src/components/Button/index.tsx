@@ -1,6 +1,7 @@
 import React, { ButtonHTMLAttributes } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  type?: "button" | "submit" | "reset";
   className?: string;
   leftSection?: React.ReactNode;
   rightSection?: React.ReactNode;
@@ -9,6 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button: React.FC<ButtonProps> = ({
+  type = "button",
   className,
   leftSection,
   rightSection,
@@ -19,6 +21,7 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
+      type={type}
       className={`button ${className || ""}`}
       {...rest}
       onClick={handleClick}

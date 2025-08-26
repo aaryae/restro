@@ -40,3 +40,10 @@ then update table status
 remove
 table -> name , reserved from enum
 order -> delivery from enum
+
+
+
+// 
+customer details with order and complete crud
+add new item in order
+validation

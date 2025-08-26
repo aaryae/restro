@@ -33,7 +33,7 @@ export default function CustomDialog({
         <div>{buttonTitle} </div>
       </DialogTrigger>
       <DialogContent
-        className={contentClassName ? contentClassName : "w-[50%]"}
+        className={contentClassName ? contentClassName : "w-[50%] p-6"}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

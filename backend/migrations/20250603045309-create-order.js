@@ -30,10 +30,6 @@ module.exports = {
       sessionId: {
         type: Sequelize.UUID,
         allowNull: true,
-        references: {
-          model: "tables",
-          key: "sessionId",
-        },
         onDelete: "SET NULL",
       },
       status: {

@@ -87,6 +87,7 @@ const getById = async (req) => {
         model: orderModel,
         as: "orders",
       },
+      include: { model: floorModel, as: "floor" },
     });
     if (!result) {
       return {
