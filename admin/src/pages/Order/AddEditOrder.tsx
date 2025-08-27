@@ -18,9 +18,11 @@ import {
   useGetApiQuery,
   useCreateApiMutation,
   useUpdateApiMutation,
+  usePatchApiMutation,
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
-import { handleResponse } from "@/utils/responseHandler";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { Plus, PlusCircle } from "lucide-react";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -77,9 +79,6 @@ export default function AddEditOrder({
 
   const watchedOrderType = watch("orderType");
 
-  console.log(errors, "form errors");
-  console.log(isValid, "is form valid");
-
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
       { url: `${ORDER_URL}${orderId}` },
@@ -89,9 +88,7 @@ export default function AddEditOrder({
     );
 
   useEffect(() => {
-    console.log(currentOrders, "order items");
     if (currentOrders?.data?.orderItems?.length > 0) {
-      console.log("setting orders");
       setOrderItems(
         currentOrders?.data?.orderItems.map(
           (item): OrderItem => ({
@@ -101,9 +98,11 @@ export default function AddEditOrder({
             productPrice: Number(item.product.price),
             quantity: item.quantity,
             subtotal: Number(item.subtotal),
+            status: item.status,
           }),
         ),
       );
+      setValue("orderNote", currentOrders?.data?.orderNote);
     }
   }, [currentOrders, currentOrderIsSuccess]);
 
@@ -124,10 +123,7 @@ export default function AddEditOrder({
     url: `/product/list`,
   });
 
-  console.log(productData?.data?.data, "proucts");
-  console.log("orders items length", orderItems.length);
-  console.log("errors", errors);
-  console.log("valid", isValid);
+  const [patchStatus] = usePatchApiMutation();
 
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
@@ -184,8 +180,26 @@ export default function AddEditOrder({
     );
   };
 
-  const removeOrderItem = (itemId: string) => {
-    setOrderItems((prev) => prev.filter((item) => item.id !== itemId));
+  const removeOrderItem = async (itemId: string) => {
+    if (!String(itemId).includes("newitems_")) {
+      try {
+        const response = await patchStatus({
+          url: `${ORDER_URL}items/status`,
+          body: { status: "cancelled", orderItemIds: Number(itemId) },
+        }).unwrap();
+        handleResponse({
+          res: response,
+          onSuccess: () => {},
+        });
+      } catch (error) {
+        handleError({ error });
+      }
+    }
+    setOrderItems((prev) =>
+      prev.filter(
+        (item) => item.id !== itemId && String(item.id).includes("newitem_"),
+      ),
+    );
   };
 
   const handleSuccess = () => {
@@ -202,7 +216,6 @@ export default function AddEditOrder({
     useUpdateApiMutation();
 
   const onSubmit = async (data: OrderFormType) => {
-    console.log("now submitting");
     if (orderItems.length === 0) {
       setError("orderItems", {
         message: "At least one order item is required",
@@ -223,9 +236,6 @@ export default function AddEditOrder({
           };
         }),
       };
-
-      console.log(isEditMode, "edit mode");
-      console.log(payload, "payload");
 
       const response = isEditMode
         ? await updateOrderApi({
@@ -257,77 +267,170 @@ export default function AddEditOrder({
         />
       )}
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[95rem] mx-auto">
         <form
-          className={`space-y-8 ${isComponent ? "" : "form-container"}`}
+          className={`grid grid-cols-[2fr,1fr] ${isComponent ? "" : "form-container"}`}
           onSubmit={handleSubmit(onSubmit)}
         >
-          {/* Order Information Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <MdShoppingCart className="mr-2 text-blue-600" />
-              Order Information
-            </h3>
+          <div>
+            {/* Order Information Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <MdShoppingCart className="mr-2 text-blue-600" />
+                Order Information
+              </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Order Type */}
-              <Controller
-                name="orderType"
-                control={control}
-                defaultValue="dineIn"
-                render={({ field }) => (
-                  <div className="flex space-x-2 p-1 bg-gray-100 rounded-lg">
-                    {orderTypeOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                          field.value === option.value
-                            ? "bg-blue-500 text-white"
-                            : "bg-white text-gray-700 hover:bg-gray-200"
-                        }`}
-                        onClick={() => field.onChange(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              />
-            </div>
-
-            {/* Table (for dineIn) */}
-            {watchedOrderType === "dineIn" && (
-              <Controller
-                defaultValue={tableId || ""}
-                name="tableId"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    label="Table"
-                    options={tableOptions}
-                    className="w-full"
-                    error={errors.tableId?.message}
-                    required
-                  />
-                )}
-              />
-            )}
-
-            {/* Delivery Address (for delivery) */}
-            {watchedOrderType === "delivery" && (
-              <div className="mt-6">
-                <TextArea
-                  label="Delivery Address"
-                  placeholder="Enter complete delivery address"
-                  className="w-full"
-                  {...register("deliveryAddress")}
-                  error={errors.deliveryAddress?.message}
-                  required
+              <div className="mb-4">
+                {/* Order Type */}
+                <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
+                  Order Type
+                </label>
+                <Controller
+                  name="orderType"
+                  control={control}
+                  defaultValue="dineIn"
+                  render={({ field }) => (
+                    <div className="flex space-x-2 p-1 rounded-lg">
+                      {orderTypeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`flex border-2 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                            field.value === option.value
+                              ? "bg-blue-500 text-white border-none"
+                              : "bg-white text-gray-700 hover:bg-gray-200"
+                          }`}
+                          onClick={() => field.onChange(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 />
               </div>
-            )}
+
+              {/* Table (for dineIn) */}
+              {watchedOrderType === "dineIn" && (
+                <Controller
+                  defaultValue={tableId || ""}
+                  name="tableId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      label="Table: "
+                      options={tableOptions}
+                      className="flex !flex-row items-center gap-3"
+                      error={errors.tableId?.message}
+                      required
+                    />
+                  )}
+                />
+              )}
+
+              {/* Product Selection */}
+              <div className="my-6">
+                <div className="mb-6">
+                  <div className="relative">
+                    <Input
+                      placeholder="Search products..."
+                      value={productSearchTerm}
+                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {isProductLoading ? (
+                  <div className="text-center py-12">
+                    <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-lg mb-2">
+                      Loading products...
+                    </p>
+                  </div>
+                ) : productData?.data?.data?.length > 0 ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="text-left text-lg font-semibold text-gray-900">
+                      Top Selling Products
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                      {productData?.data?.data
+                        ?.slice(0, 8)
+                        .map(
+                          (product: {
+                            id: string;
+                            name: string;
+                            description: string;
+                            price: number;
+                            quantity: number;
+                          }) => (
+                            <div
+                              key={product.id}
+                              className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
+                              onClick={() => addProductToOrder(product)}
+                            >
+                              <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                                {product.name}
+                              </h4>
+                              <p
+                                dangerouslySetInnerHTML={{
+                                  __html: product?.description,
+                                }}
+                                className="text-xs text-gray-600 mb-3 line-clamp-2"
+                              ></p>
+                              <div className="flex justify-between items-center">
+                                <span className="text-lg font-bold text-green-600">
+                                  NPR {Number(product.price).toFixed(2)}
+                                </span>
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  Stock: {product.quantity}
+                                </span>
+                              </div>
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <button
+                                  type="button"
+                                  className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium py-2 px-3 rounded transition-colors"
+                                >
+                                  Add to Order
+                                </button>
+                              </div>
+                            </div>
+                          ),
+                        )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-lg mb-2">
+                      {productSearchTerm
+                        ? "No products found"
+                        : "No products available"}
+                    </p>
+                    {productSearchTerm && (
+                      <p className="text-gray-400 text-sm">
+                        Try searching with different keywords
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Address (for delivery) */}
+              {watchedOrderType === "delivery" && (
+                <div className="mt-6">
+                  <Input
+                    label="Delivery Address"
+                    placeholder="Enter complete delivery address"
+                    className="w-full"
+                    {...register("deliveryAddress")}
+                    error={errors.deliveryAddress?.message}
+                    required
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Order Note */}
             <div className="mt-6">
@@ -340,219 +443,140 @@ export default function AddEditOrder({
               />
             </div>
           </div>
-
-          {/* Order Items Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Order Items
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsProductModalOpen(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                <FaPlus className="mr-2" />
-                Add Items
-              </button>
-            </div>
-
-            {orderItems.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <MdShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-gray-500 text-lg mb-2">No items added yet</p>
-                <p className="text-gray-400 text-sm">
-                  Click "Add Items" to start building the order
-                </p>
+          <div>
+            {/* Order Items Section */}
+            <div className="bg-white rounded-lg flex flex-col h-full shadow-sm border border-gray-200 px-3">
+              <div className="flex items-center justify-between py-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Order Items
+                </h3>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {orderItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border"
-                  >
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {item.productName}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        NPR {Number(item.productPrice).toFixed(2)} each
-                      </p>
-                    </div>
 
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          handleClick={() =>
-                            updateOrderItemQuantity(item.id, item.quantity - 1)
-                          }
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
-                        >
-                          -
-                        </Button>
-                        <span className="w-12 text-center font-medium">
-                          {item.quantity}
-                        </span>
-                        <Button
-                          handleClick={() =>
-                            updateOrderItemQuantity(item.id, item.quantity + 1)
-                          }
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
-                        >
-                          +
-                        </Button>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">
-                          NPR {Number(item.subtotal).toFixed(2)}
+              {orderItems.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <MdShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500 text-lg mb-2">
+                    No items added yet
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    Click "Add Items" to start building the order
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 flex-1">
+                  {orderItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                    >
+                      <div
+                        className={`flex-1 ${item.status === "cancelled" ? "line-through" : ""}`}
+                      >
+                        <h4 className={`font-medium text-gray-900 `}>
+                          {item.productName}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          NPR {Number(item.productPrice).toFixed(2)} each
                         </p>
                       </div>
-                      {item?.status === "pending" && (
-                        <Button
-                          type="button"
-                          onClick={() => removeOrderItem(item.id)}
-                          className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center text-white"
-                        >
-                          Cancel Order
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
 
-                {/* Total Section */}
-                <div className="border-t pt-4 mt-6">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>Total Amount:</span>
-                    <span className="text-green-600">
-                      NPR {Number(totalAmount).toFixed(2)}
-                    </span>
-                  </div>
+                      <div
+                        className={`flex items-center space-x-2 ${item.status === "cancelled" ? "hidden" : ""}`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            handleClick={() =>
+                              updateOrderItemQuantity(
+                                item.id,
+                                item.quantity - 1,
+                              )
+                            }
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
+                          >
+                            -
+                          </Button>
+                          <span className="w-8 text-center font-medium">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            handleClick={() =>
+                              updateOrderItemQuantity(
+                                item.id,
+                                item.quantity + 1,
+                              )
+                            }
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
+                          >
+                            +
+                          </Button>
+                        </div>
+
+                        <div
+                          onClick={() => removeOrderItem(item.id)}
+                          className="text-right"
+                        >
+                          <Plus className="rotate-45 text-red-400 cursor-pointer" />
+                        </div>
+                        {/* {item?.status === "pending" && (
+                          <Button
+                            type="button"
+                            onClick={() => removeOrderItem(item.id)}
+                            className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center text-white"
+                          >
+                            Cancel Order
+                          </Button>
+                        )} */}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Total Section */}
+              <div className="border-t pt-4 mt-6">
+                <div className="flex justify-between items-center text-xl font-bold">
+                  <span>Total Amount:</span>
+                  <span className="text-green-600">
+                    NPR {Number(totalAmount).toFixed(2)}
+                  </span>
                 </div>
               </div>
-            )}
+              {/* Submit Button */}
+              <div className="flex justify-end space-x-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || orderItems.length === 0}
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md flex items-center"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {isEditMode ? "Updating..." : "Creating..."}
+                    </>
+                  ) : (
+                    <>
+                      <MdShoppingCart className="mr-2" />
+                      {isEditMode ? "Update Order" : "Create Order"}
+                    </>
+                  )}
+                </button>
+              </div>
 
-            {errors.orderItems && (
-              <p className="text-red-500 text-sm mt-2">
-                {errors.orderItems.message}
-              </p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-md"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || orderItems.length === 0}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md flex items-center"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {isEditMode ? "Updating..." : "Creating..."}
-                </>
-              ) : (
-                <>
-                  <MdShoppingCart className="mr-2" />
-                  {isEditMode ? "Update Order" : "Create Order"}
-                </>
+              {errors.orderItems && (
+                <p className="text-red-500 text-sm mt-2">
+                  {errors.orderItems.message}
+                </p>
               )}
-            </button>
+            </div>
           </div>
         </form>
       </div>
-
-      {/* Product Selection Modal */}
-      <Model
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        title="Select Products"
-      >
-        <div className="p-6">
-          <div className="mb-6">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search products..."
-                value={productSearchTerm}
-                onChange={(e) => setProductSearchTerm(e.target.value)}
-                className="pl-10 w-full"
-              />
-            </div>
-          </div>
-
-          {isProductLoading ? (
-            <div className="text-center py-12">
-              <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg mb-2">Loading products...</p>
-            </div>
-          ) : productData?.data?.data?.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-              {productData?.data?.data.map(
-                (product: {
-                  id: string;
-                  name: string;
-                  description: string;
-                  price: number;
-                  quantity: number;
-                }) => (
-                  <div
-                    key={product.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
-                    onClick={() => addProductToOrder(product)}
-                  >
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                      {product.name}
-                    </h4>
-                    <p
-                      dangerouslySetInnerHTML={{ __html: product?.description }}
-                      className="text-xs text-gray-600 mb-3 line-clamp-2"
-                    ></p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-green-600">
-                        NPR {Number(product.price).toFixed(2)}
-                      </span>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        Stock: {product.quantity}
-                      </span>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <button className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium py-2 px-3 rounded transition-colors">
-                        Add to Order
-                      </button>
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg mb-2">
-                {productSearchTerm
-                  ? "No products found"
-                  : "No products available"}
-              </p>
-              {productSearchTerm && (
-                <p className="text-gray-400 text-sm">
-                  Try searching with different keywords
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </Model>
     </>
   );
 }
