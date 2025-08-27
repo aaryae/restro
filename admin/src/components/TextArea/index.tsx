@@ -11,11 +11,21 @@ interface TextAreaProps
   leftSection?: React.ReactNode;
   rightSection?: React.ReactNode;
   isRequired?: boolean;
+  rows?: number;
 }
 
 const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   (
-    { label, error, className, leftSection, rightSection, isRequired, ...rest },
+    {
+      label,
+      error,
+      className,
+      rows,
+      leftSection,
+      rightSection,
+      isRequired,
+      ...rest
+    },
     ref,
   ) => {
     const translate = useTranslation();
@@ -33,7 +43,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           )}
           <textarea
             ref={ref}
-            rows={10}
+            rows={rows || 10}
             className={`textarea-field ${error ? "textarea-error-field" : ""}`}
             {...rest}
           />

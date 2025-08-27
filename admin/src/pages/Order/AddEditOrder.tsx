@@ -23,6 +23,7 @@ import {
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Plus, PlusCircle } from "lucide-react";
+import { id } from "date-fns/locale";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -108,7 +109,8 @@ export default function AddEditOrder({
 
   useEffect(() => {
     const total = orderItems.reduce(
-      (sum, item) => sum + Number(item.subtotal),
+      (sum, item) =>
+        item.status === "cancelled" ? 0 : sum + Number(item.subtotal),
       0,
     );
     setTotalAmount(total);
@@ -142,7 +144,7 @@ export default function AddEditOrder({
     quantity: number;
   }) => {
     const existingItem = orderItems.find(
-      (item) => item.productId === product.id,
+      (item) => item.productId === product.id && item.status !== "cancelled",
     );
     if (existingItem) {
       updateOrderItemQuantity(existingItem.id, existingItem.quantity + 1);
@@ -181,7 +183,7 @@ export default function AddEditOrder({
   };
 
   const removeOrderItem = async (itemId: string) => {
-    if (!String(itemId).includes("newitems_")) {
+    if (!String(itemId).includes("newitem_")) {
       try {
         const response = await patchStatus({
           url: `${ORDER_URL}items/status`,
@@ -435,6 +437,7 @@ export default function AddEditOrder({
             {/* Order Note */}
             <div className="mt-6">
               <TextArea
+                rows={5}
                 label="Order Note"
                 placeholder="Any special instructions or notes"
                 className="w-full"
@@ -532,7 +535,7 @@ export default function AddEditOrder({
                 </div>
               )}
               {/* Total Section */}
-              <div className="border-t pt-4 mt-6">
+              <div className="border-t pt-4 mt-auto">
                 <div className="flex justify-between items-center text-xl font-bold">
                   <span>Total Amount:</span>
                   <span className="text-green-600">
@@ -541,7 +544,7 @@ export default function AddEditOrder({
                 </div>
               </div>
               {/* Submit Button */}
-              <div className="flex justify-end space-x-4 mt-4">
+              <div className="flex justify-end space-x-4 mt-4 pb-3">
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
