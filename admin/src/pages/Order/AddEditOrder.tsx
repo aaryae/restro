@@ -40,6 +40,12 @@ interface Props {
   closeModal?: () => void;
 }
 
+const orderTypeOptions = [
+  { value: "dineIn", label: "Dine In" },
+  { value: "takeaway", label: "Takeaway" },
+  { value: "delivery", label: "Delivery" },
+];
+
 export default function AddEditOrder({
   isComponent = false,
   closeModal = () => {},
@@ -268,41 +274,46 @@ export default function AddEditOrder({
               <Controller
                 name="orderType"
                 control={control}
+                defaultValue="dineIn"
+                render={({ field }) => (
+                  <div className="flex space-x-2 p-1 bg-gray-100 rounded-lg">
+                    {orderTypeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                          field.value === option.value
+                            ? "bg-blue-500 text-white"
+                            : "bg-white text-gray-700 hover:bg-gray-200"
+                        }`}
+                        onClick={() => field.onChange(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Table (for dineIn) */}
+            {watchedOrderType === "dineIn" && (
+              <Controller
+                defaultValue={tableId || ""}
+                name="tableId"
+                control={control}
                 render={({ field }) => (
                   <Select
                     {...field}
-                    label="Order Type"
-                    options={[
-                      { value: "dineIn", label: "Dine In" },
-                      { value: "takeaway", label: "Takeaway" },
-                      { value: "delivery", label: "Delivery" },
-                    ]}
+                    label="Table"
+                    options={tableOptions}
                     className="w-full"
-                    error={errors.orderType?.message}
+                    error={errors.tableId?.message}
                     required
                   />
                 )}
               />
-
-              {/* Table (for dineIn) */}
-              {watchedOrderType === "dineIn" && (
-                <Controller
-                  defaultValue={tableId || ""}
-                  name="tableId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      label="Table"
-                      options={tableOptions}
-                      className="w-full"
-                      error={errors.tableId?.message}
-                      required
-                    />
-                  )}
-                />
-              )}
-            </div>
+            )}
 
             {/* Delivery Address (for delivery) */}
             {watchedOrderType === "delivery" && (
