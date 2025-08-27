@@ -282,54 +282,55 @@ export default function AddEditOrder({
                 Order Information
               </h3>
 
-              <div className="mb-4">
-                {/* Order Type */}
-                <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
-                  Order Type
-                </label>
-                <Controller
-                  name="orderType"
-                  control={control}
-                  defaultValue="dineIn"
-                  render={({ field }) => (
-                    <div className="flex space-x-2 p-1 rounded-lg">
-                      {orderTypeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`flex border-2 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                            field.value === option.value
-                              ? "bg-blue-500 text-white border-none"
-                              : "bg-white text-gray-700 hover:bg-gray-200"
-                          }`}
-                          onClick={() => field.onChange(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                />
+              <div className="mb-4 flex items-center gap-8">
+                <div>
+                  {/* Order Type */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
+                    Order Type
+                  </label>
+                  <Controller
+                    name="orderType"
+                    control={control}
+                    defaultValue="dineIn"
+                    render={({ field }) => (
+                      <div className="flex space-x-5 p-1 rounded-lg">
+                        {orderTypeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                              field.value === option.value
+                                ? "bg-blue-500 text-white border-none"
+                                : "bg-white text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => field.onChange(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  />
+                </div>
+                {/* Table (for dineIn) */}
+                {watchedOrderType === "dineIn" && (
+                  <Controller
+                    defaultValue={tableId || ""}
+                    name="tableId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label="Table: "
+                        options={tableOptions}
+                        className="flex items-start gap-3"
+                        error={errors.tableId?.message}
+                        required
+                      />
+                    )}
+                  />
+                )}
               </div>
-
-              {/* Table (for dineIn) */}
-              {watchedOrderType === "dineIn" && (
-                <Controller
-                  defaultValue={tableId || ""}
-                  name="tableId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      label="Table: "
-                      options={tableOptions}
-                      className="flex !flex-row items-center gap-3"
-                      error={errors.tableId?.message}
-                      required
-                    />
-                  )}
-                />
-              )}
 
               {/* Product Selection */}
               <div className="my-6">
