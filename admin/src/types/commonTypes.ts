@@ -8,6 +8,7 @@ export interface PaginationType {
   limit: number;
   total: number;
   totalPages: number;
+  search?: Record<string, any>;
 }
 
 export interface OrderItem {

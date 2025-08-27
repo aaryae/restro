@@ -25,10 +25,10 @@ const RestroTable: React.FC<RestroTableProps> = ({ table, onClick }) => {
       onClick={() =>
         table.status !== "maintenance" && onClick(table.id, table.status)
       }
-      className={`p-4 bg-white hover:cursor-pointer rounded-lg shadow-md border-l-4 
+      className={`px-4 pt-6 pb-14 bg-white hover:cursor-pointer rounded-lg shadow-md border-l-4 
         ${
           table.status === "available"
-            ? "border-green-500"
+            ? "border-green-700"
             : table.status === "occupied"
               ? "border-red-500"
               : table.status === "reserved"
@@ -42,7 +42,7 @@ const RestroTable: React.FC<RestroTableProps> = ({ table, onClick }) => {
           {table.floor.floorNo}
         </span>
         <span
-          className={`px-2 py-1 text-xs font-semibold rounded-full 
+          className={`px-2 py-1 text-xs font-semibold rounded-full  
             ${
               table.status === "available"
                 ? "bg-green-100 text-green-800"
@@ -58,15 +58,15 @@ const RestroTable: React.FC<RestroTableProps> = ({ table, onClick }) => {
       </div>
       <div className="flex justify-center">
         <div
-          className={`w-12 h-12 flex items-center justify-center rounded-full text-white font-bold text-lg
+          className={`w-12 h-12 flex items-center justify-center rounded-full font-bold text-lg
             ${
               table.status === "available"
-                ? "bg-green-500"
+                ? "text-green-700"
                 : table.status === "occupied"
-                  ? "bg-red-500"
+                  ? "text-red-500"
                   : table.status === "reserved"
-                    ? "bg-yellow-500"
-                    : "bg-gray-500"
+                    ? "text-yellow-500"
+                    : "text-gray-500"
             }`}
         >
           {table.tableNo}

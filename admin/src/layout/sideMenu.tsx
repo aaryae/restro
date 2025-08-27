@@ -44,16 +44,16 @@ export default function SideMenu({
       <img
         src={Logo}
         alt="Logo"
-        className="w-[72px] h-[59px] object-cover mx-[4px] "
+        className="w-[72px] h-[59px] object-cover mx-[4px] mt-4 "
       />
-      <div className="flex flex-col gap-[6px] mt-[6px]">
+      <div className="flex flex-col gap-[6px] mt-[30px]">
         {/* Dashboard */}
         <div
           className={`${
             currentPath.includes("dashboard")
               ? "bg-primaryColor text-white"
               : ""
-          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.5rem] transition-all duration-150`}
+          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.5rem]`}
           onClick={() => handleNavigate("dashboard", "/admin/dashboard")}
         >
           <div className="flex items-center gap-[0.5rem]">
@@ -68,7 +68,7 @@ export default function SideMenu({
           <div
             className={`${
               currentPath.includes("order") ? "bg-primaryColor text-white" : ""
-            } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem] transition-all duration-150`}
+            } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
             onClick={() => handleNavigate("request", "/admin/order/list")}
           >
             <div className="flex items-center gap-[0.5rem]">
@@ -127,7 +127,7 @@ export default function SideMenu({
                 <>
                   {viewAccess.includes(each.name) && (
                     <div
-                      className={` flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] hover:text-white hover:bg-primaryColor cursor-pointer transition-all duration-150 ${
+                      className={` flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] hover:text-white hover:bg-primaryColor cursor-pointer ${
                         currentPath.includes(each.name.toLowerCase()) ||
                         currentPath.includes(
                           each.name.toLowerCase() + "-category",
@@ -168,7 +168,7 @@ export default function SideMenu({
                       {viewAccess.includes(item.name) && (
                         <div
                           key={index}
-                          className={`flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer transition-all duration-150 ${
+                          className={`flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer ${
                             isActive === item.name ||
                             currentPath.includes(item.name.toLowerCase())
                               ? "text-white bg-primaryColor "
