@@ -1,119 +1,40 @@
 import Drawer from "@/components/Drawer";
 import PageHeader from "@/components/PageHeader";
 import Table from "@/components/Table";
-import {
-  useGetApiQuery,
-  usePatchApiMutation,
-  useUpdateApiMutation,
-} from "@/redux/services/crudApi";
+import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
 import moment from "moment";
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
 import ViewOrder from "./ViewOrder";
 import usePagination from "@/hooks/usePagination";
-import ExportToExcel from "@/components/ExportToExcel";
+
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { OrderFilterSchema, OrderFilterType } from "./schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { FilterInput } from "@/components/Input/filterInput";
-import { FilterSelect } from "@/components/Select/FilterSelect";
-import DateInput from "@/components/DateInput";
-import PageFilterSample from "@/components/PageFilterSample";
+
 import { buildQueryString } from "@/utils/generalHelper";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { useNavigate } from "react-router-dom";
-import {
-  ORDER_STATUS_OPTIONS,
-  PAYMENT_STATUS_OPTIONS,
-} from "@/constants/StaticDropdownConstants";
+
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
+import { format } from "date-fns";
+import CancelOrderModal from "@/components/CancelOrderModal";
+import OrderFilter from "./OrderFilter";
 
 export default function Order() {
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
 
-  const [isExportTriggered, setIsExportTriggered] = useState<boolean>(false);
-
-  const { control, handleSubmit, reset, setValue, getValues } =
-    useForm<OrderFilterType>({
-      resolver: zodResolver(OrderFilterSchema),
-    });
-
-  const [queryString, setQueryString] = useState("");
+  const [queryStringOptions, setQueryStringOptions] = useState({
+    startDate: null,
+    endDate: null,
+    paymentStatus: null,
+    orderStatus: null,
+  });
 
   const navigate = useNavigate();
-
-  const handlePaymentChange = (value: string) => {
-    setValue("paymentStatus", value);
-  };
-
-  const handleOrderChange = (value: string) => {
-    setValue("status", value);
-  };
-
-  const handleDateInput = (value: string) => {
-    setValue("orderDate", value);
-  };
-
-  const filterField = useMemo(
-    () => [
-      {
-        name: "email",
-        label: "Email",
-        Component: FilterInput,
-        control,
-      },
-      {
-        name: "mobileNo",
-        label: "Mobile Number",
-        Component: FilterInput,
-        control,
-      },
-
-      {
-        name: "orderDate",
-        label: "Order Date",
-        Component: DateInput,
-        handleChange: handleDateInput,
-        value: getValues("orderDate"),
-        control,
-      },
-      {
-        name: "paymentStatus",
-        label: "Payment Status",
-        Component: FilterSelect,
-        className: "w-full",
-        handleChange: handlePaymentChange,
-        value: getValues("paymentStatus"),
-        control,
-        options: PAYMENT_STATUS_OPTIONS,
-      },
-      {
-        name: "status",
-        label: "Order Status",
-        Component: FilterSelect,
-        className: "w-full",
-        handleChange: handleOrderChange,
-        value: getValues("status"),
-        control,
-        options: ORDER_STATUS_OPTIONS,
-      },
-    ],
-
-    [control],
-  );
-
-  const { Component } = PageFilterSample(
-    filterField,
-    handleSubmit,
-    // reset,
-    (query) => setQueryString(query),
-  );
 
   const url = buildQueryString("order/list", {
     page: query.page,
     limit: query.limit,
-    search: queryString,
+    search: queryStringOptions,
   });
 
   const {
@@ -123,22 +44,6 @@ export default function Order() {
     refetch,
   } = useGetApiQuery({ url });
 
-  const {
-    data: allOrdersReport,
-    isSuccess: reportSuccess,
-    isLoading: reportLoading,
-    refetch: reportRefetch,
-  } = useGetApiQuery(
-    {
-      url: "order/list",
-      page: 1,
-      limit: allOrders?.data?.limit * allOrders?.data?.totalPages,
-    },
-    {
-      skip: !allOrders?.data || !isExportTriggered,
-    },
-  );
-
   useEffect(() => {
     const interval = setInterval(refetch, 30000);
     return () => clearInterval(interval);
@@ -147,6 +52,9 @@ export default function Order() {
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [open, setOpen] = useState<boolean>(false);
+
+  const [openCancel, setOpenCancel] = useState<boolean>(false);
+  const [cancelId, setCancelId] = useState<number | null>(null);
 
   const handleReload = () => {
     refetch();
@@ -163,11 +71,16 @@ export default function Order() {
       : navigate(`${ORDER_ADD_ROUTE}${id}`);
   };
 
-  async function handleStatusUpdate(status: string, id: number) {
+  const handleCancelTrigger = (id: number) => {
+    setCancelId(id);
+    setOpenCancel(true);
+  };
+
+  async function hanldeOrderCancellation(remarks: string) {
     try {
       const response = await patchStatus({
-        url: `order/status/${id}`,
-        body: { status },
+        url: `order/status/${cancelId}`,
+        body: { status: "cancelled" },
       }).unwrap();
       handleResponse({
         res: response,
@@ -176,7 +89,7 @@ export default function Order() {
     } catch (error) {
       handleError({ error });
     } finally {
-      setOpen(false);
+      setOpenCancel(false);
     }
   }
 
@@ -196,51 +109,43 @@ export default function Order() {
   ];
 
   const tableHeader = [
-    "Table Id",
-    "Session Id",
-    // "Address",
+    "Table Name",
     "Order Type",
     "Order StartedAt",
-    "Payment Method",
+    "Amount",
     "Payment Status",
-    "Order Status",
-    "Total Amount",
     "Actions",
   ];
+
+  console.log(allOrders?.data?.data, "all orders data");
 
   const tableData =
     success && allOrders?.data?.data
       ? allOrders?.data?.data?.map(
           ({
             id,
-            tableId,
-            sessionId,
+            table: { tableNo },
             orderType,
             orderStartTime,
-            paymentMethod,
             paymentStatus,
             status,
             totalAmount,
           }) => [
-            tableId,
-            sessionId,
-            orderType,
-            orderStartTime,
-            paymentMethod,
-            paymentStatus,
-            // <select
-            //   className="w-40 p-2 text-base bg-white focus:outline-none focus:border-blue-500 transition-colors"
-            //   value={status}
-            //   onChange={(e) => handleStatusUpdate(e.target.value, id)}
-            // >
-            //   {statusOptions.map((option) => (
-            //     <option className="text-center" value={option}>
-            //       {option}
-            //     </option>
-            //   ))}
-            // </select>
-            status,
-            totalAmount,
+            <span className={`${status === "cancelled" ? "line-through" : ""}`}>
+              {tableNo}
+            </span>,
+            <span className={`${status === "cancelled" ? "line-through" : ""}`}>
+              {orderType}
+            </span>,
+            <span className={`${status === "cancelled" ? "line-through" : ""}`}>
+              {format(new Date(orderStartTime), "PPp")}
+            </span>,
+            <span className={`${status === "cancelled" ? "line-through" : ""}`}>
+              {totalAmount}
+            </span>,
+            <span className={`${status === "cancelled" ? "line-through" : ""}`}>
+              {paymentStatus}
+            </span>,
             <div
               key={id}
               className="flex items-center justify-center gap-[0.5rem]"
@@ -250,46 +155,16 @@ export default function Order() {
                 className="text-[#0090DD] cursor-pointer"
                 onClick={() => handleViewOrder(id)}
               />
-            </div>,
-          ],
-        )
-      : [];
-
-  const tableDataReport =
-    reportSuccess && allOrdersReport?.data?.data
-      ? allOrdersReport?.data?.data?.map(
-          ({
-            id,
-            pinCode,
-            address,
-            city,
-            deliveryTime,
-            email,
-            mobileNumber,
-            orderDate,
-            paymentMethod,
-            paymentStatus,
-            status,
-            totalAmount,
-          }) => [
-            email,
-            mobileNumber,
-            // `${pinCode} - ${address} , ${city}`,
-            moment(orderDate).format("MMM D, YY hh:mm"),
-            deliveryTime,
-            paymentMethod,
-            paymentStatus,
-            status,
-            totalAmount,
-            <div
-              key={id}
-              className="flex items-center justify-center gap-[0.5rem]"
-            >
-              <FaEye
-                size={18}
-                className="text-[#0090DD] cursor-pointer"
-                onClick={() => handleViewOrder(id)}
-              />
+              {status !== "cancelled" && status !== "completed" ? (
+                <CancelOrderModal
+                  open={openCancel}
+                  setOpen={setOpenCancel}
+                  handleCancelTrigger={() => handleCancelTrigger(id)}
+                  handleConfirmCancel={hanldeOrderCancellation}
+                />
+              ) : (
+                ""
+              )}
             </div>,
           ],
         )
@@ -314,11 +189,13 @@ export default function Order() {
           />
         )} */}
       </PageHeader>
-      <PageFilterWrapper title="Order Filters">{Component}</PageFilterWrapper>
+      <OrderFilter
+        queryStringOptions={queryStringOptions}
+        setQueryStringOptions={setQueryStringOptions}
+      />
       <Table
         headers={tableHeader}
         data={tableData}
-        isSN
         pagination={pagination}
         handlePagination={handlePagination}
       />

@@ -23,6 +23,7 @@ import {
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Plus, PlusCircle } from "lucide-react";
+import { id } from "date-fns/locale";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -108,7 +109,8 @@ export default function AddEditOrder({
 
   useEffect(() => {
     const total = orderItems.reduce(
-      (sum, item) => sum + Number(item.subtotal),
+      (sum, item) =>
+        item.status === "cancelled" ? 0 : sum + Number(item.subtotal),
       0,
     );
     setTotalAmount(total);
@@ -142,7 +144,7 @@ export default function AddEditOrder({
     quantity: number;
   }) => {
     const existingItem = orderItems.find(
-      (item) => item.productId === product.id,
+      (item) => item.productId === product.id && item.status !== "cancelled",
     );
     if (existingItem) {
       updateOrderItemQuantity(existingItem.id, existingItem.quantity + 1);
@@ -181,7 +183,7 @@ export default function AddEditOrder({
   };
 
   const removeOrderItem = async (itemId: string) => {
-    if (!String(itemId).includes("newitems_")) {
+    if (!String(itemId).includes("newitem_")) {
       try {
         const response = await patchStatus({
           url: `${ORDER_URL}items/status`,
@@ -280,54 +282,55 @@ export default function AddEditOrder({
                 Order Information
               </h3>
 
-              <div className="mb-4">
-                {/* Order Type */}
-                <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
-                  Order Type
-                </label>
-                <Controller
-                  name="orderType"
-                  control={control}
-                  defaultValue="dineIn"
-                  render={({ field }) => (
-                    <div className="flex space-x-2 p-1 rounded-lg">
-                      {orderTypeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`flex border-2 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                            field.value === option.value
-                              ? "bg-blue-500 text-white border-none"
-                              : "bg-white text-gray-700 hover:bg-gray-200"
-                          }`}
-                          onClick={() => field.onChange(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                />
+              <div className="mb-4 flex items-center gap-8">
+                <div>
+                  {/* Order Type */}
+                  <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
+                    Order Type
+                  </label>
+                  <Controller
+                    name="orderType"
+                    control={control}
+                    defaultValue="dineIn"
+                    render={({ field }) => (
+                      <div className="flex space-x-5 p-1 rounded-lg">
+                        {orderTypeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                              field.value === option.value
+                                ? "bg-blue-500 text-white border-none"
+                                : "bg-white text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => field.onChange(option.value)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  />
+                </div>
+                {/* Table (for dineIn) */}
+                {watchedOrderType === "dineIn" && (
+                  <Controller
+                    defaultValue={tableId || ""}
+                    name="tableId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label="Table: "
+                        options={tableOptions}
+                        className="flex items-start gap-3"
+                        error={errors.tableId?.message}
+                        required
+                      />
+                    )}
+                  />
+                )}
               </div>
-
-              {/* Table (for dineIn) */}
-              {watchedOrderType === "dineIn" && (
-                <Controller
-                  defaultValue={tableId || ""}
-                  name="tableId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      label="Table: "
-                      options={tableOptions}
-                      className="flex !flex-row items-center gap-3"
-                      error={errors.tableId?.message}
-                      required
-                    />
-                  )}
-                />
-              )}
 
               {/* Product Selection */}
               <div className="my-6">
@@ -435,6 +438,7 @@ export default function AddEditOrder({
             {/* Order Note */}
             <div className="mt-6">
               <TextArea
+                rows={5}
                 label="Order Note"
                 placeholder="Any special instructions or notes"
                 className="w-full"
@@ -532,7 +536,7 @@ export default function AddEditOrder({
                 </div>
               )}
               {/* Total Section */}
-              <div className="border-t pt-4 mt-6">
+              <div className="border-t pt-4 mt-auto">
                 <div className="flex justify-between items-center text-xl font-bold">
                   <span>Total Amount:</span>
                   <span className="text-green-600">
@@ -541,7 +545,7 @@ export default function AddEditOrder({
                 </div>
               </div>
               {/* Submit Button */}
-              <div className="flex justify-end space-x-4 mt-4">
+              <div className="flex justify-end space-x-4 mt-4 pb-3">
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
