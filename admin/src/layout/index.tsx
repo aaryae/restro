@@ -19,9 +19,12 @@ export default function Layout() {
       <div className="hidden lg:flex bg-[#f2f6fa]">
         {/* Side Menu */}
         <div
-          className={`h-screen fixed shadow-lg shadow-gray-400 z-10 transition-all duration-300 ${sideMenuOpen ? "w-[18%]" : "w-16"}`}
+          className={`h-screen fixed shadow-lg shadow-gray-400 z-10 transition-all duration-300 ${sideMenuOpen ? "w-[18%]" : "w-20"}`}
         >
-          <SideMenu sideMenuOpen={sideMenuOpen} />
+          <SideMenu
+            setToggleState={setSideMenuOpen}
+            sideMenuOpen={sideMenuOpen}
+          />
         </div>
         <div
           className={`flex-1 flex flex-col h-screen w-screen  ${sideMenuOpen ? "ml-[18%]" : "ml-16"}`}
