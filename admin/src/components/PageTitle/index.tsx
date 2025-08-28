@@ -4,9 +4,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 export default function PageTitle({
   title,
   isBack = false,
+  className,
 }: {
   title: string;
   isBack?: boolean;
+  className?: string;
 }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -23,7 +25,7 @@ export default function PageTitle({
           <IoMdArrowRoundBack size={20} />
         </button>
       )}
-      <p className="text-[1.25rem] font-[700]">{title}</p>
+      <p className={`text-[1.25rem] font-[700] ${className}`}>{title}</p>
     </div>
   );
 }

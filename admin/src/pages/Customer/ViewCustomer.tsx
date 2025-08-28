@@ -6,6 +6,7 @@ import userImage from "@/assets/user_image.jpeg";
 import moment from "moment";
 import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
 import Table from "@/components/Table";
+import { User } from "lucide-react";
 
 type ViewCustomerProps = {
   id: number | null;
@@ -58,14 +59,14 @@ export default function ViewCustomer({
 
   return (
     <div className="mt-[2rem] ">
-      <PageTitle title="Customer Details" />
+      <PageTitle
+        className="border-[1px] px-4 py-2 rounded-[4px] bg-primaryColor text-white"
+        title="Customer Details"
+      />
       {success && (
         <div>
           {/* Order summary */}
           <div className="text-start space-y-[0.5rem] mt-[2rem]">
-            <p className="font-[700] text-[1.75rem]">
-              # {customerData.data.id}
-            </p>
             <div className="flex gap-[3rem] font-[400] text-[1rem]">
               <p>
                 {" "}
@@ -82,37 +83,26 @@ export default function ViewCustomer({
                 )}
               </p>
             </div>
-            <div className="flex justify-start items-center gap-[1.5rem]">
-              <span className="font-[600] text-[1.25rem]">
-                Email Verified:{" "}
-              </span>
-              {customerData.data.isEmailVerified ? (
-                <FaCircleCheck className="text-[#0090dd]" />
-              ) : (
-                <FaCircleXmark className="text-red-500" />
-              )}
-            </div>
           </div>
           {/* Customer Details */}
-          <div className="bg-[#f0f3f4] w-fit flex flex-col items-start p-[1.25rem] mt-[2rem]">
-            <h3 className="font-[700] text-[1.25rem] ">Customer Details</h3>
+          <div className="bg-[#f8f8f8] w-fit flex flex-col items-start p-[1.25rem] mt-[2rem] rounded-[4px]">
+            <h3 className="flex items-center gap-2 font-[700] text-[1.25rem]">
+              <User className="h-6 w-6 text-[#426cc8]" />
+              Customer Details
+            </h3>
             <div className="flex gap-[2rem]">
               <div className="w-full font-[400] text-[1rem] mt-[1.5rem] space-y-[1rem]">
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Username:</div>{" "}
-                  <div>{customerData.data.username}</div>
-                </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Email:</div>{" "}
-                  <div>{customerData.data.email}</div>
-                </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Name:</div>{" "}
+                <div className="flex w-[100%] gap-2 items-center">
+                  <div className="font-[600] text-[1.15rem]">First Name:</div>{" "}
                   <div>
                     {customerData.data.firstName} {customerData.data.lastName}
                   </div>
                 </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
+                <div className="flex w-[100%] gap-2 items-center">
+                  <div className="font-[600] text-[1.15rem]">Email:</div>{" "}
+                  <div>{customerData.data.email}</div>
+                </div>
+                <div className="flex w-[100%] gap-2 items-center ">
                   <div className="font-[600] text-[1.15rem]">
                     Mobile Number:
                   </div>{" "}
@@ -121,20 +111,20 @@ export default function ViewCustomer({
                     {customerData.data.mobileNo}
                   </div>
                 </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
+                <div className="flex w-[100%] gap-2 items-center ">
                   <div className="font-[600] text-[1.15rem]">
                     Primary Address:
                   </div>{" "}
                   <div>{customerData.data.addressPrimary}</div>
                 </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
+                <div className="flex w-[100%] gap-2 items-center">
                   <div className="font-[600] text-[1.15rem]">
                     Secondary Address:
                   </div>{" "}
                   <div>{customerData.data.addressSecondary}</div>
                 </div>
               </div>
-              <div className="border h-[8rem] w-[8rem] rounded-[0.375rem]">
+              <div className="border h-[8rem] w-[8rem] rounded-full">
                 <img
                   src={
                     customerData?.data?.imageUrl !== null
@@ -150,7 +140,7 @@ export default function ViewCustomer({
           </div>
 
           {/* Order Summary */}
-          <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem]">
+          <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem] rounded-[4px]">
             <h3 className="font-[700] text-[1.25rem] ">Order Summary</h3>
             <div className="w-full mt-[1rem]">
               <Table

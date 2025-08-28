@@ -82,8 +82,8 @@ export default function Customer() {
   const filterField = useMemo(
     () => [
       {
-        name: "username",
-        label: "Username",
+        name: "firstName",
+        label: "First Name",
         Component: FilterInput,
         control,
       },
@@ -93,27 +93,27 @@ export default function Customer() {
         Component: FilterInput,
         control,
       },
-      {
-        name: "userType",
-        label: "User Type",
-        Component: FilterSelect,
-        className: "w-full",
-        handleChange: handleChange,
-        value: getValues("userType"),
-        control,
-        options: [
-          { label: "Guest User", value: "guest" },
-          { label: "Customer", value: "customer" },
-        ],
-      },
-      {
-        name: "createdAt",
-        label: "Created Date",
-        Component: DateInput,
-        handleChange: handleDateInput,
-        value: getValues("createdAt"),
-        control,
-      },
+      // {
+      //   name: "userType",
+      //   label: "User Type",
+      //   Component: FilterSelect,
+      //   className: "w-full",
+      //   handleChange: handleChange,
+      //   value: getValues("userType"),
+      //   control,
+      //   options: [
+      //     { label: "Guest User", value: "guest" },
+      //     { label: "Customer", value: "customer" },
+      //   ],
+      // },
+      // {
+      //   name: "createdAt",
+      //   label: "Created Date",
+      //   Component: DateInput,
+      //   handleChange: handleDateInput,
+      //   value: getValues("createdAt"),
+      //   control,
+      // },
     ],
 
     [control],
@@ -179,7 +179,7 @@ export default function Customer() {
   };
 
   const tableHeaders = [
-    "Username",
+    "Full Name",
     "Email",
     "Mobile Number",
     "Created At",

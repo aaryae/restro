@@ -1,6 +1,6 @@
 export const PROJECT_NAME = "Nirvana Restro";
 
-export const PROJECT_LOGO = "@/assets/logo.svg";
+export const PROJECT_LOGO = "./public/fav.webp";
 
 export const PRIMARY_COLOR = "#032768";
 
