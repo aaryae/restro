@@ -1,4 +1,5 @@
-const redis = require("../../configs/redis");
+// REDIS EXCLUSION
+// const redis = require("../../configs/redis");
 const Redlock = require("redlock");
 const { LOCK_TTL } = require("../../constants/time-constant");
 

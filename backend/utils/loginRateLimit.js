@@ -1,50 +1,52 @@
 const rateLimit = require("express-rate-limit");
-const redis = require("../configs/redis");
+// REDIS EXCLUSION
+// const redis = require("../configs/redis");
 
 const MAX_FAILED_ATTEMPTS = 5;
 const BLOCK_TIME_MS = 15 * 60 * 1000;
 
-function loginAttemptMiddleware(req, res, next) {
-  const key = req.deviceFingerprint;
+// REDIS EXCLUSION
+// function loginAttemptMiddleware(req, res, next) {
+//   const key = req.deviceFingerprint;
 
-  redis.get(key).then((attemptJSON) => {
-    const attempt = attemptJSON ? JSON.parse(attemptJSON) : null;
+//   redis.get(key).then((attemptJSON) => {
+//     const attempt = attemptJSON ? JSON.parse(attemptJSON) : null;
 
-    if (attempt && attempt.blockUntil && attempt.blockUntil > Date.now()) {
-      return res.status(429).json({
-        success: false,
-        msg: "Too many login attempts. Please try again later.",
-      });
-    }
+//     if (attempt && attempt.blockUntil && attempt.blockUntil > Date.now()) {
+//       return res.status(429).json({
+//         success: false,
+//         msg: "Too many login attempts. Please try again later.",
+//       });
+//     }
 
-    const originalSend = res.send;
+//     const originalSend = res.send;
 
-    res.send = async function (body) {
-      try {
-        const data = typeof body === "string" ? JSON.parse(body) : body;
+//     res.send = async function (body) {
+//       try {
+//         const data = typeof body === "string" ? JSON.parse(body) : body;
 
-        if (!data.success) {
-          const current = attempt || { count: 0, blockUntil: null };
-          current.count += 1;
+//         if (!data.success) {
+//           const current = attempt || { count: 0, blockUntil: null };
+//           current.count += 1;
 
-          if (current.count >= MAX_FAILED_ATTEMPTS) {
-            current.blockUntil = Date.now() + BLOCK_TIME_MS;
-          }
+//           if (current.count >= MAX_FAILED_ATTEMPTS) {
+//             current.blockUntil = Date.now() + BLOCK_TIME_MS;
+//           }
 
-          await redis.set(key, JSON.stringify(current), "PX", BLOCK_TIME_MS);
-        } else {
-          await redis.del(key);
-        }
-      } catch (err) {
-        console.error("Failed to process login rate limit logic:", err);
-      }
+//           await redis.set(key, JSON.stringify(current), "PX", BLOCK_TIME_MS);
+//         } else {
+//           await redis.del(key);
+//         }
+//       } catch (err) {
+//         console.error("Failed to process login rate limit logic:", err);
+//       }
 
-      return originalSend.call(this, body);
-    };
+//       return originalSend.call(this, body);
+//     };
 
-    next();
-  });
-}
+//     next();
+//   });
+// }
 
 const apiRateLimiter = rateLimit({
   windowMs: 30 * 60 * 1000,
@@ -56,4 +58,7 @@ const apiRateLimiter = rateLimit({
   keyGenerator: (req) => req.deviceFingerprint,
 });
 
-module.exports = { loginAttemptMiddleware, apiRateLimiter };
+module.exports = {
+  //require when REDIS enabled   loginAttemptMiddleware,
+  apiRateLimiter,
+};

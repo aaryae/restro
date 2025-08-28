@@ -1,5 +1,6 @@
 const cron = require("node-cron");
-const { releaseExpiredStock } = require("./release-expired-stock");
+// REDIS EXCLUSION
+// const { releaseExpiredStock } = require("./release-expired-stock");
 const { withTransaction } = require("./transaction");
 
 // const cleanupExpiredCarts = cron.schedule("*/10 * * * *", () =>

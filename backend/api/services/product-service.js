@@ -2,7 +2,8 @@ const generalConstant = require("../../constants/general-constant");
 const { productModel, productMediaModel, sequelize } = require("../../models");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
-const redis = require("../../configs/redis");
+// REDIS EXCLUSION
+// const redis = require("../../configs/redis");
 const create = async (req) => {
   const transaction = await sequelize.transaction();
   try {
@@ -98,10 +99,11 @@ const getById = async (req) => {
         data: null,
       };
     }
-    const getData = await redis.get(`product:${req.params.id}:reserved`);
-    const quantity = +getData;
+    // REDIS EXCLUSION
+    // const getData = await redis.get(`product:${req.params.id}:reserved`);
+    // const quantity = +getData;
 
-    product.reservedQuantity = quantity;
+    // product.reservedQuantity = quantity;
     return {
       ...generalConstant.EN.PRODUCT.PRODUCT_GET_SUCCESS,
       data: product,
@@ -127,17 +129,18 @@ const updateById = async (req) => {
 
     const { mediaArr, ...productData } = req.body;
 
-    const getData = await redis.get(`product:${req.params.id}:reserved`);
-    const quantity = +getData;
-    const minQuanToDec = 1 + quantity;
-    if (productData?.quantity <= getData) {
-      return {
-        ...generalConstant.EN.PRODUCT.UPDATE_PRODUCT_QUANTITY_FAILURE,
-        message: `Sorry you cannot decrease the quantity lest than  ${minQuanToDec} because it is lock`,
-        data: null,
-      };
-    }
-    console.log(+getData);
+    // REDIS EXCLUSION
+    // const getData = await redis.get(`product:${req.params.id}:reserved`);
+    // const quantity = +getData;
+    // const minQuanToDec = 1 + quantity;
+    // if (productData?.quantity <= getData) {
+    //   return {
+    //     ...generalConstant.EN.PRODUCT.UPDATE_PRODUCT_QUANTITY_FAILURE,
+    //     message: `Sorry you cannot decrease the quantity lest than  ${minQuanToDec} because it is lock`,
+    //     data: null,
+    //   };
+    // }
+    // console.log(+getData);
 
     const updated = await product.update(productData, { transaction });
 
@@ -182,14 +185,15 @@ const deleteById = async (req) => {
         data: null,
       };
     }
-    const getData = await redis.get(`product:${req.params.id}:reserved`);
-    const quantity = +getData;
-    if (quantity) {
-      return {
-        status: 200,
-        message: `You cannot delete this product because ${quantity} quantity is still lock by user`,
-      };
-    }
+    // REDIS EXCLUSION
+    // const getData = await redis.get(`product:${req.params.id}:reserved`);
+    // const quantity = +getData;
+    // if (quantity) {
+    //   return {
+    //     status: 200,
+    //     message: `You cannot delete this product because ${quantity} quantity is still lock by user`,
+    //   };
+    // }
     const deleted = await product.destroy();
     if (!deleted) {
       return {
