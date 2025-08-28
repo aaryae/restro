@@ -155,9 +155,9 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+// app.get("/", (req, res) => {
+//   res.send("Hello World!");
+// });
 app.get("/health", async (req, res) => {
   try {
     res.status(200).json({ status: "ok", message: "Backend is healthy" });
