@@ -67,15 +67,20 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
+    origin: "*",
   }),
 );
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       // allow requests with no origin (like mobile apps or curl)
+//       if (!origin) return callback(null, true);
+//       if (allowedOrigins.includes(origin)) return callback(null, true);
+//       return callback(new Error("Not allowed by CORS"));
+//     },
+//     credentials: true,
+//   }),
+// );
 
 app.use(helmet());
 app.use(
@@ -150,9 +155,9 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+// app.get("/", (req, res) => {
+//   res.send("Hello World!");
+// });
 app.get("/health", async (req, res) => {
   try {
     res.status(200).json({ status: "ok", message: "Backend is healthy" });
@@ -167,6 +172,19 @@ app.use("/setup/", setupPath);
 
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
+
+app.use((req, res, next) => {
+  if (/(.ico|.js|.css|.jpg|.svg|.png|.map)$/i.test(req.path)) {
+    next();
+  } else {
+    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.header("Expires", "-1");
+    res.header("Pragma", "no-cache");
+    res.sendFile(path.join(__dirname, "../admin/web", "index.html"));
+  }
+});
+
+app.use("/", express.static(path.join(__dirname, "../admin/web")));
 
 app.use((req, res, next) => {
   const err = new Error("Not Found");
