@@ -7,6 +7,7 @@ import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../Customer/AddEditCustomer";
+import { Mail, CircleUserRound } from "lucide-react";
 
 // Define interfaces
 interface OrderItem {
@@ -174,7 +175,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {order?.data?.table?.tableNo || table?.data?.tableNo}
             </h2>
             <p className={styles.totalAmount}>
-              Total Amount: ${order?.data?.totalAmount || "N/A"}
+              Total Amount:{" "}
+              <span className="text-green-600 font-bold">
+                ${order?.data?.totalAmount || "N/A"}
+              </span>
             </p>
             <div className={styles.paymentOptions}>
               <p className={styles.paymentLabel}>Select Payment Type:</p>
@@ -268,7 +272,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </option>
                       {allCustomers?.data?.data.map((customer: any) => (
                         <option key={customer.id} value={customer.id}>
-                          {customer.email || `Member ${customer.id}`}
+                          {`${customer.firstName || ""} ${customer.lastName || ""} ${customer.firstName || customer.lastName ? `(${customer.mobileNo || ""})` : ""}`.trim() ||
+                            `Member ${customer.id}`}
                         </option>
                       ))}
                     </select>
@@ -286,14 +291,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               )}
               {selectedMember && (
-                <div className="mt-4 p-4 bg-gray-100 rounded-md">
-                  <p className={styles.paymentLabel}>Selected Member</p>
-                  <p>
-                    Name:{" "}
+                <div className="my-4 p-4 bg-gray-100 rounded-md">
+                  <p className={styles.paymentLabel}>Selected Member:</p>
+                  <p className="flex items-center justify-center gap-2">
+                    <CircleUserRound />
+                    <span className="font-medium">Name: </span>
                     {selectedMember.firstName + " " + selectedMember.lastName ||
                       "N/A"}
                   </p>
-                  <p>Email: {selectedMember.email || "N/A"}</p>
+                  <p className="flex items-center justify-center gap-2">
+                    <Mail />
+                    <span className="font-medium">Email: </span>{" "}
+                    {selectedMember.email || "N/A"}
+                  </p>
                 </div>
               )}
             </div>

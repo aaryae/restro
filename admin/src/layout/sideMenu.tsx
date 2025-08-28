@@ -54,7 +54,7 @@ export default function SideMenu({
 
         <PanelLeft
           onClick={() => setToggleState((cur) => !cur)}
-          className="cursor-pointer"
+          className="cursor-pointer mt-4"
         />
       </div>
       <div className="flex flex-col gap-[6px] mt-[6px]">

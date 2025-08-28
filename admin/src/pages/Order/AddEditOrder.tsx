@@ -271,7 +271,7 @@ export default function AddEditOrder({
 
       <div className="max-w-[95rem] mx-auto">
         <form
-          className={`grid grid-cols-[2fr,1fr] ${isComponent ? "" : "form-container"}`}
+          className={`grid grid-cols-[2fr,1fr] gap-2 ${isComponent ? "" : "form-container"}`}
           onSubmit={handleSubmit(onSubmit)}
         >
           <div>

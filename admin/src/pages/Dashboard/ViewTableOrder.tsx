@@ -62,9 +62,8 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                   key={order.id}
                   className="bg-white rounded-lg shadow-md p-4"
                 >
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    Order #{order.orderNumber}
-                  </h3>
+                  <StatusTag status={order.status} />
+
                   <div className="space-y-2">
                     {order.orderItems.map((item) => (
                       <div
@@ -72,8 +71,12 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         className="flex justify-between items-start border-b border-gray-200 py-2"
                       >
                         <div className="text-sm text-gray-600">
-                          <p className="font-medium">{item.product.name}</p>
-                          <p>Qty: {item.quantity}</p>
+                          <p className="font-medium text-[13px]">
+                            Item: {item.product.name}
+                          </p>
+                          <p className="flex text-[13px]">
+                            Qty: {item.quantity}
+                          </p>
                           {item.specialInstructions && (
                             <p className="text-xs italic">
                               Note: {item.specialInstructions}
@@ -81,8 +84,12 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           )}
                         </div>
                         <div className="text-sm text-gray-600 text-right">
-                          <p>${Number(item.product.price).toFixed(2)} each</p>
-                          <p>Subtotal: ${Number(item.subtotal).toFixed(2)}</p>
+                          <p className="text-[14px]">
+                            ${Number(item.product.price).toFixed(2)} each
+                          </p>
+                          <p className="text-[13px]">
+                            Subtotal: ${Number(item.subtotal).toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -91,25 +98,28 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                     <p className="text-lg font-semibold text-gray-800">
                       Total: ${Number(order.totalAmount).toFixed(2)}
                     </p>
-                    <StatusTag status={order.status} />
-                    {order.status !== "completed" && (
-                      <>
-                        <button
-                          onClick={() => handleCheckout(id!, order.id)}
-                          className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700"
-                        >
-                          <span className="font-[500] text-[15px]">
-                            Checkout
-                          </span>
-                        </button>
-                        <Link
-                          to={`/admin/${ORDER_URL}${id}/${order.id}`}
-                          className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          <span className="font-[500] text-[15px]">Update</span>
-                        </Link>
-                      </>
-                    )}
+                    <div className="flex gap-2">
+                      {order.status !== "completed" && (
+                        <>
+                          <button
+                            onClick={() => handleCheckout(id!, order.id)}
+                            className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700"
+                          >
+                            <span className="font-[500] text-[15px]">
+                              Checkout
+                            </span>
+                          </button>
+                          <Link
+                            to={`/admin/${ORDER_URL}${id}/${order.id}`}
+                            className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
+                          >
+                            <span className="font-[500] text-[15px]">
+                              Update
+                            </span>
+                          </Link>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -130,8 +140,9 @@ function StatusTag({
 }) {
   console.log("status", status);
   return (
-    <span
-      className={`px-2 py-1 text-xs font-semibold rounded-full 
+    <div className="flex justify-end py-2">
+      <span
+        className={`px-4 py-2 text-xs font-semibold rounded-full 
             ${
               status === "completed"
                 ? "bg-green-100 text-green-800"
@@ -141,8 +152,9 @@ function StatusTag({
                     ? "bg-yellow-100 text-yellow-800"
                     : "bg-gray-100 text-gray-800"
             }`}
-    >
-      {status?.charAt(0)?.toUpperCase() + status?.slice(1)}
-    </span>
+      >
+        {status?.charAt(0)?.toUpperCase() + status?.slice(1)}
+      </span>
+    </div>
   );
 }
