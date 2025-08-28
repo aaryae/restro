@@ -67,15 +67,20 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
+    origin: "*",
   }),
 );
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       // allow requests with no origin (like mobile apps or curl)
+//       if (!origin) return callback(null, true);
+//       if (allowedOrigins.includes(origin)) return callback(null, true);
+//       return callback(new Error("Not allowed by CORS"));
+//     },
+//     credentials: true,
+//   }),
+// );
 
 app.use(helmet());
 app.use(
@@ -167,6 +172,8 @@ app.use("/setup/", setupPath);
 
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
+
+app.use("/", express.static(path.join(__dirname, "../admin/web")));
 
 app.use((req, res, next) => {
   const err = new Error("Not Found");
