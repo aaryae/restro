@@ -19,7 +19,7 @@ const companySettingsPutValidation = async (req, res, next) => {
       .pattern(/^[0-9]{10}$/)
       .optional(),
     fav_icon: joi.string().optional(),
-    mapUrl: joi.string().optional(),
+    mapUrl: joi.string().optional().allow(null),
     brandingImage: joi.string().optional(),
     brandingFooterImage: joi.string().optional(),
     address: joi.string().max(50).optional(),
@@ -36,6 +36,11 @@ const companySettingsPutValidation = async (req, res, next) => {
         }),
       )
       .optional(),
+    primaryColor: joi
+      .string()
+      .pattern(/^#[0-9A-Fa-f]{6}$/)
+      .optional()
+      .allow(null),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
