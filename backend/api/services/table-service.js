@@ -173,13 +173,13 @@ const updateTableStatus = async (req) => {
 
     Object.assign(table, otherUpdates);
 
-    table.status = status;
+    if (status) table.status = status;
     const updatedTable = await table.save();
 
     return {
       status: 200,
       success: true,
-      message: "Table status updated successfully",
+      message: "Table updated successfully",
       data: updatedTable,
     };
   } catch (error) {

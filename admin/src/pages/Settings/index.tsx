@@ -11,13 +11,32 @@ import { SettingSchema } from "./schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Button from "@/components/Button";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useDispatch } from "react-redux";
 import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import galleryIcon from "@/assets/gallery_icon.svg";
 import Spinner from "@/components/Spinner";
+import {
+  Button as AriaBtn,
+  ColorPicker,
+  Dialog,
+  DialogTrigger,
+  Popover,
+  ColorSwatch,
+  ColorSlider,
+  ColorArea,
+  ColorField,
+  ColorThumb,
+  parseColor,
+  Label,
+  SliderOutput,
+  SliderTrack,
+  FieldError,
+} from "react-aria-components";
+import isValidHex from "@/utils/isValidHex";
+import { PRIMARY_COLOR } from "@/constants/projectConstants";
 
 type SettingFormType = z.infer<typeof SettingSchema>;
 
@@ -39,9 +58,14 @@ export default function Settings() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<SettingFormType>({ resolver: zodResolver(SettingSchema) });
+  } = useForm<SettingFormType>({
+    resolver: zodResolver(SettingSchema),
+    defaultValues: {
+      primaryColor: PRIMARY_COLOR, // Default color matching initial colorValue
+    },
+  });
 
-  //   State for image
+  // State for image
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
   const [isFaviconOpen, setIsFavIconOpen] = useState<boolean>(false);
   const [isBrandingImage, setIsBrandingImage] = useState<boolean>(false);
@@ -61,9 +85,21 @@ export default function Settings() {
   } = useGetSettingQuery("");
   const [updateSetting] = useUpdateSettingMutation();
 
+  const [colorValue, setColorValue] = React.useState(
+    parseColor(getValues("primaryColor") || "#5100FF"),
+  );
+  const [colorFieldValue, setColorFieldValue] = useState<string>("");
+
   useEffect(() => {
     if (settings?.data) {
       reset({ ...settings.data });
+      if (settings.data.primaryColor) {
+        try {
+          setColorValue(parseColor(settings.data.primaryColor));
+        } catch (error) {
+          console.error("Invalid color format in settings:", error);
+        }
+      }
     }
   }, [refetch, reset, success]);
 
@@ -87,8 +123,11 @@ export default function Settings() {
     dispatch(clearSelectedMedia());
   };
 
-  const onSubmit = async (data: any) => {
-    const body = { ...data };
+  const onSubmit = async (data: SettingFormType) => {
+    const body = {
+      ...data,
+      primaryColor: colorValue.toString("hex").toUpperCase(),
+    };
     try {
       const response = await updateSetting({
         body,
@@ -219,6 +258,126 @@ export default function Settings() {
               open={isBrandingFooterImage}
               setOpen={setIsBrandingFooterImage}
             />
+          </div>
+          <div className="flex flex-col items-start">
+            <label className="font-[400] text-[0.75rem] text-start mb-[2px] text-[#626c78]">
+              {translate("Primary Color")}{" "}
+            </label>
+            <ColorPicker
+              value={colorValue}
+              onChange={(value) => {
+                setColorValue(value);
+                setValue("primaryColor", value.toString("hex").toUpperCase(), {
+                  shouldValidate: true,
+                });
+              }}
+            >
+              <DialogTrigger>
+                <AriaBtn className="flex items-center gap-3 px-4 py-2">
+                  <ColorSwatch className="size-8 rounded" />
+                  <span className="text-sm font-medium">Primary Color</span>
+                </AriaBtn>
+                <Popover
+                  placement="bottom start"
+                  className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-64 sm:w-80 transition-all duration-200 ease-in-out"
+                >
+                  <Dialog className="flex flex-col gap-4">
+                    <ColorArea
+                      colorSpace="hsb"
+                      xChannel="saturation"
+                      yChannel="brightness"
+                      value={colorValue}
+                      onChange={(value) => {
+                        setColorValue(value);
+                        setValue(
+                          "primaryColor",
+                          value.toString("hex").toUpperCase(),
+                          {
+                            shouldValidate: true,
+                          },
+                        );
+                      }}
+                      className="size-48 sm:size-64 rounded-md"
+                    >
+                      <ColorThumb
+                        className={`size-8 rounded-full border-2 border-white`}
+                      >
+                        <div className="size-full rounded-full border-2 border-black"></div>
+                      </ColorThumb>
+                    </ColorArea>
+                    <ColorSlider
+                      colorSpace="hsb"
+                      channel="hue"
+                      value={colorValue}
+                      onChange={(value) => {
+                        setColorValue(value);
+                        setValue(
+                          "primaryColor",
+                          value.toString("hex").toUpperCase(),
+                          {
+                            shouldValidate: true,
+                          },
+                        );
+                      }}
+                      className={`w-full h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-cyan-500 to-blue-500`}
+                    >
+                      <SliderTrack className={`w-full h-4 relative`}>
+                        <ColorThumb
+                          className={`size-8 absolute top-[50%] translate-y-[50%] rounded-full border-2 border-white`}
+                        >
+                          <div className="size-full rounded-full border-2 border-black"></div>
+                        </ColorThumb>
+                      </SliderTrack>
+                    </ColorSlider>
+                    <ColorField
+                      value={colorValue}
+                      onChange={(value) => {
+                        setColorValue(value);
+                        setValue(
+                          "primaryColor",
+                          value.toString("hex").toUpperCase(),
+                          {
+                            shouldValidate: true,
+                          },
+                        );
+                      }}
+                      className="flex flex-col gap-1"
+                    >
+                      <Label className="text-sm font-medium text-gray-700">
+                        Hex Color
+                      </Label>
+                      <Input
+                        value={
+                          colorFieldValue.trim().length > 0
+                            ? colorFieldValue
+                            : colorValue.toString("hex").toUpperCase()
+                        }
+                        onChange={(e) => {
+                          const hex = e.target.value.replace("#", "");
+                          setColorFieldValue(hex);
+                          if (isValidHex(hex)) {
+                            const newColor = parseColor(`#${hex}`);
+                            setColorValue(newColor);
+                            setValue(
+                              "primaryColor",
+                              newColor.toString("hex").toUpperCase(),
+                              {
+                                shouldValidate: true,
+                              },
+                            );
+                          }
+                        }}
+                        placeholder="#RRGGBB"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-150"
+                      />
+                      <FieldError className="text-sm text-red-500">
+                        {errors?.primaryColor?.message}
+                      </FieldError>
+                    </ColorField>
+                  </Dialog>
+                </Popover>
+              </DialogTrigger>
+            </ColorPicker>
           </div>
         </div>
       </div>

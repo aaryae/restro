@@ -31,7 +31,7 @@ const { Sequelize } = require("./models");
 const logger = require("./configs/logger");
 // const { apiRateLimiter } = require("./utils/loginRateLimit");
 
-const { apiRateLimiter } = require("./utils/loginRateLimit");
+// const { apiRateLimiter } = require("./utils/loginRateLimit");
 
 //websocket
 const { initWebSocket } = require("./websocket");
@@ -161,7 +161,7 @@ app.get("/health", async (req, res) => {
     res.status(503).json({ status: "error", message: "Backend is unhealthy" });
   }
 });
-app.use(baseUrl + "/api/v1", apiRateLimiter, require("./api")); // -------- main api -----------
+app.use(baseUrl + "/api/v1", require("./api")); // -------- main api -----------
 
 app.use("/setup/", setupPath);
 

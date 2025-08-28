@@ -12,4 +12,17 @@ export const SettingSchema = z.object({
   footer_desc: z.string().min(1, "Footer Description is Required"),
   google_analytics: z.string().min(1, "Google Analytics Required"),
   mapUrl: z.string().nullable(),
+  primaryColor: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (value) =>
+        value === null ||
+        value === undefined ||
+        /^#[0-9A-Fa-f]{6}$/.test(value),
+      {
+        message: "Invalid hex color format",
+      },
+    ),
 });
