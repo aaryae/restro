@@ -109,7 +109,7 @@ export default function Order() {
   ];
 
   const tableHeader = [
-    "Table Name",
+    "Table No",
     "Order Type",
     "Order StartedAt",
     "Amount",
@@ -124,7 +124,7 @@ export default function Order() {
       ? allOrders?.data?.data?.map(
           ({
             id,
-            table: { tableNo },
+            table,
             orderType,
             orderStartTime,
             paymentStatus,
@@ -132,7 +132,7 @@ export default function Order() {
             totalAmount,
           }) => [
             <span className={`${status === "cancelled" ? "line-through" : ""}`}>
-              {tableNo}
+              {table?.tableNo || "Deleted Table"}
             </span>,
             <span className={`${status === "cancelled" ? "line-through" : ""}`}>
               {orderType}

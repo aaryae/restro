@@ -8,6 +8,7 @@ import { handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../Customer/AddEditCustomer";
 import { Mail, CircleUserRound } from "lucide-react";
+import { CurrencySign } from "@/constants";
 
 // Define interfaces
 interface OrderItem {
@@ -177,7 +178,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <p className={styles.totalAmount}>
               Total Amount:{" "}
               <span className="text-green-600 font-bold">
-                ${order?.data?.totalAmount || "N/A"}
+                {CurrencySign}
+                {order?.data?.totalAmount || "N/A"}
               </span>
             </p>
             <div className={styles.paymentOptions}>
