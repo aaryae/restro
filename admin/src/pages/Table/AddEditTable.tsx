@@ -83,6 +83,12 @@ export default function AddEditTable({
     { value: "vip", label: "VIP" },
   ];
 
+  const statusOptions = [
+    { value: "available", label: "Available" },
+    // { value: "occupied", label: "Occupied" },
+    { value: "maintenance", label: "Maintenance" },
+  ];
+
   const handleSuccess = () => {
     if (isComponent) {
       closeModal();
@@ -158,6 +164,20 @@ export default function AddEditTable({
               options={typeOptions}
               className="w-full md:w-1/2"
               error={errors.type?.message}
+              required
+            />
+          )}
+        />
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <Select
+              {...field}
+              label="Table Status"
+              options={statusOptions}
+              className="w-full md:w-1/2"
+              error={errors.status?.message}
               required
             />
           )}
