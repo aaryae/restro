@@ -173,6 +173,17 @@ app.use("/setup/", setupPath);
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
 
+app.use((req, res, next) => {
+  if (/(.ico|.js|.css|.jpg|.svg|.png|.map)$/i.test(req.path)) {
+    next();
+  } else {
+    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.header("Expires", "-1");
+    res.header("Pragma", "no-cache");
+    res.sendFile(path.join(__dirname, "../admin/web", "index.html"));
+  }
+});
+
 app.use("/", express.static(path.join(__dirname, "../admin/web")));
 
 app.use((req, res, next) => {

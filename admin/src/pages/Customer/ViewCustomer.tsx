@@ -6,6 +6,7 @@ import userImage from "@/assets/user_image.jpeg";
 import moment from "moment";
 import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
 import Table from "@/components/Table";
+import { User } from "lucide-react";
 
 type ViewCustomerProps = {
   id: number | null;
@@ -33,16 +34,45 @@ export default function ViewCustomer({
     (success &&
       customerData.data.orders &&
       customerData.data.orders.length > 0 &&
-      customerData.data.orders.map(
-        ({
+      customerData.data.orders.map((order: any) => {
+        const {
           id,
           trackingNo,
           orderDate,
           paymentMethod,
           paymentStatus,
           totalAmount,
-        }) => [
-          trackingNo,
+        } = order || {};
+
+        const items = order?.orderItems || order?.items;
+        let productLabel: string | undefined = undefined;
+        if (Array.isArray(items) && items.length > 0) {
+          const first = items[0];
+          const firstName =
+            first?.product?.name ||
+            first?.product?.title ||
+            first?.itemName ||
+            first?.title ||
+            first?.productName ||
+            first?.name;
+          const more = items.length - 1;
+          if (firstName) {
+            productLabel = more > 0 ? `${firstName} + ${more} more` : firstName;
+          }
+        }
+        if (!productLabel) {
+          productLabel =
+            order?.productName ||
+            order?.product?.name ||
+            order?.orderNumber ||
+            order?.table?.name ||
+            order?.table?.tableNo ||
+            trackingNo ||
+            (id ? `Order #${id}` : "—");
+        }
+
+        return [
+          productLabel,
           id,
           moment(orderDate).format("MMM D, YY hh:mm"),
           paymentMethod,
@@ -52,105 +82,85 @@ export default function ViewCustomer({
             </div>
           </div>,
           totalAmount,
-        ],
-      )) ??
+        ];
+      })) ??
     [];
 
   return (
     <div className="mt-[2rem] ">
-      <PageTitle title="Customer Details" />
+      <PageTitle
+        className="border-[1px] px-4 py-2 rounded-[4px] bg-primaryColor text-white"
+        title="Customer Details"
+      />
       {success && (
         <div>
-          {/* Order summary */}
-          <div className="text-start space-y-[0.5rem] mt-[2rem]">
-            <p className="font-[700] text-[1.75rem]">
-              # {customerData.data.id}
-            </p>
-            <div className="flex gap-[3rem] font-[400] text-[1rem]">
-              <p>
-                {" "}
-                <span className="font-[600] text-[1.25rem]">Created:</span>{" "}
-                {moment(customerData.data.createdAt).format(
-                  "MMM DD, YYYY h:mm a",
-                )}
-              </p>
-              <p>
-                {" "}
-                <span className="font-[600] text-[1.25rem]">Updated: </span>
-                {moment(customerData.data.updatedAt).format(
-                  "MMM DD, YYYY h:mm a",
-                )}
-              </p>
-            </div>
-            <div className="flex justify-start items-center gap-[1.5rem]">
-              <span className="font-[600] text-[1.25rem]">
-                Email Verified:{" "}
-              </span>
-              {customerData.data.isEmailVerified ? (
-                <FaCircleCheck className="text-[#0090dd]" />
-              ) : (
-                <FaCircleXmark className="text-red-500" />
-              )}
-            </div>
-          </div>
-          {/* Customer Details */}
-          <div className="bg-[#f0f3f4] w-fit flex flex-col items-start p-[1.25rem] mt-[2rem]">
-            <h3 className="font-[700] text-[1.25rem] ">Customer Details</h3>
-            <div className="flex gap-[2rem]">
-              <div className="w-full font-[400] text-[1rem] mt-[1.5rem] space-y-[1rem]">
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Username:</div>{" "}
-                  <div>{customerData.data.username}</div>
-                </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Email:</div>{" "}
-                  <div>{customerData.data.email}</div>
-                </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">Name:</div>{" "}
-                  <div>
-                    {customerData.data.firstName} {customerData.data.lastName}
+          <div className="relative mt-8 flex">
+            <div className="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-r from-primaryColor/30 via-pink-500/20 to-purple-500/20 blur-2xl" />
+
+            <div className="relative overflow-hidden rounded-2xl border border-white/60 bg-white/60 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
+              <div className="absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b from-primaryColor to-purple-500" />
+
+              <div className="flex gap-6 p-6">
+                <div className="relative mx-auto md:mx-0">
+                  <div className="relative h-28 w-28 md:h-32 md:w-32 rounded-full ring-4 ring-white/80 shadow-2xl overflow-hidden">
+                    <img
+                      src={
+                        customerData?.data?.imageUrl !== null
+                          ? `${IMAGE_BASE_URL}${customerData?.data?.imageUrl}`
+                          : userImage
+                      }
+                      alt="User"
+                      className="object-cover h-full w-full"
+                    />
                   </div>
                 </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">
-                    Mobile Number:
-                  </div>{" "}
-                  <div>
-                    {customerData.data.mobilePrefix}{" "}
-                    {customerData.data.mobileNo}
+
+                {/* Details */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-4">
+                    <User className="h-6 w-6 text-primaryColor" />
+                    <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+                      {customerData.data.firstName} {customerData.data.lastName}
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mb-5">
+                    <span className="inline-flex max-w-[18rem] md:max-w-[19rem] items-center gap-2 text-sm text-gray-700 bg-white/70 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className="h-2 w-2 rounded-full bg-primaryColor" />
+                      <span className="truncate">
+                        Email: {customerData.data.email}
+                      </span>
+                    </span>
+                    <span className="inline-flex max-w-[18rem] md:max-w-[13rem] items-center gap-2 text-sm text-gray-700 bg-white/70 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      Phone No: {customerData.data.mobilePrefix}{" "}
+                      {customerData.data.mobileNo}
+                    </span>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                    <span className="inline-flex items-center gap-2 bg-white/70 border border-gray-200 rounded-full px-3 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      Created:{" "}
+                      {moment(customerData.data.createdAt).format(
+                        "MMM DD, YYYY h:mm a",
+                      )}
+                    </span>
+                    <span className="inline-flex items-center gap-2 bg-white/70 border border-gray-200 rounded-full px-3 py-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                      Updated:{" "}
+                      {moment(customerData.data.updatedAt).format(
+                        "MMM DD, YYYY h:mm a",
+                      )}
+                    </span>
                   </div>
                 </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">
-                    Primary Address:
-                  </div>{" "}
-                  <div>{customerData.data.addressPrimary}</div>
-                </div>
-                <div className="flex justify-between w-[100%] gap-[2rem] ">
-                  <div className="font-[600] text-[1.15rem]">
-                    Secondary Address:
-                  </div>{" "}
-                  <div>{customerData.data.addressSecondary}</div>
-                </div>
-              </div>
-              <div className="border h-[8rem] w-[8rem] rounded-[0.375rem]">
-                <img
-                  src={
-                    customerData?.data?.imageUrl !== null
-                      ? `${IMAGE_BASE_URL}${customerData?.data?.imageUrl}`
-                      : userImage
-                  }
-                  alt="User"
-                  className="object-cover h-[8rem] w-[8rem] overflow-hidden"
-                  // crossOrigin="anonymous"
-                />
               </div>
             </div>
           </div>
 
           {/* Order Summary */}
-          <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem]">
+          <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem] rounded-[4px]">
             <h3 className="font-[700] text-[1.25rem] ">Order Summary</h3>
             <div className="w-full mt-[1rem]">
               <Table

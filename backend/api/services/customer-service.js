@@ -1,5 +1,10 @@
 const { Op } = require("sequelize");
-const { customerModel, orderModel } = require("../../models");
+const {
+  customerModel,
+  orderModel,
+  orderItemModel,
+  productModel,
+} = require("../../models");
 const paginate = require("../../utils/paginate");
 
 const create = async (req) => {
@@ -82,10 +87,24 @@ const list = async (req) => {
 const getById = async (req) => {
   try {
     const result = await customerModel.findByPk(+req.params.id, {
-      include: {
-        model: orderModel,
-        as: "orders",
-      },
+      include: [
+        {
+          model: orderModel,
+          as: "orders",
+          include: [
+            {
+              model: orderItemModel,
+              as: "orderItems",
+              include: [
+                {
+                  model: productModel,
+                  as: "product",
+                },
+              ],
+            },
+          ],
+        },
+      ],
     });
     if (!result) {
       return {

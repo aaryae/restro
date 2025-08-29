@@ -2,7 +2,9 @@ import { Outlet } from "react-router-dom";
 import SideMenu from "./sideMenu";
 import TopMenu from "./topMenu";
 import TopMenuMobile from "./topMenuMobile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useGetSettingQuery } from "@/redux/services/settings";
+import { IMAGE_BASE_URL } from "@/constants";
 
 export default function Layout() {
   // notification system disabled
@@ -12,6 +14,25 @@ export default function Layout() {
   // }, []);
 
   const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(true);
+  const { data: settings } = useGetSettingQuery("");
+
+  useEffect(() => {
+    const href = settings?.data?.fav_icon
+      ? `${IMAGE_BASE_URL}${settings.data.fav_icon}`
+      : "/fav.webp";
+    let link = document.querySelector(
+      "link[rel='icon']",
+    ) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    if (link.href !== href) {
+      link.type = "image/png";
+      link.href = href;
+    }
+  }, [settings]);
 
   return (
     <>

@@ -8,11 +8,13 @@ import CheckoutModal from "./CheckoutModal";
 
 interface ViewTableOrderProps {
   id: number | null;
+  tableNo: number | null;
   handleCheckout: (tableId: number, orderId: number | null) => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   id,
+  tableNo,
   handleCheckout,
 }) => {
   const {
@@ -36,8 +38,8 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
     <>
       <div className="p-4">
         <div className="flex justify-between items-center mt-[4rem] mb-[1.5rem]">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Table {table?.tableNo || id}
+          <h2 className="text-[20px] font-bold text-primaryColor ">
+            {table?.data?.tableNo || id}
           </h2>
           <Link
             to={`/admin/${ORDER_URL}${id}`}
@@ -85,10 +87,10 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         </div>
                         <div className="text-sm text-gray-600 text-right">
                           <p className="text-[14px]">
-                            ${Number(item.product.price).toFixed(2)} each
+                            Rs. {Number(item.product.price).toFixed(2)} each
                           </p>
                           <p className="text-[13px]">
-                            Subtotal: ${Number(item.subtotal).toFixed(2)}
+                            Subtotal: Rs.{Number(item.subtotal).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -96,7 +98,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                   </div>
                   <div className="flex justify-between items-center mt-4">
                     <p className="text-lg font-semibold text-gray-800">
-                      Total: ${Number(order.totalAmount).toFixed(2)}
+                      Total: Rs.{Number(order.totalAmount).toFixed(2)}
                     </p>
                     <div className="flex gap-2">
                       {order.status !== "completed" && (

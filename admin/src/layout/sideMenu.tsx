@@ -6,6 +6,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { checkViewAccessList } from "@/utils/accessHelper";
 import useTranslation from "@/locale/useTranslation";
 import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
+import { useGetSettingQuery } from "@/redux/services/settings";
+import { IMAGE_BASE_URL } from "@/constants";
 export default function SideMenu({
   setToggleState,
   sideMenuOpen,
@@ -20,6 +22,7 @@ export default function SideMenu({
   const viewAccess = checkViewAccessList();
   const [isVisible, setIsVisible] = useState<number[]>([]);
   const [isActive, setIsActive] = useState<string | null>(null);
+  const { data: settings } = useGetSettingQuery("");
 
   const handleClick = (key: number) => {
     setIsVisible((prev) => {
@@ -46,7 +49,11 @@ export default function SideMenu({
       >
         {sideMenuOpen && (
           <img
-            src={Logo}
+            src={
+              settings?.data?.brandingImage
+                ? `${IMAGE_BASE_URL}${settings.data.brandingImage}`
+                : Logo
+            }
             alt="Logo"
             className={`w-[72px] h-[59px] object-cover mx-[4px]`}
           />

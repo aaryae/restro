@@ -19,6 +19,8 @@ import { clearProfile } from "./redux/feature/profileSlice";
 import { trimFormData } from "./utils/validationHelper";
 import { PROJECT_NAME } from "./constants/projectConstants";
 import { sk } from "./constants";
+import { useGetSettingQuery } from "./redux/services/settings";
+import { IMAGE_BASE_URL } from "./constants";
 
 interface FormValues {
   username: string;
@@ -37,6 +39,7 @@ export default function App() {
   const dispatch = useDispatch();
   // const [captchaToken, setCaptchaToken] = useState<string>();
   const [login] = useLoginMutation();
+  const { data: settings } = useGetSettingQuery("");
 
   // const turnstileRef = useRef<any>(null);
 
@@ -64,6 +67,24 @@ export default function App() {
       navigate("/");
     }
   }, []);
+
+  useEffect(() => {
+    const href = settings?.data?.fav_icon
+      ? `${IMAGE_BASE_URL}${settings.data.fav_icon}`
+      : "/fav.webp";
+    let link = document.querySelector(
+      "link[rel='icon']",
+    ) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    if (link.href !== href) {
+      link.type = "image/png";
+      link.href = href;
+    }
+  }, [settings]);
 
   const {
     register,
