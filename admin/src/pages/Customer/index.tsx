@@ -42,7 +42,7 @@ export default function Customer() {
       resolver: zodResolver(CustomerFilterSchema),
     });
 
-  const [queryString, setQueryString] = useState("");
+  const [queryString, setQueryString] = useState<Record<string, any>>({});
 
   const handleChange = (value: boolean) => {
     setValue("userType", value);
@@ -123,7 +123,7 @@ export default function Customer() {
     filterField,
     handleSubmit,
     // reset,
-    (query: string) => setQueryString(query),
+    (query: Record<string, any>) => setQueryString(query),
   );
 
   const url = buildQueryString("customer-auth/list", {

@@ -70,7 +70,7 @@ export default function AddEditOrder({
     watch,
     setValue,
     getValues,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
   } = useForm<OrderFormType>({
     resolver: zodResolver(OrderSchema),
     defaultValues: {
@@ -80,11 +80,14 @@ export default function AddEditOrder({
   });
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const watchedOrderType = watch("orderType");
+  const watchedTableId = watch("tableId");
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
@@ -136,8 +139,8 @@ export default function AddEditOrder({
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
     return tableData.data.data?.map(
-      (table: { id: string; tableNo: string }) => ({
-        value: table.id,
+      (table: { id: string | number; tableNo: string }) => ({
+        value: String(table.id),
         label: `${table.tableNo}`,
       }),
     );
@@ -166,7 +169,6 @@ export default function AddEditOrder({
       };
       setOrderItems((prev) => [...prev, newItem]);
     }
-    setIsProductModalOpen(false);
   };
 
   const updateOrderItemQuantity = (itemId: string, newQuantity: number) => {
@@ -224,13 +226,7 @@ export default function AddEditOrder({
   const [updateOrderApi, { isLoading: isOrderUpdating }] =
     useUpdateOrderMutation();
 
-  const onSubmit = async (data: OrderFormType) => {
-    if (orderItems.length === 0) {
-      setError("orderItems", {
-        message: "At least one order item is required",
-      });
-      return;
-    }
+  const submitOrder = async (data: OrderFormType) => {
     try {
       const payload = {
         ...data,
@@ -262,10 +258,26 @@ export default function AddEditOrder({
       });
     } catch (error: any) {
       console.error(error, "error message");
-      // setError("root", {
-      //   message: error?.data?.message || "Failed to create order",
-      // });
     }
+  };
+
+  const onSubmit = async (data: OrderFormType) => {
+    if (orderItems.length === 0) {
+      setError("orderItems", {
+        message: "At least one order item is required",
+      });
+      return;
+    }
+    setPendingData(data);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    if (!pendingData) return;
+    setIsConfirming(true);
+    await submitOrder(pendingData);
+    setIsConfirming(false);
+    setIsConfirmOpen(false);
   };
 
   return (
@@ -591,6 +603,106 @@ export default function AddEditOrder({
           </div>
         </form>
       </div>
+
+      {isConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg">
+            <div className="px-6 py-4 border-b relative">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Confirm {isEditMode ? "Update" : "Order"}
+              </h3>
+              <button className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md absolute right-2 top-1/2 -translate-y-1/2">
+                Print KOT
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="mb-4 text-sm text-gray-700">
+                <p className="mb-1">
+                  <span className="font-medium">Order Type:</span>{" "}
+                  {watchedOrderType}
+                </p>
+                {watchedOrderType === "dineIn" && (
+                  <p className="mb-1">
+                    <span className="font-medium">Table:</span>{" "}
+                    {tableOptions.find(
+                      (t: { value: string; label: string }) =>
+                        t.value ===
+                        String(
+                          (pendingData as any)?.tableId ?? watchedTableId ?? "",
+                        ),
+                    )?.label || "-"}
+                  </p>
+                )}
+                {pendingData?.deliveryAddress && (
+                  <p className="mb-1">
+                    <span className="font-medium">Delivery Address:</span>{" "}
+                    {pendingData.deliveryAddress}
+                  </p>
+                )}
+                {pendingData?.orderNote && (
+                  <p className="mb-1">
+                    <span className="font-medium">Note:</span>{" "}
+                    {pendingData.orderNote}
+                  </p>
+                )}
+              </div>
+
+              <div className="border rounded-md">
+                <div className="grid grid-cols-12 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">
+                  <div className="col-span-6">Item</div>
+                  <div className="col-span-2 text-right">Qty</div>
+                  <div className="col-span-2 text-right">Price</div>
+                  <div className="col-span-2 text-right">Subtotal</div>
+                </div>
+                <div className="divide-y">
+                  {orderItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-12 px-4 py-2 text-sm"
+                    >
+                      <div className="col-span-6 truncate">
+                        {item.productName}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        {item.quantity}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        {CurrencySign} {Number(item.productPrice).toFixed(2)}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        {CurrencySign} {Number(item.subtotal).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center px-4 py-3 bg-gray-50">
+                  <span className="text-base font-semibold">Total</span>
+                  <span className="text-base font-bold text-green-600">
+                    {CurrencySign} {Number(totalAmount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsConfirmOpen(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCreate}
+                disabled={isConfirming}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
+              >
+                {isConfirming ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

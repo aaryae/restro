@@ -282,14 +282,14 @@ export default function ProductForm() {
             className="w-1/2"
           />
         )}
-        <MultiInput
+        {/* <MultiInput
           className="flex flex-col items-start w-1/2"
           name="alias"
           label="Alias"
           control={control}
           placeholder="Press Enter Alias"
           error={errors.alias?.message}
-        />
+        /> */}
         <Input
           label="Quantity"
           type="number"

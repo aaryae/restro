@@ -50,7 +50,7 @@ export default function PageFilterSample(
           ),
         )}
         <Button
-          onClick={handleSubmit}
+          type="submit"
           className="bg-primaryColor h-full text-white px-6"
         >
           Search

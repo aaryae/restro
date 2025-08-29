@@ -6,5 +6,8 @@ export const TableSchema = z.object({
   type: z.enum(["vip", "regular"], {
     required_error: "Table Type is Required",
   }),
+  status: z.enum(["available", "maintenance"], {
+    required_error: "Table Status is Required",
+  }),
   capacity: z.number().min(1, "Capacity must be at least 1"),
 });
