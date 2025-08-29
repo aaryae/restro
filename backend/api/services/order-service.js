@@ -303,36 +303,116 @@ const getTableActiveOrders = async (req) => {
   }
 };
 
+const { Op } = require("sequelize");
+
 const checkoutOrder = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const { id } = req.params;
-    let { customerId, customerDetails, ...updateData } = req.body;
+    const { tableId } = req.params;
+    let {
+      orderId,
+      checkoutAll = false,
+      customerId,
+      customerDetails,
+      sessionId,
+      isGuestOrder = false,
+      ...updateData
+    } = req.body;
 
-    const order = await orderModel.findByPk(id, { transaction });
-    if (!order) {
+    // Validate tableId
+    if (!tableId) {
       await transaction.rollback();
-      return { status: 404, success: false, message: "Order not found" };
+      return { status: 400, success: false, message: "Table ID is required" };
     }
 
-    if (
-      ["paid", "failed"].includes(order.paymentStatus) ||
-      ["completed", "cancelled"].includes(order.status)
-    ) {
+    // Fetch orders based on single or multiple checkout
+    let orders = [];
+    if (orderId && !checkoutAll) {
+      // Single order checkout
+      const order = await orderModel.findOne({
+        where: {
+          id: orderId,
+          tableId,
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        include: [{ model: orderItemModel, as: "orderItems" }],
+        transaction,
+      });
+      if (!order) {
+        await transaction.rollback();
+        return {
+          status: 404,
+          success: false,
+          message: "Order not found or not active",
+        };
+      }
+      orders = [order];
+    } else {
+      // Multiple order checkout
+      orders = await orderModel.findAll({
+        where: {
+          tableId,
+          ...(sessionId ? { sessionId } : {}),
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        include: [{ model: orderItemModel, as: "orderItems" }],
+        transaction,
+      });
+      if (!orders || orders.length === 0) {
+        await transaction.rollback();
+        return {
+          status: 404,
+          success: false,
+          message: "No active orders found for this table",
+        };
+      }
+    }
+
+    // Check for already processed orders
+    const invalidOrders = orders.filter(
+      (order) =>
+        ["paid", "failed"].includes(order.paymentStatus) ||
+        ["completed", "cancelled"].includes(order.status),
+    );
+    if (invalidOrders.length > 0) {
       await transaction.rollback();
       return {
         status: 400,
         success: false,
-        message: "Order already processed",
+        message: "Some orders are already processed",
       };
     }
 
-    let finalCustomerId = null;
+    // Calculate totalAmount for each order and combined total
+    let combinedTotalAmount = 0;
+    for (const order of orders) {
+      const orderTotal = order.orderItems.reduce((total, item) => {
+        const itemTotal =
+          Number(item.subtotal) ||
+          Number(item.price) * Number(item.quantity) -
+            Number(item.discount || 0);
+        return total + itemTotal;
+      }, 0);
 
+      if (isNaN(orderTotal) || orderTotal < 0) {
+        await transaction.rollback();
+        return {
+          status: 500,
+          success: false,
+          message: `Invalid total amount for order ${order.id}`,
+        };
+      }
+
+      combinedTotalAmount += orderTotal;
+      await order.update({ totalAmount: orderTotal }, { transaction });
+    }
+
+    let finalCustomerId = null;
+    let customer = null;
+
+    // Handle existing customer
     if (customerId) {
-      const customer = await customerModel.findByPk(customerId, {
-        transaction,
-      });
+      customer = await customerModel.findByPk(customerId, { transaction });
       if (!customer) {
         await transaction.rollback();
         return { status: 404, success: false, message: "Customer not found" };
@@ -340,11 +420,13 @@ const checkoutOrder = async (req) => {
       finalCustomerId = customer.id;
     }
 
+    // Handle new customer creation
     if (customerDetails) {
-      const newCustomer = await customerModel.create(customerDetails, {
-        transaction,
-      });
-      if (!newCustomer) {
+      customer = await customerModel.create(
+        { ...customerDetails, loyaltyPoints: 0 },
+        { transaction },
+      );
+      if (!customer) {
         await transaction.rollback();
         return {
           status: 500,
@@ -352,30 +434,54 @@ const checkoutOrder = async (req) => {
           message: "Failed to create customer",
         };
       }
-      finalCustomerId = newCustomer.id;
+      finalCustomerId = customer.id;
     }
 
-    await order.update(
-      {
-        ...updateData,
-        status: "completed",
-        orderFinishTime: new Date(),
-        customerId: finalCustomerId,
-        isGuestOrder: req.body?.isGuestOrder ?? false,
-      },
-      { transaction },
-    );
+    // Calculate and update loyalty points
+    if (!isGuestOrder && finalCustomerId && combinedTotalAmount > 0) {
+      const pointsToAdd = Math.floor(combinedTotalAmount / 100);
+      if (pointsToAdd > 0) {
+        await customerModel.update(
+          {
+            loyaltyPoints: customer.loyaltyPoints + pointsToAdd,
+          },
+          {
+            where: { id: finalCustomerId },
+            transaction,
+          },
+        );
+      }
+    }
 
-    // if table has other active order than
+    // Update all orders
+    const updatedOrders = [];
+    for (const order of orders) {
+      await order.update(
+        {
+          ...updateData,
+          status: "completed",
+          orderFinishTime: new Date(),
+          customerId: finalCustomerId,
+          isGuestOrder,
+          totalAmount: order.totalAmount,
+        },
+        { transaction },
+      );
+      updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });
+    }
+
+    // Check for other active orders
     const stillOrderInTable = await orderModel.findOne({
       where: {
-        tableId: order.tableId,
-        sessionId: order.sessionId,
+        tableId,
+        sessionId: sessionId || { [Op.ne]: null },
         status: { [Op.notIn]: ["completed", "cancelled"] },
+        id: { [Op.notIn]: orders.map((o) => o.id) },
       },
       transaction,
     });
 
+    // Free table if no other active orders
     if (!stillOrderInTable) {
       await tableModel.update(
         {
@@ -384,7 +490,7 @@ const checkoutOrder = async (req) => {
           sessionStartTime: null,
         },
         {
-          where: { id: order.tableId },
+          where: { id: tableId },
           transaction,
         },
       );
@@ -395,12 +501,24 @@ const checkoutOrder = async (req) => {
     return {
       status: 200,
       success: true,
-      message: "Order checked out successfully",
-      data: order,
+      message: `Checked out ${orders.length} order(s) successfully`,
+      data: {
+        orders: updatedOrders,
+        combinedTotalAmount,
+        loyaltyPointsAdded:
+          !isGuestOrder && finalCustomerId
+            ? Math.floor(combinedTotalAmount / 100)
+            : 0,
+      },
     };
   } catch (error) {
     await transaction.rollback();
-    throw error;
+    console.error("Error in checkoutOrder:", error.message);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+    };
   }
 };
 
