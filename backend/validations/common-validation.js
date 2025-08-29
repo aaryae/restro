@@ -63,7 +63,9 @@ const paginationValidation = async (req, res, next) => {
     title: joi.string().optional().label("title"),
     initials: joi.string().optional().label("initials"),
     username: joi.string().optional().label("username"),
-    email: joi.string().optional().label("email"),
+    firstName: joi.string().allow("").optional().label("username"),
+    email: joi.string().allow("").optional().label("email"),
+    phone: joi.string().allow("").optional().label("phone"),
     status: joi.string().optional().label("status"),
     slug: joi.string().optional().label("slug"),
     departmentId: joi.number().optional().label("departmentId"),
@@ -81,6 +83,7 @@ const paginationValidation = async (req, res, next) => {
     date: joi.string().optional().label("Date"),
     createdAt: joi.string().optional().label("Created At"),
     orderDate: joi.string().optional().label("Order Date"),
+    isCombo: joi.string().optional().label("combo search"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

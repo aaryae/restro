@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { customerModel, orderModel } = require("../../models");
 const paginate = require("../../utils/paginate");
 
@@ -23,14 +24,34 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    let { limit, page, firstName } = req.query;
+    let { limit, page, firstName, phone, email, isCombo } = req.query;
     const filters = {};
     const include = [];
 
-    if (firstName) {
-      filters.firstName = {
-        [Op.like]: `%${firstName}%`,
-      };
+    const isComboSearch = isCombo === "true";
+
+    // Log query parameters for debugging
+    console.log({ isComboSearch, firstName, phone, email });
+
+    if (isComboSearch && phone) {
+      // Combo search: apply phone value across firstName, email, and mobileNo
+      const searchTerm = `%${phone.trim()}%`;
+      filters[Op.or] = [
+        { firstName: { [Op.like]: searchTerm } },
+        { email: { [Op.like]: searchTerm } },
+        { mobileNo: { [Op.like]: searchTerm } },
+      ];
+    } else {
+      // Individual field filters
+      if (firstName) {
+        filters.firstName = { [Op.like]: `%${firstName.trim()}%` };
+      }
+      if (phone) {
+        filters.mobileNo = { [Op.like]: `%${phone.trim()}%` };
+      }
+      if (email) {
+        filters.email = { [Op.like]: `%${email.trim()}%` };
+      }
     }
 
     const result = await paginate(customerModel, {
