@@ -102,7 +102,6 @@ module.exports = (sequelize) => {
         { fields: ["billId"] },
         { fields: ["orderNumber"] },
         { fields: ["status"] },
-        { fields: ["orderDate"] },
         { fields: ["tableId", "sessionId"] },
         { fields: ["tableId", "billId"] },
       ],

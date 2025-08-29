@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
       mobileNo: {
         type: DataTypes.STRING,
       },
-      loyaltPoints: {
+      loyaltyPoints: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: false,
