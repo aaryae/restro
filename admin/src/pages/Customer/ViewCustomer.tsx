@@ -136,6 +136,10 @@ export default function ViewCustomer({
                       Phone No: {customerData.data.mobilePrefix}{" "}
                       {customerData.data.mobileNo}
                     </span>
+                    <span className="inline-flex max-w-[18rem] md:max-w-[10rem] items-center gap-2 text-sm text-gray-700 bg-white/70 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+                      <span className="h-2 w-2 rounded-full bg-pink-500" />
+                      Loyalty Points: {customerData.data.loyaltyPoints}
+                    </span>
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-gray-600">
@@ -225,7 +229,7 @@ const tableHeader = [
 const changeClassNameByName = (name: string) => {
   console.log(name, "name");
   let normalClassName =
-    "px-[0.75rem] py-[0.25rem] rounded-full w-fit text-white";
+    "px-[0.75rem] py-[0.25rem] rounded-full w-fit text-black";
   if (name === "pending") {
     normalClassName += normalClassName.concat(" bg-yellow-500");
   } else if (name === "confirmed") {
