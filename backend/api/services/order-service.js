@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-
+const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
 const {
@@ -337,11 +337,7 @@ const checkoutOrder = async (req) => {
 
     // Fetch orders based on single or multiple checkout
     let orders = [];
-    console.log(
-      orderId,
-      checkoutAll,
-      "-----------------------23942342-3------",
-    );
+
     if (orderId && !checkoutAll) {
       // Single order checkout
       const order = await orderModel.findOne({
@@ -646,7 +642,10 @@ const listOrders = async (req) => {
     // }
 
     if (start && end) {
-      filters.orderStartTime = { [Op.between]: [start, end] };
+      const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
+      const endDate = endOfDay(parseISO(end));
+      console.log(startDate, endDate, "dates-----------------");
+      filters.orderStartTime = { [Op.between]: [startDate, endDate] };
     }
 
     if (sort) {

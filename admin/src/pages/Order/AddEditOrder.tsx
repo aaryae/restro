@@ -25,6 +25,10 @@ import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Plus, PlusCircle } from "lucide-react";
 import { id } from "date-fns/locale";
+import {
+  useCreateOrderMutation,
+  useUpdateOrderMutation,
+} from "@/redux/services/orders";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -65,6 +69,7 @@ export default function AddEditOrder({
     setError,
     watch,
     setValue,
+    getValues,
     formState: { errors, isSubmitting, isValid },
   } = useForm<OrderFormType>({
     resolver: zodResolver(OrderSchema),
@@ -214,9 +219,10 @@ export default function AddEditOrder({
   };
 
   // Create order mutation (generic)
-  const [createApi, { isLoading: isOrderSubmitting }] = useCreateApiMutation();
+  const [createApi, { isLoading: isOrderSubmitting }] =
+    useCreateOrderMutation();
   const [updateOrderApi, { isLoading: isOrderUpdating }] =
-    useUpdateApiMutation();
+    useUpdateOrderMutation();
 
   const onSubmit = async (data: OrderFormType) => {
     if (orderItems.length === 0) {
@@ -239,14 +245,15 @@ export default function AddEditOrder({
           };
         }),
       };
-
+      if (getValues("orderType") !== "dineIn") {
+        delete payload.tableId;
+      }
       const response = isEditMode
         ? await updateOrderApi({
-            url: `${ORDER_URL}items/${orderId}`,
+            id: orderId,
             body: payload,
           }).unwrap()
         : await createApi({
-            url: ORDER_URL + "create",
             body: payload,
           }).unwrap();
       handleResponse({

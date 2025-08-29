@@ -19,6 +19,7 @@ import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 import { buildQueryString } from "@/utils/generalHelper";
 
 import Button from "@/components/Button";
+import TakeAwayOrders from "./TakeAwayOrders";
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -153,6 +154,7 @@ export default function Dashboard() {
             selectedFloor={selectedFloor}
           />
         )}
+        <TakeAwayOrders />
       </div>
       <Drawer
         isOpen={openDrawer}
