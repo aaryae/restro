@@ -325,6 +325,16 @@ const checkoutOrder = async (req) => {
       return { status: 400, success: false, message: "Table ID is required" };
     }
 
+    // Validate paymentMethod if provided
+    const validPaymentMethods = ["cash", "card", "online"];
+    if (
+      updateData.paymentMethod &&
+      !validPaymentMethods.includes(updateData.paymentMethod)
+    ) {
+      await transaction.rollback();
+      return { status: 400, success: false, message: "Invalid payment method" };
+    }
+
     // Fetch orders based on single or multiple checkout
     let orders = [];
     if (orderId && !checkoutAll) {
@@ -460,6 +470,7 @@ const checkoutOrder = async (req) => {
         {
           ...updateData,
           status: "completed",
+          paymentStatus: "paid", // Set paymentStatus to paid
           orderFinishTime: new Date(),
           customerId: finalCustomerId,
           isGuestOrder,

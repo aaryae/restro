@@ -67,11 +67,11 @@ router.patch(
 
 // Checkout order (cashier)
 router.post(
-  "/checkout/:id",
+  "/checkout/:tableId",
   // authentication,
   // authorization,
-  idValidation,
-  checkoutOrderValidation,
+  // idValidation,
+  // checkoutOrderValidation,
   checkoutOrder,
 );
 

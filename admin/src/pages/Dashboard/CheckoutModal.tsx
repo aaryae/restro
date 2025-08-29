@@ -121,12 +121,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         ? {
             paymentMethod: paymentType,
             customerId: selectedMember.id,
+            orderId: orderId,
           }
         : {};
 
     if (paymentType === "cash") {
       const response = await checkoutOrderApi({
-        url: `${ORDER_URL}checkout/${orderId}`,
+        url: `${ORDER_URL}checkout/${tableId}`,
         body: payload,
       }).unwrap();
       if (response?.success) {
