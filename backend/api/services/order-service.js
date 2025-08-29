@@ -337,6 +337,11 @@ const checkoutOrder = async (req) => {
 
     // Fetch orders based on single or multiple checkout
     let orders = [];
+    console.log(
+      orderId,
+      checkoutAll,
+      "-----------------------23942342-3------",
+    );
     if (orderId && !checkoutAll) {
       // Single order checkout
       const order = await orderModel.findOne({

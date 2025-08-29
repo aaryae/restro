@@ -10,7 +10,7 @@ import Button from "@/components/Button";
 interface ViewTableOrderProps {
   id: number | null;
   tableNo: number | null;
-  handleCheckout: (tableId: number, orderId: number | null) => void;
+  handleCheckout: (tableId: number, orderId: number | null | [number]) => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
@@ -34,6 +34,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   console.log(table?.data, "this table");
 
   const orders = tableOrder?.data?.orders;
+  const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
 
   return (
     <>
@@ -132,9 +133,8 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           <div className="flex justify-end">
             <Button
               className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
-              handleClick={() => handleCheckout(id!, null)}
+              handleClick={() => handleCheckout(id!, allOrderIds)}
             >
-              {" "}
               Checkout ALL
             </Button>
           </div>

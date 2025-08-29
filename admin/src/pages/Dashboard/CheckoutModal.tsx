@@ -9,6 +9,8 @@ import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../Customer/AddEditCustomer";
 import { Mail, CircleUserRound } from "lucide-react";
 import { CurrencySign } from "@/constants";
+import Input from "@/components/Input";
+import { buildQueryString } from "@/utils/generalHelper";
 
 // Define interfaces
 interface OrderItem {
@@ -70,9 +72,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
   const [selectedMember, setSelectedMember] = useState(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
   const [checkoutOrderApi] = useCreateApiMutation();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+
+  const customerUrl = buildQueryString("customer-auth/list", {
+    page: 1,
+    limit: 5,
+    search: {
+      isCombo: true,
+      phone: customerSearchTerm,
+    },
+  });
 
   const { data: order } = useGetApiQuery(
     { url: `order/${orderId}` },
@@ -93,7 +105,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     isSuccess: customerSuccess,
     isLoading: customerDataLoading,
     refetch: customerRefetch,
-  } = useGetApiQuery({ url: "customer-auth/list" });
+  } = useGetApiQuery({ url: customerUrl });
 
   const closeDialog = () => {
     setDialogOpen(false);
@@ -106,15 +118,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  const handleMemberSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const memberId = Number(e.target.value);
-    const member = allCustomers?.data?.data?.find(
-      (customer: any) => customer.id === memberId,
-    );
-    console.log("memberId", allCustomers?.data?.data);
-    setSelectedMember(member);
-  };
-
   const handlePayment = async () => {
     const payload =
       checkoutType === "member" && selectedMember
@@ -122,8 +125,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             paymentMethod: paymentType,
             customerId: selectedMember.id,
             orderId: orderId,
+            checkoutAll: typeof orderId === "object",
           }
-        : {};
+        : {
+            paymentMethod: paymentType,
+            orderId: orderId,
+            checkoutAll: typeof orderId === "object",
+          };
 
     if (paymentType === "cash") {
       const response = await checkoutOrderApi({
@@ -259,37 +267,45 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               {checkoutType === "member" && (
                 <div className="mb-4">
                   <label className={`${styles.paymentLabel} block mb-1`}>
-                    Select Member
+                    Search Member
                   </label>
+                  <Input
+                    value={customerSearchTerm}
+                    onChange={(e) => {
+                      setCustomerSearchTerm(e.target.value);
+                    }}
+                  />
                   {customerDataLoading ? (
                     <p className="text-gray-500">Loading members...</p>
                   ) : customerSuccess &&
-                    allCustomers?.data?.data?.length > 0 ? (
-                    <select
-                      onChange={handleMemberSelect}
-                      value={selectedMember?.id || ""}
-                      className="bg-white w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="" disabled>
-                        Select a member
-                      </option>
+                    allCustomers?.data?.data?.length > 0 &&
+                    customerSearchTerm.trim().length > 0 ? (
+                    <>
                       {allCustomers?.data?.data.map((customer: any) => (
-                        <option key={customer.id} value={customer.id}>
+                        <p
+                          className={`my-4 py-2 cursor-pointer ${customer.id == selectedMember ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-200"}`}
+                          key={customer.id}
+                          onClick={() => setSelectedMember(customer.id)}
+                        >
                           {`${customer.firstName || ""} ${customer.lastName || ""} ${customer.firstName || customer.lastName ? `(${customer.mobileNo || ""})` : ""}`.trim() ||
                             `Member ${customer.id}`}
-                        </option>
+                        </p>
                       ))}
-                    </select>
+                    </>
                   ) : (
-                    <div>
-                      <p className="text-red-500">Failed to load members</p>
-                      <button
-                        onClick={customerRefetch}
-                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                      >
-                        Retry
-                      </button>
-                    </div>
+                    <>
+                      {customerSearchTerm.trim().length > 0 && (
+                        <div>
+                          <p className="text-red-500">Failed to load members</p>
+                          <button
+                            onClick={customerRefetch}
+                            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -311,7 +327,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               )}
             </div>
             <div className={styles.buttonContainer}>
-              <button onClick={onClose} className={styles.cancelButton}>
+              <button
+                onClick={() => {
+                  setCustomerSearchTerm("");
+                  setSelectedMember(null);
+                  onClose();
+                }}
+                className={styles.cancelButton}
+              >
                 Cancel
               </button>
               <button

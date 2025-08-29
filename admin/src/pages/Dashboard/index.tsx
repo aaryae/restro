@@ -108,11 +108,11 @@ export default function Dashboard() {
   }, [allTables, handlePagination]);
 
   console.log(allTables, "all tables");
-  const [checkoutOrderId, setCheckoutOrderId] = useState<number | null>(null);
+  const [checkoutOrderId, setCheckoutOrderId] = useState<
+    number | null | [number]
+  >(null);
 
-  function handleCheckout(tableId: number, orderId: number | null) {
-    console.log("checkiiing out", tableId);
-    console.log("checkiiing out", orderId);
+  function handleCheckout(tableId: number, orderId: number | null | [number]) {
     setCheckoutTableId(tableId);
     setCheckoutOrderId(orderId);
   }
