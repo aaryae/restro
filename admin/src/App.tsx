@@ -116,7 +116,15 @@ export default function App() {
     <main>
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="auth-form-wrapper">
-          <img src={Logo} alt="Logo" className="auth-logo" />
+          <img
+            src={
+              settings?.data?.brandingImage
+                ? `${IMAGE_BASE_URL}${settings.data.brandingImage}`
+                : Logo
+            }
+            alt="Logo"
+            className="auth-logo"
+          />
           <h1>{PROJECT_NAME} Login</h1>
           <Input
             label="Username"

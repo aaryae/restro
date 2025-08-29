@@ -13,6 +13,7 @@ import Select from "@/components/Select";
 import Model from "@/components/Model";
 import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
+import { CurrencySign } from "@/constants";
 
 import {
   useGetApiQuery,
@@ -384,7 +385,8 @@ export default function AddEditOrder({
                               ></p>
                               <div className="flex justify-between items-center">
                                 <span className="text-lg font-bold text-green-600">
-                                  NPR {Number(product.price).toFixed(2)}
+                                  {CurrencySign}{" "}
+                                  {Number(product.price).toFixed(2)}
                                 </span>
                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                                   Stock: {product.quantity}
@@ -480,7 +482,8 @@ export default function AddEditOrder({
                           {item.productName}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          NPR {Number(item.productPrice).toFixed(2)} each
+                          {CurrencySign} {Number(item.productPrice).toFixed(2)}{" "}
+                          each
                         </p>
                       </div>
 
@@ -540,7 +543,7 @@ export default function AddEditOrder({
                 <div className="flex justify-between items-center text-xl font-bold">
                   <span>Total Amount:</span>
                   <span className="text-green-600">
-                    NPR {Number(totalAmount).toFixed(2)}
+                    {CurrencySign} {Number(totalAmount).toFixed(2)}
                   </span>
                 </div>
               </div>
