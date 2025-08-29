@@ -5,8 +5,8 @@ import "react-date-range/dist/styles.css"; // Main style file
 import "react-date-range/dist/theme/default.css"; // Theme CSS file
 
 interface OrderFilterPropsType {
-  startDate: string;
-  endDate: string;
+  start: string;
+  end: string;
   paymentStatus: string;
   orderStatus: string;
 }
@@ -29,8 +29,8 @@ export default function OrderFilter({
     const todayDate = formatDate(today);
     setQueryStringOptions({
       ...queryStringOptions,
-      startDate: todayDate,
-      endDate: todayDate,
+      start: todayDate,
+      end: todayDate,
     });
     setShowDatePicker(false);
   };
@@ -40,8 +40,8 @@ export default function OrderFilter({
     const end = endOfWeek(today, { weekStartsOn: 0 });
     setQueryStringOptions({
       ...queryStringOptions,
-      startDate: formatDate(start),
-      endDate: formatDate(end),
+      start: formatDate(start),
+      end: formatDate(end),
     });
     setShowDatePicker(false);
   };
@@ -49,8 +49,8 @@ export default function OrderFilter({
   const handleAllClick = () => {
     setQueryStringOptions({
       ...queryStringOptions,
-      startDate: "",
-      endDate: "",
+      start: "",
+      end: "",
     });
     setShowDatePicker(false);
   };
@@ -75,34 +75,31 @@ export default function OrderFilter({
     const { startDate, endDate } = ranges.selection;
     setQueryStringOptions({
       ...queryStringOptions,
-      startDate: startDate ? formatDate(startDate) : "",
-      endDate: endDate ? formatDate(endDate) : "",
+      start: startDate ? formatDate(startDate) : "",
+      end: endDate ? formatDate(endDate) : "",
     });
   };
 
   const dateRange = {
-    startDate: queryStringOptions.startDate
-      ? new Date(queryStringOptions.startDate)
+    startDate: queryStringOptions.start
+      ? new Date(queryStringOptions.start)
       : today,
-    endDate: queryStringOptions.endDate
-      ? new Date(queryStringOptions.endDate)
-      : today,
+    endDate: queryStringOptions.end ? new Date(queryStringOptions.end) : today,
     key: "selection",
   };
 
-  const isAllSelected =
-    !queryStringOptions.startDate && !queryStringOptions.endDate;
+  const isAllSelected = !queryStringOptions.start && !queryStringOptions.end;
   const isTodaySelected =
-    queryStringOptions.startDate === formatDate(today) &&
-    queryStringOptions.endDate === formatDate(today);
+    queryStringOptions.start === formatDate(today) &&
+    queryStringOptions.end === formatDate(today);
   const isThisWeekSelected =
-    queryStringOptions.startDate ===
+    queryStringOptions.start ===
       formatDate(startOfWeek(today, { weekStartsOn: 0 })) &&
-    queryStringOptions.endDate ===
+    queryStringOptions.end ===
       formatDate(endOfWeek(today, { weekStartsOn: 0 }));
   const isCustomSelected =
-    queryStringOptions.startDate &&
-    queryStringOptions.endDate &&
+    queryStringOptions.start &&
+    queryStringOptions.end &&
     !isAllSelected &&
     !isTodaySelected &&
     !isThisWeekSelected;
@@ -160,7 +157,7 @@ export default function OrderFilter({
               </button>
               {isCustomSelected && (
                 <span className="text-sm text-gray-600">
-                  {queryStringOptions.startDate} - {queryStringOptions.endDate}
+                  {queryStringOptions.start} - {queryStringOptions.end}
                 </span>
               )}
             </div>

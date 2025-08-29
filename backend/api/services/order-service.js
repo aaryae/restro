@@ -303,7 +303,7 @@ const getTableActiveOrders = async (req) => {
   }
 };
 
-const { Op } = require("sequelize");
+// const { Op } = require("sequelize");
 
 const checkoutOrder = async (req) => {
   const transaction = await sequelize.transaction();
@@ -578,6 +578,7 @@ const listOrders = async (req) => {
       page,
       status,
       paymentStatus,
+      orderStatus,
       paymentMethod,
       orderType,
       tableId,
@@ -615,20 +616,21 @@ const listOrders = async (req) => {
     if (status) filters.status = { [Op.like]: `%${status}%` };
     if (paymentStatus)
       filters.paymentStatus = { [Op.like]: `%${paymentStatus}%` };
+    if (orderStatus) filters.status = { [Op.like]: `%${orderStatus}%` };
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
     if (orderType) filters.orderType = { [Op.like]: `%${orderType}%` };
     if (tableId) filters.tableId = tableId;
 
-    if (orderDate) {
-      const date = new Date(orderDate);
-      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-      filters.orderDate = { [Op.between]: [startOfDay, endOfDay] };
-    }
+    // if (orderDate) {
+    //   const date = new Date(orderDate);
+    //   const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+    //   const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    //   filters.orderDate = { [Op.between]: [startOfDay, endOfDay] };
+    // }
 
     if (start && end) {
-      filters.orderDate = { [Op.between]: [start, end] };
+      filters.orderStartTime = { [Op.between]: [start, end] };
     }
 
     if (sort) {

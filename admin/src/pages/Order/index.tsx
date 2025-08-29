@@ -23,8 +23,8 @@ export default function Order() {
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
 
   const [queryStringOptions, setQueryStringOptions] = useState({
-    startDate: null,
-    endDate: null,
+    start: null,
+    end: null,
     paymentStatus: null,
     orderStatus: null,
   });
