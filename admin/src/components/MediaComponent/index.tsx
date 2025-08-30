@@ -403,7 +403,7 @@ export default function MediaComponent({
                                 src={`${IMAGE_BASE_URL}${each.path}`}
                                 alt="Gallery"
                                 className="w-[109px] h-[90px] object-cover"
-                                crossOrigin="anonymous"
+                                // crossOrigin="anonymous"
                               />
                             )}
                             <p className="bg-inherit text-black w-[6rem] text-center overflow-hidden line-clamp-1 mt-[0.5rem]">
