@@ -11,6 +11,7 @@ import { Mail, CircleUserRound } from "lucide-react";
 import { CurrencySign } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
+import { useCheckoutOrderMutation } from "@/redux/services/orders";
 
 // Define interfaces
 interface OrderItem {
@@ -82,7 +83,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
-  const [checkoutOrderApi] = useCreateApiMutation();
+  const [checkoutOrderApi] = useCheckoutOrderMutation();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
   const customerUrl = buildQueryString("customer-auth/list", {
@@ -143,7 +144,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     if (paymentType === "cash") {
       const response = await checkoutOrderApi({
-        url: `${ORDER_URL}checkout/${tableId}`,
+        id: tableId,
         body: payload,
       }).unwrap();
       if (response?.success) {

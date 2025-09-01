@@ -18,7 +18,7 @@ export const ImageInputUI = ({
             src={`${IMAGE_BASE_URL}${image}`}
             alt="Gallery Icon"
             className="object-contain h-full w-full p-[1rem]"
-            crossOrigin="anonymous"
+            // crossOrigin="anonymous"
           />
         ) : (
           <img
@@ -55,7 +55,7 @@ export const VideoInputUI = ({
             src={`${IMAGE_BASE_URL}${video}`}
             controls
             className="object-contain h-full w-full p-[1rem]"
-            crossOrigin="anonymous"
+            // crossOrigin="anonymous"
           />
         ) : (
           <div className="flex flex-col items-center">
@@ -103,7 +103,7 @@ export const MultipleImageInputUI = ({
               }`}
               alt="Gallery Image"
               className="object-contain w-full h-full p-[1rem]"
-              crossOrigin="anonymous"
+              // crossOrigin="anonymous"
             />
           </div>
         </div>
@@ -112,7 +112,7 @@ export const MultipleImageInputUI = ({
           src={`${IMAGE_BASE_URL}${images}`}
           alt="Gallery Icon"
           className="object-contain h-full w-full p-[1rem]"
-          crossOrigin="anonymous"
+          // crossOrigin="anonymous"
         />
       ) : (
         <img

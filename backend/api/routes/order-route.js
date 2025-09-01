@@ -68,7 +68,7 @@ router.patch(
 // Checkout order (cashier)
 router.post(
   "/checkout/:tableId",
-  // authentication,
+  authentication,
   // authorization,
   // idValidation,
   // checkoutOrderValidation,

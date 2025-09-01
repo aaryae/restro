@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ProductSchema = z.object({
   name: z.string().min(1, "Name is Required"),
-  alias: z.array(z.string().optional()),
+  // alias: z.array(z.string().optional()),
   description: z.string().min(1, "Description is Required"),
   quantity: z.number({ message: "price must be a number" }).int().positive(),
   departmentId: z.coerce.number().min(1, "Department is Required"),

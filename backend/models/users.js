@@ -32,6 +32,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "roleId",
         as: "roles",
       });
+      this.hasMany(models.revenueModel, {
+        foreignKey: "userId",
+        as: "user",
+      });
 
       // define association here
     }

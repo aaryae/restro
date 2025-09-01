@@ -132,7 +132,7 @@ export default function Order() {
             totalAmount,
           }) => [
             <span className={`${status === "cancelled" ? "line-through" : ""}`}>
-              {table?.tableNo || "Deleted Table"}
+              {table?.tableNo || "No Table found"}
             </span>,
             <span className={`${status === "cancelled" ? "line-through" : ""}`}>
               {orderType}
