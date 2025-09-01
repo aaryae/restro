@@ -406,7 +406,7 @@ const list = async (req) => {
       customerId,
       amount,
       paymentMethod,
-      cash_or_credit,
+      cash_or_credit = "all",
       sort,
       start,
       end,
@@ -429,6 +429,9 @@ const list = async (req) => {
 
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
+
+    if (cash_or_credit === "cash" || cash_or_credit === "credit")
+      filters.cash_or_credit = { [Op.like]: `${cash_or_credit}` };
 
     if (start && end) {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
