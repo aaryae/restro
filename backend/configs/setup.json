@@ -1119,6 +1119,28 @@
           "list": "Table"
         }
       ]
+    },
+    {
+      "title": "Revenue",
+      "key": "revenue",
+      "actions": [
+        {
+          "title": "Add Revenue",
+          "key": "add",
+          "clientPath": "/revenue",
+          "serverPath": "/revenue",
+          "requestMethod": "POST",
+          "list": "Revenue"
+        },
+        {
+          "title": "View Revenue",
+          "key": "view",
+          "clientPath": "/revenue/list",
+          "serverPath": "/revenue/list",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        }
+      ]
     }
   ]
 }

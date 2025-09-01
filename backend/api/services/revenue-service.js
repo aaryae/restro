@@ -19,83 +19,37 @@ const { withTransaction } = require("../../helpers/order/transaction");
 const paginate = require("../../utils/paginate");
 const paginateWithAggregate = require("../../utils/paginateWithAggregate");
 
-const createOrder = async (req) => {
+const createRevenue = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const { orderType, tableId, orderItems = [] } = req.body;
-    let table = null;
-    let sessionId = null;
+    const { customerId, ...rest } = req.body;
 
-    if (orderType === "dineIn") {
-      table = await tableModel.findByPk(tableId, { transaction });
-      if (!table) {
+    // Handle existing customer
+    if (customerId) {
+      const customer = await customerModel.findByPk(customerId, {
+        transaction,
+      });
+      if (!customer) {
         await transaction.rollback();
-        return { status: 404, success: false, message: "Table not found" };
-      }
-
-      if (table.status === "available") {
-        sessionId = generateUUID();
-        await table.update(
-          {
-            status: "occupied",
-            sessionId,
-            sessionStartTime: new Date(),
-          },
-          { transaction },
-        );
-      } else {
-        sessionId = table.sessionId;
+        return { status: 404, success: false, message: "Customer not found" };
       }
     }
 
-    const order = await orderModel.create(
+    const revenue = await revenueModel.create(
       {
-        ...req.body,
-        sessionId,
-        orderStartTime: new Date(),
+        ...rest,
+        customerId,
       },
       { transaction },
     );
-
-    let totalAmount = 0;
-
-    for (const item of orderItems) {
-      const product = await productModel.findByPk(item.productId, {
-        transaction,
-      });
-      if (!product) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: `Product with ID ${item.productId} not found`,
-        };
-      }
-
-      const subtotal = product.price * item.quantity;
-      totalAmount += subtotal;
-
-      await orderItemModel.create(
-        {
-          ...item,
-          orderId: order.id,
-          price: product.price,
-          departmentId: product.departmentId,
-          subtotal,
-        },
-        { transaction },
-      );
-    }
-
-    await order.update({ totalAmount }, { transaction });
 
     await transaction.commit();
 
     return {
       status: 201,
       success: true,
-      message: "Order created successfully",
-      data: order,
+      message: "Revenue created successfully",
+      data: revenue,
     };
   } catch (error) {
     await transaction.rollback();
@@ -659,4 +613,5 @@ const getOrderItems = async (req) => {
 
 module.exports = {
   list,
+  createRevenue,
 };

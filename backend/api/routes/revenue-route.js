@@ -8,15 +8,13 @@ const {
   idValidation,
 } = require("../../validations/common-validation");
 const {
-  productPostValidation,
-  productPutValidation,
-  orderPutValidation,
-} = require("../../validations/product-validation");
+  revenuePostValidation,
+} = require("../../validations/revenue-validation");
 
-const { list } = require("../controllers/revenue-controller");
+const { list, create } = require("../controllers/revenue-controller");
 
-// router.post("/", authentication, authorization, productPostValidation, create);
-router.get("/list", paginationValidation, list);
+router.post("/", authentication, revenuePostValidation, create);
+router.get("/list", authentication, paginationValidation, list);
 // router.get("/:id", idValidation, getById);
 // router.put(
 //   "/update-order",
