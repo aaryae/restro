@@ -5,6 +5,8 @@ import {
   MdOutlinePerson,
 } from "react-icons/md";
 
+import { CircleDollarSign, ShoppingCart } from "lucide-react";
+
 import {
   Users,
   ImageIcon,
@@ -125,6 +127,31 @@ export const SideMenuList: SideListMenuType[] = [
         key: 9.4,
         name: "Table",
         path: "/admin/table/list",
+        icon: <MdOutlineFactCheck />,
+      },
+    ],
+  },
+  {
+    key: 7,
+    name: "Table",
+    icon: <CircleDollarSign />,
+    path: "/admin/revenue",
+  },
+  {
+    key: 8,
+    name: "Purchase",
+    icon: <ShoppingCart />,
+    menu: [
+      {
+        key: 8.1,
+        name: "Table",
+        path: "/admin/purchase/list",
+        icon: <MdOutlineFactCheck />,
+      },
+      {
+        key: 8.2,
+        name: "Table",
+        path: "/admin/purchase-category/list",
         icon: <MdOutlineFactCheck />,
       },
     ],

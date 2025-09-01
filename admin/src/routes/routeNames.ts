@@ -47,3 +47,10 @@ export const TABLE_LIST_ROUTE = "/admin/table/list";
 
 export const FLOOR_ADD_ROUTE = "/admin/floor/";
 export const FLOOR_LIST_ROUTE = "/admin/floor/list";
+
+export const REVENUE_ROUTE = "/admin/revenue";
+
+export const PURCHASE_LIST_ROUTE = "/admin/purchase/list";
+
+export const PURCHASE_CATEGORY_LIST_ROUTE = "/admin/purchase-category/list";
+export const PURCHASE_CATEGORY_ADD_ROUTE = "/admin/purchase-category/";
