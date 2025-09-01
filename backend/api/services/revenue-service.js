@@ -17,6 +17,7 @@ const {
 const { withTransaction } = require("../../helpers/order/transaction");
 
 const paginate = require("../../utils/paginate");
+const paginateWithAggregate = require("../../utils/paginateWithAggregate");
 
 const createOrder = async (req) => {
   const transaction = await sequelize.transaction();
@@ -426,6 +427,9 @@ const list = async (req) => {
       },
     ];
     const order = [["updatedAt", "DESC"]];
+    const aggregates = [
+      { column: "amount", function: "SUM", alias: "grandTotal" },
+    ];
 
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
@@ -445,12 +449,13 @@ const list = async (req) => {
       else if (sort === "latest") order.push(["createdAt", "DESC"]);
     }
 
-    const result = await paginate(revenueModel, {
+    const result = await paginateWithAggregate(revenueModel, {
       limit,
       page,
       filters,
       include,
       order,
+      aggregates,
     });
 
     return {
