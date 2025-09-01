@@ -42,6 +42,14 @@ interface Order {
   updatedAt: string;
 }
 
+interface Customer {
+  id: number | string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  mobileNo?: string;
+}
+
 interface Table {
   id: number;
   floor: { id: number; floorNo: string };
@@ -71,7 +79,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentType, setPaymentType] = useState<"cash" | "qr">("cash");
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
   const [checkoutOrderApi] = useCreateApiMutation();
@@ -283,9 +291,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <>
                       {allCustomers?.data?.data.map((customer: any) => (
                         <p
-                          className={`my-4 py-2 cursor-pointer ${customer.id == selectedMember ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-200"}`}
+                          className={`my-4 py-2 cursor-pointer ${customer.id == selectedMember?.id ? "bg-blue-600 text-white" : "bg-gray-300 hover:bg-gray-200 rounded-[4px]"}`}
                           key={customer.id}
-                          onClick={() => setSelectedMember(customer.id)}
+                          onClick={() => setSelectedMember(customer)}
                         >
                           {`${customer.firstName || ""} ${customer.lastName || ""} ${customer.firstName || customer.lastName ? `(${customer.mobileNo || ""})` : ""}`.trim() ||
                             `Member ${customer.id}`}
