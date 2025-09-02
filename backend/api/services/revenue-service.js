@@ -395,11 +395,11 @@ const list = async (req) => {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
       const endDate = endOfDay(parseISO(end));
 
-      filters.orderStartTime = { [Op.between]: [startDate, endDate] };
+      filters.createdAt = { [Op.between]: [startDate, endDate] };
     }
 
     if (sort) {
-      if (sort === "price") order.push(["totalAmount", "DESC"]);
+      if (sort === "price") order.push(["amount", "DESC"]);
       else if (sort === "latest") order.push(["createdAt", "DESC"]);
     }
 
