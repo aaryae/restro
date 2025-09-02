@@ -2,8 +2,8 @@ import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
 import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import useTranslation from "@/locale/useTranslation";
@@ -19,19 +19,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store/store";
-
-const RevenueSchema = z.object({
-  amount: z
-    .number({ required_error: "Amount is required" })
-    .positive("Amount must be greater than 0"),
-  paymentMethod: z.enum(["cash", "card", "online"], {
-    required_error: "Payment method is required",
-  }),
-  cash_or_credit: z.enum(["cash", "credit"], {
-    required_error: "Cash or Credit is required",
-  }),
-  remarks: z.string().optional().default(""),
-});
+import { RevenueSchema } from "./schema";
 
 type RevenueFormType = z.infer<typeof RevenueSchema>;
 
@@ -82,7 +70,6 @@ export default function AddEditRevenue() {
   const [createRevenue, { isLoading: creating }] = useCreateApiMutation();
   const [updateRevenue, { isLoading: updating }] = useUpdateApiMutation();
 
-  // Backend currently lacks GET /revenue/:id; when available, this will prefill on edit
   const { data: revenueData, isLoading: revenueLoading } = useGetApiQuery(
     { url: `${REVENUE_URL}${id}` },
     { skip: !isEditMode },

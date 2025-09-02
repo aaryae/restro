@@ -17,10 +17,17 @@ const {
   create,
   update,
   deleteRevenue,
+  getById,
 } = require("../controllers/revenue-controller");
 
 router.post("/", authentication, revenuePostValidation, create);
 router.get("/list", authentication, paginationValidation, list);
+router.get(
+  "/:id",
+  authentication,
+  idValidation,
+  getById,
+);
 router.put(
   "/:id",
   authentication,

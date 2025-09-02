@@ -6,19 +6,24 @@ import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
 import RevenueFilter from "./RevenueFilter";
-import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import NepaliDate from "nepali-date-converter";
 import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
 import { FiEdit2 } from "react-icons/fi";
-import { TbTrashXFilled } from "react-icons/tb";
 import { MdEditSquare } from "react-icons/md";
 import PageHeader from "@/components/PageHeader";
+import DeleteModal from "@/components/DeleteModal";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { REVENUE_URL } from "@/constants/apiUrlConstants";
 
 const Revenue: React.FC = () => {
   const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+
+  const [open, setOpen] = useState<boolean>(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const [queryStringOptions, setQueryStringOptions] = useState({
     start: "",
@@ -34,7 +39,13 @@ const Revenue: React.FC = () => {
     search: queryStringOptions,
   });
 
-  const { data: allRevenue, isSuccess: success } = useGetApiQuery({ url });
+  const {
+    data: allRevenue,
+    isSuccess: success,
+    refetch,
+  } = useGetApiQuery({ url });
+
+  const [deleteRevenue] = useDeleteApiMutation();
 
   const pagination: PaginationType = {
     page: allRevenue?.data?.page ?? 1,
@@ -64,8 +75,27 @@ const Revenue: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    // TODO: Wire to backend DELETE when available.
+  const handleDeleteTrigger = (id: number) => {
+    setDeleteId(id);
+    setOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const response = await deleteRevenue(
+        `${REVENUE_URL}${deleteId}`,
+      ).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          refetch();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setOpen(false);
+    }
   };
 
   const data =
@@ -113,14 +143,12 @@ const Revenue: React.FC = () => {
                   onClick={() => handleNewUser(id)}
                 />
 
-                <button
-                  type="button"
-                  className="text-red-600 hover:text-red-800"
-                  onClick={() => handleDelete(id)}
-                  title="Delete"
-                >
-                  <TbTrashXFilled size={18} />
-                </button>
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
               </div>,
             ];
           },
