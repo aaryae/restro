@@ -57,6 +57,96 @@ const createRevenue = async (req) => {
   }
 };
 
+const updateRevenue = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { customerId, ...rest } = req.body;
+
+    // Find the revenue entry
+    const revenue = await revenueModel.findByPk(id, { transaction });
+    if (!revenue) {
+      await transaction.rollback();
+      return {
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
+      };
+    }
+
+    // Handle existing customer if customerId is provided
+    if (customerId !== undefined) {
+      if (customerId !== null) {
+        const customer = await customerModel.findByPk(customerId, {
+          transaction,
+        });
+        if (!customer) {
+          await transaction.rollback();
+          return {
+            status: 404,
+            success: false,
+            message: "Customer not found",
+          };
+        }
+      }
+    }
+
+    // Update only provided fields
+    await revenue.update(
+      {
+        ...rest,
+        customerId: customerId !== undefined ? customerId : revenue.customerId,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+
+    return {
+      status: 200,
+      success: true,
+      message: "Revenue updated successfully",
+      data: revenue,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+const deleteRevenue = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+
+    // Find the revenue entry
+    const revenue = await revenueModel.findByPk(id, { transaction });
+    if (!revenue) {
+      await transaction.rollback();
+      return {
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
+      };
+    }
+
+    // Delete the revenue entry
+    await revenue.destroy({ transaction });
+
+    await transaction.commit();
+
+    return {
+      status: 200,
+      success: true,
+      message: "Revenue deleted successfully",
+      data: null,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
 const checkoutOrder = async (req) => {
   const transaction = await sequelize.transaction();
   try {
@@ -614,4 +704,6 @@ const getOrderItems = async (req) => {
 module.exports = {
   list,
   createRevenue,
+  updateRevenue,
+  deleteRevenue,
 };
