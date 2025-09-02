@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "customerId",
         as: "orders",
       });
+      Customer.hasMany(models.revenueModel, {
+        foreignKey: "customerId",
+        as: "revenues",
+      });
       // define association here
     }
   }

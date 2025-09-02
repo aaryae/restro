@@ -9,22 +9,14 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      cash_or_credit: {
-        type: Sequelize.ENUM("cash", "credit"),
-        defaultValue: "cash",
-      },
-      paymentMethod: {
-        type: Sequelize.ENUM("cash", "card", "online"),
-        defaultValue: "cash",
-      },
-      amount: {
-        type: Sequelize.DECIMAL(10, 2),
+      accountId: {
+        type: Sequelize.INTEGER,
         allowNull: false,
-        defaultValue: 0.0,
-      },
-      remarks: {
-        type: Sequelize.TEXT,
-        allowNull: true,
+        references: {
+          model: "accounts",
+          key: "id",
+        },
+        onDelete: "CASCADE",
       },
       customerId: {
         type: Sequelize.INTEGER,
@@ -34,6 +26,24 @@ module.exports = {
           key: "id",
         },
         onDelete: "SET NULL",
+      },
+      cash_or_credit: {
+        type: Sequelize.ENUM("cash", "credit"),
+        allowNull: false,
+        defaultValue: "cash",
+      },
+      paymentMethod: {
+        type: Sequelize.ENUM("cash", "card", "online"),
+        allowNull: false,
+        defaultValue: "cash",
+      },
+      amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+      },
+      remarks: {
+        type: Sequelize.TEXT,
+        allowNull: true,
       },
       userId: {
         type: Sequelize.INTEGER,
@@ -57,6 +67,7 @@ module.exports = {
       },
     });
 
+    await queryInterface.addIndex("revenues", ["accountId"]);
     await queryInterface.addIndex("revenues", ["customerId"]);
   },
 

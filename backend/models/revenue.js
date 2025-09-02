@@ -13,6 +13,11 @@ module.exports = (sequelize) => {
         foreignKey: "userId",
         as: "user",
       });
+
+      Revenue.belongsTo(models.accountModel, {
+        foreignKey: "accountId",
+        as: "revenues",
+      });
     }
   }
 
@@ -55,9 +60,25 @@ module.exports = (sequelize) => {
       modelName: "Revenue",
       tableName: "revenues",
       timestamps: true,
-      indexes: [{ fields: ["customerId"] }],
+      indexes: [{ fields: ["accountId"] }, { fields: ["customerId"] }],
     },
   );
+
+  // Hook to update currentBalance
+  Revenue.addHook("afterCreate", async (revenue, options) => {
+    const account = await revenue.getAccount({
+      transaction: options.transaction,
+    });
+    if (!account) {
+      throw new Error("Associated account not found");
+    }
+    await account.update(
+      {
+        currentBalance: account.currentBalance + revenue.amount,
+      },
+      { transaction: options.transaction },
+    );
+  });
 
   return Revenue;
 };
