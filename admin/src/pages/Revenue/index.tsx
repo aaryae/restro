@@ -9,7 +9,7 @@ import RevenueFilter from "./RevenueFilter";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
-import NepaliDate from "nepali-date-converter";
+import BikramSambat, {ADToBS, BSToAD}  from "bikram-sambat-js"
 import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
 import { FiEdit2 } from "react-icons/fi";
 import { MdEditSquare } from "react-icons/md";
@@ -116,15 +116,7 @@ const Revenue: React.FC = () => {
           ) => {
             const adDate = createdAt ? new Date(createdAt) : null;
             const adDisplay = adDate ? format(adDate, "yyyy-MM-dd") : "";
-            let bsDisplay = "";
-            if (adDate) {
-              const nd = NepaliDate.fromAD(adDate);
-              const bs = nd.getBS();
-              const yy = bs.year;
-              const mm = String(bs.month).padStart(2, "0");
-              const dd = String(bs.date).padStart(2, "0");
-              bsDisplay = `${yy}-${mm}-${dd}`;
-            }
+            const bsDisplay = adDate ? ADToBS(adDate) : "";
 
             return [
               index + 1 + (pagination.page - 1) * pagination.limit,

@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import NepaliDate from "nepali-date-converter";
 import { CurrencySign } from "@/constants";
 import { Trash } from "lucide-react";
 import MediaComponent from "@/components/MediaComponent";
@@ -67,21 +66,21 @@ const AddEditPurchase: React.FC = () => {
   );
 
   const items = watch("items") as ItemRow[];
-  const dateValue = watch("date");
+  // const dateValue = watch("date");
   const [mediaOpen, setMediaOpen] = useState(false);
   const selectedImage = useAppSelector((state) => state.media.selectedImage) as
     | string
     | "";
 
-  let bsDateDisplay = "";
-  if (dateValue) {
-    const nd = NepaliDate.fromAD(new Date(dateValue));
-    const bs = nd.getBS();
-    const yy = bs.year;
-    const mm = String(bs.month).padStart(2, "0");
-    const dd = String(bs.date).padStart(2, "0");
-    bsDateDisplay = `${yy}-${mm}-${dd}`;
-  }
+  // let bsDateDisplay = "";
+  // if (dateValue) {
+  //   const nd = NepaliDate.fromAD(new Date(dateValue));
+  //   const bs = nd.getBS();
+  //   const yy = bs.year;
+  //   const mm = String(bs.month).padStart(2, "0");
+  //   const dd = String(bs.date).padStart(2, "0");
+  //   bsDateDisplay = `${yy}-${mm}-${dd}`;
+  // }
 
   const computeRow = (row: ItemRow) => {
     const qty = Number(row.qty) || 0;
@@ -138,9 +137,9 @@ const AddEditPurchase: React.FC = () => {
                   className="border rounded px-3 py-2 bg-white"
                   {...register("date", { required: "Date is required" })}
                 />
-                <span className="text-xs text-gray-600 mt-1">
+                {/* <span className="text-xs text-gray-600 mt-1">
                   Date (BS): {bsDateDisplay}
-                </span>
+                </span> */}
                 {errors.date && (
                   <span className="text-red-600 text-sm mt-1">
                     {errors.date.message}
