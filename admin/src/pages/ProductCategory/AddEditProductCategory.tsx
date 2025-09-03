@@ -8,8 +8,6 @@ import Button from "@/components/Button";
 import { z } from "zod";
 import useTranslation from "@/locale/useTranslation";
 import { PRODUCT_CATEGORY_LIST_ROUTE } from "@/routes/routeNames";
-import MediaComponent from "@/components/MediaComponent";
-import { ImageInputUI } from "@/components/ImageComponent";
 import { useEffect } from "react";
 import {
   useCreateProductCategoryMutation,
@@ -17,7 +15,6 @@ import {
   useUpdateProductCategoryByIdMutation,
 } from "@/redux/services/productCategory";
 import PageTitle from "@/components/PageTitle";
-import { useSingleImageHandler } from "@/hooks/useImageHandler";
 import TextArea from "@/components/TextArea";
 
 type ProductCategoryFormType = z.infer<typeof ProductCategorySchema>;
@@ -36,8 +33,6 @@ export default function AddEditProductCategory({
   const navigate = useNavigate();
   const {
     register,
-    getValues,
-    setValue,
     handleSubmit,
     setError,
     reset,
@@ -45,20 +40,6 @@ export default function AddEditProductCategory({
   } = useForm<ProductCategoryFormType>({
     resolver: zodResolver(ProductCategorySchema),
   });
-
-  const {
-    imageUrl,
-    handleConfirmImage,
-    isImageModelOpen,
-    setIsImageModelOpen,
-  } = useSingleImageHandler(setValue, getValues);
-
-  const {
-    imageUrl: imageUrlSecondary,
-    handleConfirmImage: secondaryHandleConfirmImage,
-    isImageModelOpen: secondaryIsImageModelOpen,
-    setIsImageModelOpen: secondarySetIsImageModelOpen,
-  } = useSingleImageHandler(setValue, getValues, "imageUrlSecondary");
 
   const { data: productCategory, isSuccess: success } =
     useGetProductCategoryByIdQuery(id, {
@@ -112,32 +93,6 @@ export default function AddEditProductCategory({
           {...register("name")}
           error={errors.name?.message}
         />
-        <div className="relative flex flex-col items-start w-[20rem] ">
-          <label className="input-label">
-            Image <span className="text-red-500">*</span>
-          </label>
-          <MediaComponent
-            title={<ImageInputUI image={imageUrl} type="large" />}
-            isMultiSelect={false}
-            handleConfirmImage={() => handleConfirmImage("imageUrl")}
-            open={isImageModelOpen}
-            setOpen={setIsImageModelOpen}
-          />
-        </div>
-        <div className="relative flex flex-col items-start w-[20rem] ">
-          <label className="input-label">
-            Secondary Image <span className="text-red-500">*</span>
-          </label>
-          <MediaComponent
-            title={<ImageInputUI image={imageUrlSecondary} type="large" />}
-            isMultiSelect={false}
-            handleConfirmImage={() =>
-              secondaryHandleConfirmImage("imageUrlSecondary")
-            }
-            open={secondaryIsImageModelOpen}
-            setOpen={secondarySetIsImageModelOpen}
-          />
-        </div>
         <TextArea
           label="Description"
           className="w-1/2"
