@@ -34,6 +34,8 @@ import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
 import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
 import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
+import Banks from "@/pages/Banks";
+import AddEditBanks from "@/pages/Banks/AddEditBanks";
 
 export const adminLinks = [
   {
@@ -223,5 +225,17 @@ export const adminLinks = [
   {
     path: "/table/",
     element: <AddEditTable />,
+  },
+  {
+    path: "/account/list",
+    element: <Banks />,
+  },
+  {
+    path: "/account/",
+    element: <AddEditBanks />,
+  },
+  {
+    path: "/account/:id",
+    element: <AddEditBanks />,
   },
 ];
