@@ -485,11 +485,11 @@ const list = async (req) => {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
       const endDate = endOfDay(parseISO(end));
 
-      filters.orderStartTime = { [Op.between]: [startDate, endDate] };
+      filters.createdAt = { [Op.between]: [startDate, endDate] };
     }
 
     if (sort) {
-      if (sort === "price") order.push(["totalAmount", "DESC"]);
+      if (sort === "price") order.push(["amount", "DESC"]);
       else if (sort === "latest") order.push(["createdAt", "DESC"]);
     }
 
@@ -603,6 +603,39 @@ const bulkServeOrderItems = async (req) => {
   }
 };
 
+
+const getRevenueById = async (req) => {
+  try {
+    const { id } = req.params;
+    const include = [
+      {
+        model: userModel,
+        as: "user",
+        attributes: ["id", "username"],
+      },
+      {
+        model: customerModel,
+        as: "customer",
+        attributes: ["id", "email", "firstName", "lastName", "mobileNo"],
+      },
+    ];
+
+    const revenue = await revenueModel.findByPk(id, { include });
+    if (!revenue) {
+      return { status: 404, success: false, message: "Revenue entry not found" };
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: "Revenue retrieved successfully",
+      data: revenue,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 // this is for departments to update order item status
 const updateOrderItemsStatus = async (req) => {
   let { orderItemIds } = req.body;
@@ -706,4 +739,5 @@ module.exports = {
   createRevenue,
   updateRevenue,
   deleteRevenue,
+  getRevenueById,
 };

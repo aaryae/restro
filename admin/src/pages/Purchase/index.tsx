@@ -5,6 +5,8 @@ import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
 import PageHeader from "@/components/PageHeader";
+import { useNavigate } from "react-router-dom";
+import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
 
 type PurchaseRow = {
   purchaseId: number;
@@ -15,10 +17,11 @@ type PurchaseRow = {
   vendorId: number; // FK
   amount: number;
   paidOrCredit: "Paid" | "Credit";
-  paymentSourceId: number; // FK
+  paymentSourceId: number;
 };
 
 const Purchase: React.FC = () => {
+  const navigate = useNavigate();
   // Demo Mock data; replace with API integration later
   const allData: PurchaseRow[] = useMemo(
     () => [
@@ -94,15 +97,19 @@ const Purchase: React.FC = () => {
     r.paidOrCredit,
     r.paymentSourceId,
   ]);
+  const handleNewUser = (id: number | null) => {
+    id === null
+      ? navigate(PURCHASE_ADD_ROUTE)
+      : navigate(`${PURCHASE_ADD_ROUTE}/${id}`);
+  };
 
   return (
     <>
       <PageTitle title="Purchase" />
       <PageHeader
-      
         hasAddButton={true}
         newButtonText="Add New Purchase"
-        handleNewButton={() => {}}
+        handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => {}}
         hasSubText={false}
       />

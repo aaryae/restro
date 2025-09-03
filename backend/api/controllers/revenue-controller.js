@@ -20,6 +20,25 @@ const list = async (req, res, next) => {
     next(err);
   }
 };
+
+const getById = async (req, res, next) => {
+  try {
+    const result = await revenueService.getRevenueById(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
 const create = async (req, res, next) => {
   try {
     const result = await revenueService.createRevenue(req);
@@ -80,4 +99,5 @@ module.exports = {
   create,
   update,
   deleteRevenue,
+  getById,
 };

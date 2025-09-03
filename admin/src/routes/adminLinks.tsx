@@ -29,9 +29,11 @@ import AddEditTable from "@/pages/Table/AddEditTable";
 import AddEditOrder from "@/pages/Order/AddEditOrder";
 import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
 import Revenue from "@/pages/Revenue";
+import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
 import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
 import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
+import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
 
 export const adminLinks = [
   {
@@ -131,12 +133,24 @@ export const adminLinks = [
     element: <AddEditProductVariant />,
   },
   {
-    path: "/revenue",
+    path: "/revenue/list",
     element: <Revenue />,
+  },
+  {
+    path: "/revenue/",
+    element: <AddEditRevenue />,
+  },
+  {
+    path: "/revenue/:id",
+    element: <AddEditRevenue />,
   },
   {
     path: "/purchase/list",
     element: <Purchase />,
+  },
+  {
+    path: "/purchase",
+    element: <AddEditPurchase />,
   },
   {
     path: "/purchase-category/list",

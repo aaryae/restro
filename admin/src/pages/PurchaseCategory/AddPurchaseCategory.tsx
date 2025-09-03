@@ -39,7 +39,7 @@ const AddPurchaseCategory: React.FC = () => {
 
   return (
     <>
-      <PageTitle title="Add Purchase Category" />
+      <PageTitle title="Add Purchase Category" isBack />
       <form
         className="grid grid-cols-1 gap-[2rem] mt-[1rem] form-container"
         onSubmit={handleSubmit(onSubmit)}

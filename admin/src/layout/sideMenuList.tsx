@@ -133,9 +133,9 @@ export const SideMenuList: SideListMenuType[] = [
   },
   {
     key: 7,
-    name: "Table",
+    name: "Revenue",
     icon: <CircleDollarSign />,
-    path: "/admin/revenue",
+    path: "/admin/revenue/list",
   },
   {
     key: 8,

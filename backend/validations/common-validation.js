@@ -84,6 +84,20 @@ const paginationValidation = async (req, res, next) => {
     createdAt: joi.string().optional().label("Created At"),
     orderDate: joi.string().optional().label("Order Date"),
     isCombo: joi.string().optional().label("combo search"),
+    // Revenue list specific filters
+    start: joi.string().optional().label("start"),
+    end: joi.string().optional().label("end"),
+    cash_or_credit: joi
+      .string()
+      .optional()
+      .valid("cash", "credit")
+      .label("cash_or_credit"),
+    paymentMethod: joi
+      .string()
+      .optional()
+      .valid("cash", "card", "online")
+      .label("paymentMethod"),
+    sort: joi.string().optional().valid("price", "latest").label("sort"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {
