@@ -98,6 +98,24 @@ const paginationValidation = async (req, res, next) => {
       .valid("cash", "card", "online")
       .label("paymentMethod"),
     sort: joi.string().optional().valid("price", "latest").label("sort"),
+    accountType: joi
+      .string()
+      .optional()
+      .trim()
+      .allow("")
+      .custom((value, helpers) => {
+        if (!value) return value;
+        const validTypes = ["cash", "bank", "wallet"];
+        const types = value.split(",").map((type) => type.trim());
+        for (const type of types) {
+          if (!validTypes.includes(type)) {
+            return helpers.error("any.invalid", {
+              message: `Invalid accountType: ${type}. Must be one of ${validTypes.join(", ")}`,
+            });
+          }
+        }
+        return value;
+      }, "accountType validation"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

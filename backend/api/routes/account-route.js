@@ -14,13 +14,9 @@ const {
   revenuePutValidation,
 } = require("../../validations/revenue-validation");
 
-const {
-  list,
-  update,
-  deleteRevenue,
-} = require("../controllers/revenue-controller");
+const { update, deleteRevenue } = require("../controllers/revenue-controller");
 
-const { create } = require("../controllers/account-controller");
+const { create, list } = require("../controllers/account-controller");
 
 router.post("/", authentication, accountPostValidation, create);
 router.get("/list", authentication, paginationValidation, list);

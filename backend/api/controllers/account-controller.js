@@ -3,7 +3,7 @@ const logger = require("../../configs/logger");
 const accountService = require("../services/account-service");
 const list = async (req, res, next) => {
   try {
-    const result = await revenueService.list(req);
+    const result = await accountService.list(req);
 
     return responseHelper.sendResponse(
       res,
@@ -76,4 +76,5 @@ const deleteRevenue = async (req, res, next) => {
 
 module.exports = {
   create,
+  list,
 };

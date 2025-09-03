@@ -179,78 +179,39 @@ const deleteRevenue = async (req) => {
 };
 const list = async (req) => {
   try {
-    let {
-      limit,
-      page,
-      username,
-      customerId,
-      amount,
-      paymentMethod,
-      cash_or_credit = "all",
-      sort,
-      start,
-      end,
-    } = req.query;
-
+    let { limit, page, accountType } = req.query;
     const filters = {};
-    const include = [
-      {
-        model: userModel,
-        as: "user",
-        attributes: ["id", "username"],
-      },
-      {
-        model: customerModel,
-        as: "customer",
-        attributes: ["id", "email", "firstName"],
-      },
-    ];
-    const order = [["updatedAt", "DESC"]];
-    const aggregates = [
-      { column: "amount", function: "SUM", alias: "grandTotal" },
-    ];
+    const include = [];
 
-    if (paymentMethod)
-      filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
-
-    if (cash_or_credit === "cash" || cash_or_credit === "credit")
-      filters.cash_or_credit = { [Op.like]: `${cash_or_credit}` };
-
-    if (start && end) {
-      const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
-      const endDate = endOfDay(parseISO(end));
-
-      filters.orderStartTime = { [Op.between]: [startDate, endDate] };
+    if (accountType) {
+      filters.accountType = {
+        [Op.in]: accountType.split(","), // Support multiple types, e.g., "cash,bank"
+      };
     }
 
-    if (sort) {
-      if (sort === "price") order.push(["totalAmount", "DESC"]);
-      else if (sort === "latest") order.push(["createdAt", "DESC"]);
-    }
-
-    const result = await paginateWithAggregate(revenueModel, {
+    const result = await paginate(accountModel, {
       limit,
       page,
       filters,
       include,
-      order,
-      aggregates,
     });
+
+    if (!result) {
+      return {
+        status: 500,
+        success: false,
+        message: "Account List Failed",
+      };
+    }
 
     return {
       status: 200,
       success: true,
-      message: "Orders retrieved successfully",
+      message: "Account List retrieved successfully",
       data: result,
     };
   } catch (error) {
-    console.error("List orders error:", error);
-    return {
-      status: 500,
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    };
+    throw error;
   }
 };
 
