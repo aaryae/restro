@@ -9,7 +9,7 @@ import RevenueFilter from "./RevenueFilter";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
-import BikramSambat, {ADToBS, BSToAD}  from "bikram-sambat-js"
+import { ADToBS } from "bikram-sambat-js";
 import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
 import { FiEdit2 } from "react-icons/fi";
 import { MdEditSquare } from "react-icons/md";
