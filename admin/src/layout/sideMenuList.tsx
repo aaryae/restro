@@ -5,7 +5,9 @@ import {
   MdOutlinePerson,
 } from "react-icons/md";
 
-import { CircleDollarSign, ShoppingCart } from "lucide-react";
+import { FaMoneyBillWave } from "react-icons/fa";
+import { CircleDollarSign, ShoppingCart, Landmark } from "lucide-react";
+import { AiFillBank } from "react-icons/ai";
 
 import {
   Users,
@@ -133,9 +135,22 @@ export const SideMenuList: SideListMenuType[] = [
   },
   {
     key: 7,
-    name: "Revenue",
+    name: "Finance",
     icon: <CircleDollarSign />,
-    path: "/admin/revenue/list",
+    menu: [
+      {
+        key: 7.1,
+        name: "Revenue",
+        icon: <FaMoneyBillWave />,
+        path: "/admin/revenue/list",
+      },
+      {
+        key: 7.2,
+        name: "Account",
+        icon: <AiFillBank />,
+        path: "/admin/account/list",
+      },
+    ],
   },
   {
     key: 8,

@@ -1141,6 +1141,28 @@
           "list": "Revenue"
         }
       ]
+    },
+    {
+      "title": "Account",
+      "key": "account",
+      "actions": [
+        {
+          "title": "Add Account",
+          "key": "add",
+          "clientPath": "/account",
+          "serverPath": "/account",
+          "requestMethod": "POST",
+          "list": "Account"
+        },
+        {
+          "title": "View Account",
+          "key": "view",
+          "clientPath": "/account/list",
+          "serverPath": "/account/list",
+          "requestMethod": "GET",
+          "list": "Account"
+        }
+      ]
     }
   ]
 }

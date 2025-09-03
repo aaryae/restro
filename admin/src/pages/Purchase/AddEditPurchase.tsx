@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import PageTitle from "@/components/PageTitle";
 import { useForm, useFieldArray } from "react-hook-form";
 import { CurrencySign } from "@/constants";
 import { Trash } from "lucide-react";
@@ -122,7 +123,7 @@ const AddEditPurchase: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h1 className="flex text-xl font-semibold mb-4">Add Purchase</h1>
+      <PageTitle title="Add Purchase" isBack />
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"

@@ -138,12 +138,13 @@ export default function AddEditOrder({
 
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
-    return tableData.data.data?.map(
-      (table: { id: string | number; tableNo: string }) => ({
+
+    return tableData.data.data
+      ?.filter((table: { status?: string }) => table.status !== "maintenance")
+      .map((table: { id: string | number; tableNo: string }) => ({
         value: String(table.id),
         label: `${table.tableNo}`,
-      }),
-    );
+      }));
   }, [tableData]);
 
   const addProductToOrder = (product: {
