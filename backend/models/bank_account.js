@@ -18,10 +18,6 @@ module.exports = (sequelize) => {
         allowNull: false,
         references: { model: "Accounts", key: "id" },
       },
-      bankAccountName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       bankAccountNumber: {
         type: DataTypes.STRING,
         allowNull: false,

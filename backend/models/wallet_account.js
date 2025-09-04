@@ -18,10 +18,6 @@ module.exports = (sequelize) => {
         allowNull: false,
         references: { model: "Accounts", key: "id" },
       },
-      walletAccountName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       walletId: {
         type: DataTypes.STRING,
         allowNull: false,

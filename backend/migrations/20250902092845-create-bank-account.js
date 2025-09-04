@@ -13,10 +13,6 @@ module.exports = {
         },
         onDelete: "CASCADE",
       },
-      bankAccountName: {
-        type: Sequelize.STRING,
-        allowNull: false,
-      },
       bankAccountNumber: {
         type: Sequelize.STRING,
         allowNull: false,

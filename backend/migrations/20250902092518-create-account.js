@@ -9,6 +9,10 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
+      name: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
       accountType: {
         type: Sequelize.ENUM("cash", "bank", "wallet"),
         allowNull: false,

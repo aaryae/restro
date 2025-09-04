@@ -25,9 +25,8 @@ const createAccount = async (req) => {
       accountType,
       openingBalance,
       description,
-      bankAccountName,
+      name,
       bankAccountNumber,
-      walletAccountName,
       walletId,
     } = req.body;
 
@@ -37,6 +36,7 @@ const createAccount = async (req) => {
         accountType,
         openingBalance,
         currentBalance: openingBalance,
+        name,
         description,
       },
       { transaction },
@@ -48,7 +48,6 @@ const createAccount = async (req) => {
       typeSpecificAccount = await bankAccountModel.create(
         {
           accountId: account.id,
-          bankAccountName,
           bankAccountNumber,
         },
         { transaction },
@@ -57,7 +56,6 @@ const createAccount = async (req) => {
       typeSpecificAccount = await walletAccountModel.create(
         {
           accountId: account.id,
-          walletAccountName,
           walletId,
         },
         { transaction },
