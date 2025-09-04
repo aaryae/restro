@@ -48,6 +48,12 @@ const revenuePostValidation = async (req, res, next) => {
       "number.positive": "User ID must be a positive number",
       "any.required": "User ID is required",
     }),
+    accountId: joi.number().integer().positive().required().messages({
+      "number.base": "Account ID must be a number",
+      "number.integer": "Account ID must be an integer",
+      "number.positive": "Account ID must be a positive number",
+      "any.required": "Account ID is required",
+    }),
     remarks: joi.string().trim().allow("").optional().messages({
       "string.base": "Remarks must be a string",
     }),

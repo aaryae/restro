@@ -13,6 +13,11 @@ module.exports = (sequelize) => {
         foreignKey: "userId",
         as: "user",
       });
+
+      Revenue.belongsTo(models.accountModel, {
+        foreignKey: "accountId",
+        as: "account",
+      });
     }
   }
 
@@ -49,15 +54,54 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      accountId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
     },
     {
       sequelize,
       modelName: "Revenue",
       tableName: "revenues",
       timestamps: true,
-      indexes: [{ fields: ["customerId"] }],
+      indexes: [{ fields: ["accountId"] }, { fields: ["customerId"] }],
     },
   );
+
+  // Hook to update currentBalance
+  Revenue.addHook("afterCreate", async (revenue, options) => {
+    try {
+      if (!revenue.accountId) {
+        throw new Error("accountId is required for revenue");
+      }
+
+      const account = await revenue.getAccount({
+        transaction: options.transaction,
+      });
+
+      if (!account) {
+        throw new Error(
+          `Associated account not found for accountId: ${revenue.accountId}`,
+        );
+      }
+
+      const newBalance =
+        Number(account.currentBalance) + Number(revenue.amount);
+
+      await account.update(
+        {
+          currentBalance: newBalance,
+        },
+        { transaction: options.transaction },
+      );
+    } catch (error) {
+      console.error(
+        `[Revenue Hook] Error in afterCreate for revenue ID: ${revenue.id}`,
+        error.message,
+      );
+      throw error; // Re-throw to ensure transaction rollback
+    }
+  });
 
   return Revenue;
 };

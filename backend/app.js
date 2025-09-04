@@ -184,7 +184,7 @@ app.use((req, res, next) => {
   }
 });
 
-// app.use("/", express.static(path.join(__dirname, "../admin/web")));
+app.use("/", express.static(path.join(__dirname, "../admin/web")));
 
 app.use((req, res, next) => {
   const err = new Error("Not Found");

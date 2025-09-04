@@ -9,6 +9,7 @@ const {
   productModel,
   tableModel,
   productMediaModel,
+  accountModel,
   sequelize,
   userModel,
   revenueModel,
@@ -20,27 +21,114 @@ const paginate = require("../../utils/paginate");
 const paginateWithAggregate = require("../../utils/paginateWithAggregate");
 
 const createRevenue = async (req) => {
-  const transaction = await sequelize.transaction();
+  const transaction = await revenueModel.sequelize.transaction();
   try {
-    const { customerId, ...rest } = req.body;
+    const {
+      amount,
+      paymentMethod,
+      cash_or_credit,
+      customerId,
+      userId,
+      accountId,
+      remarks,
+    } = req.body;
 
-    // Handle existing customer
+    // Validate required fields
+    if (!amount || !userId || !accountId) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Amount, userId, and accountId are required",
+      };
+    }
+
+    // Validate paymentMethod
+    const validPaymentMethods = ["cash", "card", "online"];
+    if (paymentMethod && !validPaymentMethods.includes(paymentMethod)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Invalid payment method. Must be one of ${validPaymentMethods.join(", ")}`,
+      };
+    }
+
+    // Validate cash_or_credit
+    const validCashOrCredit = ["cash", "credit"];
+    if (cash_or_credit && !validCashOrCredit.includes(cash_or_credit)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Invalid cash_or_credit. Must be one of ${validCashOrCredit.join(", ")}`,
+      };
+    }
+
+    // Validate accountId
+    const account = await accountModel.findByPk(accountId, { transaction });
+    if (!account) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Account not found for ID: ${accountId}`,
+      };
+    }
+
+    // Validate customerId if provided
     if (customerId) {
       const customer = await customerModel.findByPk(customerId, {
         transaction,
       });
       if (!customer) {
         await transaction.rollback();
-        return { status: 404, success: false, message: "Customer not found" };
+        return {
+          status: 400,
+          success: false,
+          message: `Customer not found for ID: ${customerId}`,
+        };
       }
     }
 
+    // Create Revenue record
     const revenue = await revenueModel.create(
       {
-        ...rest,
+        amount,
+        paymentMethod: paymentMethod || "cash",
+        cash_or_credit: cash_or_credit || "cash",
         customerId,
+        userId,
+        accountId,
+        remarks,
       },
       { transaction },
+    );
+
+    console.log(
+      `[createRevenue] Created revenue ID: ${revenue.id} with accountId: ${accountId}`,
+    );
+
+    // Update account balance
+    const newBalance = Number(account.currentBalance) + Number(amount);
+    if (newBalance < 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Balance cannot be negative for account ID: ${accountId}`,
+      };
+    }
+
+    await account.update(
+      {
+        currentBalance: newBalance,
+      },
+      { transaction },
+    );
+
+    console.log(
+      `[createRevenue] Updated account ID: ${account.id}, new currentBalance: ${newBalance}`,
     );
 
     await transaction.commit();
@@ -49,10 +137,13 @@ const createRevenue = async (req) => {
       status: 201,
       success: true,
       message: "Revenue created successfully",
-      data: revenue,
+      data: {
+        revenue,
+      },
     };
   } catch (error) {
     await transaction.rollback();
+    console.error("[createRevenue] Error:", error.message);
     throw error;
   }
 };
@@ -603,7 +694,6 @@ const bulkServeOrderItems = async (req) => {
   }
 };
 
-
 const getRevenueById = async (req) => {
   try {
     const { id } = req.params;
@@ -622,7 +712,11 @@ const getRevenueById = async (req) => {
 
     const revenue = await revenueModel.findByPk(id, { include });
     if (!revenue) {
-      return { status: 404, success: false, message: "Revenue entry not found" };
+      return {
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
+      };
     }
 
     return {

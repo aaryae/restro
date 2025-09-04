@@ -9,6 +9,7 @@ const {
   productModel,
   tableModel,
   productMediaModel,
+  accountModel,
   revenueModel,
   sequelize,
 } = require("../../models");
@@ -317,8 +318,11 @@ const checkoutOrder = async (req) => {
       customerDetails,
       sessionId,
       isGuestOrder = false,
+      accountId, // New optional field to allow specifying accountId
       ...updateData
     } = req.body;
+
+    console.log(`******************\n${accountId}\n****************`);
 
     // Validate tableId
     if (!tableId) {
@@ -465,6 +469,48 @@ const checkoutOrder = async (req) => {
       }
     }
 
+    // Determine the account for revenue
+    let selectedAccountId = accountId;
+    if (!selectedAccountId) {
+      // Map paymentMethod to accountType
+      const paymentMethod = updateData.paymentMethod || "cash";
+      const accountTypeMap = {
+        cash: "cash",
+        card: "bank",
+        online: "wallet",
+      };
+      const accountType = accountTypeMap[paymentMethod] || "cash";
+
+      // Fetch the account based on accountType
+      const account = await accountModel.findOne({
+        where: { accountType },
+        transaction,
+      });
+
+      if (!account) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `No account found for payment method: ${paymentMethod}`,
+        };
+      }
+      selectedAccountId = account.id;
+    } else {
+      // Validate provided accountId
+      const account = await accountModel.findByPk(selectedAccountId, {
+        transaction,
+      });
+      if (!account) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `Invalid account ID: ${selectedAccountId}`,
+        };
+      }
+    }
+
     // Update all orders and create revenue entries
     const updatedOrders = [];
     const revenueEntries = [];
@@ -485,7 +531,6 @@ const checkoutOrder = async (req) => {
       console.log(`******************\n ID ${req.user.id}\n ***************`);
 
       // Create revenue entry for each order
-
       const revenue = await revenueModel.create(
         {
           amount: order.totalAmount,
@@ -493,6 +538,7 @@ const checkoutOrder = async (req) => {
           cash_or_credit: updateData.cashOrCredit || "cash",
           customerId: finalCustomerId,
           userId: req.user.id, // Assuming user ID is available in req.user
+          accountId: selectedAccountId, // Add accountId to revenue entry
           remarks: updateData.remarks || `Revenue from order ${order.id}`,
         },
         { transaction },
@@ -536,7 +582,7 @@ const checkoutOrder = async (req) => {
       message: `Checked out ${orders.length} order(s) successfully`,
       data: {
         orders: updatedOrders,
-        // revenueEntries, // Include revenue entries in response
+        revenueEntries, // Include revenue entries in response
         combinedTotalAmount,
         loyaltyPointsAdded:
           !isGuestOrder && finalCustomerId
