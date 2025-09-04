@@ -4,21 +4,20 @@ import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Main style file
 import "react-date-range/dist/theme/default.css"; // Theme CSS file
 
-interface RevenueFilterPropsType {
+interface OrderFilterPropsType {
   start: string;
   end: string;
   paymentStatus: string;
   orderStatus: string;
-  cash_or_credit: string;
 }
 
-export default function RevenueFilter({
+export default function OrderFilter({
   queryStringOptions,
   setQueryStringOptions,
 }: {
-  queryStringOptions: RevenueFilterPropsType;
+  queryStringOptions: OrderFilterPropsType;
   setQueryStringOptions: React.Dispatch<
-    React.SetStateAction<RevenueFilterPropsType>
+    React.SetStateAction<OrderFilterPropsType>
   >;
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -56,12 +55,19 @@ export default function RevenueFilter({
     setShowDatePicker(false);
   };
 
-  const handleCashOrCreditChange = (
+  const handlePaymentStatusChange = (
     e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      cash_or_credit: e.target.value,
+      paymentStatus: e.target.value,
+    });
+  };
+
+  const handleOrderStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setQueryStringOptions({
+      ...queryStringOptions,
+      orderStatus: e.target.value,
     });
   };
 
@@ -100,82 +106,60 @@ export default function RevenueFilter({
 
   return (
     <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6">
+      <div className="space-y-6 flex justify-between">
         <div className="flex flex-col justify-between items-start gap-3">
-          <h3 className="text-lg font-semibold text-gray-800">
-            Revenue Filter
-          </h3>
-          <div className="flex gap-[39rem]">
-            <div className="flex flex-wrap gap-2 items-center">
+          <h3 className="text-lg font-semibold text-gray-800">Order Filter</h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleAllClick}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                isAllSelected
+                  ? "bg-blue-700 text-white"
+                  : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={handleTodayClick}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                isTodaySelected
+                  ? "bg-blue-700 text-white"
+                  : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={handleThisWeekClick}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                isThisWeekSelected
+                  ? "bg-blue-700 text-white"
+                  : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+              }`}
+            >
+              This Week
+            </button>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleAllClick}
+                onClick={() => setShowDatePicker(!showDatePicker)}
                 className={`px-4 py-2 rounded-md transition-colors ${
-                  isAllSelected
+                  isCustomSelected
                     ? "bg-blue-700 text-white"
                     : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
                 }`}
               >
-                All
+                Custom Range
               </button>
-              <button
-                type="button"
-                onClick={handleTodayClick}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  isTodaySelected
-                    ? "bg-blue-700 text-white"
-                    : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={handleThisWeekClick}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  isThisWeekSelected
-                    ? "bg-blue-700 text-white"
-                    : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                This Week
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className={`px-4 py-2 rounded-md transition-colors ${
-                    isCustomSelected
-                      ? "bg-blue-700 text-white"
-                      : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
-                  }`}
-                >
-                  Custom Range
-                </button>
-                {isCustomSelected && (
-                  <span className="text-sm text-gray-600">
-                    {queryStringOptions.start} - {queryStringOptions.end}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 ml-2">
-              <label
-                htmlFor="cash_or_credit"
-                className="text-sm font-medium text-gray-700"
-              >
-                Cash / Credit
-              </label>
-              <select
-                id="cash_or_credit"
-                value={queryStringOptions.cash_or_credit}
-                onChange={handleCashOrCreditChange}
-                className="p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              >
-                <option value="">All</option>
-                <option value="cash">Cash</option>
-                <option value="credit">Credit</option>
-              </select>
+              {isCustomSelected && (
+                <span className="text-sm text-gray-600">
+                  {queryStringOptions.start} - {queryStringOptions.end}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -201,6 +185,46 @@ export default function RevenueFilter({
             </div>
           </div>
         )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="paymentStatus"
+              className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
+            >
+              Payment Status
+            </label>
+            <select
+              id="paymentStatus"
+              value={queryStringOptions.paymentStatus}
+              onChange={handlePaymentStatusChange}
+              className="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="">All</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="orderStatus"
+              className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
+            >
+              Order Status
+            </label>
+            <select
+              id="orderStatus"
+              value={queryStringOptions.orderStatus}
+              onChange={handleOrderStatusChange}
+              className="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   );

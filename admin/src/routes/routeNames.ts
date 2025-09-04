@@ -59,3 +59,6 @@ export const PURCHASE_CATEGORY_ADD_ROUTE = "/admin/purchase-category/";
 
 export const BANK_LIST_ROUTE = "/admin/account/list";
 export const BANK_ADD_ROUTE = "/admin/account/";
+
+export const EXPENSE_LIST_ROUTE = "/admin/expense/list";
+export const EXPENSE_ADD_ROUTE = "/admin/expense/";

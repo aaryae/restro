@@ -26,7 +26,7 @@ import Floor from "@/pages/Floor";
 import AddEditFloor from "@/pages/Floor/AddEditFloor";
 import OrderTable from "@/pages/Table";
 import AddEditTable from "@/pages/Table/AddEditTable";
-import AddEditOrder from "@/pages/Order/AddEditOrder";
+import AddEditOrder from "@/pages/Order/components/AddEditOrder";
 import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
 import Revenue from "@/pages/Revenue";
 import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
@@ -34,8 +34,9 @@ import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
 import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
 import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
-import Banks from "@/pages/Banks";
-import AddEditBanks from "@/pages/Banks/AddEditBanks";
+import Banks from "@/pages/Account";
+import AddEditBanks from "@/pages/Account/AddEditAccount";
+import Expenses from "@/pages/Expenses";
 
 export const adminLinks = [
   {
@@ -73,6 +74,10 @@ export const adminLinks = [
   {
     path: "/profile",
     element: <UserProfile />,
+  },
+  {
+    path: "/settings",
+    element: <Settings />,
   },
   {
     path: "/settings/list",
@@ -237,5 +242,9 @@ export const adminLinks = [
   {
     path: "/account/:id",
     element: <AddEditBanks />,
+  },
+  {
+    path: "/expense/list",
+    element: <Expenses />,
   },
 ];
