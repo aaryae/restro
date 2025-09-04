@@ -9,6 +9,10 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
+      name: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
       accountType: {
         type: Sequelize.ENUM("cash", "bank", "wallet"),
         allowNull: false,
@@ -23,6 +27,16 @@ module.exports = {
         type: Sequelize.DECIMAL(12, 2),
         allowNull: false,
         defaultValue: 0.0,
+      },
+      status: {
+        type: Sequelize.ENUM("active", "inactive"),
+        allowNull: false,
+        defaultValue: "active",
+      },
+      isDefault: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       description: {
         type: Sequelize.TEXT,

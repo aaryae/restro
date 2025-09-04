@@ -18,13 +18,14 @@ module.exports = (sequelize) => {
         allowNull: false,
         references: { model: "Accounts", key: "id" },
       },
-      bankAccountName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       bankAccountNumber: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
+      },
+      staticQrUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {

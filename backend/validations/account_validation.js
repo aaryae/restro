@@ -22,21 +22,19 @@ const accountPostValidation = async (req, res, next) => {
       "number.min": "Opening balance must be at least 0",
       "any.required": "Opening balance is required",
     }),
+    name: joi.string().trim().not("").required().messages({
+      "string.base": "Name must be a valid string",
+    }),
     description: joi.string().trim().allow("").optional().messages({
       "string.base": "Description must be a string",
     }),
-    bankAccountName: joi
+    staticQrUrl: joi
       .string()
       .trim()
       .when("accountType", {
-        is: "bank",
+        is: joi.valid("bank", "wallet"),
         then: joi.required(),
         otherwise: joi.forbidden(),
-      })
-      .messages({
-        "string.base": "Bank account name must be a string",
-        "any.required": "Bank account name is required for bank accounts",
-        "any.unknown": "Bank account name is not allowed for non-bank accounts",
       }),
     bankAccountNumber: joi
       .string()
@@ -51,20 +49,6 @@ const accountPostValidation = async (req, res, next) => {
         "any.required": "Bank account number is required for bank accounts",
         "any.unknown":
           "Bank account number is not allowed for non-bank accounts",
-      }),
-    walletAccountName: joi
-      .string()
-      .trim()
-      .when("accountType", {
-        is: "wallet",
-        then: joi.required(),
-        otherwise: joi.forbidden(),
-      })
-      .messages({
-        "string.base": "Wallet account name must be a string",
-        "any.required": "Wallet account name is required for wallet accounts",
-        "any.unknown":
-          "Wallet account name is not allowed for non-wallet accounts",
       }),
     walletId: joi
       .string()

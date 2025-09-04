@@ -19,6 +19,14 @@ module.exports = (sequelize) => {
         foreignKey: "accountId",
         as: "walletAccount",
       });
+      Account.hasMany(models.transferModel, {
+        foreignKey: "fromAccountId",
+        as: "outgoingTransfers",
+      });
+      Account.hasMany(models.transferModel, {
+        foreignKey: "toAccountId",
+        as: "incomingTransfers",
+      });
     }
   }
 
@@ -46,6 +54,20 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 0.0,
         validate: { min: 0.0 },
+      },
+      status: {
+        type: DataTypes.ENUM("active", "inactive"),
+        allowNull: false,
+        defaultValue: "active",
+      },
+      isDefault: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
       description: {
         type: DataTypes.TEXT,
