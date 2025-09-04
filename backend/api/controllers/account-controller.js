@@ -55,9 +55,27 @@ const update = async (req, res, next) => {
     next(err);
   }
 };
-const deleteRevenue = async (req, res, next) => {
+const changeStatus = async (req, res, next) => {
   try {
-    const result = await revenueService.deleteRevenue(req);
+    const result = await accountService.changeStatus(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+const changeDefaultAccount = async (req, res, next) => {
+  try {
+    const result = await accountService.changeDefaultAccount(req);
 
     return responseHelper.sendResponse(
       res,
@@ -77,4 +95,6 @@ const deleteRevenue = async (req, res, next) => {
 module.exports = {
   create,
   list,
+  changeStatus,
+  changeDefaultAccount,
 };

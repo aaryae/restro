@@ -57,6 +57,10 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       description: {
         type: DataTypes.TEXT,
       },

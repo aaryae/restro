@@ -16,24 +16,36 @@ const {
 
 const { update, deleteRevenue } = require("../controllers/revenue-controller");
 
-const { create, list } = require("../controllers/account-controller");
+const {
+  create,
+  list,
+  changeStatus,
+  changeDefaultAccount,
+} = require("../controllers/account-controller");
 
 router.post("/", authentication, accountPostValidation, create);
 router.get("/list", authentication, paginationValidation, list);
-router.put(
-  "/:id",
+// router.put(
+//   "/:id",
+//   authentication,
+//   // authorization,
+//   idValidation,
+//   // revenuePutValidation,
+//   update,
+// );
+router.patch(
+  "/:id/status",
   authentication,
   // authorization,
   idValidation,
-  revenuePutValidation,
-  update,
+  changeStatus,
 );
-router.delete(
-  "/:id",
+router.patch(
+  "/:id/default",
   authentication,
-  authorization,
+  // authorization,
   idValidation,
-  deleteRevenue,
+  changeDefaultAccount,
 );
 
 module.exports = router;

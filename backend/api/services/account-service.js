@@ -86,7 +86,7 @@ const createAccount = async (req) => {
   }
 };
 
-const updateRevenue = async (req) => {
+const updateAccount = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
@@ -143,38 +143,96 @@ const updateRevenue = async (req) => {
   }
 };
 
-const deleteRevenue = async (req) => {
+const changeStatus = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
 
-    // Find the revenue entry
-    const revenue = await revenueModel.findByPk(id, { transaction });
-    if (!revenue) {
+    // Find the account entry
+    const account = await accountModel.findByPk(id, { transaction });
+    if (!account) {
       await transaction.rollback();
       return {
         status: 404,
         success: false,
-        message: "Revenue entry not found",
+        message: "Account entry not found",
       };
     }
 
-    // Delete the revenue entry
-    await revenue.destroy({ transaction });
+    if (account.isDefault) {
+      await transaction.rollback();
+      return {
+        status: 401,
+        success: false,
+        message: "Default Account cannot be inactive",
+      };
+    }
+
+    const result = await account.update(
+      {
+        status: account.status === "active" ? "inactive" : "active",
+      },
+      { transaction },
+    );
 
     await transaction.commit();
 
     return {
       status: 200,
       success: true,
-      message: "Revenue deleted successfully",
-      data: null,
+      message: "Account status changed successfully",
+      data: result,
     };
   } catch (error) {
     await transaction.rollback();
     throw error;
   }
 };
+
+const changeDefaultAccount = async (req) => {
+  const transaction = await accountModel.sequelize.transaction();
+  try {
+    const { id } = req.params; // Validated by middleware
+
+    // Find the account entry
+    const account = await accountModel.findByPk(id, { transaction });
+    if (!account) {
+      await transaction.rollback();
+      return {
+        status: 404,
+        success: false,
+        message: "Account entry not found",
+      };
+    }
+
+    // Set all accounts to isDefault: false
+    await accountModel.update({ isDefault: false }, { where: {}, transaction });
+
+    // Set the specified account to isDefault: true
+    await account.update({ isDefault: true }, { transaction });
+
+    await transaction.commit();
+
+    return {
+      status: 200,
+      success: true,
+      message: "Default account changed successfully",
+      data: {
+        account: {
+          id: account.id,
+          accountType: account.accountType,
+          isDefault: true,
+          updatedAt: account.updatedAt,
+        },
+      },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    console.error("[changeDefaultAccount] Error:", error.message);
+    throw error;
+  }
+};
+
 const list = async (req) => {
   try {
     let { limit, page, accountType } = req.query;
@@ -216,6 +274,7 @@ const list = async (req) => {
 module.exports = {
   list,
   createAccount,
-  updateRevenue,
-  deleteRevenue,
+  updateAccount,
+  changeStatus,
+  changeDefaultAccount,
 };
