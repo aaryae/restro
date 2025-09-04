@@ -25,6 +25,11 @@ module.exports = (sequelize) => {
       bankAccountNumber: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
+      },
+      staticQrUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {

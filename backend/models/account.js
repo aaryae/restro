@@ -47,6 +47,16 @@ module.exports = (sequelize) => {
         defaultValue: 0.0,
         validate: { min: 0.0 },
       },
+      status: {
+        type: DataTypes.ENUM("active", "inactive"),
+        allowNull: false,
+        defaultValue: "active",
+      },
+      isDefault: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       description: {
         type: DataTypes.TEXT,
       },
