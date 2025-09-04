@@ -19,6 +19,14 @@ module.exports = (sequelize) => {
         foreignKey: "accountId",
         as: "walletAccount",
       });
+      Account.hasMany(models.transferModel, {
+        foreignKey: "fromAccountId",
+        as: "outgoingTransfers",
+      });
+      Account.hasMany(models.transferModel, {
+        foreignKey: "toAccountId",
+        as: "incomingTransfers",
+      });
     }
   }
 
