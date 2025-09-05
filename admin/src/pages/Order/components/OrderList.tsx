@@ -174,24 +174,7 @@ export default function OrderList() {
 
   return (
     <>
-      <div>
-        <PageHeader
-          hasAddButton={true}
-          newButtonText={"Create Order"}
-          handleNewButton={() => handleNewButton(null)}
-          handleReloadButton={handleReload}
-        >
-          {/* {success && (
-          <ExportToExcel
-            title="Order Report"
-            headers={tableHeader}
-            data={tableDataReport}
-            success={reportSuccess}
-            refetch={reportRefetch}
-            setIsExportTriggered={setIsExportTriggered}
-          />
-        )} */}
-        </PageHeader>
+      <div className="mt-8">
         <OrderFilter
           queryStringOptions={queryStringOptions}
           setQueryStringOptions={setQueryStringOptions}

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
 import usePagination from "@/hooks/usePagination";
@@ -7,6 +7,8 @@ import { CurrencySign } from "@/constants";
 import PageHeader from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
+import { MdEditSquare } from "react-icons/md";
+import DeleteModal from "@/components/DeleteModal";
 
 type PurchaseRow = {
   purchaseId: number;
@@ -22,39 +24,19 @@ type PurchaseRow = {
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState<boolean>(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   // Demo Mock data; replace with API integration later
   const allData: PurchaseRow[] = useMemo(
     () => [
       {
-        purchaseId: 1001,
+        purchaseId: 1,
         dateAD: "2025-09-01",
         dateBS: "2082-05-16",
         particulars: "Raw Vegetables",
         categoryId: 10,
         vendorId: 501,
         amount: 12500,
-        paidOrCredit: "Paid",
-        paymentSourceId: 3001,
-      },
-      {
-        purchaseId: 1002,
-        dateAD: "2025-09-01",
-        dateBS: "2082-05-16",
-        particulars: "Spices",
-        categoryId: 10,
-        vendorId: 502,
-        amount: 7800,
-        paidOrCredit: "Credit",
-        paymentSourceId: 3002,
-      },
-      {
-        purchaseId: 1003,
-        dateAD: "2025-08-31",
-        dateBS: "2082-05-15",
-        particulars: "Cleaning Supplies",
-        categoryId: 20,
-        vendorId: 520,
-        amount: 4200,
         paidOrCredit: "Paid",
         paymentSourceId: 3001,
       },
@@ -84,7 +66,25 @@ const Purchase: React.FC = () => {
     "Amount",
     "Paid or Credit",
     "Payment Source ID",
+    "Actions",
   ];
+
+  const handleNewUser = (id: number | null) => {
+    id === null
+      ? navigate(PURCHASE_ADD_ROUTE)
+      : navigate(`${PURCHASE_ADD_ROUTE}${id}`);
+  };
+
+  const handleDeleteTrigger = (id: number) => {
+    setDeleteId(id);
+    setOpen(true);
+  };
+
+  const handleDelete = () => {
+    // Mock delete: close modal. Hook up API when backend is ready.
+    console.log("Delete purchase id:", deleteId);
+    setOpen(false);
+  };
 
   const data = pageRows.map((r) => [
     r.purchaseId,
@@ -96,12 +96,23 @@ const Purchase: React.FC = () => {
     CurrencySign + r.amount,
     r.paidOrCredit,
     r.paymentSourceId,
+    <div
+      className="flex items-center justify-center gap-3"
+      key={`act-${r.purchaseId}`}
+    >
+      <MdEditSquare
+        size={18}
+        className="text-[#0090DD] hover:text-blue-800"
+        onClick={() => handleNewUser(r.purchaseId)}
+      />
+      <DeleteModal
+        open={open}
+        setOpen={setOpen}
+        handleDeleteTrigger={() => handleDeleteTrigger(r.purchaseId)}
+        handleConfirmDelete={handleDelete}
+      />
+    </div>,
   ]);
-  const handleNewUser = (id: number | null) => {
-    id === null
-      ? navigate(PURCHASE_ADD_ROUTE)
-      : navigate(`${PURCHASE_ADD_ROUTE}/${id}`);
-  };
 
   return (
     <>

@@ -1,8 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/redux/store/store";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import usePagination from "@/hooks/usePagination";
+import Button from "@/components/Button";
+import { useReactToPrint } from "react-to-print";
 
 type OrderItem = {
   id: number | string;
@@ -23,10 +27,8 @@ type Order = {
 };
 
 export default function KotList() {
-  // pagination (fixed limit: 6)
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
 
-  // fetch a reasonable chunk of recent orders
   const url = useMemo(() => {
     return buildQueryString("order/list", {
       page: query.page,
@@ -36,7 +38,6 @@ export default function KotList() {
 
   const { data, isSuccess } = useGetApiQuery({ url });
 
-  // update pagination totals from API response
   useEffect(() => {
     if (data?.data) {
       handlePagination({
@@ -48,7 +49,6 @@ export default function KotList() {
 
   const orders: Order[] = useMemo(() => {
     const raw = data?.data?.data ?? [];
-    // optionally filter out cancelled orders entirely if needed
     return raw as Order[];
   }, [data]);
 
@@ -57,7 +57,7 @@ export default function KotList() {
 
   return (
     <>
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {isSuccess && orders?.length > 0 ? (
           orders.map((order, idx) => (
             <KotCard key={order.id} order={order} kotNo={offset + idx + 1} />
@@ -110,17 +110,47 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
     (i) => i.status !== "cancelled",
   );
 
+  const contentRef = useRef<HTMLDivElement>(null);
+  const printedBy = useSelector((s: RootState) => s.auth.username);
+  const reactToPrintFn = useReactToPrint({
+    contentRef,
+    documentTitle: `KOT-${order.id}`,
+    pageStyle: `
+      @page { size: 80mm auto; margin: 4mm; }
+      @media print {
+        html, body { margin: 0 !important; padding: 0 !important; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .kot-print { width: 80mm !important; font-size: 12px !important; line-height: 1.25 !important; }
+        .kot-print * { font-size: 12px !important; line-height: 1.25 !important; }
+        .kot-print .kot-title { font-size: 16px !important; font-weight: 800 !important; }
+        .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
+        .kot-print .section-gap { margin: 6px 0 !important; }
+        .kot-print .border-dashed { border-color: #000 !important; }
+        .kot-print .border-t { border-top-width: 0.5px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
+        .kot-print .divider-dashed {
+          border: 0 !important;
+          height: 1px !important;
+          background-image: repeating-linear-gradient(to right, #000 0, #000 8px, transparent 8px, transparent 12px) !important;
+          background-repeat: repeat-x !important;
+          background-size: 100% 1px !important;
+          background-position: 0 0.5px !important;
+        }
+        .no-print { display: none !important; }
+      }
+    `,
+  });
+
   const totalDish = items.length;
   const totalQty = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-      <div>
-        <div className="text-center text-2xl font-extrabold tracking-wide mb-3">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm ">
+      <div ref={contentRef} className="p-5 h-fit kot-print ">
+        <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
           KOT {kotNo}
         </div>
-        <div className="flex justify-between text-[15px] text-gray-800">
-          <div className="flex flex-col gap-2">
+        <div className="flex justify-between text-[12px] text-gray-800">
+          <div className="flex flex-col gap-[2px]">
             <div className="flex">
               <span className="font-semibold">Type:</span>{" "}
               {formatOrderType(order?.orderType)}
@@ -144,40 +174,54 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
           </div>
         </div>
 
-        <div className="my-3 border-t border-dashed border-gray-400"></div>
+        <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
 
-        <div className="grid grid-cols-12 text-[15px] font-semibold">
+        <div className="grid grid-cols-12 text-[12px] font-semibold">
           <div className="col-span-8 flex">S.N Dishes</div>
           <div className="col-span-4 text-right">QTY</div>
         </div>
 
-        <div className="my-2 border-t border-dashed border-gray-300"></div>
+        <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 leading-[10px]">
           {items.map((it, i) => (
-            <div key={String(it.id)} className="grid grid-cols-12 text-[15px]">
-              <div className="col-span-8 flex gap-2">
-                <span>{i + 1}.</span>
-                <span>{it.product?.name || "-"}</span>
+            <>
+              <div key={String(it.id)} className="grid grid-cols-12 ">
+                <div className="col-span-8 flex gap-2">
+                  <span>{i + 1}.</span>
+                  <span>{it.product?.name || "-"}</span>
+                </div>
+                <div className="col-span-4 text-right">{it.quantity}</div>
               </div>
-              <div className="col-span-4 text-right">{it.quantity}</div>
-            </div>
+            </>
           ))}
         </div>
 
-        <div className="my-3 border-t border-dashed border-gray-400"></div>
-        <div className="grid grid-cols-12 font-semibold text-[15px]">
+        <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
+        <div className="grid grid-cols-12 font-semibold text-[12px]">
           <div className="col-span-8 flex">Total (Dish/QTY)</div>
           <div className="col-span-4 text-right">
             {totalDish}/{totalQty}
           </div>
-          <div className="col-span-8 flex">Total Amount</div>
-          <div className="col-span-4 text-right text-green-600">
-            Rs.{Number(order.totalAmount).toFixed(2)}
+        </div>
+
+        <div className="flex mt-4">
+          <div className="flex flex-col items-start">
+            <p>Printed By: {printedBy || order?.createdBy?.name || "-"}</p>
+            <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
           </div>
         </div>
 
         <div className="text-center mt-6 text-gray-700">Thank You!</div>
+      </div>
+      <div className="flex justify-center mb-4 no-print">
+        <Button
+          className="bg-primaryColor text-white px-8 py-[10px] rounded-[4px]"
+          handleClick={reactToPrintFn}
+        >
+          {" "}
+          Print
+        </Button>
       </div>
     </div>
   );

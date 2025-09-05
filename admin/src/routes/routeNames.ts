@@ -53,6 +53,7 @@ export const REVENUE_ADD_ROUTE = "/admin/revenue/";
 
 export const PURCHASE_LIST_ROUTE = "/admin/purchase/list";
 export const PURCHASE_ADD_ROUTE = "/admin/purchase/";
+export const PURCHASE_EDIT_ROUTE = "/admin/purchase/:id";
 
 export const PURCHASE_CATEGORY_LIST_ROUTE = "/admin/purchase-category/list";
 export const PURCHASE_CATEGORY_ADD_ROUTE = "/admin/purchase-category/";
@@ -62,3 +63,4 @@ export const BANK_ADD_ROUTE = "/admin/account/";
 
 export const EXPENSE_LIST_ROUTE = "/admin/expense/list";
 export const EXPENSE_ADD_ROUTE = "/admin/expense/";
+export const EXPENSE_EDIT_ROUTE = "/admin/expense/:id";

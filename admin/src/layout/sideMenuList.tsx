@@ -3,11 +3,15 @@ import {
   MdOutlineFactCheck,
   MdOutlineMailOutline,
   MdOutlinePerson,
+  MdOutlineTableBar,
 } from "react-icons/md";
 
 import { FaMoneyBillWave } from "react-icons/fa";
-import { CircleDollarSign, ShoppingCart, Landmark } from "lucide-react";
+import { CircleDollarSign } from "lucide-react";
 import { AiFillBank } from "react-icons/ai";
+import { FiShoppingCart } from "react-icons/fi";
+
+import { GiExpense } from "react-icons/gi";
 
 import {
   Users,
@@ -21,6 +25,7 @@ import {
 export type SideListMenuType = {
   key: number;
   name: string;
+  label?: string;
   icon: React.ReactNode;
   path?: string;
   menu?: SideListMenuType[];
@@ -29,19 +34,21 @@ export type SideListMenuType = {
 export const SideMenuList: SideListMenuType[] = [
   {
     key: 1,
-    name: "Product Menu",
+    name: "Menu",
     icon: <MenuIcon />,
     menu: [
       {
         key: 1.1,
-        name: "Product Category",
-        path: "/admin/product-category/list",
+        name: "Product",
+        label: "Items",
+        path: "/admin/product/list",
         icon: <MdOutlineFactCheck />,
       },
       {
         key: 1.2,
-        name: "Product",
-        path: "/admin/product/list",
+        name: "Product Category",
+        label: "Categories",
+        path: "/admin/product-category/list",
         icon: <MdOutlineFactCheck />,
       },
       // {
@@ -54,29 +61,74 @@ export const SideMenuList: SideListMenuType[] = [
   },
   {
     key: 2,
-    name: "Media",
-    path: "/admin/media-category/list",
-    icon: <ImageIcon />,
-  },
-  {
-    key: 3,
     name: "Customer",
     icon: <UserCheck />,
     path: "/admin/customer/list",
   },
   {
+    key: 3,
+    name: "Finance",
+    icon: <CircleDollarSign />,
+    menu: [
+      {
+        key: 3.1,
+        name: "Revenue",
+        icon: <FaMoneyBillWave />,
+        path: "/admin/revenue/list",
+      },
+      {
+        key: 3.2,
+        name: "Purchase",
+        icon: <FiShoppingCart />,
+        path: "/admin/purchase/list",
+      },
+      {
+        key: 3.3,
+        name: "Expense",
+        // label: "Expense",
+        icon: <GiExpense />,
+        path: "/admin/expense/list",
+      },
+    ],
+  },
+  {
     key: 4,
-    name: "User Management",
-    icon: <Users />,
+    name: "Floors and Tables",
+    icon: <MdOutlineTableBar className="w-5 h-5" />,
     menu: [
       {
         key: 4.1,
+        name: "Floor",
+        path: "/admin/floor/list",
+        icon: <MdOutlineFactCheck />,
+      },
+      {
+        key: 4.2,
+        name: "Table",
+        path: "/admin/table/list",
+        icon: <MdOutlineFactCheck />,
+      },
+      {
+        key: 4.3,
+        name: "Department",
+        path: "/admin/department/list",
+        icon: <MdOutlineFactCheck />,
+      },
+    ],
+  },
+  {
+    key: 5,
+    name: "Users and Roles",
+    icon: <Users />,
+    menu: [
+      {
+        key: 5.1,
         name: "Users",
         path: "/admin/auth/list",
         icon: <MdOutlinePerson />,
       },
       {
-        key: 4.2,
+        key: 5.2,
         name: "Roles",
         path: "/admin/roles/list",
         icon: <MdOutlineFactCheck />,
@@ -84,18 +136,25 @@ export const SideMenuList: SideListMenuType[] = [
     ],
   },
   {
-    key: 5,
+    key: 6,
+    name: "Media",
+    path: "/admin/media-category/list",
+    icon: <ImageIcon />,
+  },
+
+  {
+    key: 7,
     name: "Email",
     icon: <Mail />,
     menu: [
       {
-        key: 5.1,
+        key: 7.1,
         name: "Email Template",
         path: "/admin/email-template/list",
         icon: <MdOutlineMailOutline />,
       },
       {
-        key: 5.2,
+        key: 7.2,
         name: "Email SMTP",
         path: "/admin/smtp",
         icon: <MdOutlineMailOutline />,
@@ -103,72 +162,43 @@ export const SideMenuList: SideListMenuType[] = [
     ],
   },
   {
-    key: 6,
+    key: 9,
+    name: "Account",
+    icon: <MdOutlineFactCheck />,
+    path: "/admin/account/list",
+  },
+  {
+    key: 8,
     name: "Settings",
     icon: <Settings />,
+    path: "/admin/settings",
     menu: [
       {
-        key: 6.1,
+        key: 8.1,
         name: "Company Settings",
         path: "/admin/settings/list",
         icon: <MdDisplaySettings />,
       },
-      {
-        key: 9.2,
-        name: "Department",
-        path: "/admin/department/list",
-        icon: <MdOutlineFactCheck />,
-      },
-      {
-        key: 9.3,
-        name: "Floor",
-        path: "/admin/floor/list",
-        icon: <MdOutlineFactCheck />,
-      },
-      {
-        key: 9.4,
-        name: "Table",
-        path: "/admin/table/list",
-        icon: <MdOutlineFactCheck />,
-      },
     ],
   },
-  {
-    key: 7,
-    name: "Finance",
-    icon: <CircleDollarSign />,
-    menu: [
-      {
-        key: 7.1,
-        name: "Revenue",
-        icon: <FaMoneyBillWave />,
-        path: "/admin/revenue/list",
-      },
-      {
-        key: 7.2,
-        name: "Account",
-        icon: <AiFillBank />,
-        path: "/admin/account/list",
-      },
-    ],
-  },
-  {
-    key: 8,
-    name: "Purchase",
-    icon: <ShoppingCart />,
-    menu: [
-      {
-        key: 8.1,
-        name: "Table",
-        path: "/admin/purchase/list",
-        icon: <MdOutlineFactCheck />,
-      },
-      {
-        key: 8.2,
-        name: "Table",
-        path: "/admin/purchase-category/list",
-        icon: <MdOutlineFactCheck />,
-      },
-    ],
-  },
+
+  // {
+  //   key: 8,
+  //   name: "Purchase",
+  //   icon: <ShoppingCart />,
+  //   menu: [
+  //     {
+  //       key: 8.1,
+  //       name: "Table",
+  //       path: "/admin/purchase/list",
+  //       icon: <MdOutlineFactCheck />,
+  //     },
+  //     {
+  //       key: 8.2,
+  //       name: "Table",
+  //       path: "/admin/purchase-category/list",
+  //       icon: <MdOutlineFactCheck />,
+  //     },
+  //   ],
+  // },
 ];

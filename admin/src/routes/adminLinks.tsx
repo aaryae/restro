@@ -37,6 +37,7 @@ import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
 import Banks from "@/pages/Account";
 import AddEditBanks from "@/pages/Account/AddEditAccount";
 import Expenses from "@/pages/Expenses";
+import AddEditExpense from "@/pages/Expenses/AddEditExpense";
 
 export const adminLinks = [
   {
@@ -156,7 +157,11 @@ export const adminLinks = [
     element: <Purchase />,
   },
   {
-    path: "/purchase",
+    path: "/purchase/",
+    element: <AddEditPurchase />,
+  },
+  {
+    path: "/purchase/:id",
     element: <AddEditPurchase />,
   },
   {
@@ -246,5 +251,13 @@ export const adminLinks = [
   {
     path: "/expense/list",
     element: <Expenses />,
+  },
+  {
+    path: "/expense/",
+    element: <AddEditExpense />,
+  },
+  {
+    path: "/expense/:id",
+    element: <AddEditExpense />,
   },
 ];

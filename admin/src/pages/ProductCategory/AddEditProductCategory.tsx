@@ -79,7 +79,7 @@ export default function AddEditProductCategory({
 
   return (
     <>
-      {!isComponent && <PageTitle title="Add Product Category" />}
+      {!isComponent && <PageTitle title="Add Product Category" isBack={true} />}
       <form
         className={`grid grid-cols-1 gap-[2rem] mt-[1rem] ${
           isComponent ? "" : " form-container"

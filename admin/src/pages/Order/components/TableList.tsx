@@ -261,14 +261,6 @@ function Header({
             </select>
           </div>
         </div>
-        <div className="flex items-center ">
-          <Button
-            className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
-            handleClick={() => navigate(TABLE_ADD_ROUTE)}
-          >
-            Create Table
-          </Button>
-        </div>
       </div>
     </>
   );

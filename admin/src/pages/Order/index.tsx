@@ -3,8 +3,12 @@ import OrderList from "./components/OrderList";
 import TableList from "./components/TableList";
 import KotList from "./components/KotList";
 import Button from "@/components/Button";
+import { useNavigate } from "react-router-dom";
+import { TABLE_ADD_ROUTE } from "@/routes/routeNames";
+import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 
 export default function Order() {
+  const navigate = useNavigate();
   const headerOptions = [
     { label: "Tables", value: "table" },
     { label: "Orders", value: "order" },
@@ -18,28 +22,60 @@ export default function Order() {
 
   return (
     <>
-      <Controller
-        name="accountType"
-        control={control}
-        render={({ field }) => (
-          <div className="flex space-x-5 p-1 rounded-lg">
-            {headerOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
-                  field.value === option.value
-                    ? "bg-blue-500 text-white border-none"
-                    : "bg-white text-gray-700 hover:bg-gray-200"
-                }`}
-                onClick={() => field.onChange(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+      <div className="flex items-center justify-between">
+        <Controller
+          name="accountType"
+          control={control}
+          render={({ field }) => (
+            <div className="flex space-x-5 p-1 rounded-lg">
+              {headerOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                    field.value === option.value
+                      ? "bg-blue-500 text-white border-none"
+                      : "bg-white text-gray-700 hover:bg-gray-200"
+                  }`}
+                  onClick={() => field.onChange(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        />
+        {selectedView === "table" && (
+          <div className="flex items-center ">
+            <Button
+              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
+              handleClick={() => navigate(ORDER_ADD_ROUTE)}
+            >
+              Create Order
+            </Button>
           </div>
         )}
-      />
+        {selectedView === "order" && (
+          <div className="flex items-center ">
+            <Button
+              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
+              handleClick={() => navigate(ORDER_ADD_ROUTE)}
+            >
+              Create Order
+            </Button>
+          </div>
+        )}
+        {selectedView === "kot" && (
+          <div className="flex items-center ">
+            <Button
+              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
+              // handleClick={() => navigate(KOT_ADD_ROUTE)}
+            >
+              Create KOT
+            </Button>
+          </div>
+        )}
+      </div>
 
       {selectedView === "table" && <TableList />}
       {selectedView === "order" && <OrderList />}
