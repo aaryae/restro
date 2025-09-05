@@ -11,7 +11,6 @@ import usePagination from "@/hooks/usePagination";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 
 import { buildQueryString } from "@/utils/generalHelper";
-import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { useNavigate } from "react-router-dom";
 
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
