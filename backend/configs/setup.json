@@ -1,4 +1,121 @@
 {
+  "mediaCategory": [
+    {
+      "id": 354,
+      "name": "rich text editor",
+      "slug": "rich-text-editor"
+    },
+    {
+      "id": 777,
+      "name": "customer",
+      "slug": "customer"
+    }
+  ],
+  "categoryConfigs": [
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "caffeinated-hot",
+      "categorySlug": "caffeinated-hot",
+      "categoryId": 1001,
+      "folderPath": "../seeders/caffeinated-hot/",
+      "captionPrefix": "Caffeinated Hot - ",
+      "descriptionPrefix": "Image of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "caffeinated-cold",
+      "categorySlug": "caffeinated-cold",
+      "categoryId": 1002,
+      "folderPath": "../seeders/caffeinated-cold/",
+      "captionPrefix": "Caffeinated Cold - ",
+      "descriptionPrefix": "Image of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "non-caffeinated-hot",
+      "categorySlug": "non-caffeinated-hot",
+      "categoryId": 1003,
+      "folderPath": "../seeders/non-caffeinated-hot/",
+      "captionPrefix": "Non-Caffeinated Hot - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "non-caffeinated-cold",
+      "categorySlug": "non-caffeinated-cold",
+      "categoryId": 1004,
+      "folderPath": "../seeders/non-caffeinated-cold/",
+      "captionPrefix": "Non-Caffeinated Cold - ",
+      "descriptionPrefix": "Photo of "
+    }
+  ],
+  "floorConfigs": [
+    {
+      "floorId": 1,
+      "floorNo": "1",
+      "floorName": "First Floor",
+      "tables": [
+        { "tableId": 101, "tableNo": "T1", "type": "regular", "capacity": 4 },
+        { "tableId": 102, "tableNo": "T2", "type": "regular", "capacity": 6 },
+        { "tableId": 103, "tableNo": "T3", "type": "vip", "capacity": 8 }
+      ]
+    },
+    {
+      "floorId": 2,
+      "floorNo": "2",
+      "floorName": "Second Floor",
+      "tables": [
+        { "tableId": 201, "tableNo": "T1", "type": "outdoor", "capacity": 4 },
+        { "tableId": 202, "tableNo": "T2", "type": "outdoor", "capacity": 4 }
+      ]
+    },
+    {
+      "floorId": 3,
+      "floorNo": "R",
+      "floorName": "Rooftop",
+      "tables": [
+        { "tableId": 301, "tableNo": "RT1", "type": "vip", "capacity": 10 },
+        { "tableId": 302, "tableNo": "RT2", "type": "outdoor", "capacity": 6 }
+      ]
+    }
+  ],
+  "accountConfigs": [
+    {
+      "accountId": 1,
+      "accountType": "cash",
+      "name": "Main Cash Register",
+      "openingBalance": 1000.0,
+      "isDefault": true
+    },
+    {
+      "accountId": 2,
+      "accountType": "bank",
+      "name": "Primary Bank Account",
+      "openingBalance": 5000.0,
+      "isDefault": false,
+      "bankAccountNumber": "1234567890"
+    },
+    {
+      "accountId": 3,
+      "accountType": "wallet",
+      "name": "Digital Wallet",
+      "openingBalance": 200.0,
+      "isDefault": false,
+      "walletId": "WALLET123"
+    },
+    {
+      "accountId": 4,
+      "accountType": "bank",
+      "name": "Secondary Bank Account",
+      "openingBalance": 3000.0,
+      "isDefault": false,
+      "bankAccountNumber": "0987654321"
+    }
+  ],
   "setting": {
     "id": 627,
     "brand_name": "Nirvana Restro",
@@ -14,18 +131,6 @@
     "footer_desc": "Tech Nirvana",
     "google_analytics": "UA-123456789"
   },
-  "mediaCategory": [
-    {
-      "id": 354,
-      "name": "rich text editor",
-      "slug": "rich-text-editor"
-    },
-    {
-      "id": 777,
-      "name": "customer",
-      "slug": "customer"
-    }
-  ],
   "banner": [
     {
       "id": "167",

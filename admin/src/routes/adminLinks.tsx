@@ -28,6 +28,8 @@ import OrderTable from "@/pages/Table";
 import AddEditTable from "@/pages/Table/AddEditTable";
 import AddEditOrder from "@/pages/Order/components/AddEditOrder";
 import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
+import Supplier from "@/pages/SuppliersModule";
+import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import Revenue from "@/pages/Revenue";
 import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
 import Purchase from "@/pages/Purchase";
@@ -200,6 +202,22 @@ export const adminLinks = [
     path: "/order/:tableId",
     element: <AddEditOrder />,
   },
+
+  {
+    path: "/supplier/list",
+    element: <Supplier />,
+  },
+
+  {
+    path: "/supplier/",
+    element: <AddEditSupplier />,
+  },
+
+  {
+    path: "/supplier/:id",
+    element: <AddEditSupplier />,
+  },
+
   {
     path: "/department/list",
     element: <Department />,

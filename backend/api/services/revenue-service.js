@@ -1,4 +1,4 @@
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
@@ -610,6 +610,159 @@ const list = async (req) => {
   }
 };
 
+const groupedList = async (req) => {
+  try {
+    let {
+      limit = 10,
+      page = 1,
+      username,
+      customerId,
+      amount,
+      paymentMethod,
+      cash_or_credit = "all",
+      sort,
+      start,
+      end,
+    } = req.query;
+
+    const filters = {};
+
+    // Apply filters
+    if (paymentMethod) {
+      filters.paymentMethod = {
+        [Op.in]: Array.isArray(paymentMethod) ? paymentMethod : [paymentMethod],
+      };
+    }
+
+    if (cash_or_credit === "cash" || cash_or_credit === "credit") {
+      filters.cash_or_credit = cash_or_credit;
+    }
+
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      filters.createdAt = { [Op.between]: [startDate, endDate] };
+    }
+
+    if (username) {
+      filters["$user.username$"] = { [Op.like]: `%${username}%` };
+    }
+
+    if (customerId) {
+      filters.customerId = parseInt(customerId);
+    }
+
+    if (amount) {
+      filters.amount = parseFloat(amount);
+    }
+
+    const includes = [
+      {
+        model: userModel,
+        as: "user",
+        attributes: [],
+        required: false,
+      },
+      {
+        model: customerModel,
+        as: "customer",
+        attributes: [],
+        required: false,
+      },
+      {
+        model: accountModel,
+        as: "account",
+        attributes: [],
+        required: true,
+      },
+    ];
+
+    // Get total number of distinct days
+    const totalDaysResult = await revenueModel.findAll({
+      attributes: [
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn(
+              "DISTINCT",
+              Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt")),
+            ),
+          ),
+          "totalDays",
+        ],
+      ],
+      where: filters,
+      include: includes,
+      raw: true,
+    });
+
+    const totalDays = parseInt(totalDaysResult[0]?.totalDays || 0);
+
+    // Order setup
+    let dailyOrder = [
+      [Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt")), "DESC"],
+    ];
+    if (sort) {
+      if (sort === "price") {
+        dailyOrder = [
+          [Sequelize.fn("SUM", Sequelize.col("Revenue.amount")), "DESC"],
+        ];
+      } else if (sort === "latest") {
+        dailyOrder = [
+          [Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt")), "DESC"],
+        ];
+      }
+    }
+
+    // Query for daily revenues
+    const dailyRevenues = await sequelize.models.Revenue.findAll({
+      attributes: [
+        [Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt")), "day"],
+        [Sequelize.fn("SUM", Sequelize.col("Revenue.amount")), "dailyTotal"],
+      ],
+      where: filters,
+      include: includes,
+      group: [Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt"))],
+      order: dailyOrder,
+      limit: parseInt(limit),
+      offset: (parseInt(page) - 1) * parseInt(limit),
+      raw: true,
+    });
+
+    // Get grand total over the entire filtered range
+    const grandTotalResult = await sequelize.models.Revenue.sum("amount", {
+      where: filters,
+      include: includes,
+    });
+
+    const result = {
+      dailyRevenues: dailyRevenues.map((d) => ({
+        day: d.day,
+        dailyTotal: parseFloat(d.dailyTotal).toFixed(2),
+      })),
+      totalDays,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalDays / parseInt(limit)),
+      grandTotal: parseFloat(grandTotalResult || 0).toFixed(2),
+    };
+
+    return {
+      status: 200,
+      success: true,
+      message: "Daily revenues retrieved successfully",
+      data: result,
+    };
+  } catch (error) {
+    console.error("List daily revenues error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
 const updateOrderStatus = async (req) => {
   const { id } = req.params;
   const { status, paymentStatus, paymentMethod } = req.body;
@@ -830,6 +983,7 @@ const getOrderItems = async (req) => {
 
 module.exports = {
   list,
+  groupedList,
   createRevenue,
   updateRevenue,
   deleteRevenue,

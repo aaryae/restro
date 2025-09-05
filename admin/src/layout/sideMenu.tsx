@@ -5,7 +5,12 @@ import { SetStateAction, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { checkViewAccessList } from "@/utils/accessHelper";
 import useTranslation from "@/locale/useTranslation";
-import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
+import {
+  Container,
+  LayoutDashboard,
+  PanelLeft,
+  ShoppingCart,
+} from "lucide-react";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import { IMAGE_BASE_URL } from "@/constants";
 export default function SideMenu({
@@ -31,6 +36,7 @@ export default function SideMenu({
   const filteredSideMenuList = isSettingsView
     ? SideMenuList.filter((each) => each.name === "Settings")
     : SideMenuList;
+
   const [isVisible, setIsVisible] = useState<number[]>([]);
   const [isActive, setIsActive] = useState<string | null>(null);
   const { data: settings } = useGetSettingQuery("");
@@ -145,6 +151,24 @@ export default function SideMenu({
             </div>
           </div>
         )}
+
+        {/* {viewAccess.includes("Supplier") && ( */}
+        <div
+          className={`${
+            currentPath.includes("supplier") ? "bg-primaryColor text-white" : ""
+          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
+          onClick={() => handleNavigate("request", "/admin/supplier/list")}
+        >
+          <div className="flex items-center gap-[0.5rem]">
+            <div
+              className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
+            >
+              <Container />
+            </div>
+            {sideMenuOpen && <p className="font-[400] text-[1rem]">Supplier</p>}
+          </div>
+        </div>
+        {/* )} */}
         {/* Apps and Pages */}
         {filteredSideMenuList.map((each: SideListMenuType, index) => {
           const subMenuList = each.menu

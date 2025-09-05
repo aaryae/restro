@@ -7,8 +7,10 @@ const {
   transferPostValidation,
 } = require("../../validations/transfer-validation");
 
-const { create } = require("../controllers/transfer-controller");
+const { create, list } = require("../controllers/transfer-controller");
 
 router.post("/", authentication, transferPostValidation, create);
+
+router.get("/list", authentication, list);
 
 module.exports = router;
