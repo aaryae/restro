@@ -16,3 +16,5 @@ logs/combined.log
 # npm 
 package-lock.json
 pnpm-workspace.yaml
+
+.DS_Store

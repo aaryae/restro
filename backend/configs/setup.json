@@ -1119,6 +1119,50 @@
           "list": "Table"
         }
       ]
+    },
+    {
+      "title": "Revenue",
+      "key": "revenue",
+      "actions": [
+        {
+          "title": "Add Revenue",
+          "key": "add",
+          "clientPath": "/revenue",
+          "serverPath": "/revenue",
+          "requestMethod": "POST",
+          "list": "Revenue"
+        },
+        {
+          "title": "View Revenue",
+          "key": "view",
+          "clientPath": "/revenue/list",
+          "serverPath": "/revenue/list",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        }
+      ]
+    },
+    {
+      "title": "Account",
+      "key": "account",
+      "actions": [
+        {
+          "title": "Add Account",
+          "key": "add",
+          "clientPath": "/account",
+          "serverPath": "/account",
+          "requestMethod": "POST",
+          "list": "Account"
+        },
+        {
+          "title": "View Account",
+          "key": "view",
+          "clientPath": "/account/list",
+          "serverPath": "/account/list",
+          "requestMethod": "GET",
+          "list": "Account"
+        }
+      ]
     }
   ]
 }

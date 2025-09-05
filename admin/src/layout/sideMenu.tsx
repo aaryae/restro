@@ -77,7 +77,7 @@ export default function SideMenu({
             currentPath.includes("dashboard")
               ? "bg-primaryColor text-white"
               : ""
-          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.5rem]`}
+          } group hover:bg-primaryColor hover:text-white transition-all duration-300 flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.5rem]`}
           onClick={() => handleNavigate("dashboard", "/admin/dashboard")}
         >
           <div className="flex items-center gap-[0.5rem]">
@@ -85,7 +85,9 @@ export default function SideMenu({
               <LayoutDashboard />
             </div>
             {sideMenuOpen && (
-              <p className="font-[400] text-[1rem]">{translate("Dashboard")}</p>
+              <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300">
+                {translate("Dashboard")}
+              </p>
             )}
           </div>
         </div>
@@ -94,7 +96,7 @@ export default function SideMenu({
           <div
             className={`${
               currentPath.includes("order") ? "bg-primaryColor text-white" : ""
-            } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
+            } group hover:bg-primaryColor hover:text-white transition-all duration-300 flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
             onClick={() => handleNavigate("request", "/admin/order/list")}
           >
             <div className="flex items-center gap-[0.5rem]">
@@ -103,7 +105,11 @@ export default function SideMenu({
               >
                 <ShoppingCart />
               </div>
-              {sideMenuOpen && <p className="font-[400] text-[1rem]">Orders</p>}
+              {sideMenuOpen && (
+                <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300">
+                  Orders
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -140,7 +146,7 @@ export default function SideMenu({
               {each.menu ? (
                 subMenuList.some((item) => viewAccess.includes(item)) && (
                   <div
-                    className=" flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer hover:bg-primaryColor hover:text-white"
+                    className="group flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer hover:bg-primaryColor hover:text-white transition-all duration-300"
                     onClick={() => {
                       if (each.path) {
                         handleNavigate(each.name, each.path);
@@ -157,7 +163,7 @@ export default function SideMenu({
                         {each.icon}
                       </div>
                       {sideMenuOpen && (
-                        <p className="font-[400] text-[1rem] text-start">
+                        <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
                           {each.name}
                         </p>
                       )}
@@ -177,7 +183,7 @@ export default function SideMenu({
                 <>
                   {viewAccess.includes(each.name) && (
                     <div
-                      className={` flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] hover:text-white hover:bg-primaryColor cursor-pointer ${
+                      className={`group flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] hover:text-white hover:bg-primaryColor cursor-pointer transition-all duration-300 ${
                         currentPath.includes(each.name.toLowerCase()) ||
                         currentPath.includes(
                           each.name.toLowerCase() + "-category",
@@ -201,7 +207,7 @@ export default function SideMenu({
                           {each.icon}
                         </div>
                         {sideMenuOpen && (
-                          <p className="font-[400] text-[1rem] text-start">
+                          <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
                             {each.name}
                           </p>
                         )}
@@ -221,7 +227,7 @@ export default function SideMenu({
                         {viewAccess.includes(item.name) && (
                           <div
                             key={index}
-                            className={`flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer ${
+                            className={`group flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.5rem] rounded-[0.25rem] cursor-pointer transition-all duration-300 ${
                               isActive === item.name ||
                               currentPath.includes(item.name.toLowerCase())
                                 ? "text-white bg-primaryColor "
@@ -233,7 +239,7 @@ export default function SideMenu({
                               {item.icon}
                             </div>
                             {sideMenuOpen && (
-                              <p className="font-[400] text-[1rem] text-start">
+                              <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
                                 {translate(item.name)}
                               </p>
                             )}

@@ -10,216 +10,194 @@ const {
   tableModel,
   productMediaModel,
   accountModel,
-  revenueModel,
   sequelize,
+  userModel,
+  revenueModel,
 } = require("../../models");
 
 const { withTransaction } = require("../../helpers/order/transaction");
 
 const paginate = require("../../utils/paginate");
+const paginateWithAggregate = require("../../utils/paginateWithAggregate");
 
-const createOrder = async (req) => {
-  const transaction = await sequelize.transaction();
+const createRevenue = async (req) => {
+  const transaction = await revenueModel.sequelize.transaction();
   try {
-    const { orderType, tableId, orderItems = [] } = req.body;
-    let table = null;
-    let sessionId = null;
+    const {
+      amount,
+      paymentMethod,
+      cash_or_credit,
+      customerId,
+      userId,
+      accountId,
+      remarks,
+    } = req.body;
 
-    if (orderType === "dineIn") {
-      table = await tableModel.findByPk(tableId, { transaction });
-      if (!table) {
+    // Validate required fields
+    if (!amount || !userId || !accountId) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Amount, userId, and accountId are required",
+      };
+    }
+
+    // Validate paymentMethod
+    const validPaymentMethods = ["cash", "card", "online"];
+    if (paymentMethod && !validPaymentMethods.includes(paymentMethod)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Invalid payment method. Must be one of ${validPaymentMethods.join(", ")}`,
+      };
+    }
+
+    // Validate cash_or_credit
+    const validCashOrCredit = ["cash", "credit"];
+    if (cash_or_credit && !validCashOrCredit.includes(cash_or_credit)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Invalid cash_or_credit. Must be one of ${validCashOrCredit.join(", ")}`,
+      };
+    }
+
+    // Validate accountId
+    const account = await accountModel.findByPk(accountId, { transaction });
+    if (!account) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Account not found for ID: ${accountId}`,
+      };
+    }
+
+    // Validate customerId if provided
+    if (customerId) {
+      const customer = await customerModel.findByPk(customerId, {
+        transaction,
+      });
+      if (!customer) {
         await transaction.rollback();
-        return { status: 404, success: false, message: "Table not found" };
-      }
-
-      if (table.status === "available") {
-        sessionId = generateUUID();
-        await table.update(
-          {
-            status: "occupied",
-            sessionId,
-            sessionStartTime: new Date(),
-          },
-          { transaction },
-        );
-      } else {
-        sessionId = table.sessionId;
+        return {
+          status: 400,
+          success: false,
+          message: `Customer not found for ID: ${customerId}`,
+        };
       }
     }
 
-    const order = await orderModel.create(
+    // Create Revenue record
+    const revenue = await revenueModel.create(
       {
-        ...req.body,
-        sessionId,
-        orderStartTime: new Date(),
+        amount,
+        paymentMethod: paymentMethod || "cash",
+        cash_or_credit: cash_or_credit || "cash",
+        customerId,
+        userId,
+        accountId,
+        remarks,
       },
       { transaction },
     );
 
-    let totalAmount = 0;
+    console.log(
+      `[createRevenue] Created revenue ID: ${revenue.id} with accountId: ${accountId}`,
+    );
 
-    for (const item of orderItems) {
-      const product = await productModel.findByPk(item.productId, {
-        transaction,
-      });
-      if (!product) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: `Product with ID ${item.productId} not found`,
-        };
-      }
-
-      const subtotal = product.price * item.quantity;
-      totalAmount += subtotal;
-
-      await orderItemModel.create(
-        {
-          ...item,
-          orderId: order.id,
-          price: product.price,
-          departmentId: product.departmentId,
-          subtotal,
-        },
-        { transaction },
-      );
+    // Update account balance
+    const newBalance = Number(account.currentBalance) + Number(amount);
+    if (newBalance < 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Balance cannot be negative for account ID: ${accountId}`,
+      };
     }
 
-    await order.update({ totalAmount }, { transaction });
+    await account.update(
+      {
+        currentBalance: newBalance,
+      },
+      { transaction },
+    );
+
+    console.log(
+      `[createRevenue] Updated account ID: ${account.id}, new currentBalance: ${newBalance}`,
+    );
 
     await transaction.commit();
 
     return {
       status: 201,
       success: true,
-      message: "Order created successfully",
-      data: order,
+      message: "Revenue created successfully",
+      data: {
+        revenue,
+      },
     };
   } catch (error) {
     await transaction.rollback();
+    console.error("[createRevenue] Error:", error.message);
     throw error;
   }
 };
 
-const updateOrderItems = async (req) => {
+const updateRevenue = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const { orderId } = req.params;
-    const { orderItems = [] } = req.body;
+    const { id } = req.params;
+    const { customerId, ...rest } = req.body;
 
-    const order = await orderModel.findByPk(orderId, {
-      include: [{ model: orderItemModel, as: "orderItems" }],
-      transaction,
-    });
-
-    if (!order) {
+    // Find the revenue entry
+    const revenue = await revenueModel.findByPk(id, { transaction });
+    if (!revenue) {
       await transaction.rollback();
-      return { status: 404, success: false, message: "Order not found" };
+      return {
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
+      };
     }
-    const newItems = orderItems.filter((i) => !i.id);
-    const oldItems = orderItems.filter((i) => i.id);
-    for (const incoming of oldItems) {
-      const existing = order.orderItems.find((oi) => oi.id === incoming.id);
-      if (!existing) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: `Order item ${incoming.id} not found`,
-        };
-      }
 
-      // Check for status change
-      if (incoming.status && incoming.status !== existing.status) {
-        if (incoming.status === "cancelled") {
-          if (existing.status === "preparing") {
-            await transaction.rollback();
-            return {
-              status: 400,
-              success: false,
-              message: `Cannot cancel item ${existing.id}, already in preparing`,
-            };
-          }
-          await existing.update(
-            { status: "cancelled", subtotal: 0 },
-            { transaction },
-          );
-          continue; // skip quantity check since it's cancelled
-        }
-      }
-
-      // Check for quantity change
-      if (
-        incoming.quantity !== undefined &&
-        incoming.quantity !== existing.quantity
-      ) {
-        if (
-          incoming.quantity < existing.quantity &&
-          existing.status === "preparing"
-        ) {
-          await transaction.rollback();
-          return {
-            status: 400,
-            success: false,
-            message: `Cannot decrease quantity for item ${existing.id}, already in preparing`,
-          };
-        }
-
-        const newSubtotal = existing.price * incoming.quantity;
-        await existing.update(
-          { quantity: incoming.quantity, subtotal: newSubtotal },
-          { transaction },
-        );
-      }
-    }
-    if (newItems.length > 0) {
-      for (const item of newItems) {
-        const product = await productModel.findByPk(item.productId, {
+    // Handle existing customer if customerId is provided
+    if (customerId !== undefined) {
+      if (customerId !== null) {
+        const customer = await customerModel.findByPk(customerId, {
           transaction,
         });
-        if (!product) {
+        if (!customer) {
           await transaction.rollback();
           return {
             status: 404,
             success: false,
-            message: `Product with ID ${item.productId} not found`,
+            message: "Customer not found",
           };
         }
-        const subtotal = product.price * item.quantity;
-        await orderItemModel.create(
-          {
-            ...item,
-            orderId: order.id,
-            price: product.price,
-            departmentId: product.departmentId,
-            subtotal,
-          },
-          { transaction },
-        );
       }
     }
 
-    // Recalculate order total (exclude cancelled)
-    const validItems = await orderItemModel.findAll({
-      where: { orderId, status: { [Op.ne]: "cancelled" } },
-      transaction,
-    });
-
-    const totalAmount = validItems.reduce(
-      (sum, item) => sum + Number(item.subtotal),
-      0,
+    // Update only provided fields
+    await revenue.update(
+      {
+        ...rest,
+        customerId: customerId !== undefined ? customerId : revenue.customerId,
+      },
+      { transaction },
     );
-
-    await order.update({ totalAmount }, { transaction });
 
     await transaction.commit();
 
     return {
       status: 200,
       success: true,
-      message: "Order items updated successfully",
-      data: order,
+      message: "Revenue updated successfully",
+      data: revenue,
     };
   } catch (error) {
     await transaction.rollback();
@@ -227,85 +205,38 @@ const updateOrderItems = async (req) => {
   }
 };
 
-const getTableActiveOrders = async (req) => {
-  const { id: tableId } = req.params;
-
+const deleteRevenue = async (req) => {
+  const transaction = await sequelize.transaction();
   try {
-    const table = await tableModel.findByPk(tableId);
+    const { id } = req.params;
 
-    if (!table) {
-      return { status: 404, success: false, message: "Table not found" };
-    }
-
-    if (!table.sessionId) {
+    // Find the revenue entry
+    const revenue = await revenueModel.findByPk(id, { transaction });
+    if (!revenue) {
+      await transaction.rollback();
       return {
-        status: 200,
-        success: true,
-        message: "No active session for this table",
-        data: null,
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
       };
     }
 
-    const orders = await orderModel.findAll({
-      where: {
-        tableId: tableId,
-        sessionId: table.sessionId,
-        status: { [Op.notIn]: ["completed", "cancelled"] },
-      },
-      include: [
-        {
-          model: orderItemModel,
-          as: "orderItems",
-          include: [
-            {
-              model: productModel,
-              as: "product",
-              include: [{ model: productMediaModel, as: "mediaArr" }],
-            },
-          ],
-        },
-        {
-          model: customerModel,
-          as: "customer",
-          attributes: ["id", "email"],
-        },
-      ],
-      order: [["createdAt", "ASC"]],
-    });
+    // Delete the revenue entry
+    await revenue.destroy({ transaction });
 
-    const sessionTotal = orders.reduce(
-      (sum, order) => sum + parseFloat(order.totalAmount),
-      0,
-    );
+    await transaction.commit();
 
     return {
       status: 200,
       success: true,
-      message: "Active orders retrieved successfully",
-      data: {
-        table: {
-          id: table.id,
-          tableNo: table.tableNo,
-          status: table.status,
-          sessionId: table.sessionId,
-          sessionStartTime: table.sessionStartTime,
-        },
-        orders,
-        sessionTotal,
-      },
+      message: "Revenue deleted successfully",
+      data: null,
     };
   } catch (error) {
-    console.error("Get table active orders error:", error);
-    return {
-      status: 500,
-      success: false,
-      message: "Internal server error",
-      error: error.message,
-    };
+    await transaction.rollback();
+    throw error;
   }
 };
-
-// const { Op } = require("sequelize");
 
 const checkoutOrder = async (req) => {
   const transaction = await sequelize.transaction();
@@ -318,11 +249,8 @@ const checkoutOrder = async (req) => {
       customerDetails,
       sessionId,
       isGuestOrder = false,
-      accountId, // New optional field to allow specifying accountId
       ...updateData
     } = req.body;
-
-    console.log(`******************\n${accountId}\n****************`);
 
     // Validate tableId
     if (!tableId) {
@@ -469,48 +397,6 @@ const checkoutOrder = async (req) => {
       }
     }
 
-    // Determine the account for revenue
-    let selectedAccountId = accountId;
-    if (!selectedAccountId) {
-      // Map paymentMethod to accountType
-      const paymentMethod = updateData.paymentMethod || "cash";
-      const accountTypeMap = {
-        cash: "cash",
-        card: "bank",
-        online: "wallet",
-      };
-      const accountType = accountTypeMap[paymentMethod] || "cash";
-
-      // Fetch the account based on accountType
-      const account = await accountModel.findOne({
-        where: { accountType },
-        transaction,
-      });
-
-      if (!account) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `No account found for payment method: ${paymentMethod}`,
-        };
-      }
-      selectedAccountId = account.id;
-    } else {
-      // Validate provided accountId
-      const account = await accountModel.findByPk(selectedAccountId, {
-        transaction,
-      });
-      if (!account) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `Invalid account ID: ${selectedAccountId}`,
-        };
-      }
-    }
-
     // Update all orders and create revenue entries
     const updatedOrders = [];
     const revenueEntries = [];
@@ -528,17 +414,14 @@ const checkoutOrder = async (req) => {
         { transaction },
       );
 
-      console.log(`******************\n ID ${req.user.id}\n ***************`);
-
       // Create revenue entry for each order
-      const revenue = await revenueModel.create(
+      const revenue = await Revenue.create(
         {
           amount: order.totalAmount,
           paymentMethod: updateData.paymentMethod || "cash",
           cash_or_credit: updateData.cashOrCredit || "cash",
           customerId: finalCustomerId,
           userId: req.user.id, // Assuming user ID is available in req.user
-          accountId: selectedAccountId, // Add accountId to revenue entry
           remarks: updateData.remarks || `Revenue from order ${order.id}`,
         },
         { transaction },
@@ -582,7 +465,7 @@ const checkoutOrder = async (req) => {
       message: `Checked out ${orders.length} order(s) successfully`,
       data: {
         orders: updatedOrders,
-        revenueEntries, // Include revenue entries in response
+        // revenueEntries, // Include revenue entries in response
         combinedTotalAmount,
         loyaltyPointsAdded:
           !isGuestOrder && finalCustomerId
@@ -650,18 +533,16 @@ const getOrderById = async (req) => {
   }
 };
 
-const listOrders = async (req) => {
+const list = async (req) => {
   try {
     let {
       limit,
       page,
-      status,
-      paymentStatus,
-      orderStatus,
+      username,
+      customerId,
+      amount,
       paymentMethod,
-      orderType,
-      tableId,
-      orderDate,
+      cash_or_credit = "all",
       sort,
       start,
       end,
@@ -670,62 +551,46 @@ const listOrders = async (req) => {
     const filters = {};
     const include = [
       {
-        model: orderItemModel,
-        as: "orderItems",
-        include: [
-          {
-            model: productModel,
-            as: "product",
-          },
-        ],
+        model: userModel,
+        as: "user",
+        attributes: ["id", "username"],
       },
       {
         model: customerModel,
         as: "customer",
-        attributes: ["id", "email"],
-      },
-      {
-        model: tableModel,
-        as: "table",
-        attributes: ["id", "tableNo"],
+        attributes: ["id", "email", "firstName"],
       },
     ];
     const order = [["updatedAt", "DESC"]];
+    const aggregates = [
+      { column: "amount", function: "SUM", alias: "grandTotal" },
+    ];
 
-    if (status) filters.status = { [Op.like]: `%${status}%` };
-    if (paymentStatus)
-      filters.paymentStatus = { [Op.like]: `%${paymentStatus}%` };
-    if (orderStatus) filters.status = { [Op.like]: `%${orderStatus}%` };
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
-    if (orderType) filters.orderType = { [Op.like]: `%${orderType}%` };
-    if (tableId) filters.tableId = tableId;
 
-    // if (orderDate) {
-    //   const date = new Date(orderDate);
-    //   const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    //   const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-    //   filters.orderDate = { [Op.between]: [startOfDay, endOfDay] };
-    // }
+    if (cash_or_credit === "cash" || cash_or_credit === "credit")
+      filters.cash_or_credit = { [Op.like]: `${cash_or_credit}` };
 
     if (start && end) {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
       const endDate = endOfDay(parseISO(end));
-      console.log(startDate, endDate, "dates-----------------");
-      filters.orderStartTime = { [Op.between]: [startDate, endDate] };
+
+      filters.createdAt = { [Op.between]: [startDate, endDate] };
     }
 
     if (sort) {
-      if (sort === "price") order.push(["totalAmount", "DESC"]);
+      if (sort === "price") order.push(["amount", "DESC"]);
       else if (sort === "latest") order.push(["createdAt", "DESC"]);
     }
 
-    const result = await paginate(orderModel, {
+    const result = await paginateWithAggregate(revenueModel, {
       limit,
       page,
       filters,
       include,
       order,
+      aggregates,
     });
 
     return {
@@ -823,6 +688,42 @@ const bulkServeOrderItems = async (req) => {
       success: true,
       message: "Order items served successfully",
       data: orderItems,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getRevenueById = async (req) => {
+  try {
+    const { id } = req.params;
+    const include = [
+      {
+        model: userModel,
+        as: "user",
+        attributes: ["id", "username"],
+      },
+      {
+        model: customerModel,
+        as: "customer",
+        attributes: ["id", "email", "firstName", "lastName", "mobileNo"],
+      },
+    ];
+
+    const revenue = await revenueModel.findByPk(id, { include });
+    if (!revenue) {
+      return {
+        status: 404,
+        success: false,
+        message: "Revenue entry not found",
+      };
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: "Revenue retrieved successfully",
+      data: revenue,
     };
   } catch (error) {
     throw error;
@@ -928,21 +829,9 @@ const getOrderItems = async (req) => {
 };
 
 module.exports = {
-  getTableActiveOrders,
-  getOrderById,
-  listOrders,
-  updateOrderStatus,
-
-  // waiter services
-  createOrder,
-  updateOrderItems,
-  bulkServeOrderItems,
-
-  // cashier services
-  checkoutOrder,
-
-  getOrderItems,
-
-  //department services
-  updateOrderItemsStatus,
+  list,
+  createRevenue,
+  updateRevenue,
+  deleteRevenue,
+  getRevenueById,
 };

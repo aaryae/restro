@@ -44,6 +44,7 @@ export const api = createApi({
     "table",
     "order",
     "supplier",
+    "revenue",
   ],
   endpoints: () => ({}),
 });

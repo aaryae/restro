@@ -1,0 +1,40 @@
+const { Model, DataTypes } = require("sequelize");
+
+module.exports = (sequelize) => {
+  class BankAccount extends Model {
+    static associate(models) {
+      BankAccount.belongsTo(models.accountModel, {
+        foreignKey: "accountId",
+        as: "account",
+      });
+    }
+  }
+
+  BankAccount.init(
+    {
+      accountId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+        references: { model: "Accounts", key: "id" },
+      },
+      bankAccountNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      staticQrUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+    },
+    {
+      sequelize,
+      modelName: "bankAccount",
+      tableName: "bank_accounts",
+      timestamps: true,
+    },
+  );
+
+  return BankAccount;
+};

@@ -50,3 +50,15 @@ export const TABLE_LIST_ROUTE = "/admin/table/list";
 
 export const FLOOR_ADD_ROUTE = "/admin/floor/";
 export const FLOOR_LIST_ROUTE = "/admin/floor/list";
+
+export const REVENUE_LIST_ROUTE = "/admin/revenue/list";
+export const REVENUE_ADD_ROUTE = "/admin/revenue/";
+
+export const PURCHASE_LIST_ROUTE = "/admin/purchase/list";
+export const PURCHASE_ADD_ROUTE = "/admin/purchase/";
+
+export const PURCHASE_CATEGORY_LIST_ROUTE = "/admin/purchase-category/list";
+export const PURCHASE_CATEGORY_ADD_ROUTE = "/admin/purchase-category/";
+
+export const BANK_LIST_ROUTE = "/admin/account/list";
+export const BANK_ADD_ROUTE = "/admin/account/";

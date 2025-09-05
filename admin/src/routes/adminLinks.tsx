@@ -30,6 +30,14 @@ import AddEditOrder from "@/pages/Order/AddEditOrder";
 import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
 import Supplier from "@/pages/SuppliersModule";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
+import Revenue from "@/pages/Revenue";
+import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
+import Purchase from "@/pages/Purchase";
+import PurchaseCategory from "@/pages/PurchaseCategory";
+import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
+import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
+import Banks from "@/pages/Banks";
+import AddEditBanks from "@/pages/Banks/AddEditBanks";
 
 export const adminLinks = [
   {
@@ -129,6 +137,34 @@ export const adminLinks = [
     element: <AddEditProductVariant />,
   },
   {
+    path: "/revenue/list",
+    element: <Revenue />,
+  },
+  {
+    path: "/revenue/",
+    element: <AddEditRevenue />,
+  },
+  {
+    path: "/revenue/:id",
+    element: <AddEditRevenue />,
+  },
+  {
+    path: "/purchase/list",
+    element: <Purchase />,
+  },
+  {
+    path: "/purchase",
+    element: <AddEditPurchase />,
+  },
+  {
+    path: "/purchase-category/list",
+    element: <PurchaseCategory />,
+  },
+  {
+    path: "/purchase-category/",
+    element: <AddPurchaseCategory />,
+  },
+  {
     path: "/customer/list",
     element: <Customer />,
   },
@@ -207,5 +243,17 @@ export const adminLinks = [
   {
     path: "/table/",
     element: <AddEditTable />,
+  },
+  {
+    path: "/account/list",
+    element: <Banks />,
+  },
+  {
+    path: "/account/",
+    element: <AddEditBanks />,
+  },
+  {
+    path: "/account/:id",
+    element: <AddEditBanks />,
   },
 ];

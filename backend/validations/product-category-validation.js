@@ -9,9 +9,9 @@ const messageConstant = require("../constants/message-constant");
 const productCategoryPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
     name: joi.string().required().label("Name"),
-    imageUrl: joi.string().required().label("Image Url"),
-    imageUrlSecondary: joi.string().required().label("Image Secondary Url"),
-    description: joi.string().required().label("Description"),
+    imageUrl: joi.string().optional().label("Image Url"),
+    imageUrlSecondary: joi.string().optional().label("Image Secondary Url"),
+    description: joi.string().optional().label("Description"),
     // loyaltyRequired: joi.number().required().label("Loyalty Required"),
   });
 
