@@ -16,6 +16,10 @@ const {
   mediaModel,
   floorModel,
   tableModel,
+  accountModel,
+  bankAccountModel,
+  cashAccountModel,
+  walletAccountModel,
 } = require("../models/index");
 const setupData = require("./setup.json");
 const { getQueryResponse } = require("../helpers/response-helper");
@@ -605,12 +609,133 @@ internal.seedFloorsAndTables = async (req, floorConfigs) => {
   }
 };
 
+internal.seedAccounts = async (req, accountConfigs) => {
+  try {
+    // Ensure accountConfigs is an array
+    console.log(accountConfigs, typeof accountConfigs);
+    if (!Array.isArray(accountConfigs)) {
+      throw new Error("accountConfigs must be an array");
+    }
+
+    // Process each account configuration
+    for (const config of accountConfigs) {
+      let {
+        accountId,
+        accountType,
+        name,
+        openingBalance = 0.0,
+        isDefault = false,
+        bankAccountNumber, // Required for bank accounts
+        walletId, // Required for wallet accounts
+      } = config;
+
+      // Validate required account fields
+      if (!accountId || !accountType || !name) {
+        console.warn(
+          `Skipping invalid account config: ${JSON.stringify(config)} - missing required fields`,
+        );
+        continue;
+      }
+
+      // Validate type-specific fields
+      if (accountType === "bank" && !bankAccountNumber) {
+        console.warn(
+          `Skipping bank account config: ${JSON.stringify(config)} - missing bankAccountNumber`,
+        );
+        continue;
+      }
+      if (accountType === "wallet" && !walletId) {
+        console.warn(
+          `Skipping wallet account config: ${JSON.stringify(config)} - missing walletId`,
+        );
+        continue;
+      }
+
+      // Create or find account
+      let account = await accountModel.findOne({
+        where: { id: accountId },
+        raw: true,
+      });
+
+      if (!account) {
+        account = await accountModel.create({
+          id: accountId,
+          accountType: accountType,
+          name: name,
+          openingBalance: openingBalance,
+          currentBalance: openingBalance, // Initialize currentBalance with openingBalance
+          status: "active", // Required field with default
+          isDefault: isDefault,
+        });
+        console.log(`Created account: ${name} (${accountType})`);
+      } else {
+        console.log(`Account already exists: ${name} (${accountType})`);
+      }
+
+      // Create type-specific account details
+      if (accountType === "bank") {
+        let bankAccount = await bankAccountModel.findOne({
+          where: { accountId: accountId },
+          raw: true,
+        });
+
+        if (!bankAccount) {
+          await bankAccountModel.create({
+            accountId: accountId,
+            bankAccountNumber: bankAccountNumber,
+          });
+          console.log(`Created bank account for: ${name}`);
+        } else {
+          console.log(`Bank account already exists for: ${name}`);
+        }
+      } else if (accountType === "cash") {
+        let cashAccount = await cashAccountModel.findOne({
+          where: { accountId: accountId },
+          raw: true,
+        });
+
+        if (!cashAccount) {
+          await cashAccountModel.create({
+            accountId: accountId,
+          });
+          console.log(`Created cash account for: ${name}`);
+        } else {
+          console.log(`Cash account already exists for: ${name}`);
+        }
+      } else if (accountType === "wallet") {
+        let walletAccount = await walletAccountModel.findOne({
+          where: { accountId: accountId },
+          raw: true,
+        });
+
+        if (!walletAccount) {
+          await walletAccountModel.create({
+            accountId: accountId,
+            walletId: walletId,
+          });
+          console.log(`Created wallet account for: ${name}`);
+        } else {
+          console.log(`Wallet account already exists for: ${name}`);
+        }
+      }
+
+      console.log(`Account seeding completed for: ${name}`);
+    }
+
+    console.log("All account seeding completed");
+  } catch (err) {
+    console.error("Error in account seeding:", err);
+    throw err;
+  }
+};
+
 router.get("/", async (req, res, next) => {
   //save data if they don't exist
   try {
     await internal.saveRTEMediaCategory(req, setupData.mediaCategory);
     await internal.seedFolderBasedMedia(req, setupData.categoryConfigs);
     await internal.seedFloorsAndTables(req, setupData.floorConfigs);
+    await internal.seedAccounts(req, setupData.accountConfigs);
     await internal.saveRoles(req, setupData.roles);
     await internal.saveUsers(req, setupData.users);
     await internal.saveRoleMenu(req, setupData.roleMenus);
