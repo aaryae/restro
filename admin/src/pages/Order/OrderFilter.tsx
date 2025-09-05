@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css"; // Main style file
-import "react-date-range/dist/theme/default.css"; // Theme CSS file
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
 interface OrderFilterPropsType {
   start: string;

@@ -907,6 +907,15 @@ module.exports = {
         message: "Order Created Successfully",
       },
     },
+
+    SUPPLIER: {
+      CREATE_SUPPLIER_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "Supplier Created Successfully",
+      },
+    },
+
     PRODUCT: {
       CREATE_PRODUCT_SUCCESS: {
         status: httpStatus.OK,

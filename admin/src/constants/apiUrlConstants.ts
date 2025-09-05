@@ -6,4 +6,5 @@ export const FLOOR_URL = "floor/";
 export const TABLE_URL = "table/";
 export const ORDER_URL = "order/";
 export const CUSTOMER_URL = "customer-auth/";
+export const SUPPLIER_URL = "supplier/";
 export const REVENUE_URL = "revenue/";

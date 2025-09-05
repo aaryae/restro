@@ -18,7 +18,7 @@ function BrandingWrapper({ children }) {
       );
     }
 
-    if (/^#[0-9A-F]{6}$/i.test(settings?.data.primaryColor)) {
+    if (/^#[0-9A-F]{6}$/i.test(settings?.data?.primaryColor)) {
       document.documentElement.style.setProperty(
         "--primary-color",
         settings?.data?.primaryColor,

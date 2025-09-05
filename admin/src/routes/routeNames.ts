@@ -33,7 +33,10 @@ export const PRODUCT_VARIANT_ADD_ROUTE = "/admin/product-variant/";
 export const CONTACT_LIST_ROUTE = "/admin/contact";
 
 export const ORDER_LIST_ROUTE = "/admin/order/list";
+
 export const ORDER_ADD_ROUTE = "/admin/order/";
+export const SUPPLIER_LIST_ROUTE = "/admin/supplier/list";
+export const SUPPLIER_ADD_ROUTE = "/admin/supplier/";
 export const CUSTOMER_LIST_ROUTE = "/admin/customer/list";
 export const CUSTOMER_ADD_ROUTE = "/admin/customer/";
 export const BANNER_LIST_ROUTE = "/admin/banner/list";
