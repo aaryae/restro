@@ -1,0 +1,147 @@
+const generalConstant = require("../../constants/general-constant");
+const { supplierModel, sequelize } = require("../../models");
+const slugGenerator = require("../../utils/slugify");
+
+// const create = async (req) => {
+//   const transaction = await sequelize.transaction();
+//   try {
+//     req.body.slug = slugGenerator(req.body.name);
+//     const Supplier = await supplierModel.create(req.body, {
+//       transaction,
+//     });
+//     await transaction.commit();
+//     return {
+//       ...generalConstant.EN.SUPPLIER.CREATE_SUCCESS,
+//       data: Supplier,
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+//     throw error;
+//   }
+// };
+
+const create = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    // Generate base slug from name
+    const slugBase = slugGenerator(req.body.name);
+    let slug = slugBase;
+    let count = 1;
+
+    // Check for existing slug and make it unique
+    while (await supplierModel.findOne({ where: { slug } })) {
+      slug = `${slugBase}-${count}`;
+      count++;
+    }
+
+    req.body.slug = slug;
+
+    const Supplier = await supplierModel.create(req.body, {
+      transaction,
+    });
+
+    await transaction.commit();
+    return {
+      status: 200,
+      ...generalConstant.EN.SUPPLIER.CREATE_SUCCESS,
+      data: Supplier,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+const getList = async () => {
+  try {
+    const suppliers = await supplierModel.findAll();
+    return {
+      status: 200,
+      ...generalConstant.EN.SUPPLIER.LIST_SUCCESS,
+      data: suppliers,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getById = async (req) => {
+  try {
+    const Supplier = await supplierModel.findByPk(+req.params.id);
+    if (!Supplier) {
+      return {
+        ...generalConstant.EN.SUPPLIER.NOT_FOUND,
+        data: null,
+      };
+    }
+    return {
+      status: 200,
+      ...generalConstant.EN.SUPPLIER.GET_SUCCESS,
+      data: Supplier,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const update = async (id, data) => {
+  if (!id) throw new Error("Supplier ID is required");
+  const transaction = await sequelize.transaction();
+  try {
+    if (data.name) {
+      data.slug = slugGenerator(data.name);
+    }
+
+    const [updated] = await supplierModel.update(data, {
+      where: { id },
+      transaction,
+    });
+
+    if (!updated) {
+      await transaction.rollback();
+      return {
+        ...generalConstant.EN.SUPPLIER.UPDATE_FAILURE,
+        data: null,
+      };
+    }
+
+    await transaction.commit();
+    const supplier = await supplierModel.findByPk(id);
+    return {
+      status: 200,
+      ...generalConstant.EN.SUPPLIER.UPDATE_SUCCESS,
+      data: supplier,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+const deleteById = async (id) => {
+  try {
+    const deleted = await supplierModel.destroy({ where: { id } });
+    if (!deleted) {
+      return {
+        ...generalConstant.EN.SUPPLIER.DELETE_FAILURE,
+        data: null,
+      };
+    }
+
+    return {
+      status: 200,
+      ...generalConstant.EN.SUPPLIER.DELETE_SUCCESS,
+      data: null,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+module.exports = {
+  create,
+  getList,
+  getById,
+  update,
+  deleteById,
+};

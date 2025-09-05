@@ -3,7 +3,7 @@ const logger = require("../../configs/logger");
 const transferService = require("../services/transfer-service");
 const list = async (req, res, next) => {
   try {
-    const result = await accountService.list(req);
+    const result = await transferService.list(req);
 
     return responseHelper.sendResponse(
       res,

@@ -6,7 +6,7 @@ const appName = process.env.APP_NAME || "General Asahi Admin";
 
 app.set("PORT_NUMBER", port);
 
-server.listen(port, "0000", () => {
+server.listen(port, "0.0.0.0", () => {
   const date = new Date();
   console.log("|--------------------------------------------");
   console.log("| Server       : " + appName);

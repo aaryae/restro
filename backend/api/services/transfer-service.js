@@ -36,7 +36,6 @@ const createTransfer = async (req) => {
 
     // Check sufficient balance
     if (fromAccount.currentBalance < amount) {
-      console.log("paisa kam#####-----333-3-3-3-");
       throw new Error("Insufficient balance in source account");
     }
 
@@ -83,6 +82,58 @@ const createTransfer = async (req) => {
   }
 };
 
+const list = async (req) => {
+  try {
+    let { limit, page, fromAccountId, toAccountId, userId } = req.query;
+    const filters = {};
+    const include = [
+      { model: accountModel, as: "fromAccount" },
+      { model: accountModel, as: "toAccount" },
+      { model: userModel, as: "user" },
+    ];
+
+    if (fromAccountId) {
+      filters.fromAccountId = {
+        [Op.like]: `%${fromAccountId}%`,
+      };
+    }
+    if (toAccountId) {
+      filters.toAccountId = {
+        [Op.like]: `%${toAccountId}%`,
+      };
+    }
+    if (userId) {
+      filters.userId = {
+        [Op.like]: `%${userId}%`,
+      };
+    }
+
+    const result = await paginate(transferModel, {
+      limit,
+      page,
+      filters,
+      include,
+    });
+
+    if (!result) {
+      return {
+        status: 500,
+        success: false,
+        message: "Transfer List Failed",
+      };
+    }
+    return {
+      status: 200,
+      success: true,
+      message: "Transfer List successful",
+      data: result,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createTransfer,
+  list,
 };

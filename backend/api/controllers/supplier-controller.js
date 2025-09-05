@@ -1,14 +1,13 @@
-const revenueService = require("../services/revenue-service");
-const responseHelper = require("../../helpers/response-helper");
+const supplierService = require("../services/supplier-service");
 const logger = require("../../configs/logger");
-
-const list = async (req, res, next) => {
+const responseHelper = require("../../helpers/response-helper");
+const create = async (req, res, next) => {
   try {
-    const result = await revenueService.list(req);
+    const result = await supplierService.create(req);
 
     return responseHelper.sendResponse(
       res,
-      result.status,
+      result.status || 200,
       result.success,
       result.data,
       result.errors,
@@ -20,13 +19,13 @@ const list = async (req, res, next) => {
     next(err);
   }
 };
-const groupedList = async (req, res, next) => {
-  try {
-    const result = await revenueService.groupedList(req);
 
+const getList = async (req, res, next) => {
+  try {
+    const result = await supplierService.getList(req);
     return responseHelper.sendResponse(
       res,
-      result.status,
+      result.status || 200,
       result.success,
       result.data,
       result.errors,
@@ -41,11 +40,12 @@ const groupedList = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
-    const result = await revenueService.getRevenueById(req);
+    // const id = req.params.id;
+    const result = await supplierService.getById(req);
 
     return responseHelper.sendResponse(
       res,
-      result.status,
+      result.status || 200,
       result.success,
       result.data,
       result.errors,
@@ -57,28 +57,13 @@ const getById = async (req, res, next) => {
     next(err);
   }
 };
-const create = async (req, res, next) => {
-  try {
-    const result = await revenueService.createRevenue(req);
 
-    return responseHelper.sendResponse(
-      res,
-      result.status,
-      result.success,
-      result.data,
-      result.errors,
-      result.message,
-      result.token,
-    );
-  } catch (err) {
-    logger.error(err);
-    next(err);
-  }
-};
 const update = async (req, res, next) => {
   try {
-    const result = await revenueService.updateRevenue(req);
+    const id = req.params.id;
+    const data = req.body;
 
+    const result = await supplierService.update(id, data);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -93,13 +78,15 @@ const update = async (req, res, next) => {
     next(err);
   }
 };
-const deleteRevenue = async (req, res, next) => {
+
+const deleteById = async (req, res, next) => {
   try {
-    const result = await revenueService.deleteRevenue(req);
+    const id = req.params.id;
+    const result = await supplierService.deleteById(id);
 
     return responseHelper.sendResponse(
       res,
-      result.status,
+      result.status | 200,
       result.success,
       result.data,
       result.errors,
@@ -113,10 +100,9 @@ const deleteRevenue = async (req, res, next) => {
 };
 
 module.exports = {
-  list,
   create,
-  update,
-  deleteRevenue,
   getById,
-  groupedList,
+  getList,
+  deleteById,
+  update,
 };
