@@ -1,4 +1,58 @@
 {
+  "mediaCategory": [
+    {
+      "id": 354,
+      "name": "rich text editor",
+      "slug": "rich-text-editor"
+    },
+    {
+      "id": 777,
+      "name": "customer",
+      "slug": "customer"
+    }
+  ],
+  "categoryConfigs": [
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "caffeinated-hot",
+      "categorySlug": "caffeinated-hot",
+      "categoryId": 1001,
+      "folderPath": "../seeders/caffeinated-hot/",
+      "captionPrefix": "Caffeinated Hot - ",
+      "descriptionPrefix": "Image of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "caffeinated-cold",
+      "categorySlug": "caffeinated-cold",
+      "categoryId": 1002,
+      "folderPath": "../seeders/caffeinated-cold/",
+      "captionPrefix": "Caffeinated Cold - ",
+      "descriptionPrefix": "Image of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "non-caffeinated-hot",
+      "categorySlug": "non-caffeinated-hot",
+      "categoryId": 1003,
+      "folderPath": "../seeders/non-caffeinated-hot/",
+      "captionPrefix": "Non-Caffeinated Hot - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "non-caffeinated-cold",
+      "categorySlug": "non-caffeinated-cold",
+      "categoryId": 1004,
+      "folderPath": "../seeders/non-caffeinated-cold/",
+      "captionPrefix": "Non-Caffeinated Cold - ",
+      "descriptionPrefix": "Photo of "
+    }
+  ],
   "setting": {
     "id": 627,
     "brand_name": "Nirvana Restro",
@@ -14,18 +68,6 @@
     "footer_desc": "Tech Nirvana",
     "google_analytics": "UA-123456789"
   },
-  "mediaCategory": [
-    {
-      "id": 354,
-      "name": "rich text editor",
-      "slug": "rich-text-editor"
-    },
-    {
-      "id": 777,
-      "name": "customer",
-      "slug": "customer"
-    }
-  ],
   "banner": [
     {
       "id": "167",
