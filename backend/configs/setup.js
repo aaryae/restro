@@ -14,6 +14,8 @@ const {
   productMediaModel,
   productCategoryModel,
   mediaModel,
+  floorModel,
+  tableModel,
 } = require("../models/index");
 const setupData = require("./setup.json");
 const { getQueryResponse } = require("../helpers/response-helper");
@@ -509,11 +511,106 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
   }
 };
 
+internal.seedFloorsAndTables = async (req, floorConfigs) => {
+  try {
+    // Ensure floorConfigs is an array
+    console.log(floorConfigs, typeof floorConfigs);
+    if (!Array.isArray(floorConfigs)) {
+      throw new Error("floorConfigs must be an array");
+    }
+
+    // Process each floor configuration
+    for (const config of floorConfigs) {
+      let {
+        floorId,
+        floorNo,
+        floorName,
+        tables, // Array of table configurations
+      } = config;
+
+      // Validate required floor fields
+      if (
+        !floorId ||
+        !floorNo ||
+        !floorName ||
+        !tables ||
+        !Array.isArray(tables)
+      ) {
+        console.warn(
+          `Skipping invalid config: ${JSON.stringify(config)} - missing required fields or tables not an array`,
+        );
+        continue;
+      }
+
+      // Create or find floor
+      let floor = await floorModel.findOne({
+        where: { id: floorId },
+        raw: true,
+      });
+
+      if (!floor) {
+        floor = await floorModel.create({
+          id: floorId,
+          floorNo: floorNo,
+          name: floorName,
+          isActive: true, // Required field with default
+        });
+        console.log(`Created floor: ${floorName}`);
+      } else {
+        console.log(`Floor already exists: ${floorName}`);
+      }
+
+      // Seed tables for the floor
+      for (const tableConfig of tables) {
+        let { tableId, tableNo, type = "regular", capacity = 4 } = tableConfig;
+
+        // Validate required table fields
+        if (!tableId || !tableNo) {
+          console.warn(
+            `Skipping invalid table config: ${JSON.stringify(tableConfig)} - missing required fields`,
+          );
+          continue;
+        }
+
+        // Create or find table
+        let table = await tableModel.findOne({
+          where: { id: tableId, floorId: floorId },
+          raw: true,
+        });
+
+        if (!table) {
+          table = await tableModel.create({
+            id: tableId,
+            floorId: floorId,
+            tableNo: tableNo,
+            type: type,
+            capacity: capacity,
+            status: "available", // Required field with default
+          });
+          console.log(`Created table: ${tableNo} on floor: ${floorName}`);
+        } else {
+          console.log(
+            `Table already exists: ${tableNo} on floor: ${floorName}`,
+          );
+        }
+      }
+
+      console.log(`Floor and table seeding completed for floor: ${floorName}`);
+    }
+
+    console.log("All floor and table seeding completed");
+  } catch (err) {
+    console.error("Error in floor and table seeding:", err);
+    throw err;
+  }
+};
+
 router.get("/", async (req, res, next) => {
   //save data if they don't exist
   try {
     await internal.saveRTEMediaCategory(req, setupData.mediaCategory);
     await internal.seedFolderBasedMedia(req, setupData.categoryConfigs);
+    await internal.seedFloorsAndTables(req, setupData.floorConfigs);
     await internal.saveRoles(req, setupData.roles);
     await internal.saveUsers(req, setupData.users);
     await internal.saveRoleMenu(req, setupData.roleMenus);

@@ -53,6 +53,36 @@
       "descriptionPrefix": "Photo of "
     }
   ],
+  "floorConfigs": [
+    {
+      "floorId": 1,
+      "floorNo": "1",
+      "floorName": "First Floor",
+      "tables": [
+        { "tableId": 101, "tableNo": "T1", "type": "regular", "capacity": 4 },
+        { "tableId": 102, "tableNo": "T2", "type": "regular", "capacity": 6 },
+        { "tableId": 103, "tableNo": "T3", "type": "vip", "capacity": 8 }
+      ]
+    },
+    {
+      "floorId": 2,
+      "floorNo": "2",
+      "floorName": "Second Floor",
+      "tables": [
+        { "tableId": 201, "tableNo": "T1", "type": "outdoor", "capacity": 4 },
+        { "tableId": 202, "tableNo": "T2", "type": "outdoor", "capacity": 4 }
+      ]
+    },
+    {
+      "floorId": 3,
+      "floorNo": "R",
+      "floorName": "Rooftop",
+      "tables": [
+        { "tableId": 301, "tableNo": "RT1", "type": "vip", "capacity": 10 },
+        { "tableId": 302, "tableNo": "RT2", "type": "outdoor", "capacity": 6 }
+      ]
+    }
+  ],
   "setting": {
     "id": 627,
     "brand_name": "Nirvana Restro",
