@@ -39,14 +39,14 @@ router.put(
 router.patch(
   "/:id/status",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   changeStatus,
 );
 router.patch(
   "/:id/default",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   changeDefaultAccount,
 );

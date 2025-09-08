@@ -131,50 +131,6 @@
     "footer_desc": "Tech Nirvana",
     "google_analytics": "UA-123456789"
   },
-  "banner": [
-    {
-      "id": "167",
-      "name": "Home Banner",
-      "slug": "home-banner",
-      "responsiveSettings": "",
-      "sliderSettings": "",
-      "bannerItems": [
-        {
-          "id": "267",
-          "bannerId": "167",
-          "image": "/test",
-          "caption": "Banner",
-          "title": "Nirvana Restro",
-          "subTitle": "Nirvana Restro",
-          "primaryButton": "",
-          "primaryButtonUrl": "",
-          "secondaryButton": "",
-          "secondaryButtonUrl": ""
-        }
-      ]
-    },
-    {
-      "id": "168",
-      "name": "Generic Banner",
-      "slug": "generic",
-      "responsiveSettings": "",
-      "sliderSettings": "",
-      "bannerItems": [
-        {
-          "id": "269",
-          "bannerId": "168",
-          "image": "/test",
-          "caption": "Banner",
-          "title": "Nirvana Restro Generic Banner",
-          "subTitle": "Nirvana Restro Generic Banner",
-          "primaryButton": "",
-          "primaryButtonUrl": "",
-          "secondaryButton": "",
-          "secondaryButtonUrl": ""
-        }
-      ]
-    }
-  ],
   "users": [
     {
       "username": "superadmin",
@@ -196,6 +152,28 @@
       "supervisorId": 1,
       "mobileNo": "9841234567",
       "mobilePrefix": "+977"
+    },
+    {
+      "username": "finance",
+      "password": "$2a$10$zUM6bKxyDDHPEgaLjshFNOGrsChiAt4/QPs7w3OdWXnvNlxvlt0L6",
+      "firstName": "Finance",
+      "lastName": "User",
+      "email": "finance@technirvana.com.np",
+      "gender": "male",
+      "supervisorId": 1,
+      "mobileNo": "9841234567",
+      "mobilePrefix": "+977"
+    },
+    {
+      "username": "member",
+      "password": "$2a$10$zUM6bKxyDDHPEgaLjshFNOGrsChiAt4/QPs7w3OdWXnvNlxvlt0L6",
+      "firstName": "Member",
+      "lastName": "User",
+      "email": "member@technirvana.com.np",
+      "gender": "male",
+      "supervisorId": 1,
+      "mobileNo": "9841234567",
+      "mobilePrefix": "+977"
     }
   ],
   "roles": [
@@ -206,6 +184,14 @@
     {
       "title": "Admin",
       "roleType": "admin"
+    },
+    {
+      "title": "Finance",
+      "roleType": "user"
+    },
+    {
+      "title": "Member",
+      "roleType": "user"
     }
   ],
   "roleMenus": [
@@ -524,98 +510,6 @@
       ]
     },
     {
-      "title": "Social",
-      "key": "social",
-      "actions": [
-        {
-          "title": "Add Social",
-          "key": "add",
-          "clientPath": "/social",
-          "serverPath": "/social",
-          "requestMethod": "POST",
-          "list": "Social"
-        },
-        {
-          "title": "View Socials",
-          "key": "view",
-          "clientPath": "/social/list",
-          "serverPath": "/social/list",
-          "requestMethod": "GET",
-          "list": "Social"
-        },
-        {
-          "title": "View Social",
-          "key": "view-one",
-          "clientPath": "/social/:id",
-          "serverPath": "/social/:id",
-          "requestMethod": "GET",
-          "list": "Social"
-        },
-        {
-          "title": "Edit Social",
-          "key": "edit",
-          "clientPath": "/social/:id",
-          "serverPath": "/social/:id",
-          "requestMethod": "PUT",
-          "list": "Social"
-        },
-        {
-          "title": "Delete Social",
-          "key": "delete",
-          "clientPath": "/social/:id",
-          "serverPath": "/social/:id",
-          "requestMethod": "DELETE",
-          "list": "Social"
-        }
-      ]
-    },
-    {
-      "title": "Seo",
-      "key": "seo",
-      "actions": [
-        {
-          "title": "Add Seo",
-          "key": "add",
-          "clientPath": "/seo",
-          "serverPath": "/seo",
-          "requestMethod": "POST",
-          "list": "SEO"
-        },
-        {
-          "title": "View Seo",
-          "key": "view",
-          "clientPath": "/seo/list",
-          "serverPath": "/seo/list",
-          "requestMethod": "GET",
-          "list": "SEO"
-        },
-        {
-          "title": "View One Seo",
-          "key": "view-one",
-          "clientPath": "/seo/:id",
-          "serverPath": "/seo/:id",
-          "requestMethod": "GET",
-          "list": "SEO"
-        },
-        {
-          "title": "Edit Seo",
-          "key": "edit",
-          "clientPath": "/seo/:id",
-          "serverPath": "/seo/:id",
-          "requestMethod": "PUT",
-          "list": "SEO"
-        },
-        {
-          "title": "Delete Seo",
-          "key": "delete",
-          "clientPath": "/seo/:id",
-          "serverPath": "/seo/:id",
-          "requestMethod": "DELETE",
-          "list": "SEO"
-        }
-      ]
-    },
-    {
       "title": "Layout",
       "key": "layout",
       "actions": [
@@ -626,52 +520,6 @@
           "serverPath": "/layout/list",
           "requestMethod": "GET",
           "list": "Layout"
-        }
-      ]
-    },
-    {
-      "title": "Faq",
-      "key": "faq",
-      "actions": [
-        {
-          "title": "Add Faq",
-          "key": "add",
-          "clientPath": "/faq",
-          "serverPath": "/faq",
-          "requestMethod": "POST",
-          "list": "FAQ"
-        },
-        {
-          "title": "View Faq",
-          "key": "view",
-          "clientPath": "/faq/list",
-          "serverPath": "/faq/list",
-          "requestMethod": "GET",
-          "list": "FAQ"
-        },
-        {
-          "title": "View One Faq",
-          "key": "view-one",
-          "clientPath": "/faq/:id",
-          "serverPath": "/faq/:id",
-          "requestMethod": "GET",
-          "list": "FAQ"
-        },
-        {
-          "title": "Edit Faq",
-          "key": "edit",
-          "clientPath": "/faq/:id",
-          "serverPath": "/faq/:id",
-          "requestMethod": "PUT",
-          "list": "FAQ"
-        },
-        {
-          "title": "Delete Faq",
-          "key": "delete",
-          "clientPath": "/faq/:id",
-          "serverPath": "/faq/:id",
-          "requestMethod": "DELETE",
-          "list": "FAQ"
         }
       ]
     },
@@ -982,82 +830,6 @@
       ]
     },
     {
-      "title": "Contact",
-      "key": "contact",
-      "actions": [
-        {
-          "title": "Add Contact",
-          "key": "add",
-          "clientPath": "/contact",
-          "serverPath": "/contact",
-          "requestMethod": "POST",
-          "list": "Contact"
-        },
-        {
-          "title": "View Contact",
-          "key": "view",
-          "clientPath": "/contact/list",
-          "serverPath": "/contact/list",
-          "requestMethod": "GET",
-          "list": "Contact"
-        },
-        {
-          "title": "Delete Contact",
-          "key": "delete",
-          "clientPath": "/contact/:id",
-          "serverPath": "/contact/:id",
-          "requestMethod": "DELETE",
-          "list": "Contact"
-        }
-      ]
-    },
-    {
-      "title": "Banner",
-      "key": "banner",
-      "actions": [
-        {
-          "title": "Add Banner",
-          "key": "add",
-          "clientPath": "/banner",
-          "serverPath": "/banner",
-          "requestMethod": "POST",
-          "list": "Banner"
-        },
-        {
-          "title": "View Banner",
-          "key": "view",
-          "clientPath": "/banner/list",
-          "serverPath": "/banner/list",
-          "requestMethod": "GET",
-          "list": "Banner"
-        },
-        {
-          "title": "View One Banner",
-          "key": "view-one",
-          "clientPath": "/banner/:id",
-          "serverPath": "/banner/:id",
-          "requestMethod": "GET",
-          "list": "Banner"
-        },
-        {
-          "title": "Edit Banner",
-          "key": "edit",
-          "clientPath": "/banner/:id",
-          "serverPath": "/banner/:id",
-          "requestMethod": "PUT",
-          "list": "Banner"
-        },
-        {
-          "title": "Delete Banner",
-          "key": "delete",
-          "clientPath": "/banner/:id",
-          "serverPath": "/banner/:id",
-          "requestMethod": "DELETE",
-          "list": "Banner"
-        }
-      ]
-    },
-    {
       "title": "Order",
       "key": "order",
       "actions": [
@@ -1084,52 +856,38 @@
           "serverPath": "/order/:id",
           "requestMethod": "DELETE",
           "list": "Order"
-        }
-      ]
-    },
-    {
-      "title": "Department",
-      "key": "department",
-      "actions": [
-        {
-          "title": "Add Department",
-          "key": "add",
-          "clientPath": "/department",
-          "serverPath": "/department",
-          "requestMethod": "POST",
-          "list": "Department"
         },
         {
-          "title": "View Department",
-          "key": "view",
-          "clientPath": "/department/list",
-          "serverPath": "/department/list",
-          "requestMethod": "GET",
-          "list": "Department"
-        },
-        {
-          "title": "View One Department",
-          "key": "view-one",
-          "clientPath": "/department/:id",
-          "serverPath": "/department/:id",
-          "requestMethod": "GET",
-          "list": "Department"
-        },
-        {
-          "title": "Edit Department",
+          "title": "Edit Order",
           "key": "edit",
-          "clientPath": "/department/:id",
-          "serverPath": "/department/:id",
+          "clientPath": "/order/items/:orderId",
+          "serverPath": "/order/items/:orderId",
           "requestMethod": "PUT",
-          "list": "Department"
+          "list": "Order"
         },
         {
-          "title": "Delete Department",
-          "key": "delete",
-          "clientPath": "/department/:id",
-          "serverPath": "/department/:id",
-          "requestMethod": "DELETE",
-          "list": "Department"
+          "title": "Edit Order Item Status",
+          "key": "edit-order-item-status",
+          "clientPath": "/order/items/status",
+          "serverPath": "/order/items/status",
+          "requestMethod": "PATCH",
+          "list": "Order"
+        },
+        {
+          "title": "Order Checkout",
+          "key": "order-checkout",
+          "clientPath": "/order/checkout/:tableId",
+          "serverPath": "/order/checkout/:tableId",
+          "requestMethod": "POST",
+          "list": "Order"
+        },
+        {
+          "title": "View Order Item",
+          "key": "view-order-item",
+          "clientPath": "/order/list/order-items",
+          "serverPath": "/order/list/order-items",
+          "requestMethod": "GET",
+          "list": "Order"
         }
       ]
     },
@@ -1244,6 +1002,38 @@
           "serverPath": "/revenue/list",
           "requestMethod": "GET",
           "list": "Revenue"
+        },
+        {
+          "title": "View Groupd Revenue",
+          "key": "view-grouped",
+          "clientPath": "/revenue/grouped-list",
+          "serverPath": "/revenue/grouped-list",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        },
+        {
+          "title": "View One Revenue",
+          "key": "view-one",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        },
+        {
+          "title": "Edit Revenue",
+          "key": "edit",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "PUT",
+          "list": "Revenue"
+        },
+        {
+          "title": "Delete Revenue",
+          "key": "delete",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "DELETE",
+          "list": "Revenue"
         }
       ]
     },
@@ -1260,12 +1050,96 @@
           "list": "Account"
         },
         {
+          "title": "Edit Account Status",
+          "key": "edit-status",
+          "clientPath": "/account/:id/status",
+          "serverPath": "/account/:id/status",
+          "requestMethod": "PATCH",
+          "list": "Account"
+        },
+        {
+          "title": "Edit Default Account",
+          "key": "edit-default",
+          "clientPath": "/account/:id/default",
+          "serverPath": "/account/:id/default",
+          "requestMethod": "PATCH",
+          "list": "Account"
+        },
+        {
           "title": "View Account",
           "key": "view",
           "clientPath": "/account/list",
           "serverPath": "/account/list",
           "requestMethod": "GET",
           "list": "Account"
+        }
+      ]
+    },
+    {
+      "title": "Supplier",
+      "key": "supplier",
+      "actions": [
+        {
+          "title": "Add Supplier",
+          "key": "add",
+          "clientPath": "/supplier/create",
+          "serverPath": "/supplier/create",
+          "requestMethod": "POST",
+          "list": "Supplier"
+        },
+        {
+          "title": "View Supplier",
+          "key": "view",
+          "clientPath": "/supplier/list",
+          "serverPath": "/supplier/list",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        },
+        {
+          "title": "View One Supplier",
+          "key": "view-one",
+          "clientPath": "/supplier/:id",
+          "serverPath": "/supplier/:id",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        },
+        {
+          "title": "Edit Supplier",
+          "key": "edit",
+          "clientPath": "/supplier/update/:id",
+          "serverPath": "/supplier/update/:id",
+          "requestMethod": "PUT",
+          "list": "Supplier"
+        },
+        {
+          "title": "Delete Supplier",
+          "key": "delete",
+          "clientPath": "/supplier/:id",
+          "serverPath": "/supplier/:id",
+          "requestMethod": "DELETE",
+          "list": "Supplier"
+        }
+      ]
+    },
+    {
+      "title": "Transfer",
+      "key": "transfer",
+      "actions": [
+        {
+          "title": "Add Transfer",
+          "key": "add",
+          "clientPath": "/transfer",
+          "serverPath": "/transfer",
+          "requestMethod": "POST",
+          "list": "Transfer"
+        },
+        {
+          "title": "View Transfer",
+          "key": "view",
+          "clientPath": "/transfer/list",
+          "serverPath": "/transfer/list",
+          "requestMethod": "GET",
+          "list": "Transfer"
         }
       ]
     },

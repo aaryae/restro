@@ -51,7 +51,7 @@ module.exports = {
         allowNull: false,
         validate: { min: 1 },
       },
-      orders: {
+      order: {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,
