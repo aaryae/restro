@@ -7,8 +7,6 @@ const {
   roleActionModel,
   settingModel,
   mediaCategoryModel,
-  bannerModel,
-  bannerItemsModel,
   departmentModel,
   productModel,
   productMediaModel,
@@ -27,6 +25,7 @@ const { v4: uuidv4 } = require("uuid");
 const fs = require("fs").promises;
 const path = require("path");
 const mime = require("mime-types");
+const { Op } = require("sequelize");
 const internal = {};
 
 // Utility function to generate unique file name
@@ -72,12 +71,26 @@ internal.saveUsers = async (req, usersArray) => {
       where: { title: "Admin" },
       raw: true,
     });
+    let finance = await roleModel.findOne({
+      where: { title: "Finance" },
+      raw: true,
+    });
+    let member = await roleModel.findOne({
+      where: { title: "Member" },
+      raw: true,
+    });
     for (let user of usersArray) {
       if (user.username == "superadmin") {
         user.roleId = superAdmin.id;
       }
       if (user.username == "admin") {
         user.roleId = admin.id;
+      }
+      if (user.username == "finance") {
+        user.roleId = finance.id;
+      }
+      if (user.username == "member") {
+        user.roleId = member.id;
       }
       let checkUser = await userModel.findOne({
         where: { email: user.email },
@@ -154,6 +167,82 @@ internal.saveAllAccessToSuperAdmin = async (req) => {
     throw err;
   }
 };
+// save all access for admin
+internal.saveRequiredAccessToUsers = async (req) => {
+  try {
+    let admin = await userModel.findOne({
+      where: { username: "admin" },
+      raw: true,
+    });
+    // here admin should have all access
+    let allRoleMenuAction = await roleMenuActionModel.findAll({
+      isDeleted: false,
+    });
+    let insertData = allRoleMenuAction.map((x) => ({
+      roleId: admin.roleId,
+      roleMenuActionId: x.id,
+    }));
+    await roleActionModel.destroy({ where: { roleId: admin.roleId } });
+    await roleActionModel.bulkCreate(insertData);
+  } catch (err) {
+    throw err;
+  }
+};
+// save access for finance only accounts, transfer and revenue
+internal.saveFinanceAccess = async (req) => {
+  try {
+    let finance = await userModel.findOne({
+      where: { username: "finance" },
+      raw: true,
+    });
+    // here finance should have access for accounts, transfer and revenue
+    let allRoleMenuAction = await roleMenuActionModel.findAll({
+      isDeleted: false,
+      // where list is Account, Transfer and Revenue
+      where: {
+        list: {
+          [Op.in]: ["Account", "Transfer", "Revenue"],
+        },
+      },
+    });
+    let insertData = allRoleMenuAction.map((x) => ({
+      roleId: finance.roleId,
+      roleMenuActionId: x.id,
+    }));
+    await roleActionModel.destroy({ where: { roleId: finance.roleId } });
+    await roleActionModel.bulkCreate(insertData);
+  } catch (err) {
+    throw err;
+  }
+};
+// save access for member only orders
+internal.saveMemberAccess = async (req) => {
+  try {
+    let member = await userModel.findOne({
+      where: { username: "member" },
+      raw: true,
+    });
+    // here member should have access for only orders
+    let allRoleMenuAction = await roleMenuActionModel.findAll({
+      isDeleted: false,
+      // where list is Order
+      where: {
+        list: {
+          [Op.in]: ["Order"],
+        },
+      },
+    });
+    let insertData = allRoleMenuAction.map((x) => ({
+      roleId: member.roleId,
+      roleMenuActionId: x.id,
+    }));
+    await roleActionModel.destroy({ where: { roleId: member.roleId } });
+    await roleActionModel.bulkCreate(insertData);
+  } catch (err) {
+    throw err;
+  }
+};
+
 internal.saveRoleMenu = async (req, roleMenuArray) => {
   try {
     for (const roleMenu of roleMenuArray) {
@@ -175,6 +264,9 @@ internal.saveRoleMenu = async (req, roleMenuArray) => {
       );
     }
     await internal.saveAllAccessToSuperAdmin(req);
+    await internal.saveRequiredAccessToUsers(req);
+    await internal.saveFinanceAccess(req);
+    await internal.saveMemberAccess(req);
   } catch (err) {
     throw err;
   }
@@ -205,33 +297,6 @@ internal.saveSettings = async (setting) => {
 //     throw err;
 //   }
 // };
-
-internal.saveBannerItems = async (req, bannerItems) => {
-  try {
-    for (const bannerItem of bannerItems) {
-      let checkBannerItem = await bannerItemsModel.findOne({
-        where: { id: bannerItem.id },
-        raw: true,
-      });
-      if (!checkBannerItem) {
-        await bannerItemsModel.create({
-          id: bannerItem.id,
-          bannerId: bannerItem.bannerId,
-          image: bannerItem.image,
-          caption: bannerItem.caption,
-          title: bannerItem.title,
-          subTitle: bannerItem.subTitle,
-          primaryButton: bannerItem.primaryButton,
-          primaryButtonUrl: bannerItem.primaryButtonUrl,
-          secondaryButton: bannerItem.secondaryButton,
-          secondaryButtonUrl: bannerItem.secondaryButtonUrl,
-        });
-      }
-    }
-  } catch (err) {
-    throw err;
-  }
-};
 
 internal.saveRTEMediaCategory = async (req, mediaCategory) => {
   console.log(mediaCategory);

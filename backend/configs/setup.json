@@ -152,6 +152,28 @@
       "supervisorId": 1,
       "mobileNo": "9841234567",
       "mobilePrefix": "+977"
+    },
+    {
+      "username": "finance",
+      "password": "$2a$10$zUM6bKxyDDHPEgaLjshFNOGrsChiAt4/QPs7w3OdWXnvNlxvlt0L6",
+      "firstName": "Finance",
+      "lastName": "User",
+      "email": "finance@technirvana.com.np",
+      "gender": "male",
+      "supervisorId": 1,
+      "mobileNo": "9841234567",
+      "mobilePrefix": "+977"
+    },
+    {
+      "username": "member",
+      "password": "$2a$10$zUM6bKxyDDHPEgaLjshFNOGrsChiAt4/QPs7w3OdWXnvNlxvlt0L6",
+      "firstName": "Member",
+      "lastName": "User",
+      "email": "member@technirvana.com.np",
+      "gender": "male",
+      "supervisorId": 1,
+      "mobileNo": "9841234567",
+      "mobilePrefix": "+977"
     }
   ],
   "roles": [
@@ -162,6 +184,14 @@
     {
       "title": "Admin",
       "roleType": "admin"
+    },
+    {
+      "title": "Finance",
+      "roleType": "user"
+    },
+    {
+      "title": "Member",
+      "roleType": "user"
     }
   ],
   "roleMenus": [
