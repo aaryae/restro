@@ -79,8 +79,6 @@ export default function Product() {
 
   const tableHeaders = [
     "Product",
-    "Slug",
-    "Quantity",
     "Price",
     // "Order",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
@@ -88,44 +86,40 @@ export default function Product() {
 
   const tableData =
     success && allProduct?.data?.data
-      ? allProduct?.data?.data.map(
-          ({ id, name, slug, quantity, price, mediaArr, order }) => [
-            id,
-            <div className="flex items-center gap-[1rem]">
-              <img
-                src={`${IMAGE_BASE_URL}${mediaArr[0].imageUrl}`}
-                alt="Product Image"
-                className="w-[8rem] h-[6rem] object-cover"
-                // crossOrigin="anonymous"
+      ? allProduct?.data?.data.map(({ id, name, price, mediaArr }) => [
+          id,
+          <div className="flex items-center gap-[1rem]">
+            <img
+              src={`${IMAGE_BASE_URL}${mediaArr[0].imageUrl}`}
+              alt="Product Image"
+              className="w-[8rem] h-[6rem] object-cover"
+              // crossOrigin="anonymous"
+            />
+            <p>{name}</p>
+          </div>,
+          `${CurrencySign} ${price}`,
+          // order,
+          <div
+            key={id}
+            className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
+          >
+            {accessList.includes("edit") && (
+              <MdEditSquare
+                size={18}
+                className="text-[#0090DD]"
+                onClick={() => handleNewUser(id)}
               />
-              <p>{name}</p>
-            </div>,
-            slug,
-            quantity,
-            `${CurrencySign} ${price}`,
-            // order,
-            <div
-              key={id}
-              className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
-            >
-              {accessList.includes("edit") && (
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD]"
-                  onClick={() => handleNewUser(id)}
-                />
-              )}
-              {accessList.includes("delete") && (
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
-              )}
-            </div>,
-          ],
-        )
+            )}
+            {accessList.includes("delete") && (
+              <DeleteModal
+                open={open}
+                setOpen={setOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
+              />
+            )}
+          </div>,
+        ])
       : [];
   return (
     <>
