@@ -84,16 +84,14 @@ export default function ProductCategory() {
 
   const tableHeaders = [
     "Product Category",
-    "Slug",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
   ];
 
   const tableData =
     success && allProductCategory?.data?.data
-      ? allProductCategory?.data?.data.map(({ id, name, slug }) => [
+      ? allProductCategory?.data?.data.map(({ id, name }) => [
           id,
           name,
-          slug,
           <div
             key={id}
             className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
