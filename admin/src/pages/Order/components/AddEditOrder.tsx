@@ -1,5 +1,5 @@
 import Input from "@/components/Input";
-import { OrderSchema } from "./schema";
+import { OrderSchema } from "../schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";

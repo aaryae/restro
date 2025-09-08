@@ -37,10 +37,9 @@ const create = async (req, res, next) => {
     next(err);
   }
 };
-const update = async (req, res, next) => {
+const getAccountByID = async (req, res, next) => {
   try {
-    const result = await revenueService.updateRevenue(req);
-
+    const result = await accountService.getAccountByID(req);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -55,6 +54,42 @@ const update = async (req, res, next) => {
     next(err);
   }
 };
+
+const updateAccount = async (req, res, next) => {
+  try {
+    const result = await accountService.updateAccount(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+// const deleteAccount = async (req, res, next) => {
+//   try {
+//     const result = await accountService.deleteAccount(req);
+//     return responseHelper.sendResponse(
+//       res,
+//       result.status,
+//       result.success,
+//       result.data,
+//       result.errors,
+//       result.message,
+//       result.token,
+//     );
+//   } catch (err) {
+//     logger.error(err);
+//     next(err);
+//   }
+// };
 const changeStatus = async (req, res, next) => {
   try {
     const result = await accountService.changeStatus(req);
@@ -95,6 +130,8 @@ const changeDefaultAccount = async (req, res, next) => {
 module.exports = {
   create,
   list,
+  getAccountByID,
+  updateAccount,
   changeStatus,
   changeDefaultAccount,
 };

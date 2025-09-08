@@ -28,6 +28,7 @@ const createAccount = async (req) => {
       name,
       bankAccountNumber,
       walletId,
+      staticQrUrl,
     } = req.body;
 
     // Create Account record
@@ -49,6 +50,7 @@ const createAccount = async (req) => {
         {
           accountId: account.id,
           bankAccountNumber,
+          staticQrUrl,
         },
         { transaction },
       );
@@ -57,6 +59,7 @@ const createAccount = async (req) => {
         {
           accountId: account.id,
           walletId,
+          staticQrUrl,
         },
         { transaction },
       );
@@ -86,56 +89,187 @@ const createAccount = async (req) => {
   }
 };
 
+// const deleteAccount = async (req) => {
+//   const transaction = await sequelize.transaction();
+//   try {
+//     const { id } = req.params;
+//     const account = await accountModel.findByPk(id, {
+//       include: [
+//         { model: bankAccountModel, as: "bankAccount" },
+//         { model: walletAccountModel, as: "walletAccount" },
+//         { model: cashAccountModel, as: "cashAccount" },
+//       ],
+//       transaction,
+//     });
+//     if (!account) {
+//       await transaction.rollback();
+//       return { status: 404, success: false, message: "Account not found" };
+//     }
+//     if (account.isDefault) {
+//       await transaction.rollback();
+//       return {
+//         status: 401,
+//         success: false,
+//         message: "Default Account cannot be deleted",
+//       };
+//     }
+
+//     // Delete type-specific records first
+//     if (account.bankAccount) await account.bankAccount.destroy({ transaction });
+//     if (account.walletAccount)
+//       await account.walletAccount.destroy({ transaction });
+//     if (account.cashAccount) await account.cashAccount.destroy({ transaction });
+
+//     await account.destroy({ transaction });
+
+//     await transaction.commit();
+//     return {
+//       status: 200,
+//       success: true,
+//       message: "Account deleted successfully",
+//       data: { id: Number(id) },
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+//     throw error;
+//   }
+// };
+const getAccountByID = async (req) => {
+  try {
+    const { id } = req.params;
+    const account = await accountModel.findByPk(id, {
+      include: [
+        { model: bankAccountModel, as: "bankAccount" },
+        { model: walletAccountModel, as: "walletAccount" },
+        { model: cashAccountModel, as: "cashAccount" },
+      ],
+    });
+    if (!account) {
+      return { status: 404, success: false, message: "Account not found" };
+    }
+    return {
+      status: 200,
+      success: true,
+      message: "Account retrieved successfully",
+      data: account,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 const updateAccount = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { customerId, ...rest } = req.body;
+    const {
+      name,
+      description,
+      openingBalance,
+      accountType, // optional, but we do not allow changing type once created
+      bankAccountNumber,
+      walletId,
+      staticQrUrl,
+      status,
+    } = req.body;
 
-    // Find the revenue entry
-    const revenue = await revenueModel.findByPk(id, { transaction });
-    if (!revenue) {
+    const account = await accountModel.findByPk(id, {
+      include: [
+        { model: bankAccountModel, as: "bankAccount" },
+        { model: walletAccountModel, as: "walletAccount" },
+        { model: cashAccountModel, as: "cashAccount" },
+      ],
+      transaction,
+    });
+
+    if (!account) {
+      await transaction.rollback();
+      return { status: 404, success: false, message: "Account not found" };
+    }
+
+    if (accountType && accountType !== account.accountType) {
       await transaction.rollback();
       return {
-        status: 404,
+        status: 400,
         success: false,
-        message: "Revenue entry not found",
+        message: "Changing account type is not allowed",
       };
     }
 
-    // Handle existing customer if customerId is provided
-    if (customerId !== undefined) {
-      if (customerId !== null) {
-        const customer = await customerModel.findByPk(customerId, {
-          transaction,
-        });
-        if (!customer) {
-          await transaction.rollback();
-          return {
-            status: 404,
-            success: false,
-            message: "Customer not found",
-          };
+    // Update base account fields (only provided)
+    const baseUpdates = {};
+    if (name !== undefined) baseUpdates.name = name;
+    if (description !== undefined) baseUpdates.description = description;
+    if (openingBalance !== undefined)
+      baseUpdates.openingBalance = openingBalance;
+    if (status !== undefined) {
+      const newStatus = String(status).toLowerCase();
+      if (!["active", "inactive"].includes(newStatus)) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Invalid status value",
+        };
+      }
+      if (newStatus === "inactive" && account.isDefault) {
+        await transaction.rollback();
+        return {
+          status: 401,
+          success: false,
+          message: "Default Account cannot be inactive",
+        };
+      }
+      baseUpdates.status = newStatus;
+    }
+
+    if (Object.keys(baseUpdates).length > 0) {
+      await account.update(baseUpdates, { transaction });
+    }
+
+    // Update type-specific details
+    if (account.accountType === "bank") {
+      if (!account.bankAccount) {
+        await bankAccountModel.create(
+          {
+            accountId: account.id,
+            bankAccountNumber: bankAccountNumber,
+            staticQrUrl,
+          },
+          { transaction },
+        );
+      } else {
+        const updates = {};
+        if (bankAccountNumber !== undefined)
+          updates.bankAccountNumber = bankAccountNumber;
+        if (staticQrUrl !== undefined) updates.staticQrUrl = staticQrUrl;
+        if (Object.keys(updates).length > 0) {
+          await account.bankAccount.update(updates, { transaction });
+        }
+      }
+    } else if (account.accountType === "wallet") {
+      if (!account.walletAccount) {
+        await walletAccountModel.create(
+          { accountId: account.id, walletId, staticQrUrl },
+          { transaction },
+        );
+      } else {
+        const updates = {};
+        if (walletId !== undefined) updates.walletId = walletId;
+        if (staticQrUrl !== undefined) updates.staticQrUrl = staticQrUrl;
+        if (Object.keys(updates).length > 0) {
+          await account.walletAccount.update(updates, { transaction });
         }
       }
     }
-
-    // Update only provided fields
-    await revenue.update(
-      {
-        ...rest,
-        customerId: customerId !== undefined ? customerId : revenue.customerId,
-      },
-      { transaction },
-    );
 
     await transaction.commit();
 
     return {
       status: 200,
       success: true,
-      message: "Revenue updated successfully",
-      data: revenue,
+      message: "Account updated successfully",
+      data: account,
     };
   } catch (error) {
     await transaction.rollback();
@@ -202,6 +336,16 @@ const changeDefaultAccount = async (req) => {
         status: 404,
         success: false,
         message: "Account entry not found",
+      };
+    }
+
+    // Ensure account is active before making it default
+    if (account.status !== "active") {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Account must be active to be set as default",
       };
     }
 
@@ -275,6 +419,7 @@ module.exports = {
   list,
   createAccount,
   updateAccount,
+  getAccountByID,
   changeStatus,
   changeDefaultAccount,
 };

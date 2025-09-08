@@ -1,44 +1,45 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
+import PageHeader from "@/components/PageHeader";
 import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
+
+import { useMemo } from "react";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
-import PageHeader from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
-import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
+import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 
-type PurchaseRow = {
-  purchaseId: number;
+type ExpenseRow = {
+  expenseId: number;
   dateAD: string;
   dateBS: string;
   particulars: string;
   categoryId: number; // FK
-  vendorId: number; // FK
   amount: number;
   paidOrCredit: "Paid" | "Credit";
   paymentSourceId: number;
 };
 
-const Purchase: React.FC = () => {
+const Expenses: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  // Demo Mock data; replace with API integration later
-  const allData: PurchaseRow[] = useMemo(
+
+  //This is mock data without API
+  const allData: ExpenseRow[] = useMemo(
     () => [
       {
-        purchaseId: 1,
+        expenseId: 1,
         dateAD: "2025-09-01",
         dateBS: "2082-05-16",
-        particulars: "Raw Vegetables",
-        categoryId: 10,
-        vendorId: 501,
-        amount: 12500,
+        particulars: "Electricity Bill",
+        categoryId: 30,
+        amount: 9500,
         paidOrCredit: "Paid",
-        paymentSourceId: 3001,
+        paymentSourceId: 4001,
       },
     ],
     [],
@@ -57,22 +58,21 @@ const Purchase: React.FC = () => {
   };
 
   const headers = [
-    "Purchase ID",
-    "Date of Purchase (AD)",
-    "Date of Purchase (BS)",
+    "Expense ID",
+    "Date (AD)",
+    "Date (BS)",
     "Particulars",
     "Category ID",
-    "Vendor ID",
     "Amount",
     "Paid or Credit",
     "Payment Source ID",
     "Actions",
   ];
 
-  const handleNewUser = (id: number | null) => {
+  const handleNewExpense = (id: number | null) => {
     id === null
-      ? navigate(PURCHASE_ADD_ROUTE)
-      : navigate(`${PURCHASE_ADD_ROUTE}${id}`);
+      ? navigate(EXPENSE_ADD_ROUTE)
+      : navigate(`${EXPENSE_ADD_ROUTE}${id}`);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -81,34 +81,34 @@ const Purchase: React.FC = () => {
   };
 
   const handleDelete = () => {
-    // Mock delete: close modal. Hook up API when backend is ready.
-    console.log("Delete purchase id:", deleteId);
+    // Since this page currently uses mock data, just close the modal.
+    // Wire this up to API similar to Revenue when backend is ready.
+    console.log("Delete expense id:", deleteId);
     setOpen(false);
   };
 
   const data = pageRows.map((r) => [
-    r.purchaseId,
+    r.expenseId,
     r.dateAD,
     r.dateBS,
     r.particulars,
     r.categoryId,
-    r.vendorId,
     CurrencySign + r.amount,
     r.paidOrCredit,
     r.paymentSourceId,
     <div
       className="flex items-center justify-center gap-3"
-      key={`act-${r.purchaseId}`}
+      key={`act-${r.expenseId}`}
     >
       <MdEditSquare
         size={18}
         className="text-[#0090DD] hover:text-blue-800"
-        onClick={() => handleNewUser(r.purchaseId)}
+        onClick={() => handleNewExpense(r.expenseId)}
       />
       <DeleteModal
         open={open}
         setOpen={setOpen}
-        handleDeleteTrigger={() => handleDeleteTrigger(r.purchaseId)}
+        handleDeleteTrigger={() => handleDeleteTrigger(r.expenseId)}
         handleConfirmDelete={handleDelete}
       />
     </div>,
@@ -116,11 +116,11 @@ const Purchase: React.FC = () => {
 
   return (
     <>
-      <PageTitle title="Purchase" />
+      <PageTitle title="Expenses" />
       <PageHeader
         hasAddButton={true}
-        newButtonText="Add New Purchase"
-        handleNewButton={() => handleNewUser(null)}
+        newButtonText="Add Expense"
+        handleNewButton={() => handleNewExpense(null)}
         handleReloadButton={() => {}}
         hasSubText={false}
       />
@@ -136,4 +136,4 @@ const Purchase: React.FC = () => {
   );
 };
 
-export default Purchase;
+export default Expenses;

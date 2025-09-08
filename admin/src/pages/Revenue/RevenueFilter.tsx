@@ -105,7 +105,7 @@ export default function RevenueFilter({
           <h3 className="text-lg font-semibold text-gray-800">
             Revenue Filter
           </h3>
-          <div className="flex gap-[48rem]">
+          <div className="flex gap-[39rem]">
             <div className="flex flex-wrap gap-2 items-center">
               <button
                 type="button"

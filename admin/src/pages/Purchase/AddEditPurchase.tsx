@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import { useForm, useFieldArray } from "react-hook-form";
 import { CurrencySign } from "@/constants";
@@ -7,7 +7,7 @@ import MediaComponent from "@/components/MediaComponent";
 import { ImageInputUI } from "@/components/ImageComponent";
 import { useAppSelector } from "@/redux/store/hooks";
 import Select from "@/components/Select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { PURCHASE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 
 type ItemRow = {
@@ -30,12 +30,15 @@ type FormValues = {
 };
 
 const AddEditPurchase: React.FC = () => {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const {
     control,
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -104,8 +107,27 @@ const AddEditPurchase: React.FC = () => {
     { subtotal: 0, tax: 0, grand: 0 },
   );
 
+  useEffect(() => {
+    if (!isEdit) return;
+    // Mock existing purchase data for edit mode
+    const mock: FormValues = {
+      date: "2025-09-01",
+      vendorId: "501",
+      billNumber: "INV-1001",
+      items: [
+        { particulars: "Raw Vegetables", qty: 5, rate: 100, taxPercent: 13 },
+        { particulars: "Fruits", qty: 3, rate: 150, taxPercent: 13 },
+      ],
+      paidBy: "cash",
+      paidFrom: "Main Cash",
+      cashOrCredit: "cash",
+      purchaseCategoryId: "1",
+      billImage: "",
+    };
+    reset(mock);
+  }, [isEdit, reset]);
+
   const onSubmit = (data: FormValues) => {
-    // compute derived amounts and shape payload
     const detailedItems = data.items.map((r) => {
       const { gross, taxAmt, total } = computeRow(r);
       return { ...r, gross, taxAmt, total };
@@ -115,15 +137,16 @@ const AddEditPurchase: React.FC = () => {
       items: detailedItems,
       totals,
       billImage: data.billImage,
+      id: isEdit ? id : undefined,
     };
 
-    // console.log("Purchase form submit payload:", payload);
-    // alert("Purchase form submitted. Check console for payload.");
+    console.log("Purchase form submit payload:", payload);
+    navigate(-1);
   };
 
   return (
     <div className="p-6">
-      <PageTitle title="Add Purchase" isBack />
+      <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"
@@ -423,7 +446,7 @@ const AddEditPurchase: React.FC = () => {
             type="submit"
             className="px-4 py-2 bg-green-600 text-white rounded"
           >
-            Submit
+            {isEdit ? "Update" : "Submit"}
           </button>
           <button type="reset" className="px-4 py-2 border rounded">
             Reset

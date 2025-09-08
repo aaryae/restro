@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css";
-import "react-date-range/dist/theme/default.css";
+import "react-date-range/dist/styles.css"; // Main style file
+import "react-date-range/dist/theme/default.css"; // Theme CSS file
 
 interface OrderFilterPropsType {
   start: string;
@@ -106,7 +106,7 @@ export default function OrderFilter({
 
   return (
     <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6">
+      <div className="space-y-6 flex justify-between">
         <div className="flex flex-col justify-between items-start gap-3">
           <h3 className="text-lg font-semibold text-gray-800">Order Filter</h3>
           <div className="flex flex-wrap gap-2">

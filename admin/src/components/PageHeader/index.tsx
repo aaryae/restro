@@ -46,7 +46,7 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex flex-col items-end gap-[1.5rem] mt-[3rem] mb-[1.5rem]">
+    <div className="flex flex-col items-end gap-[1.5rem] mt-[2rem] mb-[1.5rem]">
       {/* List or Grid View */}
       {hasViewType && (
         <div className="flex gap-[1rem]">
@@ -74,9 +74,6 @@ export default function PageHeader({
             handleClick={handleNewButton}
           >
             <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] ">
-              <div>
-                <FaUserPlus size={18} />
-              </div>
               <p className="font-[500] text-[0.9375rem]">{newButtonText}</p>
             </div>
           </Button>

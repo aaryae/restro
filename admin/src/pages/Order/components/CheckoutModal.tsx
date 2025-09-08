@@ -6,7 +6,7 @@ import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
-import AddEditCustomer from "../Customer/AddEditCustomer";
+import AddEditCustomer from "../../Customer/AddEditCustomer";
 import { Mail, CircleUserRound } from "lucide-react";
 import { CurrencySign } from "@/constants";
 import Input from "@/components/Input";

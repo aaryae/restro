@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { RiSeoLine } from "react-icons/ri";
-import { dummyTables } from "../../tempDatas/table";
 import { Link } from "react-router-dom";
 import CheckoutModal from "./CheckoutModal";
 import Button from "@/components/Button";

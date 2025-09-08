@@ -26,7 +26,7 @@ import Floor from "@/pages/Floor";
 import AddEditFloor from "@/pages/Floor/AddEditFloor";
 import OrderTable from "@/pages/Table";
 import AddEditTable from "@/pages/Table/AddEditTable";
-import AddEditOrder from "@/pages/Order/AddEditOrder";
+import AddEditOrder from "@/pages/Order/components/AddEditOrder";
 import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
 import Supplier from "@/pages/SuppliersModule";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
@@ -36,8 +36,10 @@ import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
 import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
 import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
-import Banks from "@/pages/Banks";
-import AddEditBanks from "@/pages/Banks/AddEditBanks";
+import Account from "@/pages/Account";
+import Expenses from "@/pages/Expenses";
+import AddEditExpense from "@/pages/Expenses/AddEditExpense";
+import AddEditAccount from "@/pages/Account/AddEditAccount";
 
 export const adminLinks = [
   {
@@ -75,6 +77,10 @@ export const adminLinks = [
   {
     path: "/profile",
     element: <UserProfile />,
+  },
+  {
+    path: "/settings",
+    element: <Settings />,
   },
   {
     path: "/settings/list",
@@ -153,7 +159,11 @@ export const adminLinks = [
     element: <Purchase />,
   },
   {
-    path: "/purchase",
+    path: "/purchase/",
+    element: <AddEditPurchase />,
+  },
+  {
+    path: "/purchase/:id",
     element: <AddEditPurchase />,
   },
   {
@@ -246,14 +256,26 @@ export const adminLinks = [
   },
   {
     path: "/account/list",
-    element: <Banks />,
+    element: <Account />,
   },
   {
     path: "/account/",
-    element: <AddEditBanks />,
+    element: <AddEditAccount />,
   },
   {
     path: "/account/:id",
-    element: <AddEditBanks />,
+    element: <AddEditAccount />,
+  },
+  {
+    path: "/expense/list",
+    element: <Expenses />,
+  },
+  {
+    path: "/expense/",
+    element: <AddEditExpense />,
+  },
+  {
+    path: "/expense/:id",
+    element: <AddEditExpense />,
   },
 ];

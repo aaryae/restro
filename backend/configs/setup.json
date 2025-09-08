@@ -1142,6 +1142,94 @@
           "list": "Transfer"
         }
       ]
+    },
+    {
+      "title": "Purchase",
+      "key": "purchase",
+      "actions": [
+        {
+          "title": "Add Purchase",
+          "key": "add",
+          "clientPath": "/purchase",
+          "serverPath": "/purchase",
+          "requestMethod": "POST",
+          "list": "Purchase"
+        },
+        {
+          "title": "View Purchase",
+          "key": "view",
+          "clientPath": "/purchase/list",
+          "serverPath": "/purchase/list",
+          "requestMethod": "GET",
+          "list": "Purchase"
+        }
+      ]
+    },
+    {
+      "title": "Purchase Category",
+      "key": "purchase-category",
+      "actions": [
+        {
+          "title": "Add Purchase Category",
+          "key": "add",
+          "clientPath": "/purchase-category",
+          "serverPath": "/purchase-category",
+          "requestMethod": "POST",
+          "list": "Purchase Category"
+        },
+        {
+          "title": "View Purchase Category",
+          "key": "view",
+          "clientPath": "/purchase-category/list",
+          "serverPath": "/purchase-category/list",
+          "requestMethod": "GET",
+          "list": "Purchase Category"
+        }
+      ]
+    },
+    {
+      "title": "Expense",
+      "key": "expense",
+      "actions": [
+        {
+          "title": "Add Expense",
+          "key": "add",
+          "clientPath": "/expense",
+          "serverPath": "/expense",
+          "requestMethod": "POST",
+          "list": "Expense"
+        },
+        {
+          "title": "View Expense",
+          "key": "view",
+          "clientPath": "/expense/list",
+          "serverPath": "/expense/list",
+          "requestMethod": "GET",
+          "list": "Expense"
+        }
+      ]
+    },
+    {
+      "title": "Supplier",
+      "key": "supplier",
+      "actions": [
+        {
+          "title": "Add Supplier",
+          "key": "add",
+          "clientPath": "/supplier",
+          "serverPath": "/supplier",
+          "requestMethod": "POST",
+          "list": "Supplier"
+        },
+        {
+          "title": "View Supplier",
+          "key": "view",
+          "clientPath": "/supplier/list",
+          "serverPath": "/supplier/list",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        }
+      ]
     }
   ]
 }
