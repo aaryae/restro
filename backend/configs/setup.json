@@ -826,6 +826,38 @@
           "serverPath": "/order/:id",
           "requestMethod": "DELETE",
           "list": "Order"
+        },
+        {
+          "title": "Edit Order",
+          "key": "edit",
+          "clientPath": "/order/items/:orderId",
+          "serverPath": "/order/items/:orderId",
+          "requestMethod": "PUT",
+          "list": "Order"
+        },
+        {
+          "title": "Edit Order Item Status",
+          "key": "edit-order-item-status",
+          "clientPath": "/order/items/status",
+          "serverPath": "/order/items/status",
+          "requestMethod": "PATCH",
+          "list": "Order"
+        },
+        {
+          "title": "Order Checkout",
+          "key": "order-checkout",
+          "clientPath": "/order/checkout/:tableId",
+          "serverPath": "/order/checkout/:tableId",
+          "requestMethod": "POST",
+          "list": "Order"
+        },
+        {
+          "title": "View Order Item",
+          "key": "view-order-item",
+          "clientPath": "/order/list/order-items",
+          "serverPath": "/order/list/order-items",
+          "requestMethod": "GET",
+          "list": "Order"
         }
       ]
     },
@@ -940,6 +972,38 @@
           "serverPath": "/revenue/list",
           "requestMethod": "GET",
           "list": "Revenue"
+        },
+        {
+          "title": "View Groupd Revenue",
+          "key": "view-grouped",
+          "clientPath": "/revenue/grouped-list",
+          "serverPath": "/revenue/grouped-list",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        },
+        {
+          "title": "View One Revenue",
+          "key": "view-one",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        },
+        {
+          "title": "Edit Revenue",
+          "key": "edit",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "PUT",
+          "list": "Revenue"
+        },
+        {
+          "title": "Delete Revenue",
+          "key": "delete",
+          "clientPath": "/revenue/:id",
+          "serverPath": "/revenue/:id",
+          "requestMethod": "DELETE",
+          "list": "Revenue"
         }
       ]
     },
@@ -978,6 +1042,74 @@
           "serverPath": "/account/list",
           "requestMethod": "GET",
           "list": "Account"
+        }
+      ]
+    },
+    {
+      "title": "Supplier",
+      "key": "supplier",
+      "actions": [
+        {
+          "title": "Add Supplier",
+          "key": "add",
+          "clientPath": "/supplier/create",
+          "serverPath": "/supplier/create",
+          "requestMethod": "POST",
+          "list": "Supplier"
+        },
+        {
+          "title": "View Supplier",
+          "key": "view",
+          "clientPath": "/supplier/list",
+          "serverPath": "/supplier/list",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        },
+        {
+          "title": "View One Supplier",
+          "key": "view-one",
+          "clientPath": "/supplier/:id",
+          "serverPath": "/supplier/:id",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        },
+        {
+          "title": "Edit Supplier",
+          "key": "edit",
+          "clientPath": "/supplier/update/:id",
+          "serverPath": "/supplier/update/:id",
+          "requestMethod": "PUT",
+          "list": "Supplier"
+        },
+        {
+          "title": "Delete Supplier",
+          "key": "delete",
+          "clientPath": "/supplier/:id",
+          "serverPath": "/supplier/:id",
+          "requestMethod": "DELETE",
+          "list": "Supplier"
+        }
+      ]
+    },
+    {
+      "title": "Transfer",
+      "key": "transfer",
+      "actions": [
+        {
+          "title": "Add Transfer",
+          "key": "add",
+          "clientPath": "/transfer",
+          "serverPath": "/transfer",
+          "requestMethod": "POST",
+          "list": "Transfer"
+        },
+        {
+          "title": "View Transfer",
+          "key": "view",
+          "clientPath": "/transfer/list",
+          "serverPath": "/transfer/list",
+          "requestMethod": "GET",
+          "list": "Transfer"
         }
       ]
     }

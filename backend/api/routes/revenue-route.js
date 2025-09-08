@@ -28,7 +28,7 @@ router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/:id",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   revenuePutValidation,
   update,

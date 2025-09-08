@@ -233,27 +233,6 @@ internal.saveBannerItems = async (req, bannerItems) => {
   }
 };
 
-internal.saveBanner = async (req, banner) => {
-  try {
-    for (const bannerData of banner) {
-      const isCreated = await bannerModel.findOne({
-        where: { id: bannerData.id },
-        raw: true,
-      });
-      if (!isCreated) {
-        await bannerModel.create({
-          id: bannerData.id,
-          name: bannerData.name,
-          slug: bannerData.slug,
-        });
-      }
-      await internal.saveBannerItems(req, bannerData.bannerItems);
-    }
-  } catch (err) {
-    throw err;
-  }
-};
-
 internal.saveRTEMediaCategory = async (req, mediaCategory) => {
   console.log(mediaCategory);
 
@@ -740,7 +719,6 @@ router.get("/", async (req, res, next) => {
     await internal.saveUsers(req, setupData.users);
     await internal.saveRoleMenu(req, setupData.roleMenus);
     await internal.saveSettings(setupData.setting);
-    await internal.saveBanner(req, setupData.banner);
     res.send(`
             <h1>Setup completed</h1>
             <br/>

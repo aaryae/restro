@@ -20,9 +20,21 @@ const {
   deleteById,
 } = require("../controllers/supplier-controller");
 
-router.post("/create", authentication, authorization, supplierPostValidation, create);
-router.get("/list", paginationValidation, getList);
-router.get("/:id", idValidation, getById);
+router.post(
+  "/create",
+  authentication,
+  authorization,
+  supplierPostValidation,
+  create,
+);
+router.get(
+  "/list",
+  authentication,
+  authorization,
+  paginationValidation,
+  getList,
+);
+router.get("/:id", authentication, authorization, idValidation, getById);
 router.put(
   "/update/:id",
   authentication,
