@@ -36,10 +36,10 @@ import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
 import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
 import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
-import Banks from "@/pages/Account";
-import AddEditBanks from "@/pages/Account/AddEditAccount";
+import Account from "@/pages/Account";
 import Expenses from "@/pages/Expenses";
 import AddEditExpense from "@/pages/Expenses/AddEditExpense";
+import AddEditAccount from "@/pages/Account/AddEditAccount";
 
 export const adminLinks = [
   {
@@ -256,15 +256,15 @@ export const adminLinks = [
   },
   {
     path: "/account/list",
-    element: <Banks />,
+    element: <Account />,
   },
   {
     path: "/account/",
-    element: <AddEditBanks />,
+    element: <AddEditAccount />,
   },
   {
     path: "/account/:id",
-    element: <AddEditBanks />,
+    element: <AddEditAccount />,
   },
   {
     path: "/expense/list",

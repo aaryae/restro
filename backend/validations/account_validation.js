@@ -31,9 +31,10 @@ const accountPostValidation = async (req, res, next) => {
     staticQrUrl: joi
       .string()
       .trim()
+      .allow("")
       .when("accountType", {
         is: joi.valid("bank", "wallet"),
-        then: joi.required(),
+        then: joi.optional(),
         otherwise: joi.forbidden(),
       }),
     bankAccountNumber: joi

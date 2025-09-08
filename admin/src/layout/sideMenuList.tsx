@@ -162,43 +162,29 @@ export const SideMenuList: SideListMenuType[] = [
     ],
   },
   {
-    key: 9,
+    key: 8,
     name: "Account",
     icon: <MdOutlineFactCheck />,
     path: "/admin/account/list",
   },
   {
-    key: 8,
+    key: 9,
+    name: "Supplier",
+    icon: <MdOutlineFactCheck />,
+    path: "/admin/supplier/list",
+  },
+  {
+    key: 10,
     name: "Settings",
     icon: <Settings />,
     path: "/admin/settings",
     menu: [
       {
-        key: 8.1,
+        key: 10.1,
         name: "Company Settings",
         path: "/admin/settings/list",
         icon: <MdDisplaySettings />,
       },
     ],
   },
-
-  // {
-  //   key: 8,
-  //   name: "Purchase",
-  //   icon: <ShoppingCart />,
-  //   menu: [
-  //     {
-  //       key: 8.1,
-  //       name: "Table",
-  //       path: "/admin/purchase/list",
-  //       icon: <MdOutlineFactCheck />,
-  //     },
-  //     {
-  //       key: 8.2,
-  //       name: "Table",
-  //       path: "/admin/purchase-category/list",
-  //       icon: <MdOutlineFactCheck />,
-  //     },
-  //   ],
-  // },
 ];

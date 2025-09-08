@@ -153,7 +153,7 @@ export default function SideMenu({
         )}
 
         {/* {viewAccess.includes("Supplier") && ( */}
-        <div
+        {/* <div
           className={`${
             currentPath.includes("supplier") ? "bg-primaryColor text-white" : ""
           } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
@@ -167,7 +167,7 @@ export default function SideMenu({
             </div>
             {sideMenuOpen && <p className="font-[400] text-[1rem]">Supplier</p>}
           </div>
-        </div>
+        </div> */}
         {/* )} */}
         {/* Apps and Pages */}
         {filteredSideMenuList.map((each: SideListMenuType, index) => {

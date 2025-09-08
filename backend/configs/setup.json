@@ -1334,6 +1334,28 @@
           "list": "Expense"
         }
       ]
+    },
+    {
+      "title": "Supplier",
+      "key": "supplier",
+      "actions": [
+        {
+          "title": "Add Supplier",
+          "key": "add",
+          "clientPath": "/supplier",
+          "serverPath": "/supplier",
+          "requestMethod": "POST",
+          "list": "Supplier"
+        },
+        {
+          "title": "View Supplier",
+          "key": "view",
+          "clientPath": "/supplier/list",
+          "serverPath": "/supplier/list",
+          "requestMethod": "GET",
+          "list": "Supplier"
+        }
+      ]
     }
   ]
 }
