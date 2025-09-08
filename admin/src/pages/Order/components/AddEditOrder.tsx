@@ -13,8 +13,9 @@ import Select from "@/components/Select";
 import Model from "@/components/Model";
 import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
-import { CurrencySign } from "@/constants";
-
+import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
+import Beep from "@/assets/audio/beep.mp3";
+import DeleteBeep from "@/assets/audio/DeleteBeep.mp3";
 import {
   useGetApiQuery,
   useCreateApiMutation,
@@ -23,7 +24,7 @@ import {
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Plus, PlusCircle } from "lucide-react";
+import { Minus, Plus, PlusCircle } from "lucide-react";
 import { id } from "date-fns/locale";
 import {
   useCreateOrderMutation,
@@ -85,9 +86,19 @@ export default function AddEditOrder({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [audio] = useState(new Audio(Beep));
+  const [deleteAudio] = useState(new Audio(DeleteBeep));
 
   const watchedOrderType = watch("orderType");
   const watchedTableId = watch("tableId");
+
+  const playAudio = () => {
+    audio.play();
+  };
+
+  const playDeleteAudio = () => {
+    deleteAudio.play();
+  };
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
@@ -135,6 +146,18 @@ export default function AddEditOrder({
   });
 
   const [patchStatus] = usePatchApiMutation();
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    const list = productData?.data?.data || [];
+    const term = productSearchTerm.trim().toLowerCase();
+    if (!term) return list;
+    return list.filter((p: { name: string; description?: string }) => {
+      const name = p.name?.toLowerCase?.() || "";
+      const desc = (p.description || "").toLowerCase();
+      return name.includes(term) || desc.includes(term);
+    });
+  }, [productData, productSearchTerm]);
 
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
@@ -358,7 +381,7 @@ export default function AddEditOrder({
                 <div className="mb-6">
                   <div className="relative">
                     <Input
-                      placeholder="Search products..."
+                      placeholder="Search menu items..."
                       value={productSearchTerm}
                       onChange={(e) => setProductSearchTerm(e.target.value)}
                       className="w-full"
@@ -370,59 +393,79 @@ export default function AddEditOrder({
                   <div className="text-center py-12">
                     <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                     <p className="text-gray-500 text-lg mb-2">
-                      Loading products...
+                      Loading menu items...
                     </p>
                   </div>
-                ) : productData?.data?.data?.length > 0 ? (
+                ) : filteredProducts?.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     <div className="text-left text-lg font-semibold text-gray-900">
-                      Top Selling Products
+                      {productSearchTerm
+                        ? `Search Results (${filteredProducts.length})`
+                        : "Top Selling Menu Items"}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                      {productData?.data?.data
-                        ?.slice(0, 8)
-                        .map(
-                          (product: {
-                            id: string;
-                            name: string;
-                            description: string;
-                            price: number;
-                            quantity: number;
-                          }) => (
-                            <div
-                              key={product.id}
-                              className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
-                              onClick={() => addProductToOrder(product)}
-                            >
-                              <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                                {product.name}
-                              </h4>
-                              <p
-                                dangerouslySetInnerHTML={{
-                                  __html: product?.description,
-                                }}
-                                className="text-xs text-gray-600 mb-3 line-clamp-2"
-                              ></p>
-                              <div className="flex justify-between items-center">
-                                <span className="text-lg font-bold text-green-600">
-                                  {CurrencySign}{" "}
-                                  {Number(product.price).toFixed(2)}
-                                </span>
-                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                  Stock: {product.quantity}
-                                </span>
-                              </div>
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <button
-                                  type="button"
-                                  className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium py-2 px-3 rounded transition-colors"
-                                >
-                                  Add to Order
-                                </button>
-                              </div>
+                      {filteredProducts.map(
+                        (product: {
+                          id: string;
+                          name: string;
+                          description: string;
+                          price: number;
+                          quantity: number;
+                          mediaArr: {
+                            imageUrl: string;
+                          }[];
+                        }) => (
+                          <div
+                            key={product.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
+                            onClick={() => {
+                              addProductToOrder(product);
+                              playAudio();
+                            }}
+                          >
+                            <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                              {product.name}
+                            </h4>
+                            <div className="flex items-center gap-2 justify-center">
+                              {product?.mediaArr?.[0]?.imageUrl ? (
+                                <img
+                                  src={`${IMAGE_BASE_URL}${product.mediaArr[0].imageUrl}`}
+                                  alt={product.name}
+                                  className="w-[80px] h-[80px] object-cover rounded mb-3"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="w-full h-32 bg-gray-100 text-gray-400 flex items-center justify-center rounded mb-3 text-xs">
+                                  No image
+                                </div>
+                              )}
                             </div>
-                          ),
-                        )}
+                            {/* <p
+                              dangerouslySetInnerHTML={{
+                                __html: product?.description,
+                              }}
+                              className="text-xs text-gray-600 mb-3 line-clamp-2"
+                            ></p> */}
+                            <div className="flex items-center">
+                              <span className="text-lg font-bold text-green-600">
+                                {CurrencySign}{" "}
+                                {Number(product.price).toFixed(2)}
+                              </span>
+                              {/* <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                Stock: {product.quantity}
+                              </span> */}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <button
+                                type="button"
+                                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium py-2 px-3 rounded transition-colors"
+                              >
+                                Add to Order
+                              </button>
+                            </div>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -430,7 +473,7 @@ export default function AddEditOrder({
                     <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                     <p className="text-gray-500 text-lg mb-2">
                       {productSearchTerm
-                        ? "No products found"
+                        ? "No menu items match your search"
                         : "No products available"}
                     </p>
                     {productSearchTerm && (
@@ -493,10 +536,10 @@ export default function AddEditOrder({
                   {orderItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                      className={`flex items-center justify-between px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
                     >
                       <div
-                        className={`flex-1 ${item.status === "cancelled" ? "line-through" : ""}`}
+                        className={`flex flex-col items-start ${item.status === "cancelled" ? "line-through" : ""}`}
                       >
                         <h4 className={`font-medium text-gray-900 `}>
                           {item.productName}
@@ -512,34 +555,39 @@ export default function AddEditOrder({
                       >
                         <div className="flex items-center space-x-2">
                           <Button
-                            handleClick={() =>
+                            handleClick={() => {
                               updateOrderItemQuantity(
                                 item.id,
                                 item.quantity - 1,
-                              )
-                            }
+                              );
+                              playAudio();
+                            }}
                             className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
                           >
-                            -
+                            <Minus className="w-4 h-4" />
                           </Button>
-                          <span className="w-8 text-center font-medium">
+                          <span className="w-8 text-center font-medium text-[15px]">
                             {item.quantity}
                           </span>
                           <Button
-                            handleClick={() =>
+                            handleClick={() => {
                               updateOrderItemQuantity(
                                 item.id,
                                 item.quantity + 1,
-                              )
-                            }
+                              );
+                              playAudio();
+                            }}
                             className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
                           >
-                            +
+                            <Plus className="w-4 h-4" />
                           </Button>
                         </div>
 
                         <div
-                          onClick={() => removeOrderItem(item.id)}
+                          onClick={() => {
+                            removeOrderItem(item.id);
+                            playDeleteAudio();
+                          }}
                           className="text-right"
                         >
                           <Plus className="rotate-45 text-red-400 cursor-pointer" />
@@ -612,9 +660,6 @@ export default function AddEditOrder({
               <h3 className="text-lg font-semibold text-gray-900">
                 Confirm {isEditMode ? "Update" : "Order"}
               </h3>
-              <button className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md absolute right-2 top-1/2 -translate-y-1/2">
-                Print KOT
-              </button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="mb-4 text-sm text-gray-700">
@@ -699,6 +744,14 @@ export default function AddEditOrder({
                 className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
               >
                 {isConfirming ? "Processing..." : "Confirm"}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCreate}
+                disabled={isConfirming}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
+              >
+                Confirm and Print
               </button>
             </div>
           </div>

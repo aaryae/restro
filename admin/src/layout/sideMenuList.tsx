@@ -89,6 +89,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <GiExpense />,
         path: "/admin/expense/list",
       },
+      {
+        key: 3.4,
+        name: "Supplier",
+        icon: <GiExpense />,
+        path: "/admin/supplier/list",
+      },
     ],
   },
   {
@@ -167,12 +173,7 @@ export const SideMenuList: SideListMenuType[] = [
     icon: <MdOutlineFactCheck />,
     path: "/admin/account/list",
   },
-  {
-    key: 9,
-    name: "Supplier",
-    icon: <MdOutlineFactCheck />,
-    path: "/admin/supplier/list",
-  },
+
   {
     key: 10,
     name: "Settings",

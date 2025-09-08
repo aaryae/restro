@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useAppSelector } from "@/redux/store/hooks";
 import Toast from "@/components/Toast";
 import { BANK_LIST_ROUTE } from "@/routes/routeNames";
+import { AccountSchema } from "./schema";
 import {
   useCreateApiMutation,
   useGetApiQuery,
@@ -20,6 +21,10 @@ import {
 } from "@/redux/services/crudApi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+type AccountFromType = z.infer<typeof AccountSchema>;
 
 const AddEditAccount: React.FC = () => {
   const [mediaOpen, setMediaOpen] = useState<boolean>(false);
@@ -41,17 +46,13 @@ const AddEditAccount: React.FC = () => {
     reset,
     watch,
     setValue,
-  } = useForm<{ [key: string]: any }>({
+  } = useForm<AccountFromType>({
+    resolver: zodResolver(AccountSchema),
     defaultValues: {
-      accountName: "",
       accountType: "cash",
-      openingBalance: undefined,
-      description: "",
-      bankAccountNumber: "",
-      walletAccountName: "",
-      walletId: "",
-      staticQrUrl: "",
       status: "active",
+      openingBalance: 0,
+      description: "",
     },
   });
 
@@ -61,10 +62,10 @@ const AddEditAccount: React.FC = () => {
     { label: "Wallet", value: "wallet" },
   ];
 
-  const statusOptions = [
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-  ];
+  // const statusOptions = [
+  //   { label: "Active", value: "active" },
+  //   { label: "Inactive", value: "inactive" },
+  // ];
 
   const [createAccount] = useCreateApiMutation();
   const [updateAccount] = useUpdateApiMutation();
@@ -74,15 +75,14 @@ const AddEditAccount: React.FC = () => {
     accountGetUrl ? { url: accountGetUrl } : ({} as any),
   );
 
-  const onSubmit = async (data: any) => {
-    // Frontend validation aligned to backend
-    if (data.accountType === "bank" && !data.bankAccountNumber) {
+  const onSubmit = async (form: AccountFromType) => {
+    if (form.accountType === "bank" && !form.bankAccountNumber) {
       Toast("Please enter bank account number.", "warning");
       return;
     }
     if (
-      data.accountType === "wallet" &&
-      (!data.walletId || !data.walletAccountName)
+      form.accountType === "wallet" &&
+      (!form.walletId || !form.walletAccountName)
     ) {
       Toast("Please enter wallet account name and ID.", "warning");
       return;
@@ -91,15 +91,15 @@ const AddEditAccount: React.FC = () => {
     // Static QR is optional now; if provided, it will be saved for bank/wallet
 
     const payload: any = {
-      accountType: data.accountType,
-      openingBalance: Number(data.openingBalance) || 0,
-      description: data.description || "",
-      name: data.accountName,
+      accountType: form.accountType,
+      openingBalance: Number(form.openingBalance) || 0,
+      description: form.description || "",
+      name: form.accountName,
       bankAccountNumber:
-        data.accountType === "bank" ? data.bankAccountNumber : undefined,
-      walletId: data.accountType === "wallet" ? data.walletId : undefined,
-      staticQrUrl: ["bank", "wallet"].includes(data.accountType)
-        ? data.staticQrUrl
+        form.accountType === "bank" ? form.bankAccountNumber : undefined,
+      walletId: form.accountType === "wallet" ? form.walletId : undefined,
+      staticQrUrl: ["bank", "wallet"].includes(form.accountType)
+        ? form.staticQrUrl
         : undefined,
     };
 
@@ -108,7 +108,7 @@ const AddEditAccount: React.FC = () => {
       let res;
       if (isEditMode) {
         // include status only for update to align with backend validation
-        payload.status = (data.status || "active").toLowerCase();
+        payload.status = (form.status || "active").toLowerCase();
         res = await updateAccount({
           url: `${ACCOUNT_URL}${id}`,
           body: payload,
@@ -189,22 +189,29 @@ const AddEditAccount: React.FC = () => {
               name="accountType"
               control={control}
               render={({ field }) => (
-                <div className="flex space-x-5 p-1 rounded-lg">
-                  {accountTypeOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
-                        field.value === option.value
-                          ? "bg-blue-500 text-white border-none"
-                          : "bg-white text-gray-700 hover:bg-gray-200"
-                      }`}
-                      onClick={() => field.onChange(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="flex space-x-5 p-1 rounded-lg">
+                    {accountTypeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                          field.value === option.value
+                            ? "bg-blue-500 text-white border-none"
+                            : "bg-white text-gray-700 hover:bg-gray-200"
+                        }`}
+                        onClick={() => field.onChange(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {errors.accountType && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.accountType.message}
+                    </p>
+                  )}
+                </>
               )}
             />
           </div>
@@ -219,28 +226,35 @@ const AddEditAccount: React.FC = () => {
               control={control}
               rules={{ required: true }}
               render={({ field }) => (
-                <div className="flex items-center gap-8">
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-blue-600 border-gray-300"
-                      value="active"
-                      checked={field.value === "active"}
-                      onChange={() => field.onChange("active")}
-                    />
-                    <span>Active</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-blue-600 border-gray-300"
-                      value="inactive"
-                      checked={field.value === "inactive"}
-                      onChange={() => field.onChange("inactive")}
-                    />
-                    <span>Inactive</span>
-                  </label>
-                </div>
+                <>
+                  <div className="flex items-center gap-8">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        className="h-4 w-4 text-blue-600 border-gray-300"
+                        value="active"
+                        checked={field.value === "active"}
+                        onChange={() => field.onChange("active")}
+                      />
+                      <span>Active</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        className="h-4 w-4 text-blue-600 border-gray-300"
+                        value="inactive"
+                        checked={field.value === "inactive"}
+                        onChange={() => field.onChange("inactive")}
+                      />
+                      <span>Inactive</span>
+                    </label>
+                  </div>
+                  {errors.status && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.status.message}
+                    </p>
+                  )}
+                </>
               )}
             />
           </div>

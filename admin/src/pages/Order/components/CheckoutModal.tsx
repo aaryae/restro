@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FaMoneyBillWave, FaPlus, FaQrcode } from "react-icons/fa";
 import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
@@ -12,6 +12,7 @@ import { CurrencySign } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
+import CheckoutPreview from "./CheckoutPreview";
 
 // Define interfaces
 interface OrderItem {
@@ -85,6 +86,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const customerUrl = buildQueryString("customer-auth/list", {
     page: 1,
@@ -158,11 +160,82 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }, 2000); // Close modal after 2 seconds
   };
 
+  // Preview helpers
+  const handleOpenPreview = () => {
+    setShowPreview(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreview(false);
+  };
+
+  const handlePrint = (targetId?: string) => {
+    if (!targetId) {
+      window.print();
+      return;
+    }
+    const content = document.getElementById(targetId)?.innerHTML;
+    if (!content) {
+      window.print();
+      return;
+    }
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html><html><head><title>Bill</title>
+      <style>
+        * { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, sans-serif; }
+        .text-right{ text-align:right; }
+        .text-center{ text-align:center; }
+        .grid{ display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+        .col-span-6{ grid-column: span 6 / span 6; }
+        .col-span-2{ grid-column: span 2 / span 2; }
+        .px-4{ padding-left:1rem; padding-right:1rem; }
+        .py-2{ padding-top:0.5rem; padding-bottom:0.5rem; }
+        .py-3{ padding-top:0.75rem; padding-bottom:0.75rem; }
+        .bg-gray-100{ background:#f3f4f6; }
+        .bg-gray-50{ background:#f9fafb; }
+        .border{ border:1px solid #e5e7eb; }
+      </style>
+    </head><body>${content}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const previewData = useMemo(() => {
+    const orderData: any = order?.data || {};
+    const items = Array.isArray(orderData.orderItems)
+      ? orderData.orderItems.map((oi: any) => ({
+          id: oi.id,
+          productName: oi?.product?.name ?? oi.productName ?? "Item",
+          quantity: Number(oi.quantity ?? 0),
+          productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
+          subtotal: Number(
+            oi.subtotal ??
+              Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
+          ),
+        }))
+      : [];
+
+    return {
+      orderNumber: orderData.orderNumber,
+      tableNo: orderData?.table?.tableNo ?? table?.data?.tableNo ?? null,
+      orderType: orderData.orderType,
+      deliveryAddress: orderData.deliveryAddress,
+      orderNote: orderData.orderNote,
+      items,
+      totalAmount: Number(orderData.totalAmount ?? 0),
+    };
+  }, [order, table]);
+
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
+    <>
+      <div className={styles.modalOverlay}>
+        <div className={styles.modalContent}>
         {isPaymentSuccess ? (
           <div className={styles.successContainer}>
             <div className={styles.checkmarkContainer}>
@@ -347,7 +420,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 Cancel
               </button>
               <button
-                onClick={handlePayment}
+                onClick={handleOpenPreview}
                 disabled={checkoutType === "member" && !selectedMember}
                 className={`${styles.actionButton} ${
                   checkoutType === "member" && !selectedMember
@@ -360,8 +433,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+      {/* Preview Modal */}
+      <CheckoutPreview
+        isOpen={showPreview}
+        onClose={handleClosePreview}
+        data={previewData}
+        onCompletePayment={async () => {
+          await handlePayment();
+          handleClosePreview();
+        }}
+        onPrintBill={handlePrint}
+      />
+    </>
   );
 };
 

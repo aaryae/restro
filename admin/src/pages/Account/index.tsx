@@ -21,6 +21,7 @@ import { Button } from "react-aria-components";
 import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import TransferModel from "./TransferModel";
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
@@ -123,6 +124,8 @@ const Account: React.FC = () => {
     "Actions",
   ];
 
+  const [transferOpen, setTransferOpen] = useState<boolean>(false);
+
   const data =
     success && allAccount?.data?.data
       ? (allAccount?.data?.data as any[]).map((row: any, idx: number) => {
@@ -220,7 +223,10 @@ const Account: React.FC = () => {
           handleReloadButton={() => refetch()}
         />
 
-        <Button className="flex gap-2 bg-purple-600 text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]">
+        <Button
+          className="flex gap-2 bg-purple-600 text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          onPress={() => setTransferOpen(true)}
+        >
           <BiTransfer size={20} />
           Transfer
         </Button>
@@ -236,6 +242,14 @@ const Account: React.FC = () => {
           handlePagination={handlePagination}
         />
       )}
+      <TransferModel
+        isOpen={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        onSuccess={() => {
+          setTransferOpen(false);
+          refetch();
+        }}
+      />
     </>
   );
 };

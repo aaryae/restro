@@ -19,7 +19,7 @@ export default function PageTitle({
   };
 
   return (
-    <div className="text-start flex items-center gap-[1rem] my-[2rem]">
+    <div className="text-start flex items-center gap-[1rem] mb-[2rem]">
       {isBack && (
         <button className="hover:text-[#0090dd]" onClick={handleNavigation}>
           <IoMdArrowRoundBack size={20} />
