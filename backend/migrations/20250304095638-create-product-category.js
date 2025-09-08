@@ -31,7 +31,7 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true,
       },
-      orders: {
+      order: {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,

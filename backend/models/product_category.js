@@ -38,7 +38,7 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
-      orders: {
+      order: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -48,7 +48,6 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 0,
       },
-
     },
     {
       timestamps: true,

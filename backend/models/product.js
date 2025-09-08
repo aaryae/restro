@@ -16,10 +16,10 @@ module.exports = (sequelize) => {
       //   foreignKey: "productId",
       //   as: "orderItems",
       // });
-      Product.belongsTo(models.departmentModel,{
-        foreignKey:"departmentId",
-        as:"department"
-      })
+      Product.belongsTo(models.departmentModel, {
+        foreignKey: "departmentId",
+        as: "department",
+      });
     }
   }
 
@@ -35,9 +35,9 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      departmentId:{
+      departmentId: {
         type: DataTypes.INTEGER,
-        allowNull:false
+        allowNull: false,
       },
       name: {
         type: DataTypes.STRING,
@@ -57,7 +57,7 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      orders: {
+      order: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -67,11 +67,11 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       stockStatus: {
-        type: DataTypes.ENUM("in_stock", "out_of_stock", "low_stock"), 
+        type: DataTypes.ENUM("in_stock", "out_of_stock", "low_stock"),
         defaultValue: "in_stock",
       },
       reservedQuantity: {
-        type: DataTypes.INTEGER, 
+        type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
       },
