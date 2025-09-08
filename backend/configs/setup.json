@@ -1260,6 +1260,22 @@
           "list": "Account"
         },
         {
+          "title": "Edit Account Status",
+          "key": "edit-status",
+          "clientPath": "/account/:id/status",
+          "serverPath": "/account/:id/status",
+          "requestMethod": "PATCH",
+          "list": "Account"
+        },
+        {
+          "title": "Edit Default Account",
+          "key": "edit-default",
+          "clientPath": "/account/:id/default",
+          "serverPath": "/account/:id/default",
+          "requestMethod": "PATCH",
+          "list": "Account"
+        },
+        {
           "title": "View Account",
           "key": "view",
           "clientPath": "/account/list",

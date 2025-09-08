@@ -23,27 +23,19 @@ const {
   changeDefaultAccount,
 } = require("../controllers/account-controller");
 
-router.post("/", authentication, accountPostValidation, create);
-router.get("/list", authentication, paginationValidation, list);
-// router.put(
-//   "/:id",
-//   authentication,
-//   // authorization,
-//   idValidation,
-//   // revenuePutValidation,
-//   update,
-// );
+router.post("/", authentication, authorization, accountPostValidation, create);
+router.get("/list", authentication, authorization, paginationValidation, list);
 router.patch(
   "/:id/status",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   changeStatus,
 );
 router.patch(
   "/:id/default",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   changeDefaultAccount,
 );
