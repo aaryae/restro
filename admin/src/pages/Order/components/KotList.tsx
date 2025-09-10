@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store/store";
 import { useGetApiQuery } from "@/redux/services/crudApi";
@@ -30,7 +30,6 @@ type Order = {
 
 export default function KotList() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
-  const [activeTab, setActiveTab] = useState<"active" | "paid">("active");
 
   const url = useMemo(() => {
     return buildQueryString("order/list", {
@@ -57,46 +56,36 @@ export default function KotList() {
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [] as Order[];
-    if (activeTab === "paid") {
-      return orders.filter((o) => o.paymentStatus?.toLowerCase() === "paid");
-    }
-    // Active = unpaid or not yet paid
+    // Show only active/unpaid KOTs
     return orders.filter((o) => o.paymentStatus?.toLowerCase() !== "paid");
-  }, [orders, activeTab]);
+  }, [orders]);
+
+  // FIFO: sort by oldest first (ascending by orderStartTime; fallback to id)
+  const sortedOrders = useMemo(() => {
+    const toDate = (v?: string | Date) => (v ? new Date(v).getTime() : 0);
+    return [...filteredOrders].sort((a, b) => {
+      const at = toDate(a.orderStartTime);
+      const bt = toDate(b.orderStartTime);
+      if (at !== bt) return at - bt; // older first
+      // fallback stable-ish comparison using id when timestamps equal/missing
+      return Number(a.id) - Number(b.id);
+    });
+  }, [filteredOrders]);
 
   const totalPages = data?.data?.totalPages ?? 1;
   const offset = (query.page - 1) * query.limit;
 
   return (
     <>
-      {/* Tabs */}
-      <div className="mt-4 mb-2 flex items-center gap-2">
-        <button
-          onClick={() => setActiveTab("active")}
-          className={`px-4 py-2 rounded-md border text-sm ${
-            activeTab === "active"
-              ? "bg-primaryColor text-white border-primaryColor"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setActiveTab("paid")}
-          className={`px-4 py-2 rounded-md border text-sm ${
-            activeTab === "paid"
-              ? "bg-primaryColor text-white border-primaryColor"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          Paid
-        </button>
-      </div>
-
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        {isSuccess && filteredOrders?.length > 0 ? (
-          filteredOrders.map((order) => (
-            <KotCard key={order.id} order={order} kotNo={order.id} />
+        {isSuccess && sortedOrders?.length > 0 ? (
+          sortedOrders.map((order, idx) => (
+            <KotCard
+              key={order.id}
+              order={order}
+              // Name older KOT earlier: sequential queue number across pages
+              kotNo={offset + idx + 1}
+            />
           ))
         ) : (
           <div className="col-span-full text-center text-gray-500">
@@ -120,7 +109,9 @@ export default function KotList() {
         >
           Prev
         </button>
-        <div className="text-sm text-gray-700">Page {query.page} of {totalPages}</div>
+        <div className="text-sm text-gray-700">
+          Page {query.page} of {totalPages}
+        </div>
         <button
           className={`px-3 py-2 rounded border ${
             query.page >= totalPages
