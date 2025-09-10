@@ -159,6 +159,11 @@ export default function AddEditOrder({
     });
   }, [productData, productSearchTerm]);
 
+  const productsToRender = useMemo(() => {
+    const list = Array.isArray(filteredProducts) ? filteredProducts : [];
+    return productSearchTerm ? list : list.slice(0, 6);
+  }, [filteredProducts, productSearchTerm]);
+
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
 
@@ -404,7 +409,7 @@ export default function AddEditOrder({
                         : "Top Selling Menu Items"}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                      {filteredProducts.map(
+                      {productsToRender.map(
                         (product: {
                           id: string;
                           name: string;
@@ -662,7 +667,7 @@ export default function AddEditOrder({
               </h3>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="mb-4 text-sm text-gray-700">
+              <div className="flex justify-between mb-4 text-sm text-gray-700">
                 <p className="mb-1">
                   <span className="font-medium">Order Type:</span>{" "}
                   {watchedOrderType}

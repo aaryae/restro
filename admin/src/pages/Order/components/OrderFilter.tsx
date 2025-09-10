@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Main style file
@@ -24,6 +24,17 @@ export default function OrderFilter({
 
   const today = new Date();
   const formatDate = (date: Date) => format(date, "yyyy-MM-dd");
+
+  useEffect(() => {
+    if (!queryStringOptions.start && !queryStringOptions.end) {
+      const todayDate = formatDate(today);
+      setQueryStringOptions((prev) => ({
+        ...prev,
+        start: todayDate,
+        end: todayDate,
+      }));
+    }
+  }, []);
 
   const handleTodayClick = () => {
     const todayDate = formatDate(today);
