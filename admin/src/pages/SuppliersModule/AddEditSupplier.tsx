@@ -97,10 +97,12 @@ export default function AddEditCustomer({
     if (isEditMode && supplierData && supplierData?.data) {
       reset({
         name: supplierData?.data.name,
+        supplier_code: supplierData?.data.supplier_code,
         address: supplierData?.data.address,
-        pan_number: supplierData?.data.pan_number,
-        point_of_contact: supplierData?.data.point_of_contact,
         contact_number: supplierData?.data.contact_number,
+        email: supplierData?.data.email,
+        pan_vat_number: supplierData?.data.pan_vat_number,
+        contact_person: supplierData?.data.contact_person,
       });
     }
   }, [supplierData, isEditMode, reset]);
@@ -128,27 +130,20 @@ export default function AddEditCustomer({
             error={errors.name?.message}
           />
           <Input
-            label="address "
-            placeholder="Enter address of entity "
+            label="Supplier Code"
+            placeholder="Enter supplier code (e.g., ABC123)"
             className="w-full"
-            {...register("address")}
-            error={errors.address?.message}
+            {...register("supplier_code")}
+            error={errors.supplier_code?.message}
           />
         </div>
         <div className="flex max-lg:flex-col gap-4">
           <Input
-            label="PAN Number"
-            placeholder="Enter PAN number "
+            label="Address"
+            placeholder="Enter address"
             className="w-full"
-            {...register("pan_number")}
-            error={errors.pan_number?.message}
-          />
-          <Input
-            label="Point of Contact"
-            placeholder="Enter point of contact"
-            className="w-full"
-            {...register("point_of_contact")}
-            error={errors.point_of_contact?.message}
+            {...register("address")}
+            error={errors.address?.message}
           />
           <Input
             label="Contact Number"
@@ -156,6 +151,30 @@ export default function AddEditCustomer({
             className="w-full"
             {...register("contact_number")}
             error={errors.contact_number?.message}
+          />
+        </div>
+        <div className="flex max-lg:flex-col gap-4">
+          <Input
+            label="Email Address"
+            placeholder="Enter email address"
+            type="email"
+            className="w-full"
+            {...register("email")}
+            error={errors.email?.message}
+          />
+          <Input
+            label="PAN/VAT Number"
+            placeholder="Enter PAN/VAT number"
+            className="w-full"
+            {...register("pan_vat_number")}
+            error={errors.pan_vat_number?.message}
+          />
+          <Input
+            label="Contact Person"
+            placeholder="Enter contact person name"
+            className="w-full"
+            {...register("contact_person")}
+            error={errors.contact_person?.message}
           />
         </div>
 

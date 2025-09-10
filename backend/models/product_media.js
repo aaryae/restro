@@ -7,6 +7,11 @@ module.exports = (sequelize) => {
         foreignKey: "productId",
         as: "product_media",
       });
+
+      ProductMedia.belongsTo(models.openItemModel, {
+        foreignKey: "openItemId",
+        as: "open_item",
+      });
     }
   }
 
@@ -20,7 +25,11 @@ module.exports = (sequelize) => {
       },
       productId: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+      },
+      openItemId: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
       imageUrl: {
         type: DataTypes.STRING,
