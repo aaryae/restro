@@ -23,7 +23,31 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      supplier_code: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
       address: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      contact_number: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+      },
+      email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isEmail: true,
+        },
+      },
+      pan_vat_number: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      contact_person: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -31,18 +55,6 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-      },
-      pan_number: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      point_of_contact: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      contact_number: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
       },
     },
     {
