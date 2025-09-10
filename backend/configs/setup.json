@@ -1280,6 +1280,52 @@
           "list": "Department"
         }
       ]
+    },
+    {
+      "title": "Open Item",
+      "key": "open-item",
+      "actions": [
+        {
+          "title": "Add Open Item",
+          "key": "add",
+          "clientPath": "/open-item",
+          "serverPath": "/open-item",
+          "requestMethod": "POST",
+          "list": "Open Item"
+        },
+        {
+          "title": "View Open Item",
+          "key": "view",
+          "clientPath": "/open-item/list",
+          "serverPath": "/open-item/list",
+          "requestMethod": "GET",
+          "list": "Open Item"
+        },
+        {
+          "title": "View One Open Item",
+          "key": "view-one",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "GET",
+          "list": "Open Item"
+        },
+        {
+          "title": "Edit Open Item",
+          "key": "edit",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "PUT",
+          "list": "Open Item"
+        },
+        {
+          "title": "Delete Open Item",
+          "key": "delete",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "DELETE",
+          "list": "Open Item"
+        }
+      ]
     }
   ]
 }

@@ -14,11 +14,6 @@ const openItemPostValidation = async (req, res, next) => {
       "string.min": "Name must be at least 1 character",
       "any.required": "Name is required",
     }),
-    slug: joi.string().trim().min(1).required().messages({
-      "string.base": "Slug must be a string",
-      "string.min": "Slug must be at least 1 character",
-      "any.required": "Slug is required",
-    }),
     alias: joi
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object())
