@@ -60,13 +60,18 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    let { limit, page, slug, category } = req.query;
+    let { limit, page, slug, category, name } = req.query;
     const filters = category ? { productCategoryId: category } : {};
     const include = [{ model: productMediaModel, as: "mediaArr" }];
 
     if (slug) {
       filters.slug = {
         [Op.like]: `%${slug}%`,
+      };
+    }
+    if (name) {
+      filters.name = {
+        [Op.like]: `%${name}%`,
       };
     }
     const order = [["order", "ASC"]];

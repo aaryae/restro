@@ -5,6 +5,7 @@ const {
   getById,
   updateTableStatus,
   deleteById,
+  moveOrders,
 } = require("../controllers/table-controller");
 const {
   createTableValidation,
@@ -23,6 +24,8 @@ const {
 router.post("/", authentication, authorization, createTableValidation, create);
 
 router.get("/list", authentication, authorization, paginationValidation, list);
+
+router.post("/move-orders", authentication, authorization, moveOrders);
 
 router.get("/:id", authentication, authorization, idValidation, getById);
 

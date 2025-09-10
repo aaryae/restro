@@ -187,10 +187,158 @@ const updateTableStatus = async (req) => {
   }
 };
 
+const moveOrders = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { sourceTableId, destinationTableId, orderIds } = req.body;
+
+    // Validate source and destination tables
+    const sourceTable = await tableModel.findByPk(+sourceTableId, {
+      include: [{ model: orderModel, as: "orders" }],
+      transaction,
+    });
+    const destinationTable = await tableModel.findByPk(+destinationTableId, {
+      transaction,
+    });
+
+    if (!sourceTable) {
+      await transaction.rollback();
+      return {
+        status: 404,
+        success: false,
+        message: "Source table not found",
+        data: null,
+      };
+    }
+
+    if (!destinationTable) {
+      await transaction.rollback();
+      return {
+        status: 404,
+        success: false,
+        message: "Destination table not found",
+        data: null,
+      };
+    }
+
+    // Validate destination table status
+    if (destinationTable.status !== "available") {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Destination table must be available to accept orders",
+        data: null,
+      };
+    }
+
+    // Determine which orders to move
+    let ordersToMove;
+    if (Array.isArray(orderIds) && orderIds.length > 0) {
+      // Partial move: validate specified order IDs
+      ordersToMove = await orderModel.findAll({
+        where: {
+          id: { [Op.in]: orderIds },
+          tableId: sourceTableId,
+        },
+        transaction,
+      });
+
+      if (ordersToMove.length !== orderIds.length) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message:
+            "Some specified orders are invalid or do not belong to the source table",
+          data: null,
+        };
+      }
+    } else {
+      // Move all orders
+      ordersToMove = sourceTable.orders || [];
+    }
+
+    if (ordersToMove.length === 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "No orders found to move from the source table",
+        data: null,
+      };
+    }
+
+    // Update orders with new tableId
+    await orderModel.update(
+      { tableId: destinationTableId },
+      {
+        where: { id: ordersToMove.map((order) => order.id) },
+        transaction,
+      },
+    );
+
+    // Update table statuses
+    if (sourceTable.orders.length === ordersToMove.length) {
+      // All orders moved, set source table to available
+      await sourceTable.update(
+        {
+          status: "available",
+          currentSessionId: null,
+          sessionStartTime: null,
+        },
+        { transaction },
+      );
+    }
+
+    // Set destination table to occupied
+    await destinationTable.update(
+      {
+        status: "occupied",
+        currentSessionId: generateUUID.generateUUID(),
+        sessionStartTime: new Date(),
+      },
+      { transaction },
+    );
+
+    // Fetch updated tables for response
+    const updatedSourceTable = await tableModel.findByPk(+sourceTableId, {
+      include: [{ model: orderModel, as: "orders" }],
+      transaction,
+    });
+    const updatedDestinationTable = await tableModel.findByPk(
+      +destinationTableId,
+      {
+        include: [{ model: orderModel, as: "orders" }],
+        transaction,
+      },
+    );
+
+    await transaction.commit();
+
+    return {
+      status: 200,
+      success: true,
+      message: `Successfully moved ${ordersToMove.length} order(s) from table ${sourceTable.tableNo} to table ${destinationTable.tableNo}`,
+      data: {
+        sourceTable: updatedSourceTable,
+        destinationTable: updatedDestinationTable,
+      },
+    };
+  } catch (error) {
+    console.error("MoveOrders error:", error);
+    await transaction.rollback().catch((rollbackError) => {
+      console.error("Rollback error:", rollbackError);
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   create,
   list,
   getById,
   updateTableStatus,
   deleteById,
+  moveOrders,
 };
