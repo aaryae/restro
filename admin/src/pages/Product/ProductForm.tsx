@@ -1,13 +1,12 @@
 import CustomDialog from "@/components/Dialog";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
-import { Controller, useForm } from "react-hook-form";
-import { FaEye, FaPlus } from "react-icons/fa";
+import { Controller, useForm, useFieldArray } from "react-hook-form";
+import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import AddEditProductCategory from "../ProductCategory/AddEditProductCategory";
 import MediaComponent from "@/components/MediaComponent";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
 import RichTextEditor from "@/components/RichTextEditor";
-import MultiInput from "@/components/MultipleInput";
 import Button from "@/components/Button";
 import useTranslation from "@/locale/useTranslation";
 import { ProductSchema } from "./schema";
@@ -50,8 +49,21 @@ export default function ProductForm() {
     resolver: zodResolver(ProductSchema),
     defaultValues: {
       productCategoryId: "",
+      departmentId: "",
+      hasVariant: false,
+      variants: [],
+      quantity: 0,
+      price: 0,
+      mediaArr: [],
     },
   });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "variants",
+  });
+
+  const hasVariant = watch("hasVariant");
 
   const {
     media,
@@ -92,45 +104,61 @@ export default function ProductForm() {
     if (!departmentData?.data) return [];
     return departmentData?.data?.data.map(
       (item: { id: number; name: string }) => ({
-        value: item.id,
+        value: String(item.id),
         label: `${item.name}`,
       }),
     );
   }, [departmentData]);
 
-  console.log(departmentOptions, "Department Options");
   useEffect(() => {
-    if (id !== null) {
-      if (product?.data) {
-        reset({
-          ...product?.data,
-          productCategoryId: String(product?.data?.productCategoryId),
-        });
-        const mediaImages = product?.data?.mediaArr.map((each) => {
-          return each.imageUrl;
-        });
-        setValue("mediaArr", mediaImages);
-        console.log(product?.data, "dataaaaaaa");
-        setSelectedOption(product?.data?.productCategoryId);
-      }
+    if (id && product?.data) {
+      reset({
+        ...product?.data,
+        productCategoryId: String(product?.data?.productCategoryId),
+        departmentId: String(product?.data?.departmentId),
+        variants: product?.data?.variants || [],
+        quantity: product?.data?.quantity || 0,
+        price: product?.data?.price || 0,
+        mediaArr: product?.data?.mediaArr?.map((each) => each.imageUrl) || [],
+      });
+      setSelectedOption(product?.data?.productCategoryId);
     } else {
-      reset();
+      reset({
+        productCategoryId: "",
+        departmentId: "",
+        hasVariant: false,
+        variants: [],
+        quantity: 0,
+        price: 0,
+        mediaArr: [],
+      });
     }
-  }, [success]);
+  }, [success, product, reset, setValue]);
 
   useEffect(() => {
     if (productCategorySuccess && productCategory?.data?.data) {
       const options = productCategory?.data?.data.map((each) => ({
         label: each.name,
-        value: each.id,
+        value: String(each.id),
       }));
       setProductCategoryOptions(options);
     }
   }, [productCategory, productCategorySuccess]);
 
-  const closeDialog = () => {
-    setDialogOpen(false);
-  };
+  useEffect(() => {
+    // Automatically add an initial variant when hasVariant is toggled to true
+    if (hasVariant && fields.length === 0) {
+      console.log("Appending initial variant");
+      append({ name: "", price: 0, quantity: 0, description: "" });
+    }
+    // Clear variants when hasVariant is toggled to false
+    if (!hasVariant && fields.length > 0) {
+      console.log("Clearing variants");
+      remove(fields.map((_, index) => index));
+    }
+  }, [hasVariant, fields, append, remove]);
+
+  const closeDialog = () => setDialogOpen(false);
 
   const openDrawer = (event) => {
     event.preventDefault();
@@ -139,11 +167,25 @@ export default function ProductForm() {
 
   const handleSelectComponent = (event) => {
     setValue("productCategoryId", event.target.value);
-    setSelectedOption(event.target.value);
+    setSelectedOption(Number(event.target.value));
   };
 
-  const onSubmit = async (data: any) => {
-    const body = { ...data };
+  const handleAddVariant = () => {
+    console.log("Adding new variant, current fields:", fields);
+    append({ name: "", price: 0, quantity: 0, description: "" });
+    console.log("New fields after append:", fields);
+  };
+
+  const onSubmit = async (data: ProductFormType) => {
+    const body = {
+      ...data,
+      price: data.hasVariant ? 0 : Number(data.price),
+      quantity: data.hasVariant ? 0 : Number(data.quantity),
+      productCategoryId: Number(data.productCategoryId),
+      departmentId: Number(data.departmentId),
+      variants: data.hasVariant ? data.variants : [],
+    };
+    console.log("Submitting payload:", body);
     try {
       const response = id
         ? await updateProduct({ body, id }).unwrap()
@@ -153,9 +195,12 @@ export default function ProductForm() {
         onSuccess: () => navigate(PRODUCT_LIST_ROUTE),
       });
     } catch (error) {
+      console.error("API Error:", error);
       handleError({ error, setError });
     }
   };
+
+  console.log("Form errors:", errors);
 
   return (
     <>
@@ -170,6 +215,7 @@ export default function ProductForm() {
           {...register("name")}
           error={errors.name?.message}
         />
+
         <Controller
           name="productCategoryId"
           control={control}
@@ -181,14 +227,14 @@ export default function ProductForm() {
                 className="w-1/4"
                 label="Product Category"
                 onChange={(event) => handleSelectComponent(event)}
+                error={errors.productCategoryId?.message}
               />
               <button
                 type="button"
                 className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
                 onClick={openDrawer}
               >
-                <FaEye />
-                Show
+                <FaEye /> Show
               </button>
               <CustomDialog
                 buttonTitle={
@@ -196,8 +242,7 @@ export default function ProductForm() {
                     type="button"
                     className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
                   >
-                    <FaPlus />
-                    Add
+                    <FaPlus /> Add
                   </button>
                 }
                 dialogOpen={dialogOpen}
@@ -228,7 +273,7 @@ export default function ProductForm() {
           )}
         />
 
-        <div className="flex flex-col items-start w-[20rem] ">
+        <div className="flex flex-col items-start w-[20rem]">
           <label className="input-label text-start mb-[2px]">
             Image <span className="text-red-500">*</span>
           </label>
@@ -255,13 +300,7 @@ export default function ProductForm() {
             <button
               type="button"
               className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={() =>
-                setValue("mediaArr", [], {
-                  shouldDirty: true,
-                  shouldTouch: true,
-                  shouldValidate: true,
-                })
-              }
+              onClick={() => setValue("mediaArr", [])}
             >
               Remove
             </button>
@@ -274,57 +313,113 @@ export default function ProductForm() {
             </button>
           </div>
         </div>
+
         {(!id || success) && (
           <RichTextEditor
             data={watch("description")}
-            onChange={(value) => setValue("description", value)} // Update value
+            onChange={(value) => setValue("description", value)}
             error={errors.description?.message}
             className="w-1/2"
           />
         )}
-        {/* <MultiInput
-          className="flex flex-col items-start w-1/2"
-          name="alias"
-          label="Alias"
-          control={control}
-          placeholder="Press Enter Alias"
-          error={errors.alias?.message}
-        /> */}
-        <Input
-          label="Quantity"
-          type="number"
-          className="w-1/2"
-          placeholder="Enter Quantity of Product"
-          {...register("quantity", { valueAsNumber: true })}
-          error={errors.quantity?.message}
-        />
-        {/* <Input
-          label="Order"
-          type="number"
-          className="w-1/2"
-          placeholder="Enter Quantity of Product"
-          {...register("order", { valueAsNumber: true })}
-          error={errors.order?.message}
-        /> */}
-        <Input
-          label="Price"
-          type="number"
-          step={0.01}
-          className="w-1/2"
-          placeholder="Enter Price of Product"
-          {...register("price", { valueAsNumber: true })}
-          error={errors.price?.message}
-        />
+
+        <div className="flex items-center gap-2">
+          <input type="checkbox" {...register("hasVariant")} />
+          <label>Has Variants?</label>
+        </div>
+
+        {!hasVariant && (
+          <>
+            <Input
+              label="Quantity"
+              type="number"
+              className="w-1/2"
+              placeholder="Enter Quantity"
+              {...register("quantity", { valueAsNumber: true })}
+              error={errors.quantity?.message}
+            />
+            <Input
+              label="Price"
+              type="number"
+              step={0.01}
+              className="w-1/2"
+              placeholder="Enter Price"
+              {...register("price", { valueAsNumber: true })}
+              error={errors.price?.message}
+            />
+          </>
+        )}
+
+        {hasVariant && (
+          <div className="flex flex-col gap-4 w-full md:w-2/3">
+            <label className="font-medium">Variants</label>
+            {fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="flex gap-4 items-end border p-2 rounded"
+              >
+                <Input
+                  label="Name"
+                  placeholder="Variant Name"
+                  {...register(`variants.${index}.name`)}
+                  error={errors.variants?.[index]?.name?.message}
+                />
+                <Input
+                  label="Price"
+                  type="number"
+                  step={0.01}
+                  placeholder="Variant Price"
+                  {...register(`variants.${index}.price`, {
+                    valueAsNumber: true,
+                  })}
+                  error={errors.variants?.[index]?.price?.message}
+                />
+                <Input
+                  label="Quantity"
+                  type="number"
+                  placeholder="Variant Quantity"
+                  {...register(`variants.${index}.quantity`, {
+                    valueAsNumber: true,
+                  })}
+                  error={errors.variants?.[index]?.quantity?.message}
+                />
+                <Input
+                  label="Description"
+                  placeholder="Variant Description"
+                  {...register(`variants.${index}.description`)}
+                  error={errors.variants?.[index]?.description?.message}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log("Removing variant at index:", index);
+                    remove(index);
+                  }}
+                  className="text-red-500"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="bg-primaryColor text-white px-4 py-2 rounded"
+              onClick={handleAddVariant}
+            >
+              + Add Variant
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-start">
           <Button type="submit" className="submit-button w-[5rem]">
-            {" "}
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
+            <div className="flex justify-center items-center gap-[0.5rem] text-white">
               {translate("Submit")}
             </div>
           </Button>
         </div>
       </form>
+
       <Drawer
         isOpen={drawerOpen}
         setIsOpen={setDrawerOpen}

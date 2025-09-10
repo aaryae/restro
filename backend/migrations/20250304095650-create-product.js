@@ -58,7 +58,7 @@ module.exports = {
       },
       price: {
         type: Sequelize.DECIMAL(10, 2),
-        allowNull: false,
+        allowNull: true,
         validate: { min: 0 },
       },
       stockStatus: {
@@ -69,6 +69,11 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,
+      },
+      hasVariant: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
       createdAt: {
         allowNull: false,

@@ -1,10 +1,9 @@
 const joi = require("joi");
-
 const httpStatus = require("http-status");
 const isEmpty = require("../helpers/is-empty-helper");
 const responseHelper = require("../helpers/response-helper");
-const { validateRequestBody } = require("../helpers/validator-helper");
 const messageConstant = require("../constants/message-constant");
+const { validateRequestBody } = require("../helpers/validator-helper");
 
 const productPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
@@ -15,10 +14,46 @@ const productPostValidation = async (req, res, next) => {
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object()),
     description: joi.string().required(),
-    // remaining_quantity: joi.number().required(),
     quantity: joi.number().integer().min(0).required(),
     price: joi.number().precision(2).min(0).required(),
     mediaArr: joi.array().items(joi.string()).optional(),
+    hasVariant: joi.boolean().default(false),
+    variants: joi.when("hasVariant", {
+      is: true,
+      then: joi
+        .array()
+        .items(
+          joi.object({
+            name: joi.string().trim().min(1).required().messages({
+              "string.base": "Variant name must be a string",
+              "string.min": "Variant name must be at least 1 character",
+              "any.required": "Variant name is required",
+            }),
+            description: joi.string().optional(),
+            price: joi.number().precision(2).min(0).required().messages({
+              "number.base": "Variant price must be a number",
+              "number.min": "Variant price must be non-negative",
+              "any.required": "Variant price is required",
+            }),
+            quantity: joi.number().integer().min(0).required().messages({
+              "number.base": "Variant quantity must be a number",
+              "number.integer": "Variant quantity must be an integer",
+              "number.min": "Variant quantity must be non-negative",
+              "any.required": "Variant quantity is required",
+            }),
+          }),
+        )
+        .min(1)
+        .required()
+        .messages({
+          "array.min":
+            "At least one variant is required when hasVariant is true",
+          "any.required": "Variants array is required when hasVariant is true",
+        }),
+      otherwise: joi.array().max(0).optional().messages({
+        "array.max": "Variants array must be empty when hasVariant is false",
+      }),
+    }),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -47,8 +82,44 @@ const productPutValidation = async (req, res, next) => {
     description: joi.string().optional(),
     quantity: joi.number().integer().min(0).optional(),
     price: joi.number().precision(2).min(0).optional(),
-    order: joi.number().precision(2).min(0).optional(),
+    order: joi.number().integer().min(0).optional(),
     mediaArr: joi.array().items(joi.string()).optional(),
+    hasVariant: joi.boolean().optional(),
+    variants: joi.when("hasVariant", {
+      is: true,
+      then: joi
+        .array()
+        .items(
+          joi.object({
+            name: joi.string().trim().min(1).required().messages({
+              "string.base": "Variant name must be a string",
+              "string.min": "Variant name must be at least 1 character",
+              "any.required": "Variant name is required",
+            }),
+            description: joi.string().optional(),
+            price: joi.number().precision(2).min(0).required().messages({
+              "number.base": "Variant price must be a number",
+              "number.min": "Variant price must be non-negative",
+              "any.required": "Variant price is required",
+            }),
+            quantity: joi.number().integer().min(0).required().messages({
+              "number.base": "Variant quantity must be a number",
+              "number.integer": "Variant quantity must be an integer",
+              "number.min": "Variant quantity must be non-negative",
+              "any.required": "Variant quantity is required",
+            }),
+          }),
+        )
+        .min(1)
+        .optional()
+        .messages({
+          "array.min":
+            "At least one variant is required when hasVariant is true",
+        }),
+      otherwise: joi.array().max(0).optional().messages({
+        "array.max": "Variants array must be empty when hasVariant is false",
+      }),
+    }),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -65,8 +136,8 @@ const productPutValidation = async (req, res, next) => {
   }
   return next();
 };
+
 const orderPutValidation = async (req, res, next) => {
-  console.log("hey");
   let joiModel = joi.object({
     orders: joi
       .array()

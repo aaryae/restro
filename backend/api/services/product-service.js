@@ -1,5 +1,10 @@
 const generalConstant = require("../../constants/general-constant");
-const { productModel, productMediaModel, sequelize } = require("../../models");
+const {
+  productModel,
+  productMediaModel,
+  productVariantModel,
+  sequelize,
+} = require("../../models");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
 // REDIS EXCLUSION
@@ -8,32 +13,34 @@ const create = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     req.body.slug = slugGenerator(req.body.name);
-    const product = await productModel.create(req.body, {
-      transaction,
-    });
-    console.log(product);
-    await product.update(
-      {
-        order: product?.id,
-      },
-      { transaction },
-    );
+    req.body.hasVariant =
+      req.body.hasVariant ||
+      (req.body.variants && req.body.variants.length > 0);
+
+    const product = await productModel.create(req.body, { transaction });
+
+    await product.update({ order: product?.id }, { transaction });
 
     const mediaArr = req.body.mediaArr;
     if (mediaArr?.length > 0) {
-      const bulkMedia = mediaArr?.map((each) => {
-        return {
-          imageUrl: each,
-          productId: product.id,
-        };
-      });
+      const bulkMedia = mediaArr.map((each) => ({
+        imageUrl: each,
+        productId: product.id,
+      }));
+      await productMediaModel.bulkCreate(bulkMedia, { transaction });
+    }
 
-      await productMediaModel.bulkCreate(bulkMedia, {
-        transaction,
-      });
+    const variants = req.body.variants;
+    if (req.body.hasVariant && variants?.length > 0) {
+      const bulkVariants = variants.map((variant) => ({
+        ...variant,
+        productId: product.id,
+      }));
+      await productVariantModel.bulkCreate(bulkVariants, { transaction });
     }
 
     if (!product) {
+      await transaction.rollback();
       return {
         ...generalConstant.EN.PRODUCT.CREATE_PRODUCT_FAILURE,
         data: null,
