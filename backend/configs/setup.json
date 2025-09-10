@@ -1230,6 +1230,56 @@
           "list": "Supplier"
         }
       ]
+    },
+    {
+      "title": "Department",
+      "key": "department",
+      "actions": [
+        {
+          "title": "Add Department",
+          "key": "add",
+          "clientPath": "/department",
+          "serverPath": "/department",
+          "requestMethod": "POST",
+          "list": "Department"
+        },
+
+        {
+          "title": "View Department",
+          "key": "view",
+          "clientPath": "/department/list",
+          "serverPath": "/department/list",
+          "requestMethod": "GET",
+          "list": "Department"
+        },
+
+        {
+          "title": "View One Department",
+          "key": "view-one",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "GET",
+          "list": "Department"
+        },
+
+        {
+          "title": "Edit Department",
+          "key": "edit",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "PUT",
+          "list": "Department"
+        },
+
+        {
+          "title": "Delete Department",
+          "key": "delete",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "DELETE",
+          "list": "Department"
+        }
+      ]
     }
   ]
 }
