@@ -64,6 +64,7 @@ export default function ProductForm() {
   });
 
   const hasVariant = watch("hasVariant");
+  const variants = watch("variants");
 
   const {
     media,
@@ -112,16 +113,27 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (id && product?.data) {
+      const price = product?.data?.hasVariant
+        ? 0
+        : Number(product?.data?.price || 0);
+      const quantity = product?.data?.hasVariant
+        ? 0
+        : Number(product?.data?.quantity || 0);
       reset({
         ...product?.data,
         productCategoryId: String(product?.data?.productCategoryId),
         departmentId: String(product?.data?.departmentId),
         variants: product?.data?.variants || [],
-        quantity: product?.data?.quantity || 0,
-        price: product?.data?.price || 0,
+        quantity,
+        price,
         mediaArr: product?.data?.mediaArr?.map((each) => each.imageUrl) || [],
       });
       setSelectedOption(product?.data?.productCategoryId);
+      console.log("Reset form with product data:", {
+        price,
+        quantity,
+        hasVariant: product?.data?.hasVariant,
+      });
     } else {
       reset({
         productCategoryId: "",
@@ -147,16 +159,15 @@ export default function ProductForm() {
 
   useEffect(() => {
     // Automatically add an initial variant when hasVariant is toggled to true
-    if (hasVariant && fields.length === 0) {
+    if (
+      hasVariant &&
+      fields.length === 0 &&
+      (!id || (id && !product?.data?.variants?.length))
+    ) {
       console.log("Appending initial variant");
       append({ name: "", price: 0, quantity: 0, description: "" });
     }
-    // Clear variants when hasVariant is toggled to false
-    if (!hasVariant && fields.length > 0) {
-      console.log("Clearing variants");
-      remove(fields.map((_, index) => index));
-    }
-  }, [hasVariant, fields, append, remove]);
+  }, [hasVariant, fields, append, id, product]);
 
   const closeDialog = () => setDialogOpen(false);
 
@@ -173,14 +184,13 @@ export default function ProductForm() {
   const handleAddVariant = () => {
     console.log("Adding new variant, current fields:", fields);
     append({ name: "", price: 0, quantity: 0, description: "" });
-    console.log("New fields after append:", fields);
   };
 
   const onSubmit = async (data: ProductFormType) => {
     const body = {
       ...data,
-      price: data.hasVariant ? 0 : Number(data.price),
-      quantity: data.hasVariant ? 0 : Number(data.quantity),
+      price: data.hasVariant ? 0 : Number(data.price || 0),
+      quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
       productCategoryId: Number(data.productCategoryId),
       departmentId: Number(data.departmentId),
       variants: data.hasVariant ? data.variants : [],
@@ -200,7 +210,10 @@ export default function ProductForm() {
     }
   };
 
+  const isHasVariantDisabled = id && product?.data?.variants?.length > 0;
+
   console.log("Form errors:", errors);
+  console.log("Form values:", getValues());
 
   return (
     <>
@@ -324,8 +337,18 @@ export default function ProductForm() {
         )}
 
         <div className="flex items-center gap-2">
-          <input type="checkbox" {...register("hasVariant")} />
+          <input
+            type="checkbox"
+            {...register("hasVariant")}
+            disabled={isHasVariantDisabled}
+          />
           <label>Has Variants?</label>
+          {isHasVariantDisabled && (
+            <span className="text-red-500 text-sm">
+              Cannot disable variants while editing a product with existing
+              variants. Manage variants below.
+            </span>
+          )}
         </div>
 
         {!hasVariant && (
