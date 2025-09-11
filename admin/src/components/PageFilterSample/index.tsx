@@ -1,11 +1,26 @@
 import { Controller } from "react-hook-form";
 import { Button } from "../ui/button";
+import { RotateCcw, Search } from "lucide-react";
+
+type FilterField = {
+  name: string;
+  label: string;
+  // Using React.ComponentType to support different field components
+  Component: React.ComponentType<any>;
+  control: any; // control from react-hook-form; kept generic for reuse across pages
+  options?: any;
+  className?: string;
+  icon?: React.ReactNode;
+  handleChange?: (...args: any[]) => void;
+  value?: any;
+};
 
 export default function PageFilterSample(
-  filterFields,
-  handleSubmit,
+  filterFields: FilterField[],
+  handleSubmit: any,
   // reset,
-  onFilter,
+  onFilter: (data: any) => void,
+  resetFn?: (values: any) => void,
 ) {
   const onSubmit = (data: any) => {
     onFilter(data);
@@ -29,7 +44,7 @@ export default function PageFilterSample(
             icon,
             handleChange,
             value,
-          }) => (
+          }: FilterField) => (
             <Controller
               key={name}
               name={name}
@@ -49,15 +64,31 @@ export default function PageFilterSample(
             />
           ),
         )}
-        <Button
-          type="submit"
-          className="bg-primaryColor h-full text-white px-6"
-        >
-          Search
-        </Button>
+        <div className="flex items-center gap-2 h-full">
+          {resetFn && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                resetFn({});
+                onFilter({});
+              }}
+              className="h-[42px] px-4"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" /> Reset
+            </Button>
+          )}
+          <Button
+            type="submit"
+            className="bg-primaryColor h-[42px] text-white px-6"
+          >
+            <Search className="w-4 h-4 mr-2" /> Search
+          </Button>
+        </div>
       </form>
     </div>
   );
 
   return { Component };
 }
+

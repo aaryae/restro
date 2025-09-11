@@ -56,8 +56,8 @@ const Revenue: React.FC = () => {
 
   const headers = [
     "S.N",
-    "Date in AD",
-    "Date in BS",
+    "Date (AD)",
+    "Date (BS)",
     "Member/Guest",
     "Payment Method",
     "Amount",
