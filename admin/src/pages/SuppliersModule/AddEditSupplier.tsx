@@ -15,7 +15,14 @@ import { SUPPLIER_LIST_ROUTE } from "@/routes/routeNames";
 import { useNavigate, useParams } from "react-router-dom";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Building2, IdCard, MapPin, Phone, UserRound } from "lucide-react";
+import {
+  Building2,
+  IdCard,
+  MapPin,
+  Phone,
+  UserRound,
+  Mail,
+} from "lucide-react";
 
 import {
   useCreateSupplierMutation,
@@ -30,7 +37,7 @@ interface Props {
   closeModal?: () => void;
 }
 
-export default function AddEditCustomer({
+export default function AddEditSupplier({
   isComponent = false,
   closeModal = () => {},
 }: Props) {
@@ -162,8 +169,8 @@ export default function AddEditCustomer({
               <Input
                 placeholder="Contact person name"
                 className="w-full pl-9"
-                {...register("point_of_contact")}
-                error={errors.point_of_contact?.message}
+                {...register("contact_person")}
+                error={errors.contact_person?.message}
               />
             </div>
 
@@ -184,16 +191,47 @@ export default function AddEditCustomer({
 
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                PAN Number
+                PAN/VAT Number
               </label>
               <div className="absolute left-3 top-10 text-gray-400">
                 <IdCard className="w-4 h-4" />
               </div>
               <Input
-                placeholder="Enter PAN number"
+                placeholder="Enter PAN/VAT number"
                 className="w-full pl-9"
-                {...register("pan_number")}
-                error={errors.pan_number?.message}
+                {...register("pan_vat_number")}
+                error={errors.pan_vat_number?.message}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Supplier Code
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <IdCard className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="ASP001"
+                className="w-full pl-9"
+                {...register("supplier_code")}
+                error={errors.supplier_code?.message}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <Mail className="w-4 h-4" />
+              </div>
+              <Input
+                type="email"
+                placeholder="supplier@example.com"
+                className="w-full pl-9"
+                {...register("email")}
+                error={errors.email?.message}
               />
             </div>
 
@@ -222,9 +260,9 @@ export default function AddEditCustomer({
             >
               Cancel
             </button>
-            <Button
+            <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-6"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
               disabled={isSubmitting || creatingSupplier || updatingSupplier}
             >
               <div className="flex justify-center items-center gap-2">
@@ -233,7 +271,7 @@ export default function AddEditCustomer({
                 )}
                 {translate(isEditMode ? "Update" : "Submit")}
               </div>
-            </Button>
+            </button>
           </div>
         </div>
       </form>
