@@ -9,6 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
+import PageFilterWrapper from "@/components/PageFilterWrapper";
+import PageFilterSample from "@/components/PageFilterSample";
+import { FilterInput } from "@/components/Input/filterInput";
+import { FilterSelect } from "@/components/Select/FilterSelect";
+import DateInput from "@/components/DateInput";
+import { useForm } from "react-hook-form";
+import { FileText, IdCard, UserRound } from "lucide-react";
 
 type PurchaseRow = {
   purchaseId: number;
@@ -44,22 +51,104 @@ const Purchase: React.FC = () => {
     [],
   );
 
+  // Filters (client-side for now)
+  const { control, handleSubmit, reset, setValue, getValues } = useForm({});
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  const handleDateChange = (value: Date) => {
+    setValue("dateAD", value);
+  };
+
+  const filterFields = useMemo(
+    () => [
+      {
+        name: "purchaseId",
+        label: "Purchase ID",
+        Component: FilterInput,
+        control,
+        icon: <IdCard className="w-4 h-4" />,
+      },
+      {
+        name: "dateAD",
+        label: "Date (AD)",
+        Component: DateInput,
+        control,
+        handleChange: handleDateChange,
+        value: getValues("dateAD"),
+      },
+      {
+        name: "particulars",
+        label: "Particulars",
+        Component: FilterInput,
+        control,
+        icon: <FileText className="w-4 h-4" />,
+      },
+      {
+        name: "vendorId",
+        label: "Vendor ID",
+        Component: FilterInput,
+        control,
+        icon: <UserRound className="w-4 h-4" />,
+      },
+      {
+        name: "paidOrCredit",
+        label: "Paid or Credit",
+        Component: FilterSelect,
+        className: "w-full",
+        options: [
+          { label: "Any", value: "" },
+          { label: "Paid", value: "Paid" },
+          { label: "Credit", value: "Credit" },
+        ],
+        control,
+      },
+    ],
+    [control, getValues],
+  );
+
+  const { Component } = PageFilterSample(
+    filterFields,
+    handleSubmit,
+    (query: Record<string, any>) => setFilters(query),
+    reset,
+  );
+
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
+  // Apply client-side filters
+  const filteredData = useMemo(() => {
+    return allData.filter((r) => {
+      const idOk = filters.purchaseId
+        ? String(r.purchaseId).includes(String(filters.purchaseId))
+        : true;
+      const dateOk = filters.dateAD
+        ? new Date(r.dateAD).toDateString() === new Date(filters.dateAD).toDateString()
+        : true;
+      const partOk = filters.particulars
+        ? r.particulars.toLowerCase().includes(String(filters.particulars).toLowerCase())
+        : true;
+      const vendorOk = filters.vendorId
+        ? String(r.vendorId).includes(String(filters.vendorId))
+        : true;
+      const paidOk = filters.paidOrCredit ? r.paidOrCredit === filters.paidOrCredit : true;
+      return idOk && dateOk && partOk && vendorOk && paidOk;
+    });
+  }, [allData, filters]);
+
   const start = (query.page - 1) * query.limit;
-  const pageRows = allData.slice(start, start + query.limit);
+  const pageRows = filteredData.slice(start, start + query.limit);
 
   const pagination: PaginationType = {
     page: query.page,
     limit: query.limit,
-    total: allData.length,
-    totalPages: Math.max(1, Math.ceil(allData.length / query.limit)),
+    total: filteredData.length,
+    totalPages: Math.max(1, Math.ceil(filteredData.length / query.limit)),
   };
 
   const headers = [
     "Purchase ID",
-    "Date of Purchase (AD)",
-    "Date of Purchase (BS)",
+    "Date (AD)",
+    "Date (BS)",
     "Particulars",
     "Category ID",
     "Vendor ID",
@@ -124,12 +213,13 @@ const Purchase: React.FC = () => {
         handleReloadButton={() => {}}
         hasSubText={false}
       />
+      <PageFilterWrapper title="Purchase Filters">{Component}</PageFilterWrapper>
       <Table
         headers={headers}
         data={data}
         pagination={pagination}
         handlePagination={(p) =>
-          handlePagination({ ...p, total: allData.length })
+          handlePagination({ ...p, total: filteredData.length })
         }
       />
     </>

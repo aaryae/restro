@@ -20,6 +20,9 @@ import {
   Settings,
   UserCheck,
   MenuIcon,
+  LogsIcon,
+  LandmarkIcon,
+  Sofa,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -35,7 +38,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 1,
     name: "Menu",
-    icon: <MenuIcon />,
+    icon: <LogsIcon />,
     menu: [
       {
         key: 1.1,
@@ -85,7 +88,6 @@ export const SideMenuList: SideListMenuType[] = [
       {
         key: 3.3,
         name: "Expense",
-        // label: "Expense",
         icon: <GiExpense />,
         path: "/admin/expense/list",
       },
@@ -100,7 +102,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 4,
     name: "Floors and Tables",
-    icon: <MdOutlineTableBar className="w-5 h-5" />,
+    icon: <Sofa />,
     menu: [
       {
         key: 4.1,
@@ -170,7 +172,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 8,
     name: "Account",
-    icon: <MdOutlineFactCheck />,
+    icon: <LandmarkIcon />,
     path: "/admin/account/list",
   },
 

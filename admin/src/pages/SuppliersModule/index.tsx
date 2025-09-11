@@ -17,6 +17,7 @@ import { FilterInput } from "@/components/Input/filterInput";
 import PageFilterSample from "@/components/PageFilterSample";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { SupplierFilterSchema, SupplierFilterType } from "./schema";
+import { MapPin, IdCard, UserRound, Phone } from "lucide-react";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import {
   useDeleteSupplierByIdMutation,
@@ -35,7 +36,7 @@ export default function Supplier() {
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const navigate = useNavigate();
 
-  const { control, handleSubmit } = useForm<SupplierFilterType>({
+  const { control, handleSubmit, reset } = useForm<SupplierFilterType>({
     resolver: zodResolver(SupplierFilterSchema),
   });
 
@@ -90,6 +91,35 @@ export default function Supplier() {
         label: "Name of Entity",
         Component: FilterInput,
         control,
+        icon: <UserRound className="w-4 h-4" />,
+      },
+      {
+        name: "address",
+        label: "Address",
+        Component: FilterInput,
+        control,
+        icon: <MapPin className="w-4 h-4" />,
+      },
+      {
+        name: "pan_number",
+        label: "PAN Number",
+        Component: FilterInput,
+        control,
+        icon: <IdCard className="w-4 h-4" />,
+      },
+      {
+        name: "point_of_contact",
+        label: "Point of Contact",
+        Component: FilterInput,
+        control,
+        icon: <IdCard className="w-4 h-4" />,
+      },
+      {
+        name: "contact_number",
+        label: "Contact Number",
+        Component: FilterInput,
+        control,
+        icon: <Phone className="w-4 h-4" />,
       },
     ],
 
@@ -99,8 +129,8 @@ export default function Supplier() {
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    // reset,
     (query: Record<string, any>) => setQueryString(query),
+    reset,
   );
 
   const url = buildQueryString("supplier/list", {

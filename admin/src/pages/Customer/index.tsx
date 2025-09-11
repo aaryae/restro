@@ -15,9 +15,7 @@ import ExportToExcel from "@/components/ExportToExcel";
 import usePagination from "@/hooks/usePagination";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { FilterInput } from "@/components/Input/filterInput";
-import { FilterSelect } from "@/components/Select/FilterSelect";
 import { buildQueryString } from "@/utils/generalHelper";
-import DateInput from "@/components/DateInput";
 import Spinner from "@/components/Spinner";
 import { CUSTOMER_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +23,7 @@ import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { CUSTOMER_URL } from "@/constants/apiUrlConstants";
+import { UserRound, Mail } from "lucide-react";
 
 export default function Customer() {
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
@@ -37,20 +36,13 @@ export default function Customer() {
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const navigate = useNavigate();
 
-  const { control, handleSubmit, reset, setValue, getValues } =
-    useForm<CustomerFilterType>({
-      resolver: zodResolver(CustomerFilterSchema),
-    });
+  const { control, handleSubmit, reset } = useForm<CustomerFilterType>({
+    resolver: zodResolver(CustomerFilterSchema),
+  });
 
   const [queryString, setQueryString] = useState<Record<string, any>>({});
 
-  const handleChange = (value: boolean) => {
-    setValue("userType", value);
-  };
-
-  const handleDateInput = (value: Date) => {
-    setValue("createdAt", value);
-  };
+  // No extra handlers needed since we removed User Type and Created Date filters
 
   const handleNewButton = (id: number | null) => {
     id === null
@@ -86,34 +78,15 @@ export default function Customer() {
         label: "First Name",
         Component: FilterInput,
         control,
+        icon: <UserRound className="w-4 h-4" />,
       },
       {
         name: "email",
         label: "Email",
         Component: FilterInput,
         control,
+        icon: <Mail className="w-4 h-4" />,
       },
-      // {
-      //   name: "userType",
-      //   label: "User Type",
-      //   Component: FilterSelect,
-      //   className: "w-full",
-      //   handleChange: handleChange,
-      //   value: getValues("userType"),
-      //   control,
-      //   options: [
-      //     { label: "Guest User", value: "guest" },
-      //     { label: "Customer", value: "customer" },
-      //   ],
-      // },
-      // {
-      //   name: "createdAt",
-      //   label: "Created Date",
-      //   Component: DateInput,
-      //   handleChange: handleDateInput,
-      //   value: getValues("createdAt"),
-      //   control,
-      // },
     ],
 
     [control],
@@ -122,8 +95,8 @@ export default function Customer() {
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    // reset,
     (query: Record<string, any>) => setQueryString(query),
+    reset,
   );
 
   const url = buildQueryString("customer-auth/list", {

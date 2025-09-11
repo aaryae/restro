@@ -43,7 +43,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
                 : "top-3 text-gray-500",
             )}
           >
-            <div className="h-4 w-4">{icon}</div>
+            <div className="h-4 w-4 mt-[4px]">{icon}</div>
           </div>
         )}
 

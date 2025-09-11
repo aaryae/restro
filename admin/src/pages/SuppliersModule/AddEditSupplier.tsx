@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from "react";
 
@@ -16,6 +15,7 @@ import { SUPPLIER_LIST_ROUTE } from "@/routes/routeNames";
 import { useNavigate, useParams } from "react-router-dom";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { Building2, IdCard, MapPin, Phone, UserRound } from "lucide-react";
 
 import {
   useCreateSupplierMutation,
@@ -114,61 +114,125 @@ export default function AddEditCustomer({
         />
       )}
       <form
-        className={`grid grid-cols-1 gap-[2rem] mt-[1rem] ${
-          isComponent ? "" : " form-container"
-        }`}
         onSubmit={handleSubmit(onSubmit)}
+        className="max-w-5xl mx-auto mt-4"
       >
-        <div className="flex max-lg:flex-col gap-4">
-          <Input
-            label="Name of Entity"
-            placeholder="Enter name of entity"
-            className="w-full"
-            {...register("name")}
-            error={errors.name?.message}
-          />
-          <Input
-            label="address "
-            placeholder="Enter address of entity "
-            className="w-full"
-            {...register("address")}
-            error={errors.address?.message}
-          />
-        </div>
-        <div className="flex max-lg:flex-col gap-4">
-          <Input
-            label="PAN Number"
-            placeholder="Enter PAN number "
-            className="w-full"
-            {...register("pan_number")}
-            error={errors.pan_number?.message}
-          />
-          <Input
-            label="Point of Contact"
-            placeholder="Enter point of contact"
-            className="w-full"
-            {...register("point_of_contact")}
-            error={errors.point_of_contact?.message}
-          />
-          <Input
-            label="Contact Number"
-            placeholder="Enter contact number"
-            className="w-full"
-            {...register("contact_number")}
-            error={errors.contact_number?.message}
-          />
-        </div>
-
-        <div className="flex justify-start">
-          <Button
-            type="submit"
-            className="submit-button w-[5rem]"
-            disabled={isSubmitting || creatingSupplier || updatingSupplier}
-          >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
-              {translate("Submit")}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Building2 className="text-blue-600" />
+              <div className="flex flex-col items-start">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {isEditMode ? "Supplier Details" : "New Supplier"}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Please provide accurate supplier information for billing and
+                  records.
+                </p>
+              </div>
             </div>
-          </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Name of Entity
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <UserRound className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="Acme Supplies Pvt. Ltd."
+                className="w-full pl-9"
+                {...register("name")}
+                error={errors.name?.message}
+                required
+              />
+            </div>
+
+            <div className="relative md:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Point of Contact
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <IdCard className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="Contact person name"
+                className="w-full pl-9"
+                {...register("point_of_contact")}
+                error={errors.point_of_contact?.message}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Number
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <Phone className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="9800000000"
+                className="w-full pl-9"
+                {...register("contact_number")}
+                error={errors.contact_number?.message}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                PAN Number
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <IdCard className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="Enter PAN number"
+                className="w-full pl-9"
+                {...register("pan_number")}
+                error={errors.pan_number?.message}
+              />
+            </div>
+
+            <div className="relative md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address
+              </label>
+              <div className="absolute left-3 top-10 text-gray-400">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="Street, City, State"
+                className="w-full pl-9"
+                {...register("address")}
+                error={errors.address?.message}
+              />
+            </div>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => (isComponent ? closeModal() : navigate(-1))}
+              className="px-4 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              className="bg-green-600 hover:bg-green-700 text-white px-6"
+              disabled={isSubmitting || creatingSupplier || updatingSupplier}
+            >
+              <div className="flex justify-center items-center gap-2">
+                {(isSubmitting || creatingSupplier || updatingSupplier) && (
+                  <span className="inline-block h-4 w-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+                )}
+                {translate(isEditMode ? "Update" : "Submit")}
+              </div>
+            </Button>
+          </div>
         </div>
       </form>
     </>
