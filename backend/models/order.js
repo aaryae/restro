@@ -20,11 +20,6 @@ module.exports = (sequelize) => {
         as: "table",
         onDelete: "SET NULL",
       });
-      Order.belongsTo(models.openItemModel, {
-        foreignKey: "openItemId",
-        as: "openItem",
-        onDelete: "SET NULL",
-      });
     }
   }
 
@@ -104,11 +99,9 @@ module.exports = (sequelize) => {
         { fields: ["customerId"] },
         { fields: ["tableId"] },
         { fields: ["sessionId"] },
-        { fields: ["billId"] },
         { fields: ["orderNumber"] },
         { fields: ["status"] },
         { fields: ["tableId", "sessionId"] },
-        { fields: ["tableId", "billId"] },
       ],
     },
   );

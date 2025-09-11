@@ -16,11 +16,6 @@ module.exports = {
           type: Sequelize.STRING,
           allowNull: false,
         },
-        slug: {
-          // Added to match slugGenerator in service
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
         alias: {
           type: Sequelize.JSON,
           allowNull: true,
@@ -44,10 +39,14 @@ module.exports = {
         createdAt: {
           allowNull: false,
           type: Sequelize.DATE,
+          defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
         },
         updatedAt: {
           allowNull: false,
           type: Sequelize.DATE,
+          defaultValue: Sequelize.literal(
+            "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          ),
         },
       },
       {

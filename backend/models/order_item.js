@@ -20,6 +20,12 @@ module.exports = (sequelize) => {
         as: "department",
         onDelete: "SET NULL",
       });
+
+      OrderItem.belongsTo(models.openItemModel, {
+        foreignKey: "openItemId",
+        as: "openItem",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -37,13 +43,16 @@ module.exports = (sequelize) => {
       },
       productId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
-      departmentId: {
+      openItemId: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      //make department required
+      departmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
       quantity: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -70,16 +79,68 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
       status: {
-        type: DataTypes.ENUM("pending", "preparing", "ready", "served","cancelled"),
+        type: DataTypes.ENUM(
+          "pending",
+          "preparing",
+          "ready",
+          "served",
+          "cancelled",
+        ),
         defaultValue: "pending",
       },
     },
     {
+      hooks: {
+        beforeValidate: (orderItem) => {
+          if (
+            (orderItem.productId && orderItem.openItemId) ||
+            (!orderItem.productId && !orderItem.openItemId)
+          ) {
+            throw new Error(
+              "OrderItem must reference exactly one of productId or openItemId.",
+            );
+          }
+          // Allow departmentId to be null for open-items
+          if (orderItem.openItemId && !orderItem.departmentId) {
+            orderItem.departmentId = null;
+          }
+        },
+        beforeCreate: (orderItem) => {
+          orderItem.subtotal =
+            orderItem.price * orderItem.quantity - (orderItem.discount || 0);
+        },
+        beforeUpdate: (orderItem) => {
+          orderItem.subtotal =
+            orderItem.price * orderItem.quantity - (orderItem.discount || 0);
+        },
+        afterCreate: async (orderItem) => {
+          if (orderItem.openItemId) {
+            const openItem = await sequelize.models.openItemModel.findByPk(
+              orderItem.openItemId,
+            );
+            if (openItem) {
+              const newQuantity = openItem.quantity - orderItem.quantity;
+              await openItem.update({
+                quantity: newQuantity,
+                stockStatus:
+                  newQuantity <= 0
+                    ? "out_of_stock"
+                    : newQuantity < 10
+                      ? "low_stock"
+                      : "in_stock",
+              });
+            }
+          }
+        },
+      },
       timestamps: true,
       sequelize,
       modelName: "OrderItem",
       tableName: "order_items",
-      indexes: [{ fields: ["orderId", "productId"] }],
+      indexes: [
+        { fields: ["orderId", "productId"] },
+        { fields: ["orderId", "openItemId"] },
+      ],
     },
   );
 

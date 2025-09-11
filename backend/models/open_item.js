@@ -7,9 +7,9 @@ module.exports = (sequelize) => {
         foreignKey: "openItemId",
         as: "mediaArr",
       });
-      OpenItem.hasMany(models.orderModel, {
+      OpenItem.hasMany(models.orderItemModel, {
         foreignKey: "openItemId",
-        as: "orders",
+        as: "orderItems",
       });
     }
   }
@@ -26,11 +26,6 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      slug: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
       alias: {
         type: DataTypes.JSON,
       },
@@ -40,7 +35,7 @@ module.exports = (sequelize) => {
       quantity: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        validate: { min: 1 },
+        validate: { min: 0 },
       },
       price: {
         type: DataTypes.DECIMAL(10, 2),
