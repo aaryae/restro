@@ -37,14 +37,14 @@ const list = async (req) => {
     let { limit, page } = req.query;
     const filters = {};
     const include = [];
-    const orders = [["order", "ASC"]];
+    const order = [["order", "ASC"]];
 
     const result = await paginate(productCategoryModel, {
       limit,
       page,
       filters,
       include,
-      orders,
+      order,
     });
 
     if (!result) {

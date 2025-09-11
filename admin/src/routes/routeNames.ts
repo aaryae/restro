@@ -27,6 +27,9 @@ export const PRODUCT_CATEGORY_ADD_ROUTE = "/admin/product-category/";
 export const PRODUCT_LIST_ROUTE = "/admin/product/list";
 export const PRODUCT_ADD_ROUTE = "/admin/product/";
 
+export const OPEN_ITEM_LIST_ROUTE = "/admin/open-item/list";
+export const OPEN_ITEM_ADD_ROUTE = "/admin/open-item/";
+
 export const PRODUCT_VARIANT_LIST_ROUTE = "/admin/product-variant/list";
 export const PRODUCT_VARIANT_ADD_ROUTE = "/admin/product-variant/";
 

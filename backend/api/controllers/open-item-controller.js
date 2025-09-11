@@ -1,10 +1,12 @@
-const tableService = require("../services/table-service");
+// make all changes in open-item-controller.js
+const openItemService = require("../services/open-item-service");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
 
 const create = async (req, res, next) => {
   try {
-    const result = await tableService.create(req);
+    const result = await openItemService.create(req);
+
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -22,7 +24,8 @@ const create = async (req, res, next) => {
 
 const list = async (req, res, next) => {
   try {
-    const result = await tableService.list(req);
+    const result = await openItemService.list(req);
+
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -40,7 +43,7 @@ const list = async (req, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
-    const result = await tableService.getById(req);
+    const result = await openItemService.getById(req);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -56,9 +59,9 @@ const getById = async (req, res, next) => {
   }
 };
 
-const updateTableStatus = async (req, res, next) => {
+const update = async (req, res, next) => {
   try {
-    const result = await tableService.updateTableStatus(req);
+    const result = await openItemService.updateById(req);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -74,27 +77,9 @@ const updateTableStatus = async (req, res, next) => {
   }
 };
 
-const deleteById = async (req, res, next) => {
+const deleteOpenItem = async (req, res, next) => {
   try {
-    const result = await tableService.deleteById(req);
-    return responseHelper.sendResponse(
-      res,
-      result.status,
-      result.success,
-      result.data,
-      result.errors,
-      result.message,
-      result.token,
-    );
-  } catch (err) {
-    logger.error(err);
-    next(err);
-  }
-};
-
-const moveOrders = async (req, res, next) => {
-  try {
-    const result = await tableService.moveOrders(req);
+    const result = await openItemService.deleteById(req);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -112,9 +97,8 @@ const moveOrders = async (req, res, next) => {
 
 module.exports = {
   create,
-  list,
   getById,
-  updateTableStatus,
-  deleteById,
-  moveOrders,
+  list,
+  deleteOpenItem,
+  update,
 };

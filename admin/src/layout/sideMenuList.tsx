@@ -177,17 +177,23 @@ export const SideMenuList: SideListMenuType[] = [
   },
 
   {
-    key: 10,
+    key: 9,
     name: "Settings",
     icon: <Settings />,
     path: "/admin/settings",
     menu: [
       {
-        key: 10.1,
+        key: 9.1,
         name: "Company Settings",
         path: "/admin/settings/list",
         icon: <MdDisplaySettings />,
       },
     ],
+  },
+  {
+    key: 10,
+    name: "Open Item",
+    icon: <MdOutlineFactCheck />,
+    path: "/admin/open-item/list",
   },
 ];

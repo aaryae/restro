@@ -40,6 +40,8 @@ import Account from "@/pages/Account";
 import Expenses from "@/pages/Expenses";
 import AddEditExpense from "@/pages/Expenses/AddEditExpense";
 import AddEditAccount from "@/pages/Account/AddEditAccount";
+import OpenItem from "@/pages/OpenItem";
+import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
 
 export const adminLinks = [
   {
@@ -129,6 +131,18 @@ export const adminLinks = [
   {
     path: "/product/:id",
     element: <AddEditProduct />,
+  },
+  {
+    path: "/open-item/list",
+    element: <OpenItem />,
+  },
+  {
+    path: "/open-item/",
+    element: <AddEditOpenItem />,
+  },
+  {
+    path: "/open-item/:id",
+    element: <AddEditOpenItem />,
   },
   {
     path: "/product-variant/list",

@@ -12,13 +12,13 @@ module.exports = (sequelize) => {
         foreignKey: "productId",
         as: "mediaArr",
       });
-      // Product.hasMany(models.orderItemModel, {
-      //   foreignKey: "productId",
-      //   as: "orderItems",
-      // });
       Product.belongsTo(models.departmentModel, {
         foreignKey: "departmentId",
         as: "department",
+      });
+      Product.hasMany(models.productVariantModel, {
+        foreignKey: "productId",
+        as: "variants",
       });
     }
   }
@@ -64,7 +64,7 @@ module.exports = (sequelize) => {
       },
       price: {
         type: DataTypes.FLOAT,
-        allowNull: false,
+        allowNull: true,
       },
       stockStatus: {
         type: DataTypes.ENUM("in_stock", "out_of_stock", "low_stock"),
@@ -74,6 +74,11 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
+      },
+      hasVariant: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
       },
     },
     {

@@ -1230,6 +1230,102 @@
           "list": "Supplier"
         }
       ]
+    },
+    {
+      "title": "Department",
+      "key": "department",
+      "actions": [
+        {
+          "title": "Add Department",
+          "key": "add",
+          "clientPath": "/department",
+          "serverPath": "/department",
+          "requestMethod": "POST",
+          "list": "Department"
+        },
+
+        {
+          "title": "View Department",
+          "key": "view",
+          "clientPath": "/department/list",
+          "serverPath": "/department/list",
+          "requestMethod": "GET",
+          "list": "Department"
+        },
+
+        {
+          "title": "View One Department",
+          "key": "view-one",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "GET",
+          "list": "Department"
+        },
+
+        {
+          "title": "Edit Department",
+          "key": "edit",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "PUT",
+          "list": "Department"
+        },
+
+        {
+          "title": "Delete Department",
+          "key": "delete",
+          "clientPath": "/department/:id",
+          "serverPath": "/department/:id",
+          "requestMethod": "DELETE",
+          "list": "Department"
+        }
+      ]
+    },
+    {
+      "title": "Open Item",
+      "key": "open-item",
+      "actions": [
+        {
+          "title": "Add Open Item",
+          "key": "add",
+          "clientPath": "/open-item",
+          "serverPath": "/open-item",
+          "requestMethod": "POST",
+          "list": "Open Item"
+        },
+        {
+          "title": "View Open Item",
+          "key": "view",
+          "clientPath": "/open-item/list",
+          "serverPath": "/open-item/list",
+          "requestMethod": "GET",
+          "list": "Open Item"
+        },
+        {
+          "title": "View One Open Item",
+          "key": "view-one",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "GET",
+          "list": "Open Item"
+        },
+        {
+          "title": "Edit Open Item",
+          "key": "edit",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "PUT",
+          "list": "Open Item"
+        },
+        {
+          "title": "Delete Open Item",
+          "key": "delete",
+          "clientPath": "/open-item/:id",
+          "serverPath": "/open-item/:id",
+          "requestMethod": "DELETE",
+          "list": "Open Item"
+        }
+      ]
     }
   ]
 }

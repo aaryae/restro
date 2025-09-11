@@ -97,10 +97,12 @@ export default function AddEditCustomer({
     if (isEditMode && supplierData && supplierData?.data) {
       reset({
         name: supplierData?.data.name,
+        supplier_code: supplierData?.data.supplier_code,
         address: supplierData?.data.address,
-        pan_number: supplierData?.data.pan_number,
-        point_of_contact: supplierData?.data.point_of_contact,
         contact_number: supplierData?.data.contact_number,
+        email: supplierData?.data.email,
+        pan_vat_number: supplierData?.data.pan_vat_number,
+        contact_person: supplierData?.data.contact_person,
       });
     }
   }, [supplierData, isEditMode, reset]);

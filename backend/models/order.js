@@ -20,6 +20,11 @@ module.exports = (sequelize) => {
         as: "table",
         onDelete: "SET NULL",
       });
+      Order.belongsTo(models.openItemModel, {
+        foreignKey: "openItemId",
+        as: "openItem",
+        onDelete: "SET NULL",
+      });
     }
   }
 

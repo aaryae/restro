@@ -188,8 +188,8 @@ export default function Supplier() {
   const tableHeaders = [
     "Name of Entity",
     "Address of Entity",
-    "PAN Number",
-    "Point of Contact",
+    "PAN/VAT Number",
+    "Contact Person",
     "Contact Number",
     "Action",
   ];
@@ -201,14 +201,14 @@ export default function Supplier() {
             id,
             name,
             address,
-            pan_number,
-            point_of_contact,
+            pan_vat_number,
+            contact_person,
             contact_number,
           }: any) => [
             name,
             address,
-            pan_number,
-            point_of_contact,
+            pan_vat_number,
+            contact_person,
             contact_number,
 
             <div
