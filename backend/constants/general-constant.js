@@ -1484,5 +1484,139 @@ module.exports = {
         message: "Package BANNERS Delete Failure",
       },
     },
+    PURCHASE: {
+      CREATE_PURCHASE_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Purchase created successfully",
+      },
+      CREATE_PURCHASE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to create purchase",
+      },
+      PURCHASE_LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchases retrieved successfully",
+      },
+      PURCHASE_LIST_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve purchases",
+      },
+      PURCHASE_NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Purchase not found",
+      },
+      PURCHASE_GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase retrieved successfully",
+      },
+      UPDATE_PURCHASE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase updated successfully",
+      },
+      UPDATE_PURCHASE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to update purchase",
+      },
+      COMPLETE_PURCHASE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase completed successfully",
+      },
+      COMPLETE_PURCHASE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to complete purchase",
+      },
+      PAY_PURCHASE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Credit payment recorded successfully",
+      },
+      PAY_PURCHASE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to record credit payment",
+      },
+      CANCEL_PURCHASE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase cancelled successfully",
+      },
+      CANCEL_PURCHASE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to cancel purchase",
+      },
+      UNPAID_CREDITS_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Unpaid credit purchases retrieved successfully",
+      },
+      UNPAID_CREDITS_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve unpaid credit purchases",
+      },
+    },
+    PURCHASE_CATEGORY: {
+      CREATE_CATEGORY_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Purchase category created successfully",
+      },
+      CREATE_CATEGORY_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to create purchase category",
+      },
+      CATEGORY_LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase categories retrieved successfully",
+      },
+      CATEGORY_LIST_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve purchase categories",
+      },
+      CATEGORY_NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Purchase category not found",
+      },
+      CATEGORY_GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase category retrieved successfully",
+      },
+      UPDATE_CATEGORY_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase category updated successfully",
+      },
+      UPDATE_CATEGORY_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to update purchase category",
+      },
+      DELETE_CATEGORY_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Purchase category deleted successfully",
+      },
+      DELETE_CATEGORY_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to delete purchase category",
+      },
+    },
   },
 };
