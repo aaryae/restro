@@ -28,6 +28,12 @@ const {
 
 router.post("/", authentication, authorization, purchasePostValidation, create);
 router.get("/list", paginationValidation, list);
+router.get(
+  "/unpaid-credits",
+  paginationValidation,
+  unpaidCreditsValidation,
+  getUnpaidCredits,
+);
 router.get("/:id", idValidation, getById);
 router.put(
   "/:id",
@@ -60,12 +66,6 @@ router.put(
   idValidation,
   cancelPurchaseValidation,
   cancelPurchase,
-);
-router.get(
-  "/unpaid-credits",
-  paginationValidation,
-  unpaidCreditsValidation,
-  getUnpaidCredits,
 );
 
 module.exports = router;

@@ -363,7 +363,10 @@ const completePurchase = async (req) => {
       const account = await accountModel.findByPk(purchase.accountId, {
         transaction,
       });
-      if (!account || account.currentBalance < purchase.totalAmount) {
+      if (
+        !account ||
+        Number(account.currentBalance) < Number(purchase.totalAmount)
+      ) {
         await transaction.rollback();
         return {
           status: 400,
@@ -439,10 +442,23 @@ const recordCreditPayment = async (req) => {
       };
     }
 
-    const account = await accountModel.findByPk(purchase.accountId, {
+    // Determine payment account: use req.body.paymentAccountId if provided, else purchase.accountId
+    const paymentAccountId = req.body.paymentAccountId || purchase.accountId;
+    const account = await accountModel.findByPk(paymentAccountId, {
       transaction,
     });
-    if (!account || account.currentBalance < purchase.totalAmount) {
+
+    if (!account || account.status !== "active") {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Invalid or inactive payment account",
+        data: null,
+      };
+    }
+
+    if (Number(account.currentBalance) < Number(purchase.totalAmount)) {
       await transaction.rollback();
       return {
         status: 400,
@@ -452,16 +468,19 @@ const recordCreditPayment = async (req) => {
       };
     }
 
+    // Update purchase with payment details
     await purchase.update(
       {
         paidByUserId: req.user.id,
         paymentDate: new Date(),
+        paymentAccountId: paymentAccountId, // Record the actual payment account used
       },
       { transaction },
     );
 
+    // Deduct from the payment account
     await account.decrement("currentBalance", {
-      by: purchase.totalAmount,
+      by: Number(purchase.totalAmount),
       transaction,
     });
 

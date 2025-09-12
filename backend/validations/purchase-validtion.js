@@ -110,7 +110,7 @@ const purchasePutValidation = async (req, res, next) => {
 };
 
 const completePurchaseValidation = async (req, res, next) => {
-  const joiModel = Joi.object({}); // No body required
+  const joiModel = Joi.object({});
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(
@@ -127,7 +127,12 @@ const completePurchaseValidation = async (req, res, next) => {
 };
 
 const payPurchaseValidation = async (req, res, next) => {
-  const joiModel = Joi.object({}); // No body required
+  const joiModel = Joi.object({
+    paymentAccountId: Joi.number().integer().positive().optional().messages({
+      "number.base": "Payment account ID must be a number",
+      "number.positive": "Payment account ID must be positive",
+    }),
+  });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(
