@@ -172,7 +172,6 @@ export default function AddEditSupplier({
                 {...register("contact_person")}
                 error={errors.contact_person?.message}
                 {...register("contact_person")}
-                error={errors.contact_person?.message}
               />
             </div>
 
