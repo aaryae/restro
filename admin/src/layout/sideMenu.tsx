@@ -5,12 +5,7 @@ import { SetStateAction, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { checkViewAccessList } from "@/utils/accessHelper";
 import useTranslation from "@/locale/useTranslation";
-import {
-  Container,
-  LayoutDashboard,
-  PanelLeft,
-  ShoppingCart,
-} from "lucide-react";
+import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import { IMAGE_BASE_URL } from "@/constants";
 export default function SideMenu({
@@ -94,7 +89,7 @@ export default function SideMenu({
         )}
 
         <PanelLeft
-          onClick={() => setToggleState((cur) => !cur)}
+          onClick={() => setToggleState && setToggleState((cur) => !cur)}
           className="cursor-pointer mt-4"
         />
       </div>
@@ -203,7 +198,7 @@ export default function SideMenu({
                       </div>
                       {sideMenuOpen && (
                         <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
-                          {each.name}
+                          {translate(each.label || each.name)}
                         </p>
                       )}
                     </div>
@@ -251,7 +246,7 @@ export default function SideMenu({
                         </div>
                         {sideMenuOpen && (
                           <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
-                            {each.name}
+                            {translate(each.label || each.name)}
                           </p>
                         )}
                       </div>

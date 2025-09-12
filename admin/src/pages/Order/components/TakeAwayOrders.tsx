@@ -154,7 +154,7 @@ function TakeAwayOrders() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-center gap-3 mt-6">
+        <div className="flex items-center justify-between gap-3 mt-6">
           <button
             type="button"
             className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"

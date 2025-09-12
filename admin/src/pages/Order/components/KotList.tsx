@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store/store";
 import { useGetApiQuery } from "@/redux/services/crudApi";
@@ -6,6 +6,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import usePagination from "@/hooks/usePagination";
 import Button from "@/components/Button";
+import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
 
 type OrderItem = {
@@ -20,7 +21,7 @@ type Order = {
   id: number;
   orderType?: string;
   orderStartTime?: string | Date;
-  table?: { tableNo?: string; name?: string } | null;
+  table?: { id?: number; tableNo?: string; name?: string } | null;
   createdBy?: { name?: string; table?: { name?: string } } | null;
   orderItems?: OrderItem[];
   totalAmount?: number;
@@ -168,6 +169,8 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
   const totalDish = items.length;
   const totalQty = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
 
+  const [openCheckout, setOpenCheckout] = useState(false);
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm ">
       <div ref={contentRef} className="p-5 h-fit kot-print ">
@@ -239,15 +242,26 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
 
         <div className="text-center mt-6 text-gray-700">Thank You!</div>
       </div>
-      <div className="flex justify-center mb-4 no-print">
+      <div className="flex justify-center gap-3 mb-4 no-print">
         <Button
-          className="bg-primaryColor text-white px-8 py-[10px] rounded-[4px]"
+          className="bg-primaryColor text-white px-6 py-[10px] rounded-[4px]"
           handleClick={reactToPrintFn}
         >
-          {" "}
           Print
         </Button>
+        <Button
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
+          handleClick={() => setOpenCheckout(true)}
+        >
+          Checkout
+        </Button>
       </div>
+      <CheckoutModal
+        isOpen={openCheckout}
+        onClose={() => setOpenCheckout(false)}
+        tableId={Number(order?.table?.id || 0)}
+        orderId={order.id}
+      />
     </div>
   );
 }

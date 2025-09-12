@@ -23,6 +23,7 @@ import {
   LogsIcon,
   LandmarkIcon,
   Sofa,
+  HandPlatter,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -172,6 +173,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 8,
     name: "Account",
+    label: "Cash and Banks",
     icon: <LandmarkIcon />,
     path: "/admin/account/list",
   },
@@ -193,7 +195,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 10,
     name: "Open Item",
-    icon: <MdOutlineFactCheck />,
+    icon: <HandPlatter />,
     path: "/admin/open-item/list",
   },
 ];

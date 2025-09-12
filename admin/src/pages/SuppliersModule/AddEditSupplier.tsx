@@ -161,7 +161,7 @@ export default function AddEditSupplier({
 
             <div className="relative md:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Point of Contact
+                Contact Person
               </label>
               <div className="absolute left-3 top-10 text-gray-400">
                 <IdCard className="w-4 h-4" />
@@ -169,6 +169,8 @@ export default function AddEditSupplier({
               <Input
                 placeholder="Contact person name"
                 className="w-full pl-9"
+                {...register("contact_person")}
+                error={errors.contact_person?.message}
                 {...register("contact_person")}
                 error={errors.contact_person?.message}
               />

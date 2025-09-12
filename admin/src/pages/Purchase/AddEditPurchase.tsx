@@ -425,8 +425,7 @@ const AddEditPurchase: React.FC = () => {
                       <th className="p-2 border">H.S Code</th>
                       <th className="p-2 border">Qty</th>
                       <th className="p-2 border">Rate</th>
-                      <th className="p-2 border">Discount %</th>
-                      <th className="p-2 border">Subtotal</th>
+                      <th className="p-2 border">Amount</th>
                       <th className="p-2 border">Action</th>
                     </tr>
                   </thead>
@@ -487,20 +486,7 @@ const AddEditPurchase: React.FC = () => {
                               })}
                             />
                           </td>
-                          <td className="p-2 border">
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              className="border rounded px-2 py-1 w-24 bg-white"
-                              {...register(
-                                `items.${idx}.discountPercent` as const,
-                                {
-                                  valueAsNumber: true,
-                                },
-                              )}
-                            />
-                          </td>
+
                           <td className="p-2 border text-right w-28">
                             {lineTotal.toFixed(2)}
                           </td>
