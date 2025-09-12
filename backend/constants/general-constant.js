@@ -1618,5 +1618,104 @@ module.exports = {
         message: "Failed to delete purchase category",
       },
     },
+    EXPENSE: {
+      CREATE_EXPENSE_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Expense created successfully",
+      },
+      CREATE_EXPENSE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to create expense",
+      },
+      EXPENSE_LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expenses retrieved successfully",
+      },
+      EXPENSE_LIST_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve expenses",
+      },
+      EXPENSE_NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Expense not found",
+      },
+      EXPENSE_GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense retrieved successfully",
+      },
+      UPDATE_EXPENSE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense updated successfully",
+      },
+      UPDATE_EXPENSE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to update expense",
+      },
+      PAY_EXPENSE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Credit payment recorded successfully",
+      },
+      PAY_EXPENSE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to record credit payment",
+      },
+      CANCEL_EXPENSE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense cancelled successfully",
+      },
+      CANCEL_EXPENSE_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to cancel expense",
+      },
+      UNPAID_CREDITS_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Unpaid credit expenses retrieved successfully",
+      },
+      UNPAID_CREDITS_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve unpaid credit expenses",
+      },
+    },
+    EXPENSE_CATEGORY: {
+      CREATE_EXPENSE_CATEGORY_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Expense category created successfully",
+      },
+      EXPENSE_CATEGORY_LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense categories retrieved successfully",
+      },
+      EXPENSE_CATEGORY_NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Expense category not found",
+      },
+      UPDATE_EXPENSE_CATEGORY_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense category updated successfully",
+      },
+      DELETE_EXPENSE_CATEGORY_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense category deleted successfully",
+      },
+    },
   },
 };
