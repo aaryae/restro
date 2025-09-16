@@ -16,40 +16,17 @@ import { FilterSelect } from "@/components/Select/FilterSelect";
 import DateInput from "@/components/DateInput";
 import { useForm } from "react-hook-form";
 import { FileText, IdCard, UserRound } from "lucide-react";
+import { buildQueryString } from "@/utils/generalHelper";
+import { PURCHASE_URL } from "@/constants/apiUrlConstants";
+import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 
-type PurchaseRow = {
-  purchaseId: number;
-  dateAD: string;
-  dateBS: string;
-  particulars: string;
-  categoryId: number; // FK
-  vendorId: number; // FK
-  amount: number;
-  paidOrCredit: "Paid" | "Credit";
-  paymentSourceId: number;
-};
+// Removed unused PurchaseRow mock type
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  // Demo Mock data; replace with API integration later
-  const allData: PurchaseRow[] = useMemo(
-    () => [
-      {
-        purchaseId: 1,
-        dateAD: "2025-09-01",
-        dateBS: "2082-05-16",
-        particulars: "Raw Vegetables",
-        categoryId: 10,
-        vendorId: 501,
-        amount: 12500,
-        paidOrCredit: "Paid",
-        paymentSourceId: 3001,
-      },
-    ],
-    [],
-  );
+  const [deleteApi] = useDeleteApiMutation();
 
   // Filters (client-side for now)
   const { control, handleSubmit, reset, setValue, getValues } = useForm({});
@@ -115,34 +92,59 @@ const Purchase: React.FC = () => {
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
-  // Apply client-side filters
-  const filteredData = useMemo(() => {
-    return allData.filter((r) => {
-      const idOk = filters.purchaseId
-        ? String(r.purchaseId).includes(String(filters.purchaseId))
-        : true;
-      const dateOk = filters.dateAD
-        ? new Date(r.dateAD).toDateString() === new Date(filters.dateAD).toDateString()
-        : true;
-      const partOk = filters.particulars
-        ? r.particulars.toLowerCase().includes(String(filters.particulars).toLowerCase())
-        : true;
-      const vendorOk = filters.vendorId
-        ? String(r.vendorId).includes(String(filters.vendorId))
-        : true;
-      const paidOk = filters.paidOrCredit ? r.paidOrCredit === filters.paidOrCredit : true;
-      return idOk && dateOk && partOk && vendorOk && paidOk;
+  // Build server-side query with filters
+  const serverUrl = useMemo(() => {
+    const search: Record<string, any> = {};
+    if (filters?.purchaseId) search.id = filters.purchaseId;
+    if (filters?.dateAD)
+      search.date = new Date(filters.dateAD).toISOString().slice(0, 10);
+    if (filters?.particulars) search.particulars = filters.particulars;
+    if (filters?.vendorId) search.vendorId = filters.vendorId;
+    if (filters?.paidOrCredit) search.paymentStatus = filters.paidOrCredit;
+    return buildQueryString("purchase/list", {
+      page: query.page,
+      limit: query.limit,
+      search,
     });
-  }, [allData, filters]);
+  }, [filters, query.page, query.limit]);
 
-  const start = (query.page - 1) * query.limit;
-  const pageRows = filteredData.slice(start, start + query.limit);
+  const { data: apiData, refetch } = useGetApiQuery({ url: serverUrl });
+
+  const accountUrl = useMemo(
+    () => buildQueryString("account/list", { page: 1, limit: 1000 }),
+    [],
+  );
+  const { data: accountsResp } = useGetApiQuery({ url: accountUrl });
+  const accountsMap = useMemo(() => {
+    const map = new Map<number, string>();
+    const rows: any[] =
+      (accountsResp as any)?.data?.data || (accountsResp as any)?.data || [];
+    rows.forEach((a: any) => {
+      if (a?.id != null)
+        map.set(Number(a.id), a?.name || a?.accountName || `#${a.id}`);
+    });
+    return map;
+  }, [accountsResp]);
+
+  const rows: any[] = useMemo(() => {
+    const d = (apiData as any)?.data;
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    if (Array.isArray(d?.data)) return d.data;
+    return [];
+  }, [apiData]);
+
+  const total: number = useMemo(() => {
+    const d = (apiData as any)?.data;
+    if (typeof d?.total === "number") return d.total;
+    return rows.length;
+  }, [apiData, rows.length]);
 
   const pagination: PaginationType = {
     page: query.page,
     limit: query.limit,
-    total: filteredData.length,
-    totalPages: Math.max(1, Math.ceil(filteredData.length / query.limit)),
+    total: total,
+    totalPages: Math.max(1, Math.ceil(total / query.limit)),
   };
 
   const headers = [
@@ -150,11 +152,11 @@ const Purchase: React.FC = () => {
     "Date (AD)",
     "Date (BS)",
     "Particulars",
-    "Category ID",
-    "Vendor ID",
+    "Category",
+    "Supplier",
     "Amount",
     "Paid or Credit",
-    "Payment Source ID",
+    "Payment Source",
     "Actions",
   ];
 
@@ -169,39 +171,108 @@ const Purchase: React.FC = () => {
     setOpen(true);
   };
 
-  const handleDelete = () => {
-    // Mock delete: close modal. Hook up API when backend is ready.
-    console.log("Delete purchase id:", deleteId);
-    setOpen(false);
+  const handleDelete = async () => {
+    if (!deleteId) return setOpen(false);
+    try {
+      await deleteApi(`${PURCHASE_URL}${deleteId}`).unwrap();
+      setOpen(false);
+      setDeleteId(null);
+      refetch();
+    } catch (e) {
+      setOpen(false);
+    }
   };
 
-  const data = pageRows.map((r) => [
-    r.purchaseId,
-    r.dateAD,
-    r.dateBS,
-    r.particulars,
-    r.categoryId,
-    r.vendorId,
-    CurrencySign + r.amount,
-    r.paidOrCredit,
-    r.paymentSourceId,
-    <div
-      className="flex items-center justify-center gap-3"
-      key={`act-${r.purchaseId}`}
-    >
-      <MdEditSquare
-        size={18}
-        className="text-[#0090DD] hover:text-blue-800"
-        onClick={() => handleNewUser(r.purchaseId)}
-      />
-      <DeleteModal
-        open={open}
-        setOpen={setOpen}
-        handleDeleteTrigger={() => handleDeleteTrigger(r.purchaseId)}
-        handleConfirmDelete={handleDelete}
-      />
-    </div>,
-  ]);
+  const data = rows.map((r: any) => {
+    const id = r?.id ?? r?.purchaseId ?? r?.purchase_id;
+    const dateAD = (r?.invoiceDate || r?.date || r?.createdAt || "")
+      .toString()
+      .slice(0, 10);
+    const dateBS = r?.dateBS || "-";
+    const particulars = (() => {
+      const items: any[] = r?.purchaseItems || r?.items || [];
+      if (items.length > 0) {
+        const first = items[0];
+        return first?.particulars || r?.particulars || "-";
+      }
+      return r?.particulars || "-";
+    })();
+    const categoryName = (() => {
+      const items: any[] = r?.purchaseItems || r?.items || [];
+      const cat = items?.[0]?.category || r?.category || r?.purchaseCategory;
+      return (
+        cat?.name ||
+        r?.categoryName ||
+        (items?.[0]?.categoryId != null
+          ? `#${items[0].categoryId}`
+          : r?.categoryId
+            ? `#${r.categoryId}`
+            : "-")
+      );
+    })();
+    const supplierName = (() => {
+      const sup = r?.supplier || r?.vendor;
+      return (
+        sup?.name ||
+        r?.supplierName ||
+        r?.vendorName ||
+        (r?.supplierId || r?.vendorId
+          ? `#${r?.supplierId ?? r?.vendorId}`
+          : "-")
+      );
+    })();
+    const amount = r?.totalAmount ?? r?.total ?? r?.amount ?? 0;
+    
+    const rawPaymentTerms =
+      r?.paymentTerms ??
+      r?.paymentTerm ??
+      r?.payment_terms ??
+      r?.payment_status ??
+      r?.paymentStatus ??
+      r?.status ??
+      "-";
+    const paymentTermsDisplay =
+      typeof rawPaymentTerms === "string" && rawPaymentTerms !== "-"
+        ? `${rawPaymentTerms}`.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+        : "-";
+    const paymentSourceName = (() => {
+      const acc = r?.account || r?.paymentSource;
+      const direct = acc?.name || r?.accountName || r?.paymentSourceName;
+      if (direct) return direct;
+      const accId = r?.accountId ?? r?.paymentSourceId;
+      if (accId != null) {
+        const name = accountsMap.get(Number(accId));
+        if (name) return name;
+        return `#${accId}`;
+      }
+      return "-";
+    })();
+
+    return [
+      id,
+      dateAD,
+      dateBS,
+      particulars,
+      categoryName,
+      supplierName,
+      `${CurrencySign}${Number(amount).toFixed(2)}`,
+      paymentTermsDisplay,
+      paymentSourceName,
+      <div className="flex items-center justify-center gap-3" key={`act-${id}`}>
+        <MdEditSquare
+          size={18}
+          className="text-[#0090DD] hover:text-blue-800"
+          onClick={() => handleNewUser(id)}
+        />
+        <DeleteModal
+          open={open}
+          setOpen={setOpen}
+          handleDeleteTrigger={() => handleDeleteTrigger(id)}
+          handleConfirmDelete={handleDelete}
+        />
+      </div>,
+    ];
+  });
 
   return (
     <>
@@ -210,17 +281,17 @@ const Purchase: React.FC = () => {
         hasAddButton={true}
         newButtonText="Add New Purchase"
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={() => {}}
+        handleReloadButton={() => refetch()}
         hasSubText={false}
       />
-      <PageFilterWrapper title="Purchase Filters">{Component}</PageFilterWrapper>
+      <PageFilterWrapper title="Purchase Filters">
+        {Component}
+      </PageFilterWrapper>
       <Table
         headers={headers}
         data={data}
         pagination={pagination}
-        handlePagination={(p) =>
-          handlePagination({ ...p, total: filteredData.length })
-        }
+        handlePagination={(p) => handlePagination({ ...p, total })}
       />
     </>
   );

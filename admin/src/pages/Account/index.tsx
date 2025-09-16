@@ -214,7 +214,7 @@ const Account: React.FC = () => {
 
   return (
     <>
-      <PageTitle title="Accounts & Banks" />
+      <PageTitle title="Cash & Banks" />
       <div className="flex justify-end items-center gap-[1rem]">
         <PageHeader
           hasAddButton={true}

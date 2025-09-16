@@ -112,8 +112,8 @@ export default function RevenueFilter({
                 onClick={handleAllClick}
                 className={`px-4 py-2 rounded-md transition-colors ${
                   isAllSelected
-                    ? "bg-blue-700 text-white"
-                    : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+                    ? "bg-primaryColor text-white"
+                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
                 }`}
               >
                 All
@@ -123,8 +123,8 @@ export default function RevenueFilter({
                 onClick={handleTodayClick}
                 className={`px-4 py-2 rounded-md transition-colors ${
                   isTodaySelected
-                    ? "bg-blue-700 text-white"
-                    : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+                    ? "bg-primaryColor text-white"
+                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
                 }`}
               >
                 Today
@@ -134,8 +134,8 @@ export default function RevenueFilter({
                 onClick={handleThisWeekClick}
                 className={`px-4 py-2 rounded-md transition-colors ${
                   isThisWeekSelected
-                    ? "bg-blue-700 text-white"
-                    : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+                    ? "bg-primaryColor text-white"
+                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
                 }`}
               >
                 This Week
@@ -146,8 +146,8 @@ export default function RevenueFilter({
                   onClick={() => setShowDatePicker(!showDatePicker)}
                   className={`px-4 py-2 rounded-md transition-colors ${
                     isCustomSelected
-                      ? "bg-blue-700 text-white"
-                      : "border border-blue-500 text-blue-500 bg-white shadow-sm hover:bg-blue-50"
+                      ? "bg-primaryColor text-white"
+                      : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
                   }`}
                 >
                   Custom Range

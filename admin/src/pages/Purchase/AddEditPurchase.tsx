@@ -8,17 +8,26 @@ import { ImageInputUI } from "@/components/ImageComponent";
 import { useAppSelector } from "@/redux/store/hooks";
 import Select from "@/components/Select";
 import { useNavigate, useParams } from "react-router-dom";
-import { PURCHASE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
+import { buildQueryString } from "@/utils/generalHelper";
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useGetListAllSupplierQuery } from "@/redux/services/supplier";
+import {
+  useCreatePurchaseMutation,
+  useGetPurchaseByIdQuery,
+  useUpdatePurchaseByIdMutation,
+  useCompletePurchaseByIdMutation,
+} from "@/redux/services/purchase";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { PURCHASE_URL } from "@/constants/apiUrlConstants";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  PurchaseSchema,
+  type PurchaseFormInput,
+  type PurchaseItemInput,
+} from "./schema";
 
-type ItemRow = {
-  particulars: string;
-  hsCode?: string;
-  qty: number | string;
-  rate: number | string;
-  discountPercent: number | string; // default 0
-  taxPercent: number | string; // default 13
-};
+type ItemRow = PurchaseItemInput;
 
 // Simple dropdown components (replace with real data sources as needed)
 type IdChangeHandler = (val: string) => void;
@@ -30,12 +39,16 @@ function AccountDropdown({
   value: string;
   onChange: IdChangeHandler;
 }) {
-  const options = [
-    { label: "Select Account", value: "" },
-    { label: "Main Cash", value: "acc_cash" },
-    { label: "Bank - A", value: "acc_bank_a" },
-    { label: "Bank - B", value: "acc_bank_b" },
-  ];
+  // Fetch active accounts
+  const url = buildQueryString("account/list", { page: 1, limit: 100 });
+  const { data, isFetching, isSuccess } = useGetApiQuery({ url });
+  const rows: any[] = isSuccess ? (data?.data?.data ?? []) : [];
+  const options = [{ label: "Select Account", value: "" }].concat(
+    rows.map((a: any) => ({
+      label: `${a.name} (${a.accountType})`,
+      value: String(a.id),
+    })),
+  );
   return (
     <select
       className="border rounded px-3 py-2 bg-white"
@@ -44,6 +57,7 @@ function AccountDropdown({
       title="Account"
       aria-label="Account"
     >
+      {isFetching && <option value="">Loading accounts...</option>}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
@@ -85,18 +99,7 @@ function UserDropdown({
   );
 }
 
-type FormValues = {
-  invoiceDate: string; // yyyy-MM-dd from input type=date
-  supplierName: string;
-  panVat: string;
-  invoiceNumber: string;
-  items: ItemRow[];
-  purchaseCategoryId?: string;
-  billImage?: string;
-  paymentTerm: "cash" | "cheque" | "credit" | "others" | "";
-  accountId?: string; // shown when paymentTerm = others
-  paidByUserId?: string;
-};
+type FormValues = PurchaseFormInput;
 
 const AddEditPurchase: React.FC = () => {
   const { id } = useParams();
@@ -110,10 +113,10 @@ const AddEditPurchase: React.FC = () => {
     reset,
     formState: { errors },
   } = useForm<FormValues>({
+    resolver: zodResolver(PurchaseSchema),
     defaultValues: {
       invoiceDate: new Date().toISOString().slice(0, 10),
-      supplierName: "",
-      panVat: "",
+      supplierId: "",
       invoiceNumber: "",
       items: [
         {
@@ -126,7 +129,7 @@ const AddEditPurchase: React.FC = () => {
         },
       ],
       purchaseCategoryId: "",
-      paymentTerm: "",
+      paymentTerm: "cash",
       accountId: "",
       paidByUserId: "",
     },
@@ -135,21 +138,42 @@ const AddEditPurchase: React.FC = () => {
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const navigate = useNavigate();
 
-  const purchaseCategoryOptions = useMemo(
-    () => [
-      { label: "Fruits and Vegetables", value: "1" },
-      { label: "Coffee Beans", value: "2" },
-      { label: "Bakery Items", value: "3" },
-      { label: "Cigarettes and Hukka", value: "4" },
-      { label: "Soft Drinks", value: "5" },
-      { label: "Hard Drinks", value: "6" },
-      { label: "Coffee Related other Items", value: "7" },
-    ],
-    [],
-  );
+  // API
+  const [createPurchase, { isLoading: creating }] = useCreatePurchaseMutation();
+  const [updatePurchase, { isLoading: updating }] =
+    useUpdatePurchaseByIdMutation();
+  const [completePurchase] = useCompletePurchaseByIdMutation();
+  const { data: purchaseData, isSuccess: purchaseFetched } =
+    useGetPurchaseByIdQuery(id as string, { skip: !isEdit });
+
+  // Suppliers dropdown
+  const supplierUrl = buildQueryString("supplier/list", {
+    page: 1,
+    limit: 100,
+  });
+  const { data: suppliersResp, isSuccess: suppliersOk } =
+    useGetListAllSupplierQuery({ url: supplierUrl });
+  const supplierOptions = useMemo(() => {
+    const rows: any[] = suppliersOk ? (suppliersResp?.data ?? []) : [];
+    return [{ label: "Select Supplier", value: "" }].concat(
+      rows.map((s: any) => ({ label: s.name, value: String(s.id) })),
+    );
+  }, [suppliersOk, suppliersResp]);
+
+  // Purchase Categories dropdown
+  const pcUrl = buildQueryString("purchase-category/list", {
+    page: 1,
+    limit: 100,
+  });
+  const { data: pcResp, isSuccess: pcOk } = useGetApiQuery({ url: pcUrl });
+  const purchaseCategoryOptions = useMemo(() => {
+    const rows: any[] = pcOk ? (pcResp?.data?.data ?? []) : [];
+    return [{ label: "Select Category", value: "" }].concat(
+      rows.map((c: any) => ({ label: c.name, value: String(c.id) })),
+    );
+  }, [pcOk, pcResp]);
 
   const items = watch("items") as ItemRow[];
-  const paymentTerm = watch("paymentTerm");
   const username = useAppSelector((s) => (s as any).auth?.username) as
     | string
     | undefined;
@@ -178,7 +202,7 @@ const AddEditPurchase: React.FC = () => {
     const discountAmt = (base * discountPercent) / 100;
     const taxable = base - discountAmt;
     const taxAmt = (taxable * taxPercent) / 100;
-    const lineTotal = taxable + taxAmt;
+    const lineTotal = taxable + taxAmt; // tax included in line
     return { base, discountAmt, taxAmt, lineTotal };
   };
 
@@ -195,55 +219,82 @@ const AddEditPurchase: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!isEdit) return;
-    // Mock existing purchase data for edit mode
-    const mock: FormValues = {
-      invoiceDate: "2025-09-01",
-      supplierName: "Sample Supplier",
-      panVat: "123456789",
-      invoiceNumber: "INV-1001",
-      items: [
-        {
-          particulars: "Raw Vegetables",
-          hsCode: "0709",
-          qty: 5,
-          rate: 100,
-          discountPercent: 0,
-          taxPercent: 13,
-        },
-        {
-          particulars: "Fruits",
-          hsCode: "0810",
-          qty: 3,
-          rate: 150,
-          discountPercent: 0,
-          taxPercent: 13,
-        },
-      ],
-      purchaseCategoryId: "1",
+    if (!isEdit || !purchaseFetched || !purchaseData?.data) return;
+    const p = purchaseData.data as any;
+    reset({
+      invoiceDate:
+        p.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+      supplierId: String(p.supplierId || ""),
+      invoiceNumber: p.invoiceNumber || "",
+      items: (p.purchaseItems || []).map((it: any) => ({
+        particulars: it.particulars || "",
+        hsCode: it.hsCode || "",
+        qty: it.quantity || 0,
+        rate: it.rate || 0,
+      })),
+      purchaseCategoryId: p.purchaseItems?.[0]?.categoryId
+        ? String(p.purchaseItems[0].categoryId)
+        : "",
       billImage: "",
-      paymentTerm: "cash",
-      accountId: "",
-      paidByUserId: "",
-    };
-    reset(mock);
-  }, [isEdit, reset]);
-
-  const onSubmit = (data: FormValues) => {
-    const detailedItems = data.items.map((r) => {
-      const { base, discountAmt, taxAmt, lineTotal } = computeRow(r);
-      return { ...r, base, discountAmt, taxAmt, total: lineTotal };
+      paymentTerm: (p.paymentTerms as any) || "cash",
+      accountId: p.accountId ? String(p.accountId) : "",
+      paidByUserId: p.paidByUserId ? String(p.paidByUserId) : "",
     });
-    const payload = {
-      ...data,
-      items: detailedItems,
-      totals,
-      billImage: data.billImage,
-      id: isEdit ? id : undefined,
-    };
+  }, [isEdit, purchaseFetched, purchaseData, reset]);
 
-    console.log("Purchase form submit payload:", payload);
-    navigate(-1);
+  const onSubmit = async (data: FormValues) => {
+    const payload = {
+      supplierId: Number(data.supplierId),
+      invoiceDate: new Date(data.invoiceDate).toISOString(),
+      invoiceNumber: data.invoiceNumber,
+      paymentTerms: data.paymentTerm === "" ? "cash" : data.paymentTerm,
+      accountId:
+        data.paymentTerm === "credit"
+          ? Number(data.accountId || 0)
+          : Number(data.accountId),
+      items: data.items.map((r) => ({
+        categoryId: data.purchaseCategoryId
+          ? Number(data.purchaseCategoryId)
+          : undefined,
+        hsCode: r.hsCode || null,
+        particulars: r.particulars,
+        quantity: Number(r.qty) || 0,
+        rate: Number(r.rate) || 0,
+      })),
+      notes: undefined,
+    } as any;
+
+    try {
+      if (isEdit) {
+        const response = await updatePurchase({
+          url: `${PURCHASE_URL}${id}`,
+          body: payload,
+        }).unwrap();
+        handleResponse({
+          res: { success: true, msg: response?.message },
+          onSuccess: () => navigate(-1),
+        });
+      } else {
+        const response = await createPurchase({
+          url: `${PURCHASE_URL}`,
+          body: payload,
+        }).unwrap();
+
+        // Auto-complete non-credit purchase to deduct from the selected account
+        const createdId = (response as any)?.data?.id;
+        const paymentTerms = payload.paymentTerms;
+        if (createdId && paymentTerms !== "credit") {
+          await completePurchase(createdId).unwrap();
+        }
+
+        handleResponse({
+          res: { success: true, msg: response?.message },
+          onSuccess: () => navigate(-1),
+        });
+      }
+    } catch (error: any) {
+      handleError({ error });
+    }
   };
 
   return (
@@ -251,10 +302,10 @@ const AddEditPurchase: React.FC = () => {
       <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col items-center space-y-6"
+        className="flex flex-col space-y-6"
       >
-        <div className="flex gap-6 items-start">
-          <div className="flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+          <div className="w-full lg:flex-1 flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
             <div>
               <h3 className="text-base font-semibold text-gray-900 mb-2">
                 Invoice Details
@@ -283,36 +334,22 @@ const AddEditPurchase: React.FC = () => {
                 )}
               </div>
               <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
-                  Name of Supplier
-                </label>
-                <input
-                  type="text"
-                  placeholder="Supplier name"
+                <label className="text-sm text-gray-700 mb-1">Supplier</label>
+                <select
                   className="border rounded px-3 py-2 bg-white"
-                  {...register("supplierName", {
-                    required: "Supplier name is required",
+                  {...register("supplierId", {
+                    required: "Supplier is required",
                   })}
-                />
-                {errors.supplierName && (
+                >
+                  {supplierOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.supplierId && (
                   <span className="text-red-600 text-sm mt-1">
-                    {errors.supplierName.message}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
-                  PAN/VAT Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="PAN/VAT"
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("panVat", { required: "PAN/VAT is required" })}
-                />
-                {errors.panVat && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.panVat.message}
+                    {errors.supplierId.message}
                   </span>
                 )}
               </div>
@@ -363,6 +400,11 @@ const AddEditPurchase: React.FC = () => {
                   </div> */}
                 </div>
               </div>
+              {errors.purchaseCategoryId && (
+                <span className="text-red-600 text-sm mt-1">
+                  {errors.purchaseCategoryId.message as string}
+                </span>
+              )}
               <div className="flex flex-col">
                 <label className="text-sm text-gray-700 mb-1">
                   Payment Terms
@@ -373,35 +415,36 @@ const AddEditPurchase: React.FC = () => {
                   title="Payment terms"
                   aria-label="Payment terms"
                 >
-                  <option value="">Select</option>
                   <option value="cash">Cash</option>
                   <option value="cheque">Cheque</option>
                   <option value="credit">Credit</option>
-                  <option value="others">Others</option>
                 </select>
               </div>
-              {paymentTerm === "others" && (
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1">
-                    Select Account
-                  </label>
-                  <AccountDropdown
-                    onChange={(val) => setValue("accountId", val)}
-                    value={watch("accountId") || ""}
-                  />
-                </div>
-              )}
+              <div className="flex flex-col">
+                <label className="text-sm text-gray-700 mb-1">Account</label>
+                <AccountDropdown
+                  onChange={(val) =>
+                    setValue("accountId", val, { shouldDirty: true })
+                  }
+                  value={watch("accountId") || ""}
+                />
+                {(!watch("accountId") || watch("accountId") === "") && (
+                  <span className="text-xs text-red-600 mt-1">
+                    Account is required
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Items table */}
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <h2 className="text-sm font-semibold text-gray-900">
                   Purchase Items
                 </h2>
                 <button
                   type="button"
-                  className="rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90"
+                  className="w-full sm:w-auto rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90"
                   onClick={() =>
                     append({
                       particulars: "",
@@ -416,17 +459,16 @@ const AddEditPurchase: React.FC = () => {
                   + Add Item
                 </button>
               </div>
-              <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-                <table className="min-w-full">
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                <table className="min-w-[900px] lg:min-w-full w-full">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="p-2 border">S.N</th>
-                      <th className="p-2 border">Particulars</th>
                       <th className="p-2 border">H.S Code</th>
+                      <th className="p-2 border">Particulars</th>
                       <th className="p-2 border">Qty</th>
                       <th className="p-2 border">Rate</th>
-                      <th className="p-2 border">Discount %</th>
-                      <th className="p-2 border">Subtotal</th>
+                      <th className="p-2 border">Amount</th>
                       <th className="p-2 border">Action</th>
                     </tr>
                   </thead>
@@ -470,7 +512,7 @@ const AddEditPurchase: React.FC = () => {
                               type="number"
                               min={0}
                               step="1"
-                              className="border rounded px-2 py-1 w-24 bg-white"
+                              className="border rounded px-2 py-1 w-20 sm:w-24 bg-white"
                               {...register(`items.${idx}.qty` as const, {
                                 valueAsNumber: true,
                               })}
@@ -481,26 +523,13 @@ const AddEditPurchase: React.FC = () => {
                               type="number"
                               min={0}
                               step="0.01"
-                              className="border rounded px-2 py-1 w-28 bg-white"
+                              className="border rounded px-2 py-1 w-24 sm:w-28 bg-white"
                               {...register(`items.${idx}.rate` as const, {
                                 valueAsNumber: true,
                               })}
                             />
                           </td>
-                          <td className="p-2 border">
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              className="border rounded px-2 py-1 w-24 bg-white"
-                              {...register(
-                                `items.${idx}.discountPercent` as const,
-                                {
-                                  valueAsNumber: true,
-                                },
-                              )}
-                            />
-                          </td>
+
                           <td className="p-2 border text-right w-28">
                             {lineTotal.toFixed(2)}
                           </td>
@@ -509,6 +538,8 @@ const AddEditPurchase: React.FC = () => {
                               type="button"
                               onClick={() => remove(idx)}
                               disabled={fields.length === 1}
+                              title="Remove row"
+                              aria-label="Remove row"
                             >
                               <Trash className="text-red-600" />
                             </button>
@@ -576,7 +607,7 @@ const AddEditPurchase: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="w-full max-w-xl shrink-0">
+          <div className="w-full lg:max-w-xl shrink-0">
             <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl">
               {/* Accent gradient blob */}
               <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
@@ -646,10 +677,11 @@ const AddEditPurchase: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex gap-3 mr-[81rem]">
+        <div className="w-full flex justify-start gap-3">
           <button
             type="submit"
-            className="px-4 py-2 bg-green-600 text-white rounded"
+            className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
+            disabled={creating || updating}
           >
             {isEdit ? "Update" : "Submit"}
           </button>

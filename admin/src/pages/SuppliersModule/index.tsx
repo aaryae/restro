@@ -101,15 +101,15 @@ export default function Supplier() {
         icon: <MapPin className="w-4 h-4" />,
       },
       {
-        name: "pan_number",
+        name: "pan_vat_number",
         label: "PAN Number",
         Component: FilterInput,
         control,
         icon: <IdCard className="w-4 h-4" />,
       },
       {
-        name: "point_of_contact",
-        label: "Point of Contact",
+        name: "contact_person",
+        label: "Name of Supplier",
         Component: FilterInput,
         control,
         icon: <IdCard className="w-4 h-4" />,
@@ -242,14 +242,14 @@ export default function Supplier() {
           ({
             name,
             address,
-            pan_number,
-            point_of_contact,
+            pan_vat_number,
+            contact_person,
             contact_number,
           }: any) => [
             name,
             address,
-            pan_number,
-            point_of_contact,
+            pan_vat_number,
+            contact_person,
             contact_number,
           ],
         )

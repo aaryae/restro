@@ -38,7 +38,8 @@ export default function Dashboard() {
       <div className="w-full flex justify-between">
         <div className="flex flex-col">
           <div className="text-left text-2xl font-bold">
-            Good {getPartOfDay()}, {userName}
+            Good {getPartOfDay()},{" "}
+            <span className="text-green-500">{userName}</span>
           </div>
           <div className="flex">
             <span className="text-blue-500 font-semibold">{todayDate}</span>
@@ -57,7 +58,7 @@ export default function Dashboard() {
                   type="button"
                   className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
                     field.value === option.value
-                      ? "bg-blue-500 text-white border-none"
+                      ? "bg-primaryColor text-white border-none"
                       : "bg-white text-gray-700 hover:bg-gray-200"
                   }`}
                   onClick={() => field.onChange(option.value)}
@@ -76,12 +77,23 @@ export default function Dashboard() {
           <FiscalYearSummary />
         </>
       )}
+      {/* Revenue content */}
+      {selectedView === "revenue" && (
+        <>
+          <RevenueSection />
+        </>
+      )}
+      {/* Purchase content */}
+      {selectedView === "purchase" && (
+        <>
+          <PurchaseSection />
+        </>
+      )}
     </>
   );
 }
 
 function OverviewCards() {
-  // Fetch all accounts with a large limit to compute totals
   const url = buildQueryString("account/list", { page: 1, limit: 1000 });
   const { data, isLoading } = useGetApiQuery({ url });
 
@@ -130,8 +142,13 @@ function OverviewCards() {
 
   return (
     <div className="mt-6 space-y-6">
-      {/* Totals */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <SummaryCard
+          title="Total Balance (All)"
+          value={`${CurrencySign}${totals.all.toLocaleString()}`}
+          gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+          Icon={PiggyBank}
+        />
         <SummaryCard
           title="Total Cash Balance"
           value={`${CurrencySign}${totals.cash.toLocaleString()}`}
@@ -144,22 +161,320 @@ function OverviewCards() {
           gradient="from-blue-500 via-blue-600 to-blue-500"
           Icon={Landmark}
         />
-        <SummaryCard
-          title="Total Balance (All)"
-          value={`${CurrencySign}${totals.all.toLocaleString()}`}
-          gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-          Icon={PiggyBank}
-        />
+      </div>
+    </div>
+  );
+}
+
+function PurchaseSection() {
+  const { control, watch } = useForm<{
+    start: string;
+    end: string;
+    granularity: "day" | "week" | "month";
+  }>({
+    defaultValues: (() => {
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 29);
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      return { start: fmt(start), end: fmt(today), granularity: "day" };
+    })(),
+  });
+
+  const start = watch("start");
+  const end = watch("end");
+  const granularity = watch("granularity");
+
+  const url = buildQueryString("purchase/list", {
+    page: 1,
+    limit: 100000,
+    search: { start, end },
+  });
+  const { data, isLoading } = useGetApiQuery({ url });
+
+  const toNum = (v: any) => {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).replace(/,/g, "").trim();
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const {
+    totalPurchases,
+    purchasesCount,
+    avgPurchaseValue,
+    outstandingPayables,
+    trendData,
+    supplierPie,
+    topItemsBar,
+  } = useMemo(() => {
+    const rows: any[] = (data as any)?.data?.data || [];
+
+    // Totals and counts
+    const totals = rows.map((r) => toNum(r?.totalAmount ?? r?.total ?? r?.amount));
+    const totalPurchases = totals.reduce((a, b) => a + b, 0);
+    const purchasesCount = rows.length;
+    const avgPurchaseValue = purchasesCount ? totalPurchases / purchasesCount : 0;
+
+    // Outstanding/due calculation (best-effort across possible fields)
+    const outstandingPayables = rows.reduce((sum: number, r: any) => {
+      const total = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
+      const paid = toNum(r?.paidAmount ?? r?.amountPaid ?? 0);
+      const dueField = toNum(r?.dueAmount);
+      let due = dueField || Math.max(total - paid, 0);
+      const status = String(r?.paymentStatus ?? r?.status ?? "").toLowerCase();
+      if (status && ["paid", "completed", "settled"].some((k) => status.includes(k))) {
+        due = 0;
+      }
+      return sum + Math.max(due, 0);
+    }, 0);
+
+    // Time bucketing similar to RevenueSection
+    const buckets = new Map<string, number>();
+    const startDate = start ? new Date(start + "T00:00:00") : null;
+    const endDate = end ? new Date(end + "T00:00:00") : null;
+    const addDays = (d: Date, n: number) => {
+      const nd = new Date(d);
+      nd.setDate(d.getDate() + n);
+      return nd;
+    };
+    const toKey = (d: Date) => {
+      if (granularity === "month")
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (granularity === "week") {
+        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((tmp as any) - (yearStart as any)) / 86400000 + 1) / 7);
+        return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+      }
+      return d.toISOString().slice(0, 10);
+    };
+    if (startDate && endDate) {
+      if (granularity === "month") {
+        const sd = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const ed = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        const cursor = new Date(sd);
+        while (cursor <= ed) {
+          buckets.set(
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+            0,
+          );
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      } else {
+        for (
+          let d = new Date(startDate);
+          d <= endDate;
+          d = addDays(d, granularity === "week" ? 7 : 1)
+        ) {
+          buckets.set(toKey(d), 0);
+        }
+      }
+    }
+    rows.forEach((r: any) => {
+      const created = r?.createdAt || r?.purchaseDate;
+      const d = created ? new Date(created) : null;
+      if (!d) return;
+      const key = toKey(d);
+      const amt = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
+      buckets.set(key, (buckets.get(key) || 0) + amt);
+    });
+    const trendData = Array.from(buckets.entries()).map(([name, value]) => ({
+      name,
+      Purchases: value,
+    }));
+
+    // Supplier breakdown pie
+    const supplierMap = new Map<string, number>();
+    rows.forEach((r: any) => {
+      const sup = r?.supplier?.name || r?.supplierName || r?.supplier || `#${r?.supplierId ?? "N/A"}`;
+      const amt = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
+      supplierMap.set(sup, (supplierMap.get(sup) || 0) + amt);
+    });
+    const supplierEntries = Array.from(supplierMap.entries()).sort((a, b) => b[1] - a[1]);
+    const top5 = supplierEntries.slice(0, 5);
+    const othersTotal = supplierEntries.slice(5).reduce((s, [, v]) => s + v, 0);
+    const supplierPie = [
+      ...top5.map(([name, value]) => ({ name, value })),
+      ...(othersTotal > 0 ? [{ name: "Others", value: othersTotal }] : []),
+    ];
+
+    // Top items purchased bar (by quantity)
+    const itemMap = new Map<string, number>();
+    rows.forEach((r: any) => {
+      const items = r?.purchaseItems || r?.items || [];
+      items.forEach((it: any) => {
+        const prod = it?.product || {};
+        const key = prod?.name || prod?.title || prod?.productName || it?.name || `#${it?.productId ?? it?.id ?? "item"}`;
+        const qty = toNum(it?.quantity ?? it?.qty ?? 0);
+        itemMap.set(key, (itemMap.get(key) || 0) + qty);
+      });
+    });
+    const topItemsBar = Array.from(itemMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, Quantity: qty }));
+
+    return {
+      totalPurchases,
+      purchasesCount,
+      avgPurchaseValue,
+      outstandingPayables,
+      trendData,
+      supplierPie,
+      topItemsBar,
+    };
+  }, [data, start, end, granularity]);
+
+  return (
+    <div className="mt-8 space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+            <Controller
+              name="start"
+              control={control}
+              render={({ field }) => (
+                <input type="date" className="border rounded px-3 py-2 bg-white" {...field} />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">End Date</label>
+            <Controller
+              name="end"
+              control={control}
+              render={({ field }) => (
+                <input type="date" className="border rounded px-3 py-2 bg-white" {...field} />
+              )}
+            />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Controller
+              name="granularity"
+              control={control}
+              render={({ field }) => (
+                <div className="inline-flex rounded-md border overflow-hidden">
+                  {(["day", "week", "month"] as const).map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className={`px-3 py-2 text-sm ${field.value === g ? "bg-orange-500 text-white" : "bg-white text-gray-700"} ${g !== "month" ? "border-r" : ""}`}
+                      onClick={() => field.onChange(g)}
+                    >
+                      {g.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Total Purchases</div>
+          <div className="text-2xl font-semibold text-orange-600 mt-1">
+            {CurrencySign}
+            {totalPurchases.toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Average Purchase Value</div>
+          <div className="text-2xl font-semibold text-emerald-600 mt-1">
+            {CurrencySign}
+            {avgPurchaseValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Outstanding Payables</div>
+          <div className="text-2xl font-semibold text-red-600 mt-1">
+            {CurrencySign}
+            {outstandingPayables.toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Purchases</div>
+          <div className="text-2xl font-semibold text-gray-800 mt-1">
+            {purchasesCount.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* Trend */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        {isLoading ? (
+          <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
+        ) : (
+          <>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Purchase Trend</h3>
+            <BarChartComponent
+              data={trendData}
+              dataKeys={["Purchases"]}
+              height={300}
+              xAxisLabel={
+                granularity === "day" ? "Date" : granularity === "week" ? "Week" : "Month"
+              }
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={["#f97316"]}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Breakdown + Top Items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          {isLoading ? (
+            <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
+          ) : (
+            <>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Spend by Supplier</h3>
+              <PieChartComponent
+                data={supplierPie}
+                responsive
+                height={260}
+                showLegend
+                legendPosition="bottom"
+                colorScale={["#fb923c", "#fdba74", "#f59e0b", "#fbbf24", "#fcd34d", "#fca5a5"]}
+              />
+            </>
+          )}
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          {isLoading ? (
+            <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
+          ) : (
+            <>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Top Items Purchased</h3>
+              <BarChartComponent
+                data={topItemsBar}
+                dataKeys={["Quantity"]}
+                height={260}
+                xAxisLabel="Item"
+                yAxisLabel="Qty"
+                showLegend={false}
+                colorScale={["#ea580c"]}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 function FiscalYearSummary() {
-  // Determine current fiscal year (starts Jul 1, ends Jun 30)
+  // fiscal year (starts Jul 1, ends Jun 30)
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.getMonth(); // 0-indexed
+  const month = now.getMonth();
   const fyStart = new Date(month >= 6 ? year : year - 1, 6, 1);
   const fyEnd = new Date(month >= 6 ? year + 1 : year, 5, 30, 23, 59, 59, 999);
 
@@ -189,15 +504,22 @@ function FiscalYearSummary() {
   });
 
   const revenueTotal: number = Number((revData as any)?.data?.grandTotal) || 0;
-  const purchaseRows: any[] = (purData as any)?.data?.data || [];
-  const purchasesTotal: number =
-    Number((purData as any)?.data?.grandTotal) ||
-    (Array.isArray(purchaseRows)
-      ? purchaseRows.reduce(
-          (sum: number, r: any) => sum + (Number((r as any)?.amount) || 0),
-          0,
-        )
-      : 0);
+  const toNum = (v: any) => {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).replace(/,/g, "").trim();
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const pd = (purData as any)?.data || {};
+  const purchaseRows: any[] = pd?.data || [];
+  const purchasesFromRows = Array.isArray(purchaseRows)
+    ? purchaseRows.reduce(
+        (sum: number, r: any) =>
+          sum + toNum(r?.totalAmount ?? r?.total ?? r?.amount),
+        0,
+      )
+    : 0;
+  const purchasesTotal: number = toNum(pd?.grandTotal) || purchasesFromRows;
 
   const profit = revenueTotal - purchasesTotal;
   const pieData = [
@@ -243,6 +565,37 @@ function FiscalYearSummary() {
       return { name: dayLabels[d.getDay()], Sales: total };
     });
   }, [revWeekData]);
+
+  // Top selling
+  const urlOrdersFY = buildQueryString("order/list", {
+    page: 1,
+    limit: 100000,
+    search: {
+      start: fyStart.toISOString().slice(0, 10),
+      end: fyEnd.toISOString().slice(0, 10),
+    },
+  });
+  const { data: ordersFY, isLoading: ordersLoading } = useGetApiQuery({
+    url: urlOrdersFY,
+  });
+  const topItemsBarData = useMemo(() => {
+    const orders: any[] = (ordersFY as any)?.data?.data || [];
+    const map = new Map<string, number>();
+    orders.forEach((o: any) => {
+      (o?.orderItems || []).forEach((oi: any) => {
+        if ((oi?.status || "").toLowerCase() === "cancelled") return;
+        const prod = oi?.product || {};
+        const key =
+          prod?.name || prod?.title || prod?.productName || `#${oi?.productId}`;
+        const qty = Number(oi?.quantity) || 0;
+        map.set(key, (map.get(key) || 0) + qty);
+      });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, Quantity: qty }));
+  }, [ordersFY]);
 
   return (
     <div className="mt-8">
@@ -309,7 +662,7 @@ function FiscalYearSummary() {
           ) : (
             <>
               <h3 className="text-base font-semibold text-gray-900 mb-4">
-                Weekley Summary
+                Weekly Summary
               </h3>
               <BarChartComponent
                 data={weeklyBarData}
@@ -324,7 +677,25 @@ function FiscalYearSummary() {
           )}
         </div>
       </div>
-      {/* Totals below charts */}
+
+      <div className="mt-6 w-full max-w-md bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">
+          Top Selling Items
+        </h3>
+        {ordersLoading ? (
+          <div className="h-[220px] animate-pulse bg-gray-100 rounded" />
+        ) : (
+          <BarChartComponent
+            data={topItemsBarData}
+            dataKeys={["Quantity"]}
+            height={220}
+            xAxisLabel="Item"
+            yAxisLabel="Qty"
+            showLegend={false}
+            colorScale={["#6366f1"]}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -355,6 +726,225 @@ function SummaryCard({
         <div className="h-12 w-12 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
           <Icon className="h-6 w-6" />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function RevenueSection() {
+  const { control, watch } = useForm<{
+    start: string;
+    end: string;
+    granularity: "day" | "week" | "month";
+  }>({
+    defaultValues: (() => {
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 29);
+      const fmt = (d: Date) => d.toISOString().slice(0, 10);
+      return { start: fmt(start), end: fmt(today), granularity: "day" };
+    })(),
+  });
+
+  const start = watch("start");
+  const end = watch("end");
+  const granularity = watch("granularity");
+
+  const url = buildQueryString("revenue/list", {
+    page: 1,
+    limit: 100000,
+    search: { start, end },
+  });
+  const { data, isLoading } = useGetApiQuery({ url });
+
+  const { totalRevenue, ordersCount, chartData } = useMemo(() => {
+    const rows: any[] = (data as any)?.data?.data || [];
+    const sum = rows.reduce(
+      (acc: number, r: any) => acc + (Number(r?.amount) || 0),
+      0,
+    );
+
+    // Build time buckets based on granularity
+    const buckets = new Map<string, number>();
+    const startDate = start ? new Date(start + "T00:00:00") : null;
+    const endDate = end ? new Date(end + "T00:00:00") : null;
+    const addDays = (d: Date, n: number) => {
+      const nd = new Date(d);
+      nd.setDate(d.getDate() + n);
+      return nd;
+    };
+    const toKey = (d: Date) => {
+      if (granularity === "month")
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (granularity === "week") {
+        // ISO week key: YYYY-Www
+        const tmp = new Date(
+          Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()),
+        );
+        const dayNum = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil(
+          (((tmp as any) - (yearStart as any)) / 86400000 + 1) / 7,
+        );
+        return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+      }
+      return d.toISOString().slice(0, 10);
+    };
+
+    if (startDate && endDate) {
+      // Seed buckets across range
+      if (granularity === "month") {
+        const sd = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const ed = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        const cursor = new Date(sd);
+        while (cursor <= ed) {
+          buckets.set(
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+            0,
+          );
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      } else {
+        for (
+          let d = new Date(startDate);
+          d <= endDate;
+          d = addDays(d, granularity === "week" ? 7 : 1)
+        ) {
+          buckets.set(toKey(d), 0);
+        }
+      }
+    }
+
+    rows.forEach((r: any) => {
+      const created = r?.createdAt ? new Date(r.createdAt) : null;
+      if (!created) return;
+      const key = toKey(created);
+      buckets.set(key, (buckets.get(key) || 0) + (Number(r?.amount) || 0));
+    });
+
+    const result = Array.from(buckets.entries()).map(([name, value]) => ({
+      name,
+      Revenue: value,
+    }));
+
+    return { totalRevenue: sum, ordersCount: rows.length, chartData: result };
+  }, [data, start, end, granularity]);
+
+  return (
+    <div className="mt-8 space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">
+              Start Date
+            </label>
+            <Controller
+              name="start"
+              control={control}
+              render={({ field }) => (
+                <input
+                  type="date"
+                  className="border rounded px-3 py-2 bg-white"
+                  {...field}
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">End Date</label>
+            <Controller
+              name="end"
+              control={control}
+              render={({ field }) => (
+                <input
+                  type="date"
+                  className="border rounded px-3 py-2 bg-white"
+                  {...field}
+                />
+              )}
+            />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Controller
+              name="granularity"
+              control={control}
+              render={({ field }) => (
+                <div className="inline-flex rounded-md border overflow-hidden">
+                  {(["day", "week", "month"] as const).map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      className={`px-3 py-2 text-sm ${
+                        field.value === g
+                          ? "bg-blue-500 text-white"
+                          : "bg-white text-gray-700"
+                      } ${g !== "month" ? "border-r" : ""}`}
+                      onClick={() => field.onChange(g)}
+                    >
+                      {g.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Total Revenue</div>
+          <div className="text-2xl font-semibold text-blue-600 mt-1">
+            {CurrencySign}
+            {totalRevenue.toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Orders</div>
+          <div className="text-2xl font-semibold text-gray-800 mt-1">
+            {ordersCount.toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="text-sm text-gray-600">Average Order Value</div>
+          <div className="text-2xl font-semibold text-emerald-600 mt-1">
+            {CurrencySign}
+            {(ordersCount ? totalRevenue / ordersCount : 0).toLocaleString(
+              undefined,
+              { maximumFractionDigits: 2 },
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Trend */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        {isLoading ? (
+          <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
+        ) : (
+          <>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">
+              Revenue Trend
+            </h3>
+            <BarChartComponent
+              data={chartData}
+              dataKeys={["Revenue"]}
+              height={300}
+              xAxisLabel={
+                granularity === "day"
+                  ? "Date"
+                  : granularity === "week"
+                    ? "Week"
+                    : "Month"
+              }
+              yAxisLabel="Revenue"
+              showLegend={false}
+              colorScale={["#3b82f6"]}
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ import Revenue from "@/pages/Revenue";
 import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
 import Purchase from "@/pages/Purchase";
 import PurchaseCategory from "@/pages/PurchaseCategory";
-import AddPurchaseCategory from "@/pages/PurchaseCategory/AddPurchaseCategory";
+import AddPurchaseCategory from "@/pages/PurchaseCategory/AddEditPurchaseCategory";
 import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
 import Account from "@/pages/Account";
 import Expenses from "@/pages/Expenses";
@@ -186,6 +186,10 @@ export const adminLinks = [
   },
   {
     path: "/purchase-category/",
+    element: <AddPurchaseCategory />,
+  },
+  {
+    path: "/purchase-category/:id",
     element: <AddPurchaseCategory />,
   },
   {

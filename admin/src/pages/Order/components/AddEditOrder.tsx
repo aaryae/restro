@@ -349,7 +349,7 @@ export default function AddEditOrder({
                             type="button"
                             className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
                               field.value === option.value
-                                ? "bg-blue-500 text-white border-none"
+                                ? "bg-primaryColor text-white border-none"
                                 : "bg-white text-gray-700 hover:bg-gray-200"
                             }`}
                             onClick={() => field.onChange(option.value)}
@@ -452,7 +452,7 @@ export default function AddEditOrder({
                               className="text-xs text-gray-600 mb-3 line-clamp-2"
                             ></p> */}
                             <div className="flex items-center">
-                              <span className="text-lg font-bold text-green-600">
+                              <span className="text-lg font-bold text-primaryColor">
                                 {CurrencySign}{" "}
                                 {Number(product.price).toFixed(2)}
                               </span>

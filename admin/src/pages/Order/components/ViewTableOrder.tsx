@@ -73,11 +73,11 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           key={item.id}
                           className="flex justify-between items-start border-b border-gray-200 py-2"
                         >
-                          <div className="text-sm text-gray-600">
-                            <p className="font-medium text-[13px]">
+                          <div className="leading-[1.5] text-gray-600">
+                            <p className="font-medium text-[15px]">
                               Item: {item.product.name}
                             </p>
-                            <p className="flex text-[13px]">
+                            <p className="flex text-[15px]">
                               Qty: {item.quantity}
                             </p>
                             {item.specialInstructions && (
@@ -86,7 +86,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                               </p>
                             )}
                           </div>
-                          <div className="text-sm text-gray-600 text-right">
+                          <div className="leading-[1.5] text-gray-600 text-right">
                             <p className="text-[14px]">
                               Rs. {Number(item.product.price).toFixed(2)} each
                             </p>

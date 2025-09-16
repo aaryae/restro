@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
-import { useGetApiQuery, useCreateApiMutation } from "@/redux/services/crudApi";
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useCreateTransferMutation } from "@/redux/services/transfer";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store/store";
@@ -22,19 +23,27 @@ interface Props {
 const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   const userId = useSelector((state: RootState) => state.auth.id);
 
+  const initialValues = {
+    fromAccountId: "",
+    toAccountId: "",
+    amount: "" as any,
+    remarks: "",
+  } as const;
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<TransferFormType>({
     resolver: zodResolver(TransferSchema),
-    defaultValues: {
-      fromAccountId: "",
-      toAccountId: "",
-      amount: undefined as any,
-      remarks: "",
-    },
+    defaultValues: initialValues,
   });
+  useEffect(() => {
+    if (isOpen) {
+      reset(initialValues);
+    }
+  }, [isOpen, reset]);
 
   const url = buildQueryString("account/list", { page: 1, limit: 100 });
   const { data: accountsData } = useGetApiQuery({ url });
@@ -49,7 +58,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
     [accounts],
   );
 
-  const [createApi, { isLoading }] = useCreateApiMutation();
+  const [createTransfer, { isLoading }] = useCreateTransferMutation();
 
   const onSubmit = async (data: TransferFormType) => {
     try {
@@ -61,8 +70,9 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
         amount: Number(data.amount),
         remarks: data.remarks,
       };
-      const res = await createApi({ url: "transfer/", body: payload }).unwrap();
+      const res = await createTransfer(payload).unwrap();
       handleResponse({ res, onSuccess: () => onSuccess?.() });
+      reset(initialValues);
       onClose();
     } catch (error) {
       handleError({ error });
@@ -73,11 +83,14 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white w-full max-w-lg rounded-lg shadow-lg">
-        <div className="px-6 py-4 border-b">
+      <div className="bg-white w-full max-w-2xl md:max-w-3xl  rounded-xl shadow-2xl flex flex-col">
+        <div className="px-6 md:px-8 py-4 md:py-5 border-b">
           <h3 className="text-lg font-semibold text-gray-900">Transfer</h3>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="p-6 md:p-8 space-y-4 md:space-y-5"
+        >
           <Select
             label="From Account"
             {...register("fromAccountId")}

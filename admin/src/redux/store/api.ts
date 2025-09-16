@@ -43,8 +43,12 @@ export const api = createApi({
     "product-variant",
     "table",
     "order",
+    "account",
+    "transfer",
     "supplier",
     "revenue",
+    "purchase",
+    "purchase-category",
   ],
   endpoints: () => ({}),
 });
