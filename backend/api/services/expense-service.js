@@ -1,6 +1,6 @@
 const {
-  Expense,
-  ExpenseCategory,
+  expenseModel,
+  expenseCategoryModel,
   Account,
   sequelize,
 } = require("../../models");
@@ -31,7 +31,7 @@ const create = async (req) => {
       };
     }
     if (categoryId) {
-      const category = await ExpenseCategory.findByPk(categoryId, {
+      const category = await expenseCategoryModel.findByPk(categoryId, {
         transaction,
       });
       if (!category || !category.isActive) {
@@ -45,7 +45,7 @@ const create = async (req) => {
       }
     }
 
-    const expense = await Expense.create(
+    const expense = await expenseModel.create(
       {
         cash_or_credit,
         paymentMethod,
@@ -58,9 +58,9 @@ const create = async (req) => {
       { transaction },
     );
 
-    const result = await Expense.findByPk(expense.id, {
+    const result = await expenseModel.findByPk(expense.id, {
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
       ],
       transaction,
@@ -85,13 +85,13 @@ const list = async (req) => {
     if (cash_or_credit) filters.cash_or_credit = cash_or_credit;
     const order = [["createdAt", "DESC"]];
 
-    const result = await paginate(Expense, {
+    const result = await paginate(expenseModel, {
       limit,
       page,
       filters,
       order,
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
       ],
     });
@@ -107,9 +107,9 @@ const list = async (req) => {
 
 const getById = async (req) => {
   try {
-    const expense = await Expense.findByPk(+req.params.id, {
+    const expense = await expenseModel.findByPk(+req.params.id, {
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
       ],
     });
@@ -125,7 +125,9 @@ const getById = async (req) => {
 const updateById = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const expense = await Expense.findByPk(+req.params.id, { transaction });
+    const expense = await expenseModel.findByPk(+req.params.id, {
+      transaction,
+    });
     if (!expense) {
       await transaction.rollback();
       return { ...generalConstant.EN.EXPENSE.EXPENSE_NOT_FOUND, data: null };
@@ -161,7 +163,7 @@ const updateById = async (req) => {
       }
     }
     if (categoryId) {
-      const category = await ExpenseCategory.findByPk(categoryId, {
+      const category = await expenseCategoryModel.findByPk(categoryId, {
         transaction,
       });
       if (!category || !category.isActive) {
@@ -185,9 +187,9 @@ const updateById = async (req) => {
 
     await expense.update(updateData, { transaction });
 
-    const result = await Expense.findByPk(expense.id, {
+    const result = await expenseModel.findByPk(expense.id, {
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
       ],
       transaction,
@@ -207,7 +209,9 @@ const updateById = async (req) => {
 const recordCreditPayment = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const expense = await Expense.findByPk(+req.params.id, { transaction });
+    const expense = await expenseModel.findByPk(+req.params.id, {
+      transaction,
+    });
     if (!expense) {
       await transaction.rollback();
       return { ...generalConstant.EN.EXPENSE.EXPENSE_NOT_FOUND, data: null };
@@ -266,9 +270,9 @@ const recordCreditPayment = async (req) => {
       transaction,
     });
 
-    const result = await Expense.findByPk(expense.id, {
+    const result = await expenseModel.findByPk(expense.id, {
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
         { model: Account, as: "paymentAccount" },
       ],
@@ -286,7 +290,9 @@ const recordCreditPayment = async (req) => {
 const cancelExpense = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const expense = await Expense.findByPk(+req.params.id, { transaction });
+    const expense = await expenseModel.findByPk(+req.params.id, {
+      transaction,
+    });
     if (!expense) {
       await transaction.rollback();
       return { ...generalConstant.EN.EXPENSE.EXPENSE_NOT_FOUND, data: null };
@@ -317,13 +323,13 @@ const getUnpaidCredits = async (req) => {
     const filters = { cash_or_credit: "credit", paymentDate: null };
     if (categoryId) filters.categoryId = +categoryId;
 
-    const result = await paginate(Expense, {
+    const result = await paginate(expenseModel, {
       limit,
       page,
       filters,
       order: [["createdAt", "ASC"]],
       include: [
-        { model: ExpenseCategory, as: "category" },
+        { model: expenseCategoryModel, as: "category" },
         { model: Account, as: "account" },
       ],
     });
