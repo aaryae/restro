@@ -16,7 +16,7 @@
   border-radius: 8px;
   padding: 24px;
   width: 100%;
-  max-width: 700px;
+  height: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -71,7 +71,7 @@
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 16px;
+  /* margin-bottom: 16px; */
 }
 
 .totalAmount {
@@ -88,7 +88,6 @@
   font-size: 14px;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 8px;
 }
 
 .paymentGrid {
@@ -135,7 +134,7 @@
 }
 
 .paymentText {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #1f2937;
 }
