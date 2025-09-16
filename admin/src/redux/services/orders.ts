@@ -17,7 +17,7 @@ const ordersApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["table"],
+      invalidatesTags: ["table", "order"],
     }),
     checkoutOrder: builder.mutation({
       query: ({ body, id }) => ({

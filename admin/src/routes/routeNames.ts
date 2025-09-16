@@ -63,6 +63,7 @@ export const PURCHASE_EDIT_ROUTE = "/admin/purchase/:id";
 
 export const PURCHASE_CATEGORY_LIST_ROUTE = "/admin/purchase-category/list";
 export const PURCHASE_CATEGORY_ADD_ROUTE = "/admin/purchase-category/";
+export const PURCHASE_CATEGORY_EDIT_ROUTE = "/admin/purchase-category/:id";
 
 export const BANK_LIST_ROUTE = "/admin/account/list";
 export const BANK_ADD_ROUTE = "/admin/account/";

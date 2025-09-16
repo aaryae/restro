@@ -15,28 +15,36 @@ import TakeAwayOrders from "./TakeAwayOrders";
 import ViewTableOrder from "./ViewTableOrder";
 import CheckoutModal from "./CheckoutModal";
 import { Plus } from "lucide-react";
+
 export default function TableList() {
   const [checkoutTableId, setCheckoutTableId] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>("all");
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
 
   const { query, handlePagination } = usePagination({
     page: 1,
     limit: 10,
     search: {
-      status: selectedStatus || undefined,
+      status:
+        selectedStatus === "all" ? undefined : selectedStatus || undefined,
     },
   });
 
   const handleStatusChange = useCallback(
     (status: string) => {
-      const newStatus = selectedStatus === status ? null : status;
+      // Keep "all" selected when chosen; toggle others on/off
+      let newStatus: string | null;
+      if (status === "all") {
+        newStatus = "all";
+      } else {
+        newStatus = selectedStatus === status ? null : status;
+      }
       setSelectedStatus(newStatus);
 
       handlePagination({
         search: {
           ...query.search,
-          status: newStatus || undefined,
+          status: newStatus === "all" ? undefined : newStatus || undefined,
         },
         page: 1,
       });
@@ -184,13 +192,19 @@ function Tables({
 
   return (
     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {filteredTables?.map((table: any) => (
-        <RestroTable
-          key={table.id}
-          onClick={() => chooseTable(table.id, table.status)}
-          table={table}
-        />
-      ))}
+      {(!filteredTables || filteredTables.length === 0) ? (
+        <div className="col-span-full text-center text-gray-500 py-8">
+          No table found
+        </div>
+      ) : (
+        filteredTables.map((table: any) => (
+          <RestroTable
+            key={table.id}
+            onClick={() => chooseTable(table.id, table.status)}
+            table={table}
+          />
+        ))
+      )}
     </div>
   );
 }
@@ -232,7 +246,7 @@ function Header({
                 key={`status-${option.value}`}
                 className={`px-6 py-4 text-sm font-medium rounded-full border text-[15px] ${
                   selectedStatus === option.value
-                    ? "bg-blue-500 text-white border-none cursor-default"
+                    ? "bg-primaryColor text-white border-none cursor-default"
                     : "bg-white text-gray-700 hover:bg-gray-200"
                 }`}
                 onClick={() => {

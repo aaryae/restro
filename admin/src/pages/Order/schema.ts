@@ -36,3 +36,16 @@ export const OrderSchema = z.object({
 });
 
 export type OrderFilterType = z.infer<typeof OrderFilterSchema>;
+
+// Cash payment validation: amountTendered is required and must be >= totalAmount
+// Usage: CashPaymentSchema(totalAmount).parse({ amountTendered })
+export const CashPaymentSchema = (totalAmount: number) =>
+  z.object({
+    amountTendered: z
+      .union([z.number(), z.string().min(1, "Amount is required")])
+      .transform((v) => (typeof v === "string" ? Number(v) : v))
+      .refine((n) => Number.isFinite(n), "Amount is required")
+      .refine((n) => n >= totalAmount, `Amount must be at least ${totalAmount}`),
+  });
+
+export type CashPaymentInput = z.infer<ReturnType<typeof CashPaymentSchema>>;
