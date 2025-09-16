@@ -8,6 +8,8 @@ import usePagination from "@/hooks/usePagination";
 import Button from "@/components/Button";
 import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
+import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 type OrderItem = {
   id: number | string;
@@ -27,6 +29,7 @@ type Order = {
   totalAmount?: number;
   status?: string;
   paymentStatus?: string;
+  takeAwayName?: string;
 };
 
 export default function KotList() {
@@ -60,12 +63,6 @@ export default function KotList() {
     return raw as Order[];
   }, [data]);
 
-  const filteredOrders = useMemo(() => {
-    if (!orders) return [] as Order[];
-    // Show only active/unpaid KOTs
-    return orders;
-  }, [orders, queryStringOptions]);
-
   const totalPages = data?.data?.totalPages ?? 1;
   const offset = (query.page - 1) * query.limit;
 
@@ -93,6 +90,18 @@ export default function KotList() {
           }
         >
           Pending
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "prepared"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "prepared" }))
+          }
+        >
+          Prepared
         </button>
         <button
           className={`px-3 py-2 rounded border ${
@@ -126,7 +135,6 @@ export default function KotList() {
               key={order.id}
               order={order}
               // Name older KOT earlier: sequential queue number across pages
-              kotNo={offset + idx + 1}
             />
           ))
         ) : (
@@ -172,7 +180,8 @@ export default function KotList() {
   );
 }
 
-function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
+function KotCard({ order }: { order: Order }) {
+  const [patchStatus] = useUpdateOrderStatusMutation();
   const items = (order?.orderItems || []).filter(
     (i) => i.status !== "cancelled",
   );
@@ -181,7 +190,7 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
   const printedBy = useSelector((s: RootState) => s.auth.username);
   const reactToPrintFn = useReactToPrint({
     contentRef,
-    documentTitle: `KOT-${order.id}`,
+    documentTitle: `KOT-${order.kotNo}`,
     pageStyle: `
       @page { size: 80mm auto; margin: 4mm; }
       @media print {
@@ -218,7 +227,7 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
     >
       <div ref={contentRef} className="p-5 h-fit kot-print ">
         <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
-          KOT {kotNo}
+          KOT {order.kotNo}
         </div>
         <div className="flex justify-between text-[12px] text-gray-800">
           <div className="flex flex-col gap-[2px]">
@@ -239,8 +248,11 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
           </div>
           <div className="text-right">
             <div>
-              <span className="font-semibold">Table:</span>{" "}
-              {order?.table?.tableNo || order?.table?.name || "-"}
+              <span className="font-semibold">
+                {order?.orderType === "dineIn" ? "Table:" : "Customer:"}
+              </span>{" "}
+              {order?.orderType === "dineIn" && order?.table?.tableNo}
+              {order?.orderType === "takeaway" && order?.takeAwayName}
             </div>
           </div>
         </div>
@@ -292,12 +304,34 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
         >
           Print
         </Button>
-        <Button
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
-          handleClick={() => setOpenCheckout(true)}
-        >
-          Checkout
-        </Button>
+
+        {order.status === "prepared" && (
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
+            handleClick={() => setOpenCheckout(true)}
+          >
+            Checkout
+          </Button>
+        )}
+
+        {order.status === "pending" && (
+          <Button
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+            handleClick={async () => {
+              try {
+                const response = await patchStatus({
+                  body: { status: "prepared" },
+                  id: order.id,
+                }).unwrap();
+                handleResponse({ res: response });
+              } catch (error) {
+                handleError({ error });
+              }
+            }}
+          >
+            Move to Prepared
+          </Button>
+        )}
       </div>
       <CheckoutModal
         isOpen={openCheckout}

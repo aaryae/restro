@@ -47,10 +47,28 @@ const createOrder = async (req) => {
       }
     }
 
+    // Generate daily KOT number using date-fns
+    const today = new Date();
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
+
+    // Get the count of orders created today to generate the next KOT number
+    const todayOrdersCount = await orderModel.count({
+      where: {
+        createdAt: {
+          [Op.between]: [startOfToday, endOfToday],
+        },
+      },
+      transaction,
+    });
+
+    const kotNo = todayOrdersCount + 1;
+
     const order = await orderModel.create(
       {
         ...req.body,
         sessionId,
+        kotNo,
         orderStartTime: new Date(),
       },
       { transaction },
@@ -787,6 +805,10 @@ const updateOrderStatus = async (req) => {
           model: customerModel,
           as: "customer",
         },
+        {
+          model: tableModel,
+          as: "table",
+        },
       ],
       transaction: t,
     });
@@ -817,6 +839,34 @@ const updateOrderStatus = async (req) => {
     if (paymentMethod) updateData.paymentMethod = paymentMethod;
 
     await order.update(updateData, { transaction: t });
+
+    // If order is being cancelled and it's a dine-in order with a table
+    if (status === "cancelled" && order.orderType === "dineIn" && order.tableId) {
+      // Check if there are any other active orders for this table
+      const activeOrdersCount = await orderModel.count({
+        where: {
+          tableId: order.tableId,
+          status: {
+            [Op.notIn]: ["completed", "cancelled"],
+          },
+          id: {
+            [Op.ne]: order.id, // Exclude the current order being cancelled
+          },
+        },
+        transaction: t,
+      });
+
+      // If no active orders remain, make the table available
+      if (activeOrdersCount === 0) {
+        await tableModel.update(
+          { status: "available" },
+          {
+            where: { id: order.tableId },
+            transaction: t,
+          }
+        );
+      }
+    }
 
     return {
       status: 200,

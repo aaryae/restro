@@ -11,6 +11,10 @@ module.exports = {
           primaryKey: true,
           type: Sequelize.INTEGER,
         },
+        kotNo: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+        },
         tableId: {
           type: Sequelize.INTEGER,
           allowNull: true,
@@ -35,7 +39,7 @@ module.exports = {
           onDelete: "SET NULL",
         },
         status: {
-          type: Sequelize.ENUM("pending", "completed", "cancelled"),
+          type: Sequelize.ENUM("pending", "prepared", "completed", "cancelled"),
           defaultValue: "pending",
         },
         paymentStatus: {
@@ -78,6 +82,10 @@ module.exports = {
         },
         orderFinishTime: {
           type: Sequelize.DATE,
+          allowNull: true,
+        },
+        takeAwayName: {
+          type: Sequelize.STRING,
           allowNull: true,
         },
         createdAt: {

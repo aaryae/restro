@@ -31,6 +31,10 @@ module.exports = (sequelize) => {
         primaryKey: true,
         type: DataTypes.INTEGER,
       },
+      kotNo: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
       tableId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -40,7 +44,7 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
       status: {
-        type: DataTypes.ENUM("pending", "completed", "cancelled"),
+        type: DataTypes.ENUM("pending", "prepared", "completed", "cancelled"),
         defaultValue: "pending",
       },
       paymentStatus: {
@@ -87,6 +91,10 @@ module.exports = (sequelize) => {
       },
       customerId: {
         type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      takeAwayName: {
+        type: DataTypes.STRING,
         allowNull: true,
       },
     },
