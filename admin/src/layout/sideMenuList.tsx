@@ -165,25 +165,12 @@ export const SideMenuList: SideListMenuType[] = [
     icon: <ImageIcon />,
   },
 
-  {
-    key: 7,
-    name: "Email",
-    icon: <Mail />,
-    menu: [
-      {
-        key: 7.1,
-        name: "Email Template",
-        path: "/admin/email-template/list",
-        icon: <MdOutlineMailOutline />,
-      },
-      {
-        key: 7.2,
-        name: "Email SMTP",
-        path: "/admin/smtp",
-        icon: <MdOutlineMailOutline />,
-      },
-    ],
-  },
+  // {
+  //   key: 7,
+  //   name: "Email",
+  //   icon: <Mail />,
+  //   menu: [],
+  // },
   {
     key: 8,
     name: "Account",
@@ -203,6 +190,18 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Company Settings",
         path: "/admin/settings/list",
         icon: <MdDisplaySettings />,
+      },
+      {
+        key: 9.2,
+        name: "Email Template",
+        path: "/admin/email-template/list",
+        icon: <MdOutlineMailOutline />,
+      },
+      {
+        key: 9.3,
+        name: "Email SMTP",
+        path: "/admin/smtp",
+        icon: <MdOutlineMailOutline />,
       },
     ],
   },

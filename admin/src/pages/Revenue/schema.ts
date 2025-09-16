@@ -10,5 +10,9 @@ export const RevenueSchema = z.object({
   cash_or_credit: z.enum(["cash", "credit"], {
     required_error: "Cash or Credit is required",
   }),
+  accountId: z
+    .number({ required_error: "Account is required" })
+    .int("Account is required")
+    .positive("Account is required"),
   remarks: z.string().optional().default(""),
 });

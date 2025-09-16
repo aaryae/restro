@@ -6,7 +6,6 @@ import { Trash } from "lucide-react";
 import MediaComponent from "@/components/MediaComponent";
 import { ImageInputUI } from "@/components/ImageComponent";
 import { useAppSelector } from "@/redux/store/hooks";
-import Select from "@/components/Select";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -122,13 +121,14 @@ const AddEditPurchase: React.FC = () => {
         {
           particulars: "",
           hsCode: "",
+          categoryId: "",
           qty: 1,
           rate: 0,
           discountPercent: 0,
           taxPercent: 13,
+          isTaxable: true,
         },
       ],
-      purchaseCategoryId: "",
       paymentTerm: "cash",
       accountId: "",
       paidByUserId: "",
@@ -201,7 +201,7 @@ const AddEditPurchase: React.FC = () => {
     const base = qty * rate;
     const discountAmt = (base * discountPercent) / 100;
     const taxable = base - discountAmt;
-    const taxAmt = (taxable * taxPercent) / 100;
+    const taxAmt = row.isTaxable === false ? 0 : (taxable * taxPercent) / 100;
     const lineTotal = taxable + taxAmt; // tax included in line
     return { base, discountAmt, taxAmt, lineTotal };
   };
@@ -229,12 +229,11 @@ const AddEditPurchase: React.FC = () => {
       items: (p.purchaseItems || []).map((it: any) => ({
         particulars: it.particulars || "",
         hsCode: it.hsCode || "",
+        categoryId: it.categoryId ? String(it.categoryId) : "",
         qty: it.quantity || 0,
         rate: it.rate || 0,
+        isTaxable: it.isTaxable !== undefined ? Boolean(it.isTaxable) : true,
       })),
-      purchaseCategoryId: p.purchaseItems?.[0]?.categoryId
-        ? String(p.purchaseItems[0].categoryId)
-        : "",
       billImage: "",
       paymentTerm: (p.paymentTerms as any) || "cash",
       accountId: p.accountId ? String(p.accountId) : "",
@@ -253,13 +252,12 @@ const AddEditPurchase: React.FC = () => {
           ? Number(data.accountId || 0)
           : Number(data.accountId),
       items: data.items.map((r) => ({
-        categoryId: data.purchaseCategoryId
-          ? Number(data.purchaseCategoryId)
-          : undefined,
+        categoryId: r.categoryId ? Number(r.categoryId) : undefined,
         hsCode: r.hsCode || null,
         particulars: r.particulars,
         quantity: Number(r.qty) || 0,
         rate: Number(r.rate) || 0,
+        isTaxable: r.isTaxable !== false,
       })),
       notes: undefined,
     } as any;
@@ -280,11 +278,25 @@ const AddEditPurchase: React.FC = () => {
           body: payload,
         }).unwrap();
 
-        // Auto-complete non-credit purchase to deduct from the selected account
-        const createdId = (response as any)?.data?.id;
+        const createdId =
+          (response as any)?.data?.id ??
+          (response as any)?.data?.data?.id ??
+          (response as any)?.id;
         const paymentTerms = payload.paymentTerms;
-        if (createdId && paymentTerms !== "credit") {
-          await completePurchase(createdId).unwrap();
+        if (paymentTerms !== "credit") {
+          if (!createdId) {
+            console.warn(
+              "Could not determine created purchase ID to complete.",
+              response,
+            );
+          } else {
+            try {
+              await completePurchase(createdId).unwrap();
+            } catch (e) {
+              console.error("Failed to complete purchase", e);
+              throw e;
+            }
+          }
         }
 
         handleResponse({
@@ -371,40 +383,7 @@ const AddEditPurchase: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col">
-                {/* <label className="text-sm text-gray-700 mb-1">
-                  Purchase Category
-                </label> */}
-                <div className="flex gap-[0.5rem] items-center">
-                  <Select
-                    options={purchaseCategoryOptions}
-                    className="w-full"
-                    label="Purchase Category"
-                    value={watch("purchaseCategoryId")}
-                    onChange={(e: any) =>
-                      setValue("purchaseCategoryId", e?.target?.value ?? "", {
-                        shouldDirty: true,
-                        shouldTouch: true,
-                        shouldValidate: true,
-                      })
-                    }
-                  />
-                  {/* <div className="mt-6">
-                    <button
-                      type="button"
-                      className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
-                      onClick={() => navigate(PURCHASE_CATEGORY_ADD_ROUTE)}
-                    >
-                      Add
-                    </button>
-                  </div> */}
-                </div>
-              </div>
-              {errors.purchaseCategoryId && (
-                <span className="text-red-600 text-sm mt-1">
-                  {errors.purchaseCategoryId.message as string}
-                </span>
-              )}
+              {/* Removed global Purchase Category field in favor of per-item category */}
               <div className="flex flex-col">
                 <label className="text-sm text-gray-700 mb-1">
                   Payment Terms
@@ -449,10 +428,12 @@ const AddEditPurchase: React.FC = () => {
                     append({
                       particulars: "",
                       hsCode: "",
+                      categoryId: "",
                       qty: 1,
                       rate: 0,
                       discountPercent: 0,
                       taxPercent: 13,
+                      isTaxable: true,
                     })
                   }
                 >
@@ -460,14 +441,16 @@ const AddEditPurchase: React.FC = () => {
                 </button>
               </div>
               <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                <table className="min-w-[900px] lg:min-w-full w-full">
+                <table className="min-w-[1000px] lg:min-w-full w-full">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="p-2 border">S.N</th>
-                      <th className="p-2 border">H.S Code</th>
+                      <th className="p-2 border">HS Code</th>
+                      <th className="p-2 border">Category</th>
                       <th className="p-2 border">Particulars</th>
                       <th className="p-2 border">Qty</th>
                       <th className="p-2 border">Rate</th>
+                      <th className="p-2 border">Taxable</th>
                       <th className="p-2 border">Amount</th>
                       <th className="p-2 border">Action</th>
                     </tr>
@@ -492,19 +475,31 @@ const AddEditPurchase: React.FC = () => {
                             <input
                               type="text"
                               className="border rounded px-2 py-1 w-full bg-white"
+                              {...register(`items.${idx}.hsCode` as const)}
+                            />
+                          </td>
+                          <td className="p-2 border">
+                            <select
+                              className="border rounded px-2 py-1 w-full bg-white"
+                              {...register(`items.${idx}.categoryId` as const)}
+                            >
+                              {purchaseCategoryOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-2 border">
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 w-full bg-white"
                               {...register(
                                 `items.${idx}.particulars` as const,
                                 {
                                   required: true,
                                 },
                               )}
-                            />
-                          </td>
-                          <td className="p-2 border">
-                            <input
-                              type="text"
-                              className="border rounded px-2 py-1 w-full bg-white"
-                              {...register(`items.${idx}.hsCode` as const)}
                             />
                           </td>
                           <td className="p-2 border">
@@ -530,6 +525,14 @@ const AddEditPurchase: React.FC = () => {
                             />
                           </td>
 
+                          <td className="p-2 border text-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4"
+                              {...register(`items.${idx}.isTaxable` as const)}
+                              defaultChecked={row.isTaxable !== false}
+                            />
+                          </td>
                           <td className="p-2 border text-right w-28">
                             {lineTotal.toFixed(2)}
                           </td>
@@ -617,9 +620,6 @@ const AddEditPurchase: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Purchase Summary
                   </h3>
-                  <span className="rounded-full bg-primaryColor/10 px-3 py-1 text-xs font-medium text-primaryColor">
-                    Auto Tax 13%
-                  </span>
                 </div>
 
                 {/* Stats grid */}

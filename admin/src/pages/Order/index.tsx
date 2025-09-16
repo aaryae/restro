@@ -22,7 +22,7 @@ export default function Order() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Controller
           name="accountType"
           control={control}
@@ -45,36 +45,29 @@ export default function Order() {
             </div>
           )}
         />
-        {selectedView === "table" && (
-          <div className="flex items-center ">
+        <div className="flex items-center w-full sm:w-auto">
+          {selectedView === "table" && (
             <Button
-              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
+              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
               handleClick={() => navigate(ORDER_ADD_ROUTE)}
             >
               Create Order
             </Button>
-          </div>
-        )}
-        {selectedView === "order" && (
-          <div className="flex items-center ">
+          )}
+          {selectedView === "order" && (
             <Button
-              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
+              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
               handleClick={() => navigate(ORDER_ADD_ROUTE)}
             >
               Create Order
             </Button>
-          </div>
-        )}
-        {selectedView === "kot" && (
-          <div className="flex items-center ">
-            <Button
-              className="flex bg-primaryColor text-white px-8 rounded-lg py-[10px]"
-              // handleClick={() => navigate(KOT_ADD_ROUTE)}
-            >
+          )}
+          {selectedView === "kot" && (
+            <Button className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]">
               Create KOT
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {selectedView === "table" && <TableList />}

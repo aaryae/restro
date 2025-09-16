@@ -45,6 +45,16 @@ export default function SideMenu({
   }, [isSettingsView, location.pathname]);
 
   useEffect(() => {
+    if (!isSettingsView) {
+      try {
+        localStorage.setItem("lastMainPath", location.pathname);
+      } catch (_) {
+        // ignore storage errors
+      }
+    }
+  }, [isSettingsView, location.pathname]);
+
+  useEffect(() => {
     if (location.pathname === "/admin/settings") {
       setIsActive("Company Settings");
       navigate("/admin/settings/list", { replace: true });
@@ -99,7 +109,15 @@ export default function SideMenu({
         {isSettingsView && sideMenuOpen && (
           <div className="flex items-center justify-between mb-2">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                let fallback = "/admin/dashboard";
+                try {
+                  const last = localStorage.getItem("lastMainPath");
+                  navigate(last || fallback);
+                } catch (_) {
+                  navigate(fallback);
+                }
+              }}
               className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-gray-100"
             >
               <MdKeyboardArrowLeft />
