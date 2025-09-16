@@ -203,7 +203,7 @@ function PurchaseSection() {
     totalPurchases,
     purchasesCount,
     avgPurchaseValue,
-    outstandingPayables,
+    // outstandingPayables,
     trendData,
     supplierPie,
     topItemsBar,
@@ -211,23 +211,27 @@ function PurchaseSection() {
     const rows: any[] = (data as any)?.data?.data || [];
 
     // Totals and counts
-    const totals = rows.map((r) => toNum(r?.totalAmount ?? r?.total ?? r?.amount));
+    const totals = rows.map((r) =>
+      toNum(r?.totalAmount ?? r?.total ?? r?.amount),
+    );
     const totalPurchases = totals.reduce((a, b) => a + b, 0);
     const purchasesCount = rows.length;
-    const avgPurchaseValue = purchasesCount ? totalPurchases / purchasesCount : 0;
+    const avgPurchaseValue = purchasesCount
+      ? totalPurchases / purchasesCount
+      : 0;
 
     // Outstanding/due calculation (best-effort across possible fields)
-    const outstandingPayables = rows.reduce((sum: number, r: any) => {
-      const total = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
-      const paid = toNum(r?.paidAmount ?? r?.amountPaid ?? 0);
-      const dueField = toNum(r?.dueAmount);
-      let due = dueField || Math.max(total - paid, 0);
-      const status = String(r?.paymentStatus ?? r?.status ?? "").toLowerCase();
-      if (status && ["paid", "completed", "settled"].some((k) => status.includes(k))) {
-        due = 0;
-      }
-      return sum + Math.max(due, 0);
-    }, 0);
+    // const outstandingPayables = rows.reduce((sum: number, r: any) => {
+    //   const total = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
+    //   const paid = toNum(r?.paidAmount ?? r?.amountPaid ?? 0);
+    //   const dueField = toNum(r?.dueAmount);
+    //   let due = dueField || Math.max(total - paid, 0);
+    //   const status = String(r?.paymentStatus ?? r?.status ?? "").toLowerCase();
+    //   if (status && ["paid", "completed", "settled"].some((k) => status.includes(k))) {
+    //     due = 0;
+    //   }
+    //   return sum + Math.max(due, 0);
+    // }, 0);
 
     // Time bucketing similar to RevenueSection
     const buckets = new Map<string, number>();
@@ -242,11 +246,15 @@ function PurchaseSection() {
       if (granularity === "month")
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (granularity === "week") {
-        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const tmp = new Date(
+          Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()),
+        );
         const dayNum = tmp.getUTCDay() || 7;
         tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
         const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-        const weekNo = Math.ceil((((tmp as any) - (yearStart as any)) / 86400000 + 1) / 7);
+        const weekNo = Math.ceil(
+          (((tmp as any) - (yearStart as any)) / 86400000 + 1) / 7,
+        );
         return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
       }
       return d.toISOString().slice(0, 10);
@@ -289,11 +297,17 @@ function PurchaseSection() {
     // Supplier breakdown pie
     const supplierMap = new Map<string, number>();
     rows.forEach((r: any) => {
-      const sup = r?.supplier?.name || r?.supplierName || r?.supplier || `#${r?.supplierId ?? "N/A"}`;
+      const sup =
+        r?.supplier?.name ||
+        r?.supplierName ||
+        r?.supplier ||
+        `#${r?.supplierId ?? "N/A"}`;
       const amt = toNum(r?.totalAmount ?? r?.total ?? r?.amount);
       supplierMap.set(sup, (supplierMap.get(sup) || 0) + amt);
     });
-    const supplierEntries = Array.from(supplierMap.entries()).sort((a, b) => b[1] - a[1]);
+    const supplierEntries = Array.from(supplierMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
     const top5 = supplierEntries.slice(0, 5);
     const othersTotal = supplierEntries.slice(5).reduce((s, [, v]) => s + v, 0);
     const supplierPie = [
@@ -307,7 +321,12 @@ function PurchaseSection() {
       const items = r?.purchaseItems || r?.items || [];
       items.forEach((it: any) => {
         const prod = it?.product || {};
-        const key = prod?.name || prod?.title || prod?.productName || it?.name || `#${it?.productId ?? it?.id ?? "item"}`;
+        const key =
+          prod?.name ||
+          prod?.title ||
+          prod?.productName ||
+          it?.name ||
+          `#${it?.productId ?? it?.id ?? "item"}`;
         const qty = toNum(it?.quantity ?? it?.qty ?? 0);
         itemMap.set(key, (itemMap.get(key) || 0) + qty);
       });
@@ -321,7 +340,7 @@ function PurchaseSection() {
       totalPurchases,
       purchasesCount,
       avgPurchaseValue,
-      outstandingPayables,
+      // outstandingPayables,
       trendData,
       supplierPie,
       topItemsBar,
@@ -333,12 +352,18 @@ function PurchaseSection() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+            <label className="block text-xs text-gray-600 mb-1">
+              Start Date
+            </label>
             <Controller
               name="start"
               control={control}
               render={({ field }) => (
-                <input type="date" className="border rounded px-3 py-2 bg-white" {...field} />
+                <input
+                  type="date"
+                  className="border rounded px-3 py-2 bg-white"
+                  {...field}
+                />
               )}
             />
           </div>
@@ -348,7 +373,11 @@ function PurchaseSection() {
               name="end"
               control={control}
               render={({ field }) => (
-                <input type="date" className="border rounded px-3 py-2 bg-white" {...field} />
+                <input
+                  type="date"
+                  className="border rounded px-3 py-2 bg-white"
+                  {...field}
+                />
               )}
             />
           </div>
@@ -388,16 +417,18 @@ function PurchaseSection() {
           <div className="text-sm text-gray-600">Average Purchase Value</div>
           <div className="text-2xl font-semibold text-emerald-600 mt-1">
             {CurrencySign}
-            {avgPurchaseValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            {avgPurchaseValue.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            })}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        {/* <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <div className="text-sm text-gray-600">Outstanding Payables</div>
           <div className="text-2xl font-semibold text-red-600 mt-1">
             {CurrencySign}
             {outstandingPayables.toLocaleString()}
           </div>
-        </div>
+        </div> */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <div className="text-sm text-gray-600">Purchases</div>
           <div className="text-2xl font-semibold text-gray-800 mt-1">
@@ -412,13 +443,19 @@ function PurchaseSection() {
           <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
         ) : (
           <>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Purchase Trend</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">
+              Purchase Trend
+            </h3>
             <BarChartComponent
               data={trendData}
               dataKeys={["Purchases"]}
               height={300}
               xAxisLabel={
-                granularity === "day" ? "Date" : granularity === "week" ? "Week" : "Month"
+                granularity === "day"
+                  ? "Date"
+                  : granularity === "week"
+                    ? "Week"
+                    : "Month"
               }
               yAxisLabel="Amount"
               showLegend={false}
@@ -435,14 +472,23 @@ function PurchaseSection() {
             <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
           ) : (
             <>
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Spend by Supplier</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">
+                Spend by Supplier
+              </h3>
               <PieChartComponent
                 data={supplierPie}
                 responsive
                 height={260}
                 showLegend
                 legendPosition="bottom"
-                colorScale={["#fb923c", "#fdba74", "#f59e0b", "#fbbf24", "#fcd34d", "#fca5a5"]}
+                colorScale={[
+                  "#fb923c",
+                  "#fdba74",
+                  "#f59e0b",
+                  "#fbbf24",
+                  "#fcd34d",
+                  "#fca5a5",
+                ]}
               />
             </>
           )}
@@ -452,7 +498,9 @@ function PurchaseSection() {
             <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
           ) : (
             <>
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Top Items Purchased</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">
+                Top Items Purchased
+              </h3>
               <BarChartComponent
                 data={topItemsBar}
                 dataKeys={["Quantity"]}
