@@ -1,4 +1,4 @@
-const { Model, DataTypes, Sequelize } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   class Expense extends Model {
@@ -19,12 +19,6 @@ module.exports = (sequelize) => {
         foreignKey: "accountId",
         as: "account",
         onDelete: "CASCADE",
-        onUpdate: "CASCADE",
-      });
-      Expense.belongsTo(models.accountModel, {
-        foreignKey: "paymentAccountId",
-        as: "paymentAccount",
-        onDelete: "SET NULL",
         onUpdate: "CASCADE",
       });
       Expense.belongsTo(models.supplierModel, {
@@ -83,11 +77,6 @@ module.exports = (sequelize) => {
         allowNull: false,
         references: { model: "accounts", key: "id" },
       },
-      paymentAccountId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: "accounts", key: "id" },
-      },
       supplierId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -114,23 +103,24 @@ module.exports = (sequelize) => {
   // Hook to update account balance for cash or credit expenses
   Expense.addHook("afterCreate", async (expense, options) => {
     try {
-      const accountId =
-        expense.cashOrCredit === "cash"
-          ? expense.accountId
-          : expense.paymentAccountId;
+      const accountId = expense.accountId;
       if (!accountId) {
-        throw new Error(
-          `${expense.cashOrCredit === "cash" ? "accountId" : "paymentAccountId"} is required for ${expense.cashOrCredit} expense`,
-        );
+        throw new Error("accountId is required for expense");
       }
 
-      const account = await sequelize.models.accountModel.findByPk(accountId, {
+      // Access the Account model through the sequelize instance
+      const AccountModel = sequelize.models.Account;
+      if (!AccountModel) {
+        throw new Error("Account model not found ****\n***\n***");
+      }
+
+      const account = await AccountModel.findByPk(accountId, {
         transaction: options.transaction,
       });
 
-      if (!account) {
+      if (!account || account.status !== "active") {
         throw new Error(
-          `Associated account not found for accountId: ${accountId}`,
+          `Associated account not found or inactive for accountId: ${accountId}`,
         );
       }
 
@@ -149,7 +139,7 @@ module.exports = (sequelize) => {
     } catch (error) {
       console.error(
         `[Expense Hook] Error in afterCreate for expense ID: ${expense.id}`,
-        error.message,
+        error.stack,
       );
       throw error;
     }
@@ -158,77 +148,81 @@ module.exports = (sequelize) => {
   // Hook to handle balance updates on expense update
   Expense.addHook("afterUpdate", async (expense, options) => {
     try {
-      const previous = expense._previousDataValues;
-      const current = expense.dataValues;
-      const accountId =
-        expense.cashOrCredit === "cash"
-          ? expense.accountId
-          : expense.paymentAccountId;
+      if (!expense.accountId) {
+        throw new Error(`accountId is required for expense ID: ${expense.id}`);
+      }
 
-      if (
-        previous.amount !== current.amount ||
-        previous.accountId !== current.accountId ||
-        previous.paymentAccountId !== current.paymentAccountId
-      ) {
-        const account = await sequelize.models.accountModel.findByPk(
-          accountId,
-          {
-            transaction: options.transaction,
-          },
-        );
+      // Access the Account model through the sequelize instance
+      const AccountModel = sequelize.models.Account;
+      if (!AccountModel) {
+        throw new Error("Account model not found");
+      }
 
-        if (!account) {
-          throw new Error(
-            `Associated account not found for accountId: ${accountId}`,
-          );
-        }
+      const account = await AccountModel.findByPk(expense.accountId, {
+        transaction: options.transaction,
+      });
 
-        // Revert previous amount and apply new amount
-        const revertBalance =
-          Number(account.currentBalance) + Number(previous.amount);
-        const newBalance = revertBalance - Number(current.amount);
-
-        if (newBalance < 0) {
-          throw new Error(
-            `Insufficient balance in account ${accountId} for updated expense ID: ${expense.id}`,
-          );
-        }
-
-        await account.update(
-          { currentBalance: newBalance },
-          { transaction: options.transaction },
+      if (!account || account.status !== "active") {
+        throw new Error(
+          `Associated account not found or inactive for accountId: ${expense.accountId}`,
         );
       }
+
+      // Calculate the difference between old and new amounts
+      const oldAmount = Number(expense._previousDataValues.amount) || 0;
+      const newAmount = Number(expense.amount) || 0;
+      const amountDifference = newAmount - oldAmount;
+
+      // Update account balance
+      const newBalance =
+        Number(account.currentBalance) - Number(amountDifference);
+      if (newBalance < 0) {
+        throw new Error(
+          `Insufficient balance in account ${expense.accountId} for expense ID: ${expense.id}`,
+        );
+      }
+
+      await account.update(
+        { currentBalance: newBalance },
+        { transaction: options.transaction },
+      );
     } catch (error) {
       console.error(
         `[Expense Hook] Error in afterUpdate for expense ID: ${expense.id}`,
-        error.message,
+        error.stack,
       );
       throw error;
     }
   });
 
-  // Hook to restore balance on expense deletion
+  // Hook to handle balance restoration on expense deletion
   Expense.addHook("afterDestroy", async (expense, options) => {
     try {
-      const accountId =
-        expense.cashOrCredit === "cash"
-          ? expense.accountId
-          : expense.paymentAccountId;
-      if (!accountId) return;
+      if (!expense.accountId) {
+        throw new Error(`accountId is required for expense ID: ${expense.id}`);
+      }
 
-      const account = await sequelize.models.accountModel.findByPk(accountId, {
+      // Access the Account model through the sequelize instance
+      const AccountModel = sequelize.models.Account;
+      if (!AccountModel) {
+        throw new Error("Account model not found");
+      }
+
+      const account = await AccountModel.findByPk(expense.accountId, {
         transaction: options.transaction,
       });
 
       if (!account) {
-        throw new Error(
-          `Associated account not found for accountId: ${accountId}`,
+        console.warn(
+          `Account not found for accountId: ${expense.accountId} during expense deletion`,
         );
+        return;
       }
 
+      // Restore the amount back to account balance
       const newBalance =
         Number(account.currentBalance) + Number(expense.amount);
+
       await account.update(
         { currentBalance: newBalance },
         { transaction: options.transaction },
@@ -236,7 +230,7 @@ module.exports = (sequelize) => {
     } catch (error) {
       console.error(
         `[Expense Hook] Error in afterDestroy for expense ID: ${expense.id}`,
-        error.message,
+        error.stack,
       );
       throw error;
     }

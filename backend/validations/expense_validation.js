@@ -38,6 +38,15 @@ const expensePostValidation = async (req, res, next) => {
       "number.positive": "Account ID must be positive",
       "any.required": "Account ID is required",
     }),
+    supplierId: Joi.number()
+      .integer()
+      .positive()
+      .optional()
+      .allow(null)
+      .messages({
+        "number.base": "Supplier ID must be a number",
+        "number.positive": "Supplier ID must be positive",
+      }),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

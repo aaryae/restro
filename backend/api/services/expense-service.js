@@ -1,7 +1,8 @@
 const {
   expenseModel,
   expenseCategoryModel,
-  Account,
+  accountModel,
+  supplierModel,
   sequelize,
 } = require("../../models");
 const generalConstant = require("../../constants/general-constant");
@@ -17,10 +18,42 @@ const create = async (req) => {
       remarks,
       categoryId,
       accountId,
+      supplierId,
     } = req.body;
 
+    // Validate input
+    if (!["cash", "credit"].includes(cash_or_credit)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Invalid cash_or_credit value",
+        data: null,
+      };
+    }
+    if (!["cash", "card", "online"].includes(paymentMethod)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Invalid paymentMethod value",
+        data: null,
+      };
+    }
+    if (amount < 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Amount must be non-negative",
+        data: null,
+      };
+    }
+
     // Validate references
-    const account = await Account.findByPk(accountId, { transaction });
+    const account = await accountModel.findByPk(accountId, {
+      transaction,
+    });
     if (!account || account.status !== "active") {
       await transaction.rollback();
       return {
@@ -30,6 +63,18 @@ const create = async (req) => {
         data: null,
       };
     }
+
+    // Check balance
+    if (Number(account.currentBalance) < Number(amount)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Insufficient account balance",
+        data: null,
+      };
+    }
+
     if (categoryId) {
       const category = await expenseCategoryModel.findByPk(categoryId, {
         transaction,
@@ -45,6 +90,21 @@ const create = async (req) => {
       }
     }
 
+    if (supplierId) {
+      const supplier = await supplierModel.findByPk(supplierId, {
+        transaction,
+      });
+      if (!supplier) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Invalid supplier",
+          data: null,
+        };
+      }
+    }
+
     const expense = await expenseModel.create(
       {
         cash_or_credit,
@@ -54,6 +114,7 @@ const create = async (req) => {
         categoryId,
         userId: req.user.id,
         accountId,
+        supplierId,
       },
       { transaction },
     );
@@ -61,7 +122,8 @@ const create = async (req) => {
     const result = await expenseModel.findByPk(expense.id, {
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
+        { model: accountModel, as: "account" },
+        { model: supplierModel, as: "supplier" },
       ],
       transaction,
     });
@@ -92,7 +154,7 @@ const list = async (req) => {
       order,
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
+        { model: accountModel, as: "account" },
       ],
     });
 
