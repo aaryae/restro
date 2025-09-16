@@ -480,7 +480,12 @@ const checkoutOrder = async (req) => {
       // 2) Otherwise map paymentMethod to accountType and pick a default or any active of that type
       if (!account) {
         const paymentMethod = updateData.paymentMethod || "cash";
-        const accountTypeMap = { cash: "cash", card: "bank", cheque: "bank", online: "wallet" };
+        const accountTypeMap = {
+          cash: "cash",
+          card: "bank",
+          cheque: "bank",
+          online: "wallet",
+        };
         const accountType = accountTypeMap[paymentMethod] || "cash";
         account = await accountModel.findOne({
           where: { accountType, isDefault: true, status: "active" },
@@ -502,7 +507,9 @@ const checkoutOrder = async (req) => {
           message: `No active account available for checkout`,
         };
       }
-      console.log(`[checkoutOrder] Using account ${account.id} (isDefault=${account.isDefault})`);
+      console.log(
+        `[checkoutOrder] Using account ${account.id} (isDefault=${account.isDefault})`,
+      );
       selectedAccountId = account.id;
     } else {
       // Validate provided accountId is active
@@ -517,7 +524,9 @@ const checkoutOrder = async (req) => {
           message: `Invalid or inactive account ID: ${selectedAccountId}`,
         };
       }
-      console.log(`[checkoutOrder] Using provided account ${selectedAccountId}`);
+      console.log(
+        `[checkoutOrder] Using provided account ${selectedAccountId}`,
+      );
     }
 
     // Update all orders and create revenue entries
@@ -710,9 +719,11 @@ const listOrders = async (req) => {
         attributes: ["id", "tableNo"],
       },
     ];
-    const order = [["updatedAt", "DESC"]];
+    let order = [["updatedAt", "DESC"]];
 
-    if (status) filters.status = { [Op.like]: `%${status}%` };
+    // if status is all, remove it from filters
+    if (status && status !== "all")
+      filters.status = { [Op.like]: `%${status}%` };
     if (paymentStatus)
       filters.paymentStatus = { [Op.like]: `%${paymentStatus}%` };
     if (orderStatus) filters.status = { [Op.like]: `%${orderStatus}%` };
@@ -731,13 +742,13 @@ const listOrders = async (req) => {
     if (start && end) {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
       const endDate = endOfDay(parseISO(end));
-      console.log(startDate, endDate, "dates-----------------");
       filters.orderStartTime = { [Op.between]: [startDate, endDate] };
     }
 
     if (sort) {
-      if (sort === "price") order.push(["totalAmount", "DESC"]);
-      else if (sort === "latest") order.push(["createdAt", "DESC"]);
+      order = [];
+      if (sort === "oldest") order.push(["orderStartTime", "ASC"]);
+      else if (sort === "newest") order.push(["orderStartTime", "DESC"]);
     }
 
     const result = await paginate(orderModel, {

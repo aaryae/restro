@@ -31,13 +31,18 @@ type Order = {
 
 export default function KotList() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
+  const [queryStringOptions, setQueryStringOptions] = useState({
+    status: "all",
+    sort: "oldest",
+  });
 
   const url = useMemo(() => {
     return buildQueryString("order/list", {
       page: query.page,
       limit: query.limit,
+      search: queryStringOptions,
     });
-  }, [query]);
+  }, [query, queryStringOptions]);
 
   const { data, isSuccess } = useGetApiQuery({ url });
 
@@ -58,29 +63,65 @@ export default function KotList() {
   const filteredOrders = useMemo(() => {
     if (!orders) return [] as Order[];
     // Show only active/unpaid KOTs
-    return orders.filter((o) => o.paymentStatus?.toLowerCase() !== "paid");
-  }, [orders]);
-
-  // FIFO: sort by oldest first (ascending by orderStartTime; fallback to id)
-  const sortedOrders = useMemo(() => {
-    const toDate = (v?: string | Date) => (v ? new Date(v).getTime() : 0);
-    return [...filteredOrders].sort((a, b) => {
-      const at = toDate(a.orderStartTime);
-      const bt = toDate(b.orderStartTime);
-      if (at !== bt) return at - bt; // older first
-      // fallback stable-ish comparison using id when timestamps equal/missing
-      return Number(a.id) - Number(b.id);
-    });
-  }, [filteredOrders]);
+    return orders;
+  }, [orders, queryStringOptions]);
 
   const totalPages = data?.data?.totalPages ?? 1;
   const offset = (query.page - 1) * query.limit;
 
   return (
     <>
+      <div className="flex gap-2 mb-4">
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "all" ? "bg-blue-500 text-white" : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((prev) => ({ ...prev, status: "all" }))
+          }
+        >
+          All
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "pending"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "pending" }))
+          }
+        >
+          Pending
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "completed"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "completed" }))
+          }
+        >
+          Completed
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "cancelled"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "cancelled" }))
+          }
+        >
+          Cancelled
+        </button>
+      </div>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        {isSuccess && sortedOrders?.length > 0 ? (
-          sortedOrders.map((order, idx) => (
+        {isSuccess && orders?.length > 0 ? (
+          orders.map((order, idx) => (
             <KotCard
               key={order.id}
               order={order}
@@ -172,7 +213,9 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
   const [openCheckout, setOpenCheckout] = useState(false);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm ">
+    <div
+      className={`bg-white border border-gray-200 rounded-xl shadow-sm ${order.status === "completed" ? "border-green-500" : order.status === "pending" ? "border-yellow-500" : "border-red-500"}`}
+    >
       <div ref={contentRef} className="p-5 h-fit kot-print ">
         <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
           KOT {kotNo}
