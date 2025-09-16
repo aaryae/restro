@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import DraggableTable from "@/components/Table/dragableTable";
 import usePagination from "@/hooks/usePagination";
@@ -6,77 +6,64 @@ import { PaginationType } from "@/types/commonTypes";
 import useTranslation from "@/locale/useTranslation";
 import { PURCHASE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
+import { MdEditSquare } from "react-icons/md";
+import DeleteModal from "@/components/DeleteModal";
+import { buildQueryString } from "@/utils/generalHelper";
+import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
+import { handleResponse } from "@/utils/responseHandler";
+import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
 
-type PurchaseCategoryRow = {
-  id: number;
-  title: string;
-  description: string;
-};
+// type PurchaseCategoryRow = {
+//   id: number;
+//   title: string;
+//   description: string;
+// };
 
 const PurchaseCategory: React.FC = () => {
   const translate = useTranslation();
   const navigate = useNavigate();
-  // Demo data; replace with API integration later
-  const allData: PurchaseCategoryRow[] = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "Fruits and Vegetables",
-        description:
-          "Category related to fruits and vegetables used to create drinks or meals.",
-      },
-      {
-        id: 2,
-        title: "Coffee Beans",
-        description:
-          "Category related to coffee beans for beverages and related products.",
-      },
-      {
-        id: 3,
-        title: "Bakery Items",
-        description:
-          "Category for breads, pastries, and other bakery supplies.",
-      },
-      {
-        id: 4,
-        title: "Cigarettes and Hukka",
-        description: "Category for cigarette and hukka related purchases.",
-      },
-      {
-        id: 5,
-        title: "Soft Drinks",
-        description: "Category for non-alcoholic beverages and mixers.",
-      },
-      {
-        id: 6,
-        title: "Hard Drinks",
-        description: "Category for alcoholic beverages.",
-      },
-      {
-        id: 7,
-        title: "Coffee Related other Items",
-        description:
-          "Category for syrups, filters, and other coffee accessories.",
-      },
-    ],
-    [],
-  );
+  const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const handleDeleteTrigger = (id: number) => {
+    setDeleteId(id);
+    setDeleteModelOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const res = await deleteApi(`${PURCHASE_CATEGORY_URL}${deleteId}`).unwrap();
+      handleResponse({
+        res: { success: true, msg: res?.message || "Purchase category deleted successfully." },
+        onSuccess: () => refetch(),
+      });
+    } finally {
+      setDeleteModelOpen(false);
+      setDeleteId(null);
+    }
+  };
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const start = (query.page - 1) * query.limit;
-  const pageRows = allData.slice(start, start + query.limit);
-
-  const pagination: PaginationType = {
+  const url = buildQueryString("purchase-category/list", {
     page: query.page,
     limit: query.limit,
-    total: allData.length,
-    totalPages: Math.max(1, Math.ceil(allData.length / query.limit)),
+  });
+  const { data: apiData, isSuccess: success, isFetching, refetch } = useGetApiQuery({ url });
+  const [deleteApi] = useDeleteApiMutation();
+
+  const rows: any[] = success ? apiData?.data?.data ?? [] : [];
+
+  const pagination: PaginationType = {
+    page: apiData?.data?.page ?? query.page,
+    limit: apiData?.data?.limit ?? query.limit,
+    total: apiData?.data?.total ?? 0,
+    totalPages: apiData?.data?.totalPages ?? 1,
   };
 
   const headers = [
     "ID",
     "Purchase Category Title",
     "Purchase Category Description",
+    "Action",
   ];
 
   const handleNewUser = (id: number | null) => {
@@ -84,9 +71,27 @@ const PurchaseCategory: React.FC = () => {
       ? navigate(PURCHASE_CATEGORY_ADD_ROUTE)
       : navigate(`${PURCHASE_CATEGORY_ADD_ROUTE}${id}`);
   };
-  // For DraggableTable, the first array element is used as the row identifier and is not rendered.
-  // Duplicate the ID as the next element so it appears in the first visible column.
-  const data = pageRows.map((r) => [r.id, r.id, r.title, r.description]);
+  // For DraggableTable, the first array element is the row identifier and is not rendered.
+  const data = rows.map((r: any) => [
+    r.id,
+    r.id,
+    r.name,
+    r.description,
+    <div key={r.id} className="flex items-center justify-center gap-[0.5rem]">
+      <MdEditSquare
+        size={18}
+        className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
+        onClick={() => handleNewUser(r.id)}
+        title="Edit"
+      />
+      <DeleteModal
+        open={deleteModelOpen}
+        setOpen={setDeleteModelOpen}
+        handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
+        handleConfirmDelete={handleDelete}
+      />
+    </div>,
+  ]);
 
   return (
     <>
@@ -94,22 +99,20 @@ const PurchaseCategory: React.FC = () => {
         hasAddButton={true}
         newButtonText={translate("Add New Purchase Category")}
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={() => {}}
+        handleReloadButton={() => refetch()}
         hasSubText
         subText="This module allows dynamically adding various types of categories related to purchase entry."
       />
       <DraggableTable
         headers={headers}
         data={data}
-        loading={false}
-        fetching={false}
-        success={true}
+        loading={isFetching}
+        fetching={isFetching}
+        success={success}
         url="purchase-category/update-order"
         action={() => {}}
         pagination={pagination}
-        handlePagination={(p) =>
-          handlePagination({ ...p, total: allData.length })
-        }
+        handlePagination={(p) => handlePagination({ ...p, total: pagination.total })}
       />
     </>
   );

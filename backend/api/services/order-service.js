@@ -331,7 +331,7 @@ const checkoutOrder = async (req) => {
     }
 
     // Validate paymentMethod if provided
-    const validPaymentMethods = ["cash", "card", "online"];
+    const validPaymentMethods = ["cash", "card", "online", "cheque"];
     if (
       updateData.paymentMethod &&
       !validPaymentMethods.includes(updateData.paymentMethod)
@@ -469,46 +469,55 @@ const checkoutOrder = async (req) => {
       }
     }
 
-    // Determine the account for revenue
+    // Determine the account for revenue (prioritize globally default active account)
     let selectedAccountId = accountId;
     if (!selectedAccountId) {
-      // Map paymentMethod to accountType
-      const paymentMethod = updateData.paymentMethod || "cash";
-      const accountTypeMap = {
-        cash: "cash",
-        card: "bank",
-        online: "wallet",
-      };
-      const accountType = accountTypeMap[paymentMethod] || "cash";
-
-      // Fetch the account based on accountType
-      const account = await accountModel.findOne({
-        where: { accountType },
+      // 1) Use a globally default active account if available
+      let account = await accountModel.findOne({
+        where: { isDefault: true, status: "active" },
         transaction,
       });
+      // 2) Otherwise map paymentMethod to accountType and pick a default or any active of that type
+      if (!account) {
+        const paymentMethod = updateData.paymentMethod || "cash";
+        const accountTypeMap = { cash: "cash", card: "bank", cheque: "bank", online: "wallet" };
+        const accountType = accountTypeMap[paymentMethod] || "cash";
+        account = await accountModel.findOne({
+          where: { accountType, isDefault: true, status: "active" },
+          transaction,
+        });
+        if (!account) {
+          account = await accountModel.findOne({
+            where: { accountType, status: "active" },
+            transaction,
+          });
+        }
+      }
 
       if (!account) {
         await transaction.rollback();
         return {
           status: 400,
           success: false,
-          message: `No account found for payment method: ${paymentMethod}`,
+          message: `No active account available for checkout`,
         };
       }
+      console.log(`[checkoutOrder] Using account ${account.id} (isDefault=${account.isDefault})`);
       selectedAccountId = account.id;
     } else {
-      // Validate provided accountId
+      // Validate provided accountId is active
       const account = await accountModel.findByPk(selectedAccountId, {
         transaction,
       });
-      if (!account) {
+      if (!account || account.status !== "active") {
         await transaction.rollback();
         return {
           status: 400,
           success: false,
-          message: `Invalid account ID: ${selectedAccountId}`,
+          message: `Invalid or inactive account ID: ${selectedAccountId}`,
         };
       }
+      console.log(`[checkoutOrder] Using provided account ${selectedAccountId}`);
     }
 
     // Update all orders and create revenue entries
@@ -538,10 +547,21 @@ const checkoutOrder = async (req) => {
           cash_or_credit: updateData.cashOrCredit || "cash",
           customerId: finalCustomerId,
           userId: req.user.id, // Assuming user ID is available in req.user
-          accountId: selectedAccountId, // Add accountId to revenue entry
+          accountId: selectedAccountId, // Credit the selected account
           remarks: updateData.remarks || `Revenue from order ${order.id}`,
         },
         { transaction },
+      );
+
+      // Increment selected account balance by the order amount (as number)
+      const incBy = Number(order.totalAmount) || 0;
+      await accountModel.increment("currentBalance", {
+        by: incBy,
+        where: { id: selectedAccountId },
+        transaction,
+      });
+      console.log(
+        `[checkoutOrder] Incremented account ${selectedAccountId} by ${incBy} for order ${order.id}`,
       );
 
       updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });

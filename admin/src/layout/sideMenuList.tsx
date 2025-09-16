@@ -19,11 +19,13 @@ import {
   Mail,
   Settings,
   UserCheck,
-  MenuIcon,
   LogsIcon,
   LandmarkIcon,
   Sofa,
   HandPlatter,
+  Layers,
+  UtensilsCrossed,
+  ChartBarStacked,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -46,14 +48,20 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Product",
         label: "Items",
         path: "/admin/product/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <UtensilsCrossed size={12} />,
       },
       {
         key: 1.2,
         name: "Product Category",
         label: "Categories",
         path: "/admin/product-category/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <ChartBarStacked size={12} />,
+      },
+      {
+        key: 1.3,
+        name: "Open Item",
+        icon: <HandPlatter size={12} />,
+        path: "/admin/open-item/list",
       },
       // {
       //   key: 3.3,
@@ -88,12 +96,18 @@ export const SideMenuList: SideListMenuType[] = [
       },
       {
         key: 3.3,
+        name: "Purchase Category",
+        icon: <Layers size={12} />,
+        path: "/admin/purchase-category/list",
+      },
+      {
+        key: 3.4,
         name: "Expense",
         icon: <GiExpense />,
         path: "/admin/expense/list",
       },
       {
-        key: 3.4,
+        key: 3.5,
         name: "Supplier",
         icon: <GiExpense />,
         path: "/admin/supplier/list",
@@ -191,11 +205,5 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <MdDisplaySettings />,
       },
     ],
-  },
-  {
-    key: 10,
-    name: "Open Item",
-    icon: <HandPlatter />,
-    path: "/admin/open-item/list",
   },
 ];

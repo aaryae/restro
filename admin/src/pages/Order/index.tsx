@@ -34,7 +34,7 @@ export default function Order() {
                   type="button"
                   className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
                     field.value === option.value
-                      ? "bg-blue-500 text-white border-none"
+                      ? "bg-primaryColor text-white border-none"
                       : "bg-white text-gray-700 hover:bg-gray-200"
                   }`}
                   onClick={() => field.onChange(option.value)}

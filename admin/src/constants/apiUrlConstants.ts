@@ -10,3 +10,5 @@ export const CUSTOMER_URL = "customer-auth/";
 export const SUPPLIER_URL = "supplier/";
 export const REVENUE_URL = "revenue/";
 export const ACCOUNT_URL = "account/";
+export const PURCHASE_URL = "purchase/";
+export const PURCHASE_CATEGORY_URL = "purchase-category/";

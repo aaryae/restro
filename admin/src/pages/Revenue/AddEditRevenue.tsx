@@ -195,7 +195,7 @@ export default function AddEditRevenue() {
                           <button
                             type="button"
                             onClick={() => customerRefetch()}
-                            className="mt-2 px-4 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                            className="mt-2 px-4 py-1.5 bg-primaryColor text-white rounded hover:bg-blue-600 text-sm"
                           >
                             Retry
                           </button>

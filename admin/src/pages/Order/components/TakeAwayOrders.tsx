@@ -5,10 +5,13 @@ import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
 import PageTitle from "@/components/PageTitle";
+import Drawer from "@/components/Drawer";
+import ViewOrder from "../ViewOrder";
 
 function TakeAwayOrders() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
-
+  const [orderId, setOrderId] = useState<number | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
   const [queryStringOptions, setQueryStringOptions] = useState({
     orderType: "takeaway",
   });
@@ -22,6 +25,11 @@ function TakeAwayOrders() {
   //   },
   //   [query],
   // );
+
+  const handleViewOrder = (id: number) => {
+    setOrderId(id);
+    setOpen(true);
+  };
 
   const url = useMemo(() => {
     return buildQueryString("order/list", {
@@ -143,7 +151,7 @@ function TakeAwayOrders() {
                   <button
                     type="button"
                     className="text-emerald-700 hover:text-emerald-800 text-sm inline-flex items-center gap-2"
-                    // onClick={() => handleViewOrder(id)}
+                    onClick={() => handleViewOrder(id)}
                   >
                     <FaEye /> View
                   </button>
@@ -182,6 +190,9 @@ function TakeAwayOrders() {
           </button>
         </div>
       </div>
+      <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
+        <ViewOrder id={orderId} isOpen={open} setIsOpen={setOpen} />
+      </Drawer>
     </>
   );
 }
