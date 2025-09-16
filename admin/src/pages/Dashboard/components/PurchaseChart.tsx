@@ -47,7 +47,6 @@ function PurchaseSection() {
     // outstandingPayables,
     trendData,
     supplierPie,
-    topItemsBar,
   } = useMemo(() => {
     const rows: any[] = (data as any)?.data?.data || [];
 
@@ -157,27 +156,6 @@ function PurchaseSection() {
       ...(othersTotal > 0 ? [{ name: "Others", value: othersTotal }] : []),
     ];
 
-    // Top items purchased bar (by quantity)
-    const itemMap = new Map<string, number>();
-    rows.forEach((r: any) => {
-      const items = r?.purchaseItems || r?.items || [];
-      items.forEach((it: any) => {
-        const prod = it?.product || {};
-        const key =
-          prod?.name ||
-          prod?.title ||
-          prod?.productName ||
-          it?.name ||
-          `#${it?.productId ?? it?.id ?? "item"}`;
-        const qty = toNum(it?.quantity ?? it?.qty ?? 0);
-        itemMap.set(key, (itemMap.get(key) || 0) + qty);
-      });
-    });
-    const topItemsBar = Array.from(itemMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, qty]) => ({ name, Quantity: qty }));
-
     return {
       totalPurchases,
       purchasesCount,
@@ -185,7 +163,6 @@ function PurchaseSection() {
       // outstandingPayables,
       trendData,
       supplierPie,
-      topItemsBar,
     };
   }, [data, start, end, granularity]);
 
@@ -307,8 +284,8 @@ function PurchaseSection() {
         )}
       </div>
 
-      {/* Breakdown + Top Items */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Breakdown (Supplier only) */}
+      <div className="grid grid-cols-1 gap-6 items-start">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           {isLoading ? (
             <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
@@ -331,26 +308,6 @@ function PurchaseSection() {
                   "#fcd34d",
                   "#fca5a5",
                 ]}
-              />
-            </>
-          )}
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          {isLoading ? (
-            <div className="h-[260px] animate-pulse bg-gray-100 rounded" />
-          ) : (
-            <>
-              <h3 className="text-base font-semibold text-gray-900 mb-4">
-                Top Items Purchased
-              </h3>
-              <BarChartComponent
-                data={topItemsBar}
-                dataKeys={["Quantity"]}
-                height={260}
-                xAxisLabel="Item"
-                yAxisLabel="Qty"
-                showLegend={false}
-                colorScale={["#ea580c"]}
               />
             </>
           )}

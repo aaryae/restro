@@ -1,6 +1,6 @@
 import { buildQueryString } from "@/utils/generalHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CurrencySign } from "@/constants";
 import { PiggyBank, Wallet, Landmark, ChartPie } from "lucide-react";
 import BarChartComponent from "../BarChartComponent";
@@ -208,13 +208,27 @@ function FiscalYearSummary() {
     });
   }, [revWeekData]);
 
-  // Top selling
+  // Top selling filters
+  const [topRange, setTopRange] = useState<"fy" | "7d" | "30d">("fy");
+  const [topN, setTopN] = useState<number>(5);
+
+  const topRangeDates = useMemo(() => {
+    const now = new Date();
+    const start7 = new Date(now);
+    start7.setDate(now.getDate() - 6);
+    const start30 = new Date(now);
+    start30.setDate(now.getDate() - 29);
+    if (topRange === "7d") return { start: start7, end: now };
+    if (topRange === "30d") return { start: start30, end: now };
+    return { start: fyStart, end: fyEnd };
+  }, [topRange, fyStart, fyEnd]);
+
   const urlOrdersFY = buildQueryString("order/list", {
     page: 1,
     limit: 100000,
     search: {
-      start: fyStart.toISOString().slice(0, 10),
-      end: fyEnd.toISOString().slice(0, 10),
+      start: topRangeDates.start.toISOString().slice(0, 10),
+      end: topRangeDates.end.toISOString().slice(0, 10),
     },
   });
   const { data: ordersFY, isLoading: ordersLoading } = useGetApiQuery({
@@ -235,9 +249,9 @@ function FiscalYearSummary() {
     });
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, Math.max(1, Math.min(15, Number(topN) || 5)))
       .map(([name, qty]) => ({ name, Quantity: qty }));
-  }, [ordersFY]);
+  }, [ordersFY, topN]);
 
   return (
     <div className="mt-8">
@@ -321,9 +335,37 @@ function FiscalYearSummary() {
       </div>
 
       <div className="mt-6 w-full max-w-md bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">
-          Top Selling Items
-        </h3>
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <h3 className="text-base font-semibold text-gray-900">
+            Top Selling Items
+          </h3>
+          <div className="flex items-center gap-2">
+            <select
+              value={topRange}
+              onChange={(e) => setTopRange(e.target.value as any)}
+              className="border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
+              title="Range"
+            >
+              <option value="fy">Fiscal Year</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+            </select>
+            <div className="flex items-center gap-1">
+              <label htmlFor="topN" className="text-xs text-gray-600">
+                Top
+              </label>
+              <input
+                id="topN"
+                type="number"
+                min={1}
+                max={15}
+                value={topN}
+                onChange={(e) => setTopN(Math.max(1, Math.min(15, Number(e.target.value) || 5)))}
+                className="w-14 border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
+              />
+            </div>
+          </div>
+        </div>
         {ordersLoading ? (
           <div className="h-[220px] animate-pulse bg-gray-100 rounded" />
         ) : (

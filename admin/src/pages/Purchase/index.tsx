@@ -19,14 +19,15 @@ import { FileText, IdCard, UserRound } from "lucide-react";
 import { buildQueryString } from "@/utils/generalHelper";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
-
-// Removed unused PurchaseRow mock type
+import { FaEye } from "react-icons/fa";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteApi] = useDeleteApiMutation();
+  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Filters (client-side for now)
   const { control, handleSubmit, reset, setValue, getValues } = useForm({});
@@ -34,6 +35,11 @@ const Purchase: React.FC = () => {
 
   const handleDateChange = (value: Date) => {
     setValue("dateAD", value);
+  };
+
+  const handleViewPurchase = (id: number) => {
+    setSelectedId(id);
+    setOpenDrawer(true);
   };
 
   const filterFields = useMemo(
@@ -109,6 +115,11 @@ const Purchase: React.FC = () => {
   }, [filters, query.page, query.limit]);
 
   const { data: apiData, refetch } = useGetApiQuery({ url: serverUrl });
+  // Fetch single purchase when drawer is open
+  const { data: purchaseDetailResp } = useGetApiQuery(
+    { url: selectedId ? `${PURCHASE_URL}${selectedId}` : "" },
+    { skip: !openDrawer || !selectedId },
+  );
 
   const accountUrl = useMemo(
     () => buildQueryString("account/list", { page: 1, limit: 1000 }),
@@ -148,7 +159,7 @@ const Purchase: React.FC = () => {
   };
 
   const headers = [
-    "Purchase ID",
+    "S.N",
     "Date (AD)",
     "Date (BS)",
     "Particulars",
@@ -156,6 +167,7 @@ const Purchase: React.FC = () => {
     "Supplier",
     "Amount",
     "Paid or Credit",
+    "Status",
     "Payment Source",
     "Actions",
   ];
@@ -183,7 +195,7 @@ const Purchase: React.FC = () => {
     }
   };
 
-  const data = rows.map((r: any) => {
+  const data = rows.map((r: any, index: number) => {
     const id = r?.id ?? r?.purchaseId ?? r?.purchase_id;
     const dateAD = (r?.invoiceDate || r?.date || r?.createdAt || "")
       .toString()
@@ -222,18 +234,24 @@ const Purchase: React.FC = () => {
       );
     })();
     const amount = r?.totalAmount ?? r?.total ?? r?.amount ?? 0;
-    
+
     const rawPaymentTerms =
       r?.paymentTerms ??
       r?.paymentTerm ??
       r?.payment_terms ??
       r?.payment_status ??
       r?.paymentStatus ??
-      r?.status ??
       "-";
     const paymentTermsDisplay =
       typeof rawPaymentTerms === "string" && rawPaymentTerms !== "-"
-        ? `${rawPaymentTerms}`.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+        ? `${rawPaymentTerms}`
+            .toLowerCase()
+            .replace(/^\w/, (c) => c.toUpperCase())
+        : "-";
+    const rawStatus = r?.status ?? r?.purchaseStatus ?? r?.state ?? "-";
+    const statusDisplay =
+      typeof rawStatus === "string" && rawStatus !== "-"
+        ? `${rawStatus}`.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
         : "-";
     const paymentSourceName = (() => {
       const acc = r?.account || r?.paymentSource;
@@ -249,7 +267,7 @@ const Purchase: React.FC = () => {
     })();
 
     return [
-      id,
+      index + 1 + (pagination.page - 1) * pagination.limit,
       dateAD,
       dateBS,
       particulars,
@@ -257,8 +275,14 @@ const Purchase: React.FC = () => {
       supplierName,
       `${CurrencySign}${Number(amount).toFixed(2)}`,
       paymentTermsDisplay,
+      statusDisplay,
       paymentSourceName,
       <div className="flex items-center justify-center gap-3" key={`act-${id}`}>
+        <FaEye
+          size={18}
+          className="text-[#0090DD] cursor-pointer"
+          onClick={() => handleViewPurchase(id)}
+        />
         <MdEditSquare
           size={18}
           className="text-[#0090DD] hover:text-blue-800"
@@ -293,6 +317,115 @@ const Purchase: React.FC = () => {
         pagination={pagination}
         handlePagination={(p) => handlePagination({ ...p, total })}
       />
+
+      {/* Drawer */}
+      {openDrawer && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              setOpenDrawer(false);
+              setSelectedId(null);
+            }}
+          />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white shadow-xl border-l border-gray-200 overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Purchase Details</h3>
+              <button
+                className="px-3 py-1 rounded border hover:bg-gray-50"
+                onClick={() => {
+                  setOpenDrawer(false);
+                  setSelectedId(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {!purchaseDetailResp ? (
+                <div className="text-sm text-gray-500">Loading...</div>
+              ) : (
+                (() => {
+                  const d: any = (purchaseDetailResp as any)?.data || {};
+                  const items: any[] = d?.purchaseItems || d?.items || [];
+                  const supplier = d?.supplier || d?.vendor || {};
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-500">Invoice Date</div>
+                          <div className="text-sm font-medium">
+                            {(d?.invoiceDate || d?.date || "").toString().slice(0, 10) || "-"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Supplier</div>
+                          <div className="text-sm font-medium">{supplier?.name || d?.supplierName || d?.vendorName || "-"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Invoice No.</div>
+                          <div className="text-sm font-medium">{d?.invoiceNumber || "-"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Payment Terms</div>
+                          <div className="text-sm font-medium">{d?.paymentTerms || d?.paymentStatus || "-"}</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-semibold mb-2">Items</div>
+                        <div className="rounded border border-gray-200 overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="p-2 border">#</th>
+                                <th className="p-2 border">Particulars</th>
+                                <th className="p-2 border">Qty</th>
+                                <th className="p-2 border">Rate</th>
+                                <th className="p-2 border">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.length === 0 ? (
+                                <tr>
+                                  <td className="p-3 text-center text-gray-500" colSpan={5}>
+                                    No items
+                                  </td>
+                                </tr>
+                              ) : (
+                                items.map((it: any, i: number) => (
+                                  <tr key={i}>
+                                    <td className="p-2 border text-center">{i + 1}</td>
+                                    <td className="p-2 border">{it.particulars || "-"}</td>
+                                    <td className="p-2 border text-right">{it.quantity ?? it.qty ?? 0}</td>
+                                    <td className="p-2 border text-right">{Number(it.rate ?? 0).toFixed(2)}</td>
+                                    <td className="p-2 border text-right">{Number((it.quantity ?? it.qty ?? 0) * (it.rate ?? 0)).toFixed(2)}</td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-500">Status</div>
+                          <div className="text-sm font-medium">{d?.status || d?.purchaseStatus || "-"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">Total Amount</div>
+                          <div className="text-sm font-semibold">{CurrencySign}{Number(d?.totalAmount ?? d?.total ?? 0).toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

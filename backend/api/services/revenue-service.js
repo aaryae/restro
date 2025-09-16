@@ -109,27 +109,27 @@ const createRevenue = async (req) => {
       `[createRevenue] Created revenue ID: ${revenue.id} with accountId: ${accountId}`,
     );
 
-    // Update account balance
-    const newBalance = Number(account.currentBalance) + Number(amount);
-    if (newBalance < 0) {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: `Balance cannot be negative for account ID: ${accountId}`,
-      };
-    }
+    // // Update account balance
+    // const newBalance = Number(account.currentBalance) + Number(amount);
+    // if (newBalance < 0) {
+    //   await transaction.rollback();
+    //   return {
+    //     status: 400,
+    //     success: false,
+    //     message: `Balance cannot be negative for account ID: ${accountId}`,
+    //   };
+    // }
 
-    await account.update(
-      {
-        currentBalance: newBalance,
-      },
-      { transaction },
-    );
+    // await account.update(
+    //   {
+    //     currentBalance: newBalance,
+    //   },
+    //   { transaction },
+    // );
 
-    console.log(
-      `[createRevenue] Updated account ID: ${account.id}, new currentBalance: ${newBalance}`,
-    );
+    // console.log(
+    //   `[createRevenue] Updated account ID: ${account.id}, new currentBalance: ${newBalance}`,
+    // );
 
     await transaction.commit();
 
