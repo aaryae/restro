@@ -1,4 +1,8 @@
-const { expenseCategoryModel, sequelize } = require("../../models");
+const {
+  expenseCategoryModel,
+  expenseModel,
+  sequelize,
+} = require("../../models");
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 
@@ -150,7 +154,7 @@ const deleteById = async (req) => {
     }
 
     // Check if category is used by any expenses
-    const expenseCount = await expenseCategoryModel.count({
+    const expenseCount = await expenseModel.count({
       where: { categoryId: category.id },
       transaction,
     });

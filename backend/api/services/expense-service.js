@@ -1,6 +1,11 @@
-const { Expense, ExpenseCategory, Account, sequelize } = require("../models");
-const generalConstant = require("../constants/expense-constant");
-const paginate = require("../utils/paginate");
+const {
+  Expense,
+  ExpenseCategory,
+  Account,
+  sequelize,
+} = require("../../models");
+const generalConstant = require("../../constants/general-constant");
+const paginate = require("../../utils/paginate");
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();

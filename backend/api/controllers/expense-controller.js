@@ -1,6 +1,6 @@
 const expenseService = require("../services/expense-service");
-const responseHelper = require("../helpers/response-helper");
-const logger = require("../configs/logger");
+const responseHelper = require("../../helpers/response-helper");
+const logger = require("../../configs/logger");
 
 const create = async (req, res, next) => {
   try {

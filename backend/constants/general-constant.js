@@ -1716,6 +1716,11 @@ module.exports = {
         success: true,
         message: "Expense category deleted successfully",
       },
+      EXPENSE_CATEGORY_GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Expense category retrieved successfully",
+      },
     },
   },
 };

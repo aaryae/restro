@@ -38,12 +38,12 @@ module.exports = {
       accountId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: "Accounts", key: "id" },
+        references: { model: "accounts", key: "id" },
       },
       paymentAccountId: {
         type: Sequelize.INTEGER,
         allowNull: true,
-        references: { model: "Accounts", key: "id" },
+        references: { model: "accounts", key: "id" },
       },
       paymentDate: {
         type: Sequelize.DATE,
