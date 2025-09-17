@@ -56,6 +56,7 @@ const slugValidation = async (req, res, next) => {
 
 const paginationValidation = async (req, res, next) => {
   let joiModel = joi.object({
+    name: joi.string().optional().label("name"),
     page: joi.number().optional().label("page"),
     limit: joi.number().optional().label("limit"),
     isDeleted: joi.boolean().optional().label("isDeleted"),

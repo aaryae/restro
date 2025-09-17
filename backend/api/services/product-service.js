@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const generalConstant = require("../../constants/general-constant");
 const {
   productModel,

@@ -30,6 +30,8 @@ import {
   useCreateOrderMutation,
   useUpdateOrderMutation,
 } from "@/redux/services/orders";
+import { buildQueryString } from "@/utils/generalHelper";
+import usePagination from "@/hooks/usePagination";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -80,8 +82,24 @@ export default function AddEditOrder({
     },
   });
 
+  const [queryStringOptions, setQueryStringOptions] = useState({
+    name: "",
+  });
+
+  const { query, handlePagination } = usePagination({
+    page: 1,
+    limit: 6,
+  });
+
+  const url = useMemo(() => {
+    return buildQueryString("product/list", {
+      page: query.page,
+      limit: query.limit,
+      search: queryStringOptions,
+    });
+  }, [query, queryStringOptions]);
+
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [productSearchTerm, setProductSearchTerm] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
@@ -142,27 +160,10 @@ export default function AddEditOrder({
 
   // Fetch products from backend (generic)
   const { data: productData, isLoading: isProductLoading } = useGetApiQuery({
-    url: `/product/list`,
+    url,
   });
 
   const [patchStatus] = usePatchApiMutation();
-
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    const list = productData?.data?.data || [];
-    const term = productSearchTerm.trim().toLowerCase();
-    if (!term) return list;
-    return list.filter((p: { name: string; description?: string }) => {
-      const name = p.name?.toLowerCase?.() || "";
-      const desc = (p.description || "").toLowerCase();
-      return name.includes(term) || desc.includes(term);
-    });
-  }, [productData, productSearchTerm]);
-
-  const productsToRender = useMemo(() => {
-    const list = Array.isArray(filteredProducts) ? filteredProducts : [];
-    return productSearchTerm ? list : list.slice(0, 6);
-  }, [filteredProducts, productSearchTerm]);
 
   const tableOptions = useMemo(() => {
     if (!tableData?.data) return [];
@@ -387,8 +388,13 @@ export default function AddEditOrder({
                   <div className="relative">
                     <Input
                       placeholder="Search menu items..."
-                      value={productSearchTerm}
-                      onChange={(e) => setProductSearchTerm(e.target.value)}
+                      value={queryStringOptions.name}
+                      onChange={(e) => {
+                        setQueryStringOptions({
+                          ...queryStringOptions,
+                          name: e.target.value,
+                        });
+                      }}
                       className="w-full"
                     />
                   </div>
@@ -401,15 +407,15 @@ export default function AddEditOrder({
                       Loading menu items...
                     </p>
                   </div>
-                ) : filteredProducts?.length > 0 ? (
+                ) : productData?.data?.data?.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     <div className="text-left text-lg font-semibold text-gray-900">
-                      {productSearchTerm
-                        ? `Search Results (${filteredProducts.length})`
+                      {queryStringOptions.name
+                        ? `Search Results (${productData?.data?.data?.length})`
                         : "Top Selling Menu Items"}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                      {productsToRender.map(
+                      {productData?.data?.data?.map(
                         (product: {
                           id: string;
                           name: string;
