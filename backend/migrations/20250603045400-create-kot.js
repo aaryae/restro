@@ -3,33 +3,22 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable(
-      "open_items",
+      "kots",
       {
         id: {
-          type: Sequelize.INTEGER,
+          allowNull: false,
           autoIncrement: true,
-          allowNull: false,
           primaryKey: true,
+          type: Sequelize.INTEGER,
         },
-        name: {
-          type: Sequelize.STRING,
-          allowNull: false,
-        },
-        alias: {
-          type: Sequelize.JSON,
-          allowNull: true,
-        },
-        description: {
-          type: Sequelize.TEXT,
-          allowNull: true,
-        },
-        quantity: {
+        orderId: {
           type: Sequelize.INTEGER,
           allowNull: false,
-        },
-        price: {
-          type: Sequelize.DECIMAL(10, 2),
-          allowNull: true,
+          references: {
+            model: "orders",
+            key: "id",
+          },
+          onDelete: "CASCADE",
         },
         departmentId: {
           type: Sequelize.INTEGER,
@@ -40,9 +29,14 @@ module.exports = {
           },
           onDelete: "RESTRICT",
         },
-        stockStatus: {
-          type: Sequelize.ENUM("in_stock", "out_of_stock", "low_stock"),
-          defaultValue: "in_stock",
+        kotNumber: {
+          type: Sequelize.INTEGER,
+          unique: true,
+          allowNull: false,
+        },
+        status: {
+          type: Sequelize.ENUM("pending", "preparing", "ready", "cancelled"),
+          defaultValue: "pending",
         },
         createdAt: {
           allowNull: false,
@@ -59,14 +53,19 @@ module.exports = {
       },
       {
         indexes: [
-          { fields: ["name"], name: "open_items_name_idx" },
-          { fields: ["departmentId"], name: "open_items_departmentId_idx" },
+          { fields: ["orderId"], name: "kots_orderId_idx" },
+          { fields: ["departmentId"], name: "kots_departmentId_idx" },
+          {
+            fields: ["kotNumber"],
+            unique: true,
+            name: "kots_kotNumber_unique",
+          },
         ],
       },
     );
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("open_items");
+    await queryInterface.dropTable("kots");
   },
 };

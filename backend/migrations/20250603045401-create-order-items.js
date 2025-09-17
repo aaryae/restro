@@ -52,6 +52,15 @@ module.exports = {
           allowNull: false,
           defaultValue: 1,
         },
+        kotId: {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          references: {
+            model: "kots",
+            key: "id",
+          },
+          onDelete: "RESTRICT",
+        },
         price: {
           type: Sequelize.DECIMAL(10, 2),
           allowNull: false,

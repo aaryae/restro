@@ -8,6 +8,11 @@ module.exports = (sequelize) => {
         as: "orderItems",
         onDelete: "SET NULL",
       });
+      Department.hasMany(models.openItemModel, {
+        foreignKey: "departmentId",
+        as: "openItems",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -28,7 +33,7 @@ module.exports = (sequelize) => {
           len: [2, 100],
         },
       },
-       slug: {
+      slug: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
@@ -63,7 +68,6 @@ module.exports = (sequelize) => {
         },
         comment: "Hex color code for department identification in UI",
       },
-     
     },
     {
       timestamps: true,

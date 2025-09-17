@@ -11,6 +11,11 @@ module.exports = (sequelize) => {
         foreignKey: "openItemId",
         as: "orderItems",
       });
+      OpenItem.belongsTo(models.departmentModel, {
+        foreignKey: "departmentId",
+        as: "department",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -45,6 +50,10 @@ module.exports = (sequelize) => {
       stockStatus: {
         type: DataTypes.ENUM("in_stock", "out_of_stock", "low_stock"),
         defaultValue: "in_stock",
+      },
+      departmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
       },
     },
     {

@@ -11,6 +11,8 @@ const {
   productMediaModel,
   accountModel,
   revenueModel,
+  openItemModel,
+  kotModel,
   sequelize,
 } = require("../../models");
 
@@ -25,6 +27,7 @@ const createOrder = async (req) => {
     let table = null;
     let sessionId = null;
 
+    // Handle table and session for dine-in orders
     if (orderType === "dineIn") {
       table = await tableModel.findByPk(tableId, { transaction });
       if (!table) {
@@ -47,13 +50,23 @@ const createOrder = async (req) => {
       }
     }
 
-    // Generate daily KOT number using date-fns
+    // Group order items by department
+    const itemsByDepartment = orderItems.reduce((acc, item) => {
+      const departmentId = item.departmentId;
+      if (!acc[departmentId]) {
+        acc[departmentId] = [];
+      }
+      acc[departmentId].push(item);
+      return acc;
+    }, {});
+
+    // Generate daily base KOT number
     const today = new Date();
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
 
-    // Get the count of orders created today to generate the next KOT number
-    const todayOrdersCount = await orderModel.count({
+    // Get the count of KOTs created today to generate the next base KOT number
+    const todayKotsCount = await kotModel.count({
       where: {
         createdAt: {
           [Op.between]: [startOfToday, endOfToday],
@@ -62,48 +75,77 @@ const createOrder = async (req) => {
       transaction,
     });
 
-    const kotNo = todayOrdersCount + 1;
+    let baseKotNo = todayKotsCount + 1;
 
+    // Create the order
     const order = await orderModel.create(
       {
         ...req.body,
         sessionId,
-        kotNo,
         orderStartTime: new Date(),
       },
       { transaction },
     );
 
     let totalAmount = 0;
+    const kotRecords = [];
 
-    for (const item of orderItems) {
-      const product = await productModel.findByPk(item.productId, {
-        transaction,
-      });
-      if (!product) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: `Product with ID ${item.productId} not found`,
-        };
-      }
+    // Create KOTs for each department
+    for (const departmentId of Object.keys(itemsByDepartment)) {
+      const items = itemsByDepartment[departmentId];
 
-      const subtotal = product.price * item.quantity;
-      totalAmount += subtotal;
+      // Use the incremented base KOT number for this department
+      const kotNumber = baseKotNo;
 
-      await orderItemModel.create(
+      // Create KOT record
+      const kot = await kotModel.create(
         {
-          ...item,
           orderId: order.id,
-          price: product.price,
-          departmentId: product.departmentId,
-          subtotal,
+          departmentId,
+          kotNumber,
+          status: "pending",
         },
         { transaction },
       );
+
+      // Store KOT for associating with order items
+      kotRecords.push(kot);
+      baseKotNo++; // Increment for the next department
+
+      // Process order items for this department
+      for (const item of items) {
+        const product = item.productId
+          ? await productModel.findByPk(item.productId, { transaction })
+          : await openItemModel.findByPk(item.openItemId, { transaction });
+
+        if (!product) {
+          await transaction.rollback();
+          return {
+            status: 404,
+            success: false,
+            message: `Item with ID ${item.productId || item.openItemId} not found`,
+          };
+        }
+
+        const price = product.price || item.price; // Use item.price for open items if needed
+        const subtotal = price * item.quantity - (item.discount || 0);
+        totalAmount += subtotal;
+
+        await orderItemModel.create(
+          {
+            ...item,
+            orderId: order.id,
+            price,
+            subtotal,
+            departmentId,
+            kotId: kot.id, // Associate with the KOT
+          },
+          { transaction },
+        );
+      }
     }
 
+    // Update order total amount
     await order.update({ totalAmount }, { transaction });
 
     await transaction.commit();
@@ -112,7 +154,10 @@ const createOrder = async (req) => {
       status: 201,
       success: true,
       message: "Order created successfully",
-      data: order,
+      data: {
+        order,
+        kots: kotRecords,
+      },
     };
   } catch (error) {
     await transaction.rollback();
@@ -841,7 +886,11 @@ const updateOrderStatus = async (req) => {
     await order.update(updateData, { transaction: t });
 
     // If order is being cancelled and it's a dine-in order with a table
-    if (status === "cancelled" && order.orderType === "dineIn" && order.tableId) {
+    if (
+      status === "cancelled" &&
+      order.orderType === "dineIn" &&
+      order.tableId
+    ) {
       // Check if there are any other active orders for this table
       const activeOrdersCount = await orderModel.count({
         where: {
@@ -863,7 +912,7 @@ const updateOrderStatus = async (req) => {
           {
             where: { id: order.tableId },
             transaction: t,
-          }
+          },
         );
       }
     }

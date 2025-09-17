@@ -20,6 +20,11 @@ module.exports = (sequelize) => {
         as: "table",
         onDelete: "SET NULL",
       });
+      Order.hasMany(models.kotModel, {
+        foreignKey: "orderId",
+        as: "kots",
+        onDelete: "CASCADE",
+      });
     }
   }
 
@@ -31,10 +36,6 @@ module.exports = (sequelize) => {
         primaryKey: true,
         type: DataTypes.INTEGER,
       },
-      kotNo: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
       tableId: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -44,7 +45,13 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
       status: {
-        type: DataTypes.ENUM("pending", "prepared", "completed", "cancelled"),
+        type: DataTypes.ENUM(
+          "pending",
+          "preparing",
+          "prepared",
+          "completed",
+          "cancelled",
+        ),
         defaultValue: "pending",
       },
       paymentStatus: {

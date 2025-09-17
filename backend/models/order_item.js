@@ -26,6 +26,12 @@ module.exports = (sequelize) => {
         as: "openItem",
         onDelete: "SET NULL",
       });
+
+      OrderItem.belongsTo(models.kotModel, {
+        foreignKey: "kotId",
+        as: "kot",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -52,6 +58,10 @@ module.exports = (sequelize) => {
       departmentId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      kotId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
       quantity: {
         type: DataTypes.INTEGER,
@@ -82,7 +92,7 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM(
           "pending",
           "preparing",
-          "ready",
+          "prepared",
           "served",
           "cancelled",
         ),
@@ -100,10 +110,6 @@ module.exports = (sequelize) => {
               "OrderItem must reference exactly one of productId or openItemId.",
             );
           }
-          // Allow departmentId to be null for open-items
-          if (orderItem.openItemId && !orderItem.departmentId) {
-            orderItem.departmentId = null;
-          }
         },
         beforeCreate: (orderItem) => {
           orderItem.subtotal =
@@ -113,22 +119,26 @@ module.exports = (sequelize) => {
           orderItem.subtotal =
             orderItem.price * orderItem.quantity - (orderItem.discount || 0);
         },
-        afterCreate: async (orderItem) => {
+        afterCreate: async (orderItem, options) => {
           if (orderItem.openItemId) {
             const openItem = await sequelize.models.openItemModel.findByPk(
               orderItem.openItemId,
+              { transaction: options.transaction },
             );
             if (openItem) {
               const newQuantity = openItem.quantity - orderItem.quantity;
-              await openItem.update({
-                quantity: newQuantity,
-                stockStatus:
-                  newQuantity <= 0
-                    ? "out_of_stock"
-                    : newQuantity < 10
-                      ? "low_stock"
-                      : "in_stock",
-              });
+              await openItem.update(
+                {
+                  quantity: newQuantity,
+                  stockStatus:
+                    newQuantity <= 0
+                      ? "out_of_stock"
+                      : newQuantity < 10
+                        ? "low_stock"
+                        : "in_stock",
+                },
+                { transaction: options.transaction }, // Fixed typo
+              );
             }
           }
         },
@@ -140,6 +150,7 @@ module.exports = (sequelize) => {
       indexes: [
         { fields: ["orderId", "productId"] },
         { fields: ["orderId", "openItemId"] },
+        { fields: ["kotId"] },
       ],
     },
   );
