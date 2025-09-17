@@ -158,7 +158,7 @@ const editSingleRole = async (req) => {
       const roleActions = req.body.role_actions.map((action) => ({
         roleId,
         roleMenuActionId: +action.roleMenuActionId,
-        requiredApproval: true, // Static value for now
+        requiredApproval: false, // Static value for now
         createdBy: req.user.id, // Assuming `req.user.id` holds the current user ID
       }));
 
