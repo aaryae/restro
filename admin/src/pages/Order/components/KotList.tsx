@@ -68,7 +68,7 @@ export default function KotList() {
 
   return (
     <>
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 my-4">
         <button
           className={`px-3 py-2 rounded border ${
             queryStringOptions.status === "all" ? "bg-blue-500 text-white" : ""
@@ -222,124 +222,155 @@ function KotCard({ order }: { order: Order }) {
   const [openCheckout, setOpenCheckout] = useState(false);
 
   return (
-    <div
-      className={`bg-white border border-gray-200 rounded-xl shadow-sm ${order.status === "completed" ? "border-green-500" : order.status === "pending" ? "border-yellow-500" : "border-red-500"}`}
-    >
-      <div ref={contentRef} className="p-5 h-fit kot-print ">
-        <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
-          KOT {order.kotNo}
-        </div>
-        <div className="flex justify-between text-[12px] text-gray-800">
-          <div className="flex flex-col gap-[2px]">
-            <div className="flex">
-              <span className="font-semibold">Type:</span>{" "}
-              {formatOrderType(order?.orderType)}
-            </div>
-            <div className="flex">
-              <span className="font-semibold">Order By:</span>{" "}
-              {order?.createdBy?.table?.name || order?.table?.tableNo || "-"}
-            </div>
-            <div>
-              <span className="font-semibold">Order At:</span>{" "}
-              {order?.orderStartTime
-                ? format(new Date(order.orderStartTime), "dd LLL yyyy hh:mm a")
-                : "-"}
-            </div>
-          </div>
-          <div className="text-right">
-            <div>
-              <span className="font-semibold">
-                {order?.orderType === "dineIn" ? "Table:" : "Customer:"}
-              </span>{" "}
-              {order?.orderType === "dineIn" && order?.table?.tableNo}
-              {order?.orderType === "takeaway" && order?.takeAwayName}
-            </div>
-          </div>
-        </div>
-
-        <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
-
-        <div className="grid grid-cols-12 text-[12px] font-semibold">
-          <div className="col-span-8 flex">S.N Dishes</div>
-          <div className="col-span-4 text-right">QTY</div>
-        </div>
-
-        <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
-
-        <div className="space-y-3 leading-[10px]">
-          {items.map((it, i) => (
-            <>
-              <div key={String(it.id)} className="grid grid-cols-12 ">
-                <div className="col-span-8 flex gap-2">
-                  <span>{i + 1}.</span>
-                  <span>{it.product?.name || "-"}</span>
-                </div>
-                <div className="col-span-4 text-right">{it.quantity}</div>
-              </div>
-            </>
-          ))}
-        </div>
-
-        <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
-        <div className="grid grid-cols-12 font-semibold text-[12px]">
-          <div className="col-span-8 flex">Total (Dish/QTY)</div>
-          <div className="col-span-4 text-right">
-            {totalDish}/{totalQty}
-          </div>
-        </div>
-
-        <div className="flex mt-4">
-          <div className="flex flex-col items-start">
-            <p>Printed By: {printedBy || order?.createdBy?.name || "-"}</p>
-            <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
-          </div>
-        </div>
-
-        <div className="text-center mt-6 text-gray-700">Thank You!</div>
-      </div>
-      <div className="flex justify-center gap-3 mb-4 no-print">
-        <Button
-          className="bg-primaryColor text-white px-6 py-[10px] rounded-[4px]"
-          handleClick={reactToPrintFn}
+    <>
+      <div
+        className={`relative bg-white border border-gray-200 rounded-xl shadow-sm ${order.status === "completed" ? "border-green-500" : order.status === "pending" ? "border-yellow-500" : order.status === "cancelled" ? "border-red-500" : "border-blue-500"}`}
+      >
+        {/* Status Ribbon - top right corner (screen only) */}
+        <div
+          className="no-print absolute top-[1rem] -right-[0.5rem] "
+          title={`Status: ${order.status ?? "-"}`}
         >
-          Print
-        </Button>
-
-        {order.status === "prepared" && (
-          <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
-            handleClick={() => setOpenCheckout(true)}
+          <div
+            className={`px-3 py-1 shadow-sm border rounded-br-full ${
+              order.status === "completed"
+                ? "bg-green-600 border-green-700 text-white"
+                : order.status === "pending"
+                  ? "bg-yellow-400 border-yellow-500 text-black"
+                  : order.status === "prepared"
+                    ? "bg-blue-600 border-blue-700 text-white"
+                    : order.status === "cancelled"
+                      ? "bg-red-600 border-red-700 text-white"
+                      : "bg-gray-500 border-gray-600 text-white"
+            }`}
           >
-            Checkout
-          </Button>
-        )}
+            <span className="uppercase text-[10px] font-semibold tracking-wide">
+              {order.status ?? "-"}
+            </span>
+          </div>
+        </div>
+        <div ref={contentRef} className="p-5 h-fit kot-print ">
+          <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
+            KOT {order.kotNo}
+          </div>
+          <div className="flex justify-between text-[12px] text-gray-800">
+            <div className="flex flex-col gap-[2px]">
+              <div className="flex">
+                <span className="font-semibold">Type:</span>{" "}
+                {formatOrderType(order?.orderType)}
+              </div>
+              <div className="flex">
+                <span className="font-semibold">Order By:</span>{" "}
+                {order?.createdBy?.table?.name || order?.table?.tableNo || "-"}
+              </div>
+              <div>
+                <span className="font-semibold">Order At:</span>{" "}
+                {order?.orderStartTime
+                  ? format(
+                      new Date(order.orderStartTime),
+                      "dd LLL yyyy hh:mm a",
+                    )
+                  : "-"}
+              </div>
+            </div>
+            <div className="text-right">
+              <div>
+                <span className="font-semibold">
+                  {order?.orderType === "dineIn" ? "Table:" : "Customer:"}
+                </span>{" "}
+                {order?.orderType === "dineIn" && order?.table?.tableNo}
+                {order?.orderType === "takeaway" && order?.takeAwayName}
+              </div>
+            </div>
+          </div>
 
-        {order.status === "pending" && (
+          <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
+
+          <div className="grid grid-cols-12 text-[12px] font-semibold">
+            <div className="col-span-8 flex">S.N Dishes</div>
+            <div className="col-span-4 text-right">QTY</div>
+          </div>
+
+          <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
+
+          <div className="space-y-3 leading-[10px]">
+            {items.map((it, i) => (
+              <>
+                <div key={String(it.id)} className="grid grid-cols-12 ">
+                  <div className="col-span-8 flex gap-2">
+                    <span>{i + 1}.</span>
+                    <span>{it.product?.name || "-"}</span>
+                  </div>
+                  <div className="col-span-4 text-right">{it.quantity}</div>
+                </div>
+              </>
+            ))}
+          </div>
+
+          <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
+          <div className="grid grid-cols-12 font-semibold text-[12px]">
+            <div className="col-span-8 flex">Total (Dish/QTY)</div>
+            <div className="col-span-4 text-right">
+              {totalDish}/{totalQty}
+            </div>
+          </div>
+
+          <div className="flex mt-4">
+            <div className="flex flex-col items-start">
+              <p>Printed By: {printedBy || order?.createdBy?.name || "-"}</p>
+              <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
+            </div>
+          </div>
+
+          <div className="text-center mt-6 text-gray-700">Thank You!</div>
+        </div>
+        <div className="flex justify-center gap-3 mb-4 no-print">
           <Button
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
-            handleClick={async () => {
-              try {
-                const response = await patchStatus({
-                  body: { status: "prepared" },
-                  id: order.id,
-                }).unwrap();
-                handleResponse({ res: response });
-              } catch (error) {
-                handleError({ error });
-              }
-            }}
+            className="bg-primaryColor text-white px-6 py-[10px] rounded-[4px]"
+            handleClick={reactToPrintFn}
           >
-            Move to Prepared
+            Print
           </Button>
-        )}
+
+          {order.status === "prepared" && (
+            <>
+              <div></div>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
+                handleClick={() => setOpenCheckout(true)}
+              >
+                Checkout
+              </Button>
+            </>
+          )}
+
+          {order.status === "pending" && (
+            <Button
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+              handleClick={async () => {
+                try {
+                  const response = await patchStatus({
+                    body: { status: "prepared" },
+                    id: order.id,
+                  }).unwrap();
+                  handleResponse({ res: response });
+                } catch (error) {
+                  handleError({ error });
+                }
+              }}
+            >
+              Move to Prepared
+            </Button>
+          )}
+        </div>
+        <CheckoutModal
+          isOpen={openCheckout}
+          onClose={() => setOpenCheckout(false)}
+          tableId={Number(order?.table?.id || 0)}
+          orderId={order.id}
+        />
       </div>
-      <CheckoutModal
-        isOpen={openCheckout}
-        onClose={() => setOpenCheckout(false)}
-        tableId={Number(order?.table?.id || 0)}
-        orderId={order.id}
-      />
-    </div>
+    </>
   );
 }
 

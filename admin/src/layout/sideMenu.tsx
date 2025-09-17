@@ -74,9 +74,19 @@ export default function SideMenu({
   const handleNavigate = (name: string, path?: string) => {
     setIsActive(name);
     navigate(path ? path : "");
-    // if (setToggleState) {
-    //   setToggleState(false);
-    // }
+    // Auto-minimize drawer only on tablet/mobile
+    try {
+      if (
+        setToggleState &&
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(max-width: 1023px)").matches
+      ) {
+        setToggleState(false);
+      }
+    } catch (_) {
+      // ignore
+    }
   };
   return (
     <div

@@ -20,10 +20,24 @@ export default function OrderFilter({
     React.SetStateAction<OrderFilterPropsType>
   >;
 }) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
   const today = new Date();
   const formatDate = (date: Date) => format(date, "yyyy-MM-dd");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedQuick, setSelectedQuick] = useState<
+    "all" | "today" | "week" | "custom"
+  >(() => {
+    const start = queryStringOptions.start;
+    const end = queryStringOptions.end;
+    if (!start && !end) return "today";
+    if (
+      start === formatDate(startOfWeek(today, { weekStartsOn: 0 })) &&
+      end === formatDate(endOfWeek(today, { weekStartsOn: 0 }))
+    )
+      return "week";
+    if (start === formatDate(today) && end === formatDate(today))
+      return "today";
+    return "custom";
+  });
 
   useEffect(() => {
     if (!queryStringOptions.start && !queryStringOptions.end) {
@@ -33,6 +47,7 @@ export default function OrderFilter({
         start: todayDate,
         end: todayDate,
       }));
+      setSelectedQuick("today");
     }
   }, []);
 
@@ -44,6 +59,7 @@ export default function OrderFilter({
       end: todayDate,
     });
     setShowDatePicker(false);
+    setSelectedQuick("today");
   };
 
   const handleThisWeekClick = () => {
@@ -55,6 +71,7 @@ export default function OrderFilter({
       end: formatDate(end),
     });
     setShowDatePicker(false);
+    setSelectedQuick("week");
   };
 
   const handleAllClick = () => {
@@ -64,6 +81,7 @@ export default function OrderFilter({
       end: "",
     });
     setShowDatePicker(false);
+    setSelectedQuick("all");
   };
 
   const handlePaymentStatusChange = (
@@ -89,6 +107,7 @@ export default function OrderFilter({
       start: startDate ? formatDate(startDate) : "",
       end: endDate ? formatDate(endDate) : "",
     });
+    setSelectedQuick("custom");
   };
 
   const dateRange = {
@@ -99,21 +118,10 @@ export default function OrderFilter({
     key: "selection",
   };
 
-  const isAllSelected = !queryStringOptions.start && !queryStringOptions.end;
-  const isTodaySelected =
-    queryStringOptions.start === formatDate(today) &&
-    queryStringOptions.end === formatDate(today);
-  const isThisWeekSelected =
-    queryStringOptions.start ===
-      formatDate(startOfWeek(today, { weekStartsOn: 0 })) &&
-    queryStringOptions.end ===
-      formatDate(endOfWeek(today, { weekStartsOn: 0 }));
-  const isCustomSelected =
-    queryStringOptions.start &&
-    queryStringOptions.end &&
-    !isAllSelected &&
-    !isTodaySelected &&
-    !isThisWeekSelected;
+  const isAllSelected = selectedQuick === "all";
+  const isTodaySelected = selectedQuick === "today";
+  const isThisWeekSelected = selectedQuick === "week";
+  const isCustomSelected = selectedQuick === "custom";
 
   return (
     <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">

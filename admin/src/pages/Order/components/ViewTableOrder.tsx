@@ -5,6 +5,7 @@ import { RiSeoLine } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import CheckoutModal from "./CheckoutModal";
 import Button from "@/components/Button";
+import { LuChefHat } from "react-icons/lu";
 
 interface ViewTableOrderProps {
   id: number | null;
@@ -46,7 +47,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
             to={`/admin/${ORDER_URL}${id}`}
             className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white"
           >
-            <RiSeoLine />
+            <LuChefHat />
             <span className="font-[500] text-[15px]">Add Order</span>
           </Link>
         </div>
