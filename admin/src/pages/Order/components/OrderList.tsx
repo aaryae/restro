@@ -16,6 +16,7 @@ import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 import { format } from "date-fns";
 import CancelOrderModal from "@/components/CancelOrderModal";
 import OrderFilter from "./OrderFilter";
+import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 
 export default function OrderList() {
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
@@ -50,7 +51,7 @@ export default function OrderList() {
     const interval = setInterval(refetch, 30000);
     return () => clearInterval(interval);
   }, []);
-  const [patchStatus] = usePatchApiMutation();
+  const [patchStatus] = useUpdateOrderStatusMutation();
 
   const [orderId, setOrderId] = useState<number | null>(null);
   const [open, setOpen] = useState<boolean>(false);
@@ -81,7 +82,7 @@ export default function OrderList() {
   async function hanldeOrderCancellation(remarks: string) {
     try {
       const response = await patchStatus({
-        url: `order/status/${cancelId}`,
+        id: cancelId,
         body: { status: "cancelled" },
       }).unwrap();
       handleResponse({

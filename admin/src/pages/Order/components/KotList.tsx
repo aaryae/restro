@@ -8,6 +8,8 @@ import usePagination from "@/hooks/usePagination";
 import Button from "@/components/Button";
 import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
+import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 type OrderItem = {
   id: number | string;
@@ -27,17 +29,23 @@ type Order = {
   totalAmount?: number;
   status?: string;
   paymentStatus?: string;
+  takeAwayName?: string;
 };
 
 export default function KotList() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
+  const [queryStringOptions, setQueryStringOptions] = useState({
+    status: "all",
+    sort: "oldest",
+  });
 
   const url = useMemo(() => {
     return buildQueryString("order/list", {
       page: query.page,
       limit: query.limit,
+      search: queryStringOptions,
     });
-  }, [query]);
+  }, [query, queryStringOptions]);
 
   const { data, isSuccess } = useGetApiQuery({ url });
 
@@ -55,37 +63,78 @@ export default function KotList() {
     return raw as Order[];
   }, [data]);
 
-  const filteredOrders = useMemo(() => {
-    if (!orders) return [] as Order[];
-    // Show only active/unpaid KOTs
-    return orders.filter((o) => o.paymentStatus?.toLowerCase() !== "paid");
-  }, [orders]);
-
-  // FIFO: sort by oldest first (ascending by orderStartTime; fallback to id)
-  const sortedOrders = useMemo(() => {
-    const toDate = (v?: string | Date) => (v ? new Date(v).getTime() : 0);
-    return [...filteredOrders].sort((a, b) => {
-      const at = toDate(a.orderStartTime);
-      const bt = toDate(b.orderStartTime);
-      if (at !== bt) return at - bt; // older first
-      // fallback stable-ish comparison using id when timestamps equal/missing
-      return Number(a.id) - Number(b.id);
-    });
-  }, [filteredOrders]);
-
   const totalPages = data?.data?.totalPages ?? 1;
   const offset = (query.page - 1) * query.limit;
 
   return (
     <>
+      <div className="flex gap-2 mb-4">
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "all" ? "bg-blue-500 text-white" : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((prev) => ({ ...prev, status: "all" }))
+          }
+        >
+          All
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "pending"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "pending" }))
+          }
+        >
+          Pending
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "prepared"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "prepared" }))
+          }
+        >
+          Prepared
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "completed"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "completed" }))
+          }
+        >
+          Completed
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "cancelled"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "cancelled" }))
+          }
+        >
+          Cancelled
+        </button>
+      </div>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        {isSuccess && sortedOrders?.length > 0 ? (
-          sortedOrders.map((order, idx) => (
+        {isSuccess && orders?.length > 0 ? (
+          orders.map((order, idx) => (
             <KotCard
               key={order.id}
               order={order}
               // Name older KOT earlier: sequential queue number across pages
-              kotNo={offset + idx + 1}
             />
           ))
         ) : (
@@ -131,7 +180,8 @@ export default function KotList() {
   );
 }
 
-function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
+function KotCard({ order }: { order: Order }) {
+  const [patchStatus] = useUpdateOrderStatusMutation();
   const items = (order?.orderItems || []).filter(
     (i) => i.status !== "cancelled",
   );
@@ -140,7 +190,7 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
   const printedBy = useSelector((s: RootState) => s.auth.username);
   const reactToPrintFn = useReactToPrint({
     contentRef,
-    documentTitle: `KOT-${order.id}`,
+    documentTitle: `KOT-${order.kotNo}`,
     pageStyle: `
       @page { size: 80mm auto; margin: 4mm; }
       @media print {
@@ -172,10 +222,12 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
   const [openCheckout, setOpenCheckout] = useState(false);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm ">
+    <div
+      className={`bg-white border border-gray-200 rounded-xl shadow-sm ${order.status === "completed" ? "border-green-500" : order.status === "pending" ? "border-yellow-500" : "border-red-500"}`}
+    >
       <div ref={contentRef} className="p-5 h-fit kot-print ">
         <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
-          KOT {kotNo}
+          KOT {order.kotNo}
         </div>
         <div className="flex justify-between text-[12px] text-gray-800">
           <div className="flex flex-col gap-[2px]">
@@ -196,8 +248,11 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
           </div>
           <div className="text-right">
             <div>
-              <span className="font-semibold">Table:</span>{" "}
-              {order?.table?.tableNo || order?.table?.name || "-"}
+              <span className="font-semibold">
+                {order?.orderType === "dineIn" ? "Table:" : "Customer:"}
+              </span>{" "}
+              {order?.orderType === "dineIn" && order?.table?.tableNo}
+              {order?.orderType === "takeaway" && order?.takeAwayName}
             </div>
           </div>
         </div>
@@ -249,12 +304,34 @@ function KotCard({ order, kotNo }: { order: Order; kotNo: number }) {
         >
           Print
         </Button>
-        <Button
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
-          handleClick={() => setOpenCheckout(true)}
-        >
-          Checkout
-        </Button>
+
+        {order.status === "prepared" && (
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
+            handleClick={() => setOpenCheckout(true)}
+          >
+            Checkout
+          </Button>
+        )}
+
+        {order.status === "pending" && (
+          <Button
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+            handleClick={async () => {
+              try {
+                const response = await patchStatus({
+                  body: { status: "prepared" },
+                  id: order.id,
+                }).unwrap();
+                handleResponse({ res: response });
+              } catch (error) {
+                handleError({ error });
+              }
+            }}
+          >
+            Move to Prepared
+          </Button>
+        )}
       </div>
       <CheckoutModal
         isOpen={openCheckout}

@@ -203,11 +203,10 @@ export default function TopMenuMobile() {
       <Drawer
         isOpen={toggleState}
         setIsOpen={setToggleState}
-        width="w-[70%]"
         position="left"
-        className="z-50"
+        className="z-50 sm:w-[30%] md:w-[30%] lg:w-[30%]"
       >
-        <SideMenu setToggleState={setToggleState} />
+        <SideMenu setToggleState={setToggleState} sideMenuOpen={true} />
       </Drawer>
     </>
   );

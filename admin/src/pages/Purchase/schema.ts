@@ -1,14 +1,9 @@
 import { z } from "zod";
 
-/**
- * Purchase form schema and types
- * Mirrors the structure used in AddEditPurchase.tsx
- */
-
-// Individual purchase item row
 export const PurchaseItemSchema = z.object({
   particulars: z.string().min(1, "Particulars is required"),
   hsCode: z.string().optional().or(z.literal("")),
+  categoryId: z.string().min(1, "Category is required"),
   qty: z.coerce
     .number({ message: "Qty must be a number" })
     .int()
@@ -16,7 +11,7 @@ export const PurchaseItemSchema = z.object({
   rate: z.coerce
     .number({ message: "Rate must be a number" })
     .min(0, "Rate cannot be negative"),
-  // Kept for parity with UI state even if not currently editable in table
+
   discountPercent: z.coerce
     .number({ message: "Discount % must be a number" })
     .min(0, "Discount % cannot be negative")
@@ -29,6 +24,7 @@ export const PurchaseItemSchema = z.object({
     .max(100, "Tax % cannot exceed 100")
     .default(13)
     .optional(),
+  isTaxable: z.boolean().default(true).optional(),
 });
 
 export const PurchaseSchema = z
@@ -43,8 +39,6 @@ export const PurchaseSchema = z
     invoiceNumber: z.string().min(1, "Invoice number is required"),
 
     items: z.array(PurchaseItemSchema).min(1, "At least one item is required"),
-
-    purchaseCategoryId: z.string().min(1, "Purchase category is required"),
     billImage: z.string().optional().or(z.literal("")),
 
     paymentTerm: z
@@ -58,7 +52,6 @@ export const PurchaseSchema = z
     if (data.paymentTerm === "") {
     }
 
-    // Require account selection always (UI shows required message too)
     if (!data.accountId || data.accountId.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -67,7 +60,6 @@ export const PurchaseSchema = z
       });
     }
 
-    // Validate each item for business rules beyond base schema if needed
     data.items.forEach((item, idx) => {
       if (item.qty <= 0) {
         ctx.addIssue({

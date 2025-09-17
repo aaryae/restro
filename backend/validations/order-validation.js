@@ -37,6 +37,11 @@ const createOrderValidation = async (req, res, next) => {
       then: joi.required(),
       otherwise: joi.optional(),
     }),
+    takeAwayName: joi.string().max(255).when("orderType", {
+      is: "takeaway",
+      then: joi.required(),
+      otherwise: joi.optional(),
+    }),
     paymentMethod: joi.string().valid("cash", "card", "online").optional(),
   });
 
@@ -93,6 +98,7 @@ const updateOrderStatusValidation = async (req, res, next) => {
         .string()
         .valid(
           "pending",
+          "prepared",
           "confirmed",
           "preparing",
           "ready",

@@ -192,7 +192,7 @@ function Tables({
 
   return (
     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {(!filteredTables || filteredTables.length === 0) ? (
+      {!filteredTables || filteredTables.length === 0 ? (
         <div className="col-span-full text-center text-gray-500 py-8">
           No table found
         </div>
@@ -265,7 +265,7 @@ function Header({
               onChange={(e) =>
                 onFloorChange(e.target.value === "all" ? "" : e.target.value)
               }
-              className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px]"
+              className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
             >
               {floorOptions.map((option) => (
                 <option key={option.value} value={option.value}>

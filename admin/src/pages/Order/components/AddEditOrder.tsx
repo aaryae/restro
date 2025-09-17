@@ -54,7 +54,7 @@ interface Props {
 const orderTypeOptions = [
   { value: "dineIn", label: "Dine In" },
   { value: "takeaway", label: "Takeaway" },
-  { value: "delivery", label: "Delivery" },
+  // { value: "delivery", label: "Delivery" },
 ];
 
 export default function AddEditOrder({
@@ -287,7 +287,7 @@ export default function AddEditOrder({
         onSuccess: () => navigate(ORDER_LIST_ROUTE),
       });
     } catch (error: any) {
-      console.error(error, "error message");
+      handleError({ error });
     }
   };
 
@@ -378,6 +378,14 @@ export default function AddEditOrder({
                         required
                       />
                     )}
+                  />
+                )}
+                {watchedOrderType === "takeaway" && (
+                  <Input
+                    label="Takeaway Name: "
+                    placeholder="Enter customer name"
+                    {...register("takeAwayName")}
+                    error={errors.takeAwayName?.message}
                   />
                 )}
               </div>

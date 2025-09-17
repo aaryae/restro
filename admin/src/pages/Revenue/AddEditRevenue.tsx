@@ -12,7 +12,11 @@ import {
   useGetApiQuery,
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
-import { CUSTOMER_URL, REVENUE_URL } from "@/constants/apiUrlConstants";
+import {
+  CUSTOMER_URL,
+  REVENUE_URL,
+  ACCOUNT_URL,
+} from "@/constants/apiUrlConstants";
 import { REVENUE_LIST_ROUTE } from "@/routes/routeNames";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -57,11 +61,25 @@ export default function AddEditRevenue() {
     refetch: customerRefetch,
   } = useGetApiQuery({ url: customerUrl });
 
+  // Fetch accounts (for accountId selection)
+  const accountUrl = useMemo(
+    () =>
+      buildQueryString(`${ACCOUNT_URL}list`, {
+        page: 1,
+        limit: 100,
+      }),
+    [],
+  );
+  const { data: accountsResp, isSuccess: accountsSuccess } = useGetApiQuery({
+    url: accountUrl,
+  });
+
   const {
     register,
     handleSubmit,
     setError,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RevenueFormType>({
     resolver: zodResolver(RevenueSchema),
@@ -82,6 +100,7 @@ export default function AddEditRevenue() {
         amount: Number(d.amount) || 0,
         paymentMethod: d.paymentMethod || "cash",
         cash_or_credit: d.cash_or_credit || "cash",
+        accountId: d.accountId,
         remarks: d.remarks || "",
       });
       if (d.customer && d.customer.id) {
@@ -97,6 +116,21 @@ export default function AddEditRevenue() {
       }
     }
   }, [isEditMode, revenueData, reset]);
+
+  useEffect(() => {
+    if (!isEditMode && accountsSuccess && accountsResp?.data?.data?.length) {
+      const accounts: any[] = accountsResp.data.data;
+      // Prefer default active account
+      const defaultActive = accounts.find(
+        (a) => a.isDefault && a.status === "active",
+      );
+      const active = accounts.find((a) => a.status === "active");
+      const chosen = defaultActive || active || accounts[0];
+      if (chosen?.id) {
+        setValue("accountId", Number(chosen.id));
+      }
+    }
+  }, [isEditMode, accountsSuccess, accountsResp, setValue]);
 
   const handleSuccess = () => navigate(REVENUE_LIST_ROUTE);
 
@@ -214,6 +248,32 @@ export default function AddEditRevenue() {
                   {...register("amount", { valueAsNumber: true })}
                   error={errors.amount?.message}
                 />
+              </div>
+
+              <div className="flex flex-col">
+                <label className="input-label flex">Account</label>
+                <select
+                  className="input-field flex border border-gray-200 rounded px-3 py-2 bg-white"
+                  {...register("accountId", { valueAsNumber: true })}
+                >
+                  <option value="">Select Account</option>
+                  {accountsSuccess &&
+                    accountsResp?.data?.data?.map((acc: any) => (
+                      <option
+                        value={acc.id}
+                        key={acc.id}
+                        disabled={acc.status !== "active"}
+                      >
+                        {acc.name} {acc.isDefault ? "(Default)" : ""} -{" "}
+                        {acc.accountType}
+                      </option>
+                    ))}
+                </select>
+                {errors.accountId?.message && (
+                  <span className="input-error">
+                    {errors.accountId.message}
+                  </span>
+                )}
               </div>
 
               <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg p-4">

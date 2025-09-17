@@ -19,6 +19,14 @@ const ordersApi = api.injectEndpoints({
       }),
       invalidatesTags: ["table", "order"],
     }),
+    updateOrderStatus: builder.mutation({
+      query: ({ body, id }) => ({
+        url: `${ORDER_URL}status/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["table", "order"],
+    }),
     checkoutOrder: builder.mutation({
       query: ({ body, id }) => ({
         url: `${ORDER_URL}checkout/${id}`,
@@ -35,4 +43,5 @@ export const {
   useCheckoutOrderMutation,
   useCreateOrderMutation,
   useUpdateOrderMutation,
+  useUpdateOrderStatusMutation,
 } = ordersApi;
