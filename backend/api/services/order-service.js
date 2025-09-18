@@ -885,6 +885,29 @@ const updateOrderStatus = async (req) => {
 
     await order.update(updateData, { transaction: t });
 
+    // If order is being cancelled, cascade cancel to order items and KOTs
+    if (status === "cancelled") {
+      // Cancel all order items and KOTs linked to this order
+      await Promise.all([
+        orderItemModel.update(
+          { status: "cancelled" },
+          {
+            where: { orderId: order.id },
+            validate: false, // skip hooks/validation for status-only updates
+            transaction: t,
+          },
+        ),
+        kotModel.update(
+          { status: "cancelled" },
+          {
+            where: { orderId: order.id },
+            validate: false,
+            transaction: t,
+          },
+        ),
+      ]);
+    }
+
     // If order is being cancelled and it's a dine-in order with a table
     if (
       status === "cancelled" &&
