@@ -3,24 +3,6 @@ const kotService = require("../services/kot-service");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
 
-const create = async (req, res, next) => {
-  try {
-    const result = await floorService.create(req);
-    return responseHelper.sendResponse(
-      res,
-      result.status,
-      result.success,
-      result.data,
-      result.errors,
-      result.message,
-      result.token,
-    );
-  } catch (err) {
-    logger.error(err);
-    next(err);
-  }
-};
-
 const list = async (req, res, next) => {
   try {
     const result = await kotService.list(req);
@@ -59,7 +41,7 @@ const getById = async (req, res, next) => {
 
 const updateById = async (req, res, next) => {
   try {
-    const result = await floorService.updateById(req);
+    const result = await kotService.updateKot(req);
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -94,9 +76,6 @@ const deleteById = async (req, res, next) => {
 };
 
 module.exports = {
-  create,
   list,
-  getById,
   updateById,
-  deleteById,
 };

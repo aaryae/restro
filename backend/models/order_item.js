@@ -92,7 +92,7 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM(
           "pending",
           "preparing",
-          "prepared",
+          "ready",
           "served",
           "cancelled",
         ),
@@ -101,14 +101,31 @@ module.exports = (sequelize) => {
     },
     {
       hooks: {
-        beforeValidate: (orderItem) => {
+        beforeValidate: (orderItem, options) => {
+          // Skip validation if this is a bulk update from KOT status change
           if (
-            (orderItem.productId && orderItem.openItemId) ||
-            (!orderItem.productId && !orderItem.openItemId)
+            options &&
+            options.fields &&
+            options.fields.length === 1 &&
+            options.fields[0] === "status"
           ) {
-            throw new Error(
-              "OrderItem must reference exactly one of productId or openItemId.",
-            );
+            return;
+          }
+
+          // Only validate productId/openItemId constraint when creating or when these fields are being modified
+          const isCreating = orderItem.isNewRecord;
+          const isModifyingProductId = orderItem.changed("productId");
+          const isModifyingOpenItemId = orderItem.changed("openItemId");
+
+          if (isCreating || isModifyingProductId || isModifyingOpenItemId) {
+            if (
+              (orderItem.productId && orderItem.openItemId) ||
+              (!orderItem.productId && !orderItem.openItemId)
+            ) {
+              throw new Error(
+                "OrderItem must reference exactly one of productId or openItemId.",
+              );
+            }
           }
         },
         beforeCreate: (orderItem) => {

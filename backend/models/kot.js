@@ -70,7 +70,7 @@ module.exports = (sequelize) => {
           let orderItemStatus;
           switch (kotStatus) {
             case "ready":
-              orderItemStatus = "prepared"; // Map "ready" to "prepared" for OrderItem
+              orderItemStatus = "ready"; // Direct mapping for ready status
               break;
             case "pending":
             case "preparing":
@@ -80,12 +80,20 @@ module.exports = (sequelize) => {
             default:
               return; // Unknown status, skip
           }
-
+          const OrderItemModel = sequelize.models.OrderItem;
+          console.log(
+            "***\n****\n***",
+            orderItemStatus,
+            kot.id,
+            OrderItemModel,
+            "\n****\n***",
+          );
           // Update all OrderItems associated with this KOT
-          await sequelize.models.orderItemModel.update(
+          await OrderItemModel.update(
             { status: orderItemStatus },
             {
               where: { kotId: kot.id },
+              validate: false, // Skip validation for this update
               transaction: options.transaction,
             },
           );
