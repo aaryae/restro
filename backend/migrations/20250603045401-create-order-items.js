@@ -86,6 +86,7 @@ module.exports = {
             "preparing",
             "ready",
             "served",
+            "completed",
             "cancelled",
           ),
           defaultValue: "pending",

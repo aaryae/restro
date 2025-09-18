@@ -30,9 +30,11 @@ export const OrderSchema = z
     orderItems: z
       .array(
         z.object({
-          productId: z.coerce.number(),
+          productId: z.coerce.number().optional(),
+          openItemId: z.coerce.number().optional(),
           productPrice: z.coerce.number(),
           quantity: z.number().min(1),
+          departmentId: z.coerce.number(),
           specialInstructions: z.string().optional(),
         }),
       )

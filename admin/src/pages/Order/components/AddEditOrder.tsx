@@ -37,6 +37,7 @@ type OrderFormType = z.infer<typeof OrderSchema>;
 
 interface OrderItem {
   id: string;
+  departmentId: number;
   productId: string;
   productName: string;
   productPrice: number;
@@ -138,6 +139,7 @@ export default function AddEditOrder({
             quantity: item.quantity,
             subtotal: Number(item.subtotal),
             status: item.status,
+            departmentId: item.product.departmentId,
           }),
         ),
       );
@@ -180,6 +182,7 @@ export default function AddEditOrder({
     id: string;
     name: string;
     price: number;
+    departmentId: number;
     quantity: number;
   }) => {
     const existingItem = orderItems.find(
@@ -193,6 +196,7 @@ export default function AddEditOrder({
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
+        departmentId: Number(product.departmentId),
         quantity: 1,
         subtotal: product.price,
         specialInstructions: "",
@@ -262,12 +266,17 @@ export default function AddEditOrder({
         ...data,
         orderItems: orderItems.map((item: OrderItem) => {
           if (String(item.id).includes("newitem_")) {
-            return { productId: item.productId, quantity: item.quantity };
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              departmentId: item.departmentId,
+            };
           }
           return {
             id: item.id,
             productId: item.productId,
             quantity: item.quantity,
+            departmentId: item.departmentId,
           };
         }),
       };

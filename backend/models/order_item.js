@@ -94,6 +94,7 @@ module.exports = (sequelize) => {
           "preparing",
           "ready",
           "served",
+          "completed",
           "cancelled",
         ),
         defaultValue: "pending",
