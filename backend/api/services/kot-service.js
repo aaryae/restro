@@ -4,6 +4,7 @@ const {
   orderItemModel,
   kotModel,
   productModel,
+  tableModel,
   sequelize,
 } = require("../../models");
 const { Op } = require("sequelize");
@@ -19,6 +20,12 @@ const list = async (req) => {
       {
         model: orderModel,
         as: "order",
+        include: [
+          {
+            model: tableModel,
+            as: "table",
+          },
+        ],
       },
       {
         model: departmentModel,

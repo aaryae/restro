@@ -102,6 +102,51 @@ module.exports = (sequelize) => {
               transaction: options.transaction,
             },
           );
+
+          // If any KOT moves to 'preparing', mark the parent Order as 'preparing'
+          if (kot.status === "preparing") {
+            const { Op } = Sequelize;
+            const OrderModel = sequelize.models.Order;
+            await OrderModel.update(
+              { status: "preparing" },
+              {
+                where: {
+                  id: kot.orderId,
+                  status: { [Op.notIn]: ["completed", "cancelled"] },
+                },
+                transaction: options.transaction,
+              },
+            );
+          }
+
+          // If this KOT moved to 'ready', and all KOTs for the order are ready (no pending/preparing remain),
+          // then mark the parent Order as 'prepared'.
+          if (kot.status === "ready") {
+            const { Op } = Sequelize;
+            const OrderModel = sequelize.models.Order;
+            const KotModel = sequelize.models.Kot;
+
+            const remaining = await KotModel.count({
+              where: {
+                orderId: kot.orderId,
+                status: { [Op.in]: ["pending", "preparing"] },
+              },
+              transaction: options.transaction,
+            });
+
+            if (remaining === 0) {
+              await OrderModel.update(
+                { status: "prepared" },
+                {
+                  where: {
+                    id: kot.orderId,
+                    status: { [Op.notIn]: ["completed", "cancelled"] },
+                  },
+                  transaction: options.transaction,
+                },
+              );
+            }
+          }
         },
       },
       sequelize,
