@@ -3,6 +3,7 @@ const {
   departmentModel,
   orderItemModel,
   kotModel,
+  productModel,
   sequelize,
 } = require("../../models");
 const { Op } = require("sequelize");
@@ -26,6 +27,12 @@ const list = async (req) => {
       {
         model: orderItemModel,
         as: "orderItems",
+        include: [
+          {
+            model: productModel,
+            as: "product",
+          },
+        ],
       },
     ];
 
@@ -60,7 +67,10 @@ const list = async (req) => {
       };
     }
 
-    if (status) {
+    // handle filter if status is all
+    if (status === "all") {
+      delete filters.status;
+    } else {
       filters.status = status;
     }
 

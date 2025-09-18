@@ -75,6 +75,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           className="flex justify-between items-start border-b border-gray-200 py-2"
                         >
                           <div className="leading-[1.5] text-gray-600">
+                            {item.status}
                             <p className="font-medium text-[15px]">
                               Item: {item.product.name}
                             </p>

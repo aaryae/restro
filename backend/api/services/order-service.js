@@ -1002,8 +1002,9 @@ const updateOrderItemsStatus = async (req) => {
         where: {
           id: orderItem.id,
         },
+        validate: false, // Skip validation for status-only updates
+        transaction,
       },
-      transaction,
     );
 
     await transaction.commit();

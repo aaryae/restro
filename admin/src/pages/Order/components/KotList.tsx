@@ -10,6 +10,7 @@ import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
 import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { useUpdateKotMutation } from "@/redux/services/kot";
 
 type OrderItem = {
   id: number | string;
@@ -36,34 +37,28 @@ export default function KotList() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
   const [queryStringOptions, setQueryStringOptions] = useState({
     status: "all",
-    sort: "oldest",
   });
 
   const url = useMemo(() => {
-    return buildQueryString("order/list", {
+    return buildQueryString("kot/list", {
       page: query.page,
       limit: query.limit,
       search: queryStringOptions,
     });
   }, [query, queryStringOptions]);
 
-  const { data, isSuccess } = useGetApiQuery({ url });
+  const { data: kots, isSuccess } = useGetApiQuery({ url });
 
   useEffect(() => {
-    if (data?.data) {
+    if (kots?.data) {
       handlePagination({
-        total: data.data.total,
-        totalPages: data.data.totalPages,
+        total: kots.data.total,
+        totalPages: kots.data.totalPages,
       });
     }
-  }, [data, handlePagination]);
+  }, [kots, handlePagination]);
 
-  const orders: Order[] = useMemo(() => {
-    const raw = data?.data?.data ?? [];
-    return raw as Order[];
-  }, [data]);
-
-  const totalPages = data?.data?.totalPages ?? 1;
+  const totalPages = kots?.data?.totalPages ?? 1;
   const offset = (query.page - 1) * query.limit;
 
   return (
@@ -93,27 +88,27 @@ export default function KotList() {
         </button>
         <button
           className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "prepared"
+            queryStringOptions.status === "preparing"
               ? "bg-blue-500 text-white"
               : ""
           }`}
           onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "prepared" }))
+            setQueryStringOptions((cur) => ({ ...cur, status: "preparing" }))
           }
         >
-          Prepared
+          Preparing
         </button>
         <button
           className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "completed"
+            queryStringOptions.status === "ready"
               ? "bg-blue-500 text-white"
               : ""
           }`}
           onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "completed" }))
+            setQueryStringOptions((cur) => ({ ...cur, status: "ready" }))
           }
         >
-          Completed
+          Ready
         </button>
         <button
           className={`px-3 py-2 rounded border ${
@@ -129,17 +124,17 @@ export default function KotList() {
         </button>
       </div>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        {isSuccess && orders?.length > 0 ? (
-          orders.map((order, idx) => (
+        {isSuccess && kots?.data?.data?.length > 0 ? (
+          kots?.data?.data?.map((kot, idx) => (
             <KotCard
-              key={order.id}
-              order={order}
+              key={kot.id}
+              kot={kot}
               // Name older KOT earlier: sequential queue number across pages
             />
           ))
         ) : (
           <div className="col-span-full text-center text-gray-500">
-            No orders found
+            No kot found
           </div>
         )}
       </div>
@@ -180,17 +175,15 @@ export default function KotList() {
   );
 }
 
-function KotCard({ order }: { order: Order }) {
-  const [patchStatus] = useUpdateOrderStatusMutation();
-  const items = (order?.orderItems || []).filter(
-    (i) => i.status !== "cancelled",
-  );
+function KotCard({ kot }) {
+  const [updateKot] = useUpdateKotMutation();
+  const items = kot?.orderItems || [];
 
   const contentRef = useRef<HTMLDivElement>(null);
   const printedBy = useSelector((s: RootState) => s.auth.username);
   const reactToPrintFn = useReactToPrint({
     contentRef,
-    documentTitle: `KOT-${order.kotNo}`,
+    documentTitle: `KOT-${kot.kotNumber}`,
     pageStyle: `
       @page { size: 80mm auto; margin: 4mm; }
       @media print {
@@ -202,14 +195,14 @@ function KotCard({ order }: { order: Order }) {
         .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
         .kot-print .section-gap { margin: 6px 0 !important; }
         .kot-print .border-dashed { border-color: #000 !important; }
-        .kot-print .border-t { border-top-width: 0.5px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
+        .kot-print .border-t { border-top-width: .5008px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
         .kot-print .divider-dashed {
           border: 0 !important;
           height: 1px !important;
           background-image: repeating-linear-gradient(to right, #000 0, #000 8px, transparent 8px, transparent 12px) !important;
           background-repeat: repeat-x !important;
           background-size: 100% 1px !important;
-          background-position: 0 0.5px !important;
+          background-position: 0 .5008px !important;
         }
         .no-print { display: none !important; }
       }
@@ -217,6 +210,7 @@ function KotCard({ order }: { order: Order }) {
   });
 
   const totalDish = items.length;
+  console.log("totalDish", items);
   const totalQty = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
 
   const [openCheckout, setOpenCheckout] = useState(false);
@@ -224,50 +218,52 @@ function KotCard({ order }: { order: Order }) {
   return (
     <>
       <div
-        className={`relative bg-white border border-gray-200 rounded-xl shadow-sm ${order.status === "completed" ? "border-green-500" : order.status === "pending" ? "border-yellow-500" : order.status === "cancelled" ? "border-red-500" : "border-blue-500"}`}
+        className={`relative bg-white border border-gray-200 rounded-xl shadow-sm ${kot.status === "preparing" ? "border-blue-600" : kot.status === "ready" ? "border-green-500" : kot.status === "pending" ? "border-yellow-500" : kot.status === "cancelled" ? "border-red-500" : "border-gray-500"}`}
       >
         {/* Status Ribbon - top right corner (screen only) */}
         <div
           className="no-print absolute top-[1rem] -right-[0.5rem] "
-          title={`Status: ${order.status ?? "-"}`}
+          title={`Status: ${kot.status ?? "-"}`}
         >
           <div
             className={`px-3 py-1 shadow-sm border rounded-br-full ${
-              order.status === "completed"
+              kot.status === "ready"
                 ? "bg-green-600 border-green-700 text-white"
-                : order.status === "pending"
+                : kot.status === "pending"
                   ? "bg-yellow-400 border-yellow-500 text-black"
-                  : order.status === "prepared"
+                  : kot.status === "preparing"
                     ? "bg-blue-600 border-blue-700 text-white"
-                    : order.status === "cancelled"
+                    : kot.status === "cancelled"
                       ? "bg-red-600 border-red-700 text-white"
                       : "bg-gray-500 border-gray-600 text-white"
             }`}
           >
             <span className="uppercase text-[10px] font-semibold tracking-wide">
-              {order.status ?? "-"}
+              {kot.status ?? "-"}
             </span>
           </div>
         </div>
         <div ref={contentRef} className="p-5 h-fit kot-print ">
           <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
-            KOT {order.kotNo}
+            KOT {kot.kotNumber}
           </div>
           <div className="flex justify-between text-[12px] text-gray-800">
             <div className="flex flex-col gap-[2px]">
               <div className="flex">
                 <span className="font-semibold">Type:</span>{" "}
-                {formatOrderType(order?.orderType)}
+                {formatOrderType(kot?.order?.orderType)}
               </div>
               <div className="flex">
                 <span className="font-semibold">Order By:</span>{" "}
-                {order?.createdBy?.table?.name || order?.table?.tableNo || "-"}
+                {kot?.order?.createdBy?.table?.name ||
+                  kot?.order?.table?.tableNo ||
+                  "-"}
               </div>
               <div>
                 <span className="font-semibold">Order At:</span>{" "}
-                {order?.orderStartTime
+                {kot?.order?.orderStartTime
                   ? format(
-                      new Date(order.orderStartTime),
+                      new Date(kot?.order?.orderStartTime),
                       "dd LLL yyyy hh:mm a",
                     )
                   : "-"}
@@ -276,10 +272,12 @@ function KotCard({ order }: { order: Order }) {
             <div className="text-right">
               <div>
                 <span className="font-semibold">
-                  {order?.orderType === "dineIn" ? "Table:" : "Customer:"}
+                  {kot?.order?.orderType === "dineIn" ? "Table:" : "Customer:"}
                 </span>{" "}
-                {order?.orderType === "dineIn" && order?.table?.tableNo}
-                {order?.orderType === "takeaway" && order?.takeAwayName}
+                {kot?.order?.orderType === "dineIn" &&
+                  kot?.order?.table?.tableNo}
+                {kot?.order?.orderType === "takeaway" &&
+                  kot?.order?.takeAwayName}
               </div>
             </div>
           </div>
@@ -317,7 +315,9 @@ function KotCard({ order }: { order: Order }) {
 
           <div className="flex mt-4">
             <div className="flex flex-col items-start">
-              <p>Printed By: {printedBy || order?.createdBy?.name || "-"}</p>
+              <p>
+                Printed By: {printedBy || kot?.order?.createdBy?.name || "-"}
+              </p>
               <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
             </div>
           </div>
@@ -332,7 +332,7 @@ function KotCard({ order }: { order: Order }) {
             Print
           </Button>
 
-          {order.status === "prepared" && (
+          {kot.status === "ready" && (
             <>
               <div></div>
               <Button
@@ -344,14 +344,14 @@ function KotCard({ order }: { order: Order }) {
             </>
           )}
 
-          {order.status === "pending" && (
+          {kot.status === "pending" && (
             <Button
               className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
               handleClick={async () => {
                 try {
-                  const response = await patchStatus({
-                    body: { status: "prepared" },
-                    id: order.id,
+                  const response = await updateKot({
+                    body: { status: "preparing" },
+                    id: kot.id,
                   }).unwrap();
                   handleResponse({ res: response });
                 } catch (error) {
@@ -359,15 +359,33 @@ function KotCard({ order }: { order: Order }) {
                 }
               }}
             >
-              Move to Prepared
+              Move to Preparing
+            </Button>
+          )}
+          {kot.status === "preparing" && (
+            <Button
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+              handleClick={async () => {
+                try {
+                  const response = await updateKot({
+                    body: { status: "ready" },
+                    id: kot.id,
+                  }).unwrap();
+                  handleResponse({ res: response });
+                } catch (error) {
+                  handleError({ error });
+                }
+              }}
+            >
+              Move to Ready
             </Button>
           )}
         </div>
         <CheckoutModal
           isOpen={openCheckout}
           onClose={() => setOpenCheckout(false)}
-          tableId={Number(order?.table?.id || 0)}
-          orderId={order.id}
+          tableId={Number(kot?.order?.table?.id || 0)}
+          orderId={kot.id}
         />
       </div>
     </>

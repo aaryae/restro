@@ -31,7 +31,6 @@ module.exports = {
         },
         kotNumber: {
           type: Sequelize.INTEGER,
-          unique: true,
           allowNull: false,
         },
         status: {
@@ -55,11 +54,6 @@ module.exports = {
         indexes: [
           { fields: ["orderId"], name: "kots_orderId_idx" },
           { fields: ["departmentId"], name: "kots_departmentId_idx" },
-          {
-            fields: ["kotNumber"],
-            unique: true,
-            name: "kots_kotNumber_unique",
-          },
         ],
       },
     );

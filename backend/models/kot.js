@@ -41,7 +41,6 @@ module.exports = (sequelize) => {
       },
       kotNumber: {
         type: DataTypes.INTEGER,
-        unique: true,
         allowNull: false,
       },
       status: {
@@ -102,11 +101,7 @@ module.exports = (sequelize) => {
       sequelize,
       modelName: "Kot",
       tableName: "kots",
-      indexes: [
-        { fields: ["orderId"] },
-        { fields: ["departmentId"] },
-        { fields: ["kotNumber"] },
-      ],
+      indexes: [{ fields: ["orderId"] }, { fields: ["departmentId"] }],
     },
   );
 

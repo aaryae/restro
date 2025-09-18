@@ -49,6 +49,7 @@ export const api = createApi({
     "revenue",
     "purchase",
     "purchase-category",
+    "kot",
   ],
   endpoints: () => ({}),
 });
