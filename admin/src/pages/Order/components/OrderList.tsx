@@ -158,7 +158,7 @@ export default function OrderList() {
                 className="text-[#0090DD] cursor-pointer"
                 onClick={() => handleViewOrder(id)}
               />
-              {status !== "cancelled" && status !== "completed" ? (
+              {status === "pending" ? (
                 <CancelOrderModal
                   open={openCancel}
                   setOpen={setOpenCancel}

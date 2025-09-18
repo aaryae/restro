@@ -382,6 +382,7 @@ const checkoutOrder = async (req) => {
       sessionId,
       isGuestOrder = false,
       accountId, // New optional field to allow specifying accountId
+      orderItemIds, // Optional: selective checkout of specific order items across orders
       ...updateData
     } = req.body;
 
@@ -401,6 +402,190 @@ const checkoutOrder = async (req) => {
     ) {
       await transaction.rollback();
       return { status: 400, success: false, message: "Invalid payment method" };
+    }
+
+    // If selective checkout by order items is requested, handle that path
+    if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
+      // Validate and fetch target items belonging to active orders on this table
+      const targetItems = await orderItemModel.findAll({
+        where: { id: { [Op.in]: orderItemIds } },
+        include: [
+          {
+            model: orderModel,
+            as: "order",
+            where: {
+              tableId,
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
+          },
+        ],
+        transaction,
+      });
+
+      if (!targetItems || targetItems.length === 0) {
+        await transaction.rollback();
+        return {
+          status: 404,
+          success: false,
+          message: "No matching order items found for selective checkout",
+        };
+      }
+
+      // Group items by order
+      const itemsByOrder = targetItems.reduce((acc, item) => {
+        const oid = item.orderId;
+        if (!acc[oid]) acc[oid] = [];
+        acc[oid].push(item);
+        return acc;
+      }, {});
+
+      // Determine account to credit (reuse logic below)
+      let selectedAccountId = accountId;
+      if (!selectedAccountId) {
+        let account = await accountModel.findOne({
+          where: { isDefault: true, status: "active" },
+          transaction,
+        });
+        if (!account) {
+          const pm = updateData.paymentMethod || "cash";
+          const accountTypeMap = { cash: "cash", card: "bank", cheque: "bank", online: "wallet" };
+          const accountType = accountTypeMap[pm] || "cash";
+          account = await accountModel.findOne({
+            where: { accountType, isDefault: true, status: "active" },
+            transaction,
+          });
+          if (!account) {
+            account = await accountModel.findOne({
+              where: { accountType, status: "active" },
+              transaction,
+            });
+          }
+        }
+        if (!account) {
+          await transaction.rollback();
+          return { status: 400, success: false, message: "No active account available for checkout" };
+        }
+        selectedAccountId = account.id;
+      } else {
+        const account = await accountModel.findByPk(selectedAccountId, { transaction });
+        if (!account || account.status !== "active") {
+          await transaction.rollback();
+          return { status: 400, success: false, message: `Invalid or inactive account ID: ${selectedAccountId}` };
+        }
+      }
+
+      const updatedOrders = [];
+      const revenueEntries = [];
+      let combinedTotalAmount = 0;
+
+      // For each order, compute subset total and mark those items completed
+      for (const [oid, items] of Object.entries(itemsByOrder)) {
+        // Compute subset amount for these items (use subtotal if available, else price*qty - discount)
+        const subsetTotal = items.reduce((sum, it) => {
+          const line = Number(it.subtotal) || (Number(it.price) * Number(it.quantity) - Number(it.discount || 0));
+          return sum + (isNaN(line) ? 0 : line);
+        }, 0);
+
+        // Mark these specific items as completed
+        const ids = items.map((it) => it.id);
+        await orderItemModel.update(
+          { status: "completed" },
+          {
+            where: { id: { [Op.in]: ids }, status: { [Op.notIn]: ["completed", "cancelled"] } },
+            validate: false,
+            transaction,
+          },
+        );
+
+        // Update KOTs that are now fully completed/cancelled
+        const touchedKotIds = Array.from(new Set(items.map((it) => it.kotId).filter(Boolean)));
+        if (touchedKotIds.length > 0) {
+          const rows = await orderItemModel.findAll({
+            attributes: ["kotId"],
+            where: {
+              kotId: { [Op.in]: touchedKotIds },
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
+            group: ["kotId"],
+            transaction,
+            raw: true,
+          });
+          const incompleteKot = new Set(rows.map((r) => r.kotId));
+          const completeKotIds = touchedKotIds.filter((kid) => !incompleteKot.has(kid));
+          if (completeKotIds.length > 0) {
+            await kotModel.update(
+              { status: "completed" },
+              { where: { id: { [Op.in]: completeKotIds } }, validate: false, transaction },
+            );
+          }
+        }
+
+        // If all items of the order are now completed or cancelled, mark order completed
+        const remaining = await orderItemModel.count({
+          where: { orderId: oid, status: { [Op.notIn]: ["completed", "cancelled"] } },
+          transaction,
+        });
+        const orderRecord = await orderModel.findByPk(oid, { transaction });
+        if (remaining === 0) {
+          await orderRecord.update(
+            { status: "completed", paymentStatus: "paid", orderFinishTime: new Date() },
+            { transaction },
+          );
+        }
+
+        // Create revenue entry for this subset
+        if (subsetTotal > 0) {
+          const revenue = await revenueModel.create(
+            {
+              amount: subsetTotal,
+              paymentMethod: updateData.paymentMethod || "cash",
+              cash_or_credit: updateData.cashOrCredit || "cash",
+              customerId: orderRecord.customerId || null,
+              userId: req.user.id,
+              accountId: selectedAccountId,
+              remarks: updateData.remarks || `Revenue from partial checkout of order ${oid}`,
+            },
+            { transaction },
+          );
+          await accountModel.increment("currentBalance", {
+            by: Number(subsetTotal) || 0,
+            where: { id: selectedAccountId },
+            transaction,
+          });
+          revenueEntries.push(revenue);
+          combinedTotalAmount += subsetTotal;
+        }
+
+        updatedOrders.push(orderRecord);
+      }
+
+      // Free table if no other active orders remain
+      const stillOrderInTable = await orderModel.findOne({
+        where: {
+          tableId,
+          sessionId: sessionId || { [Op.ne]: null },
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        transaction,
+      });
+      if (!stillOrderInTable) {
+        await tableModel.update(
+          { status: "available", sessionId: null, sessionStartTime: null },
+          { where: { id: tableId }, transaction },
+        );
+      }
+
+      await transaction.commit();
+      return {
+        status: 200,
+        success: true,
+        message: `Selective checkout completed for ${targetItems.length} item(s) across ${Object.keys(itemsByOrder).length} order(s)`,
+        data: {
+          orders: updatedOrders,
+          revenueEntries,
+          combinedTotalAmount,
+        },
+      };
     }
 
     // Fetch orders based on single or multiple checkout
@@ -638,6 +823,55 @@ const checkoutOrder = async (req) => {
 
       updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });
       revenueEntries.push(revenue);
+    }
+
+    // After completing checkout for these orders, update their order items and KOTs statuses
+    for (const order of orders) {
+      // 1) Mark all non-cancelled and non-completed order items as completed
+      await orderItemModel.update(
+        { status: "completed" },
+        {
+          where: {
+            orderId: order.id,
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          validate: false,
+          transaction,
+        },
+      );
+
+      // 2) Complete KOTs that have all their items completed or cancelled
+      const kots = await kotModel.findAll({
+        where: { orderId: order.id },
+        attributes: ["id"],
+        transaction,
+      });
+      const kotIds = kots.map((k) => k.id);
+      if (kotIds.length > 0) {
+        // Find kotIds that still have any non-completed and non-cancelled items
+        const rows = await orderItemModel.findAll({
+          attributes: ["kotId"],
+          where: {
+            kotId: { [Op.in]: kotIds },
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          group: ["kotId"],
+          transaction,
+          raw: true,
+        });
+        const incompleteKotIds = new Set(rows.map((r) => r.kotId));
+        const completeKotIds = kotIds.filter((id) => !incompleteKotIds.has(id));
+        if (completeKotIds.length > 0) {
+          await kotModel.update(
+            { status: "completed" },
+            {
+              where: { id: { [Op.in]: completeKotIds } },
+              validate: false,
+              transaction,
+            },
+          );
+        }
+      }
     }
 
     // Check for other active orders

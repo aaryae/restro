@@ -112,6 +112,18 @@ export default function KotList() {
         </button>
         <button
           className={`px-3 py-2 rounded border ${
+            queryStringOptions.status === "completed"
+              ? "bg-blue-500 text-white"
+              : ""
+          }`}
+          onClick={() =>
+            setQueryStringOptions((cur) => ({ ...cur, status: "completed" }))
+          }
+        >
+          Completed
+        </button>
+        <button
+          className={`px-3 py-2 rounded border ${
             queryStringOptions.status === "cancelled"
               ? "bg-blue-500 text-white"
               : ""
