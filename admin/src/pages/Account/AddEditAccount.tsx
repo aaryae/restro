@@ -95,13 +95,14 @@ const AddEditAccount: React.FC = () => {
       openingBalance: Number(form.openingBalance) || 0,
       description: form.description || "",
       name: form.accountName,
-      bankAccountNumber:
-        form.accountType === "bank" ? form.bankAccountNumber : undefined,
-      walletId: form.accountType === "wallet" ? form.walletId : undefined,
-      staticQrUrl: ["bank", "wallet"].includes(form.accountType)
-        ? form.staticQrUrl
-        : undefined,
     };
+    if (form.accountType === "bank") {
+      payload.bankAccountNumber = form.bankAccountNumber;
+      payload.staticQrUrl = form.staticQrUrl; // required by schema
+    } else if (form.accountType === "wallet") {
+      payload.walletId = form.walletId;
+      payload.staticQrUrl = form.staticQrUrl; // required by schema
+    }
 
     try {
       setIsSaving(true);
@@ -151,7 +152,11 @@ const AddEditAccount: React.FC = () => {
       setValue("bankAccountNumber", undefined);
       setValue("walletAccountName", undefined);
       setValue("walletId", undefined);
-      setValue("staticQrUrl", "");
+      setValue("staticQrUrl", undefined as unknown as string, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
     }
     if (accountType === "bank") {
       setValue("walletAccountName", undefined);
@@ -271,7 +276,7 @@ const AddEditAccount: React.FC = () => {
               />
               <div className="flex flex-col">
                 <label className="flex items-center gap-2 text-sm text-gray-700 mb-1">
-                  Static QR (optional)
+                  Static QR <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-col gap-2 w-full md:w-[25rem]">
                   <MediaComponent
@@ -291,6 +296,8 @@ const AddEditAccount: React.FC = () => {
                     setOpen={setMediaOpen}
                     acceptFiles="image/*"
                   />
+                  {/* Register the field so resolver can validate and errors can show */}
+                  <input type="hidden" {...register("staticQrUrl")} />
                   {watch("staticQrUrl") && (
                     <div className="flex justify-end">
                       <button
@@ -307,6 +314,11 @@ const AddEditAccount: React.FC = () => {
                         Remove
                       </button>
                     </div>
+                  )}
+                  {(errors as any)?.staticQrUrl && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {(errors as any)?.staticQrUrl?.message as string}
+                    </p>
                   )}
                 </div>
               </div>
@@ -332,7 +344,7 @@ const AddEditAccount: React.FC = () => {
               />
               <div className="flex flex-col">
                 <label className="flex items-center gap-2 text-sm text-gray-700 mb-1">
-                  Static QR (optional)
+                  Static QR <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-col gap-2 w-full md:w-[25rem]">
                   <MediaComponent
@@ -352,6 +364,8 @@ const AddEditAccount: React.FC = () => {
                     setOpen={setMediaOpen}
                     acceptFiles="image/*"
                   />
+                  {/* Register the field so resolver can validate and errors can show */}
+                  <input type="hidden" {...register("staticQrUrl")} />
                   {watch("staticQrUrl") && (
                     <div className="flex justify-end">
                       <button
@@ -368,6 +382,11 @@ const AddEditAccount: React.FC = () => {
                         Remove
                       </button>
                     </div>
+                  )}
+                  {(errors as any)?.staticQrUrl && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {(errors as any)?.staticQrUrl?.message as string}
+                    </p>
                   )}
                 </div>
               </div>

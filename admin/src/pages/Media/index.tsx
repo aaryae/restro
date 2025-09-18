@@ -139,7 +139,7 @@ export default function Media() {
       </div>
       {/* folder section */}
       <div className="mt-[5rem] flex justify-start  w-full">
-        <div className="flex flex-wrap lg:gap-[3rem] gap-[2rem] w-fit max-w-full place-items-center">
+        <div className="flex flex-wrap justify-center lg:gap-[3rem] gap-[2rem] w-fit max-w-full place-items-center">
           {mediaCategory?.map(
             (each: { id: number; name: string }, index: number) => (
               <button

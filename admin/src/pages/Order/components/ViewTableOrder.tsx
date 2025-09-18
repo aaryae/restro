@@ -6,16 +6,18 @@ import { Link } from "react-router-dom";
 import CheckoutModal from "./CheckoutModal";
 import Button from "@/components/Button";
 import { LuChefHat } from "react-icons/lu";
-
+import Checkbox from "@/components/Checkbox";
 interface ViewTableOrderProps {
   id: number | null;
   tableNo: number | null;
+  orderId: number | null;
   handleCheckout: (tableId: number, orderId: number | null | [number]) => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   id,
   tableNo,
+  orderId,
   handleCheckout,
 }) => {
   const {
@@ -35,6 +37,10 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
   const orders = tableOrder?.data?.orders;
   const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
+
+  const handleCheckboxChange = (orderId: number, checked: boolean) => {
+    console.log(orderId, checked);
+  };
 
   return (
     <>
@@ -64,44 +70,54 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                 orders?.map((order) => (
                   <div
                     key={order.id}
-                    className="bg-white rounded-lg shadow-md p-4"
+                    className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
                   >
-                    <StatusTag status={order.status} />
+                    <StatusTag status={order.status} orderId={order.id} />
 
                     <div className="space-y-2">
                       {order.orderItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex justify-between items-start border-b border-gray-200 py-2"
-                        >
-                          <div className="leading-[1.5] text-gray-600">
-                            <p className="font-medium text-[15px]">
-                              Item: {item.product.name}
-                            </p>
-                            <p className="flex text-[15px]">
-                              Qty: {item.quantity}
-                            </p>
-                            {item.specialInstructions && (
-                              <p className="text-xs italic">
-                                Note: {item.specialInstructions}
-                              </p>
-                            )}
+                        <>
+                          <div
+                            key={item.id}
+                            className="flex items-center border-b border-gray-200 py-2 gap-6"
+                          >
+                            <Checkbox
+                              key={item.id}
+                              checked={item.selected}
+                              onChange={(e) =>
+                                handleCheckboxChange(item.id, e.target.checked)
+                              }
+                            />
+                            <div className="flex justify-between items-center gap-[7rem]">
+                              <div className="leading-[1.5] text-gray-600">
+                                <p className="font-medium text-[15px]">
+                                  Item: {item.product.name}
+                                </p>
+                                <p className="flex text-[15px]">
+                                  Qty: {item.quantity}
+                                </p>
+                                {item.specialInstructions && (
+                                  <p className="text-xs italic">
+                                    Note: {item.specialInstructions}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="leading-[1.5] text-gray-600 text-right">
+                                <p className="text-[14px]">
+                                  Rs. {Number(item.product.price).toFixed(2)}{" "}
+                                  each
+                                </p>
+                                <p className="text-[13px]">
+                                  Subtotal: Rs.
+                                  {Number(item.subtotal).toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="leading-[1.5] text-gray-600 text-right">
-                            <p className="text-[14px]">
-                              Rs. {Number(item.product.price).toFixed(2)} each
-                            </p>
-                            <p className="text-[13px]">
-                              Subtotal: Rs.{Number(item.subtotal).toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
+                        </>
                       ))}
                     </div>
                     <div className="flex justify-between items-center mt-4">
-                      <p className="text-lg font-semibold text-gray-800">
-                        Total: Rs.{Number(order.totalAmount).toFixed(2)}
-                      </p>
                       <div className="flex gap-2">
                         {order.status !== "completed" && (
                           <>
@@ -124,6 +140,9 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           </>
                         )}
                       </div>
+                      <p className="text-lg font-semibold text-gray-800">
+                        Total: Rs.{Number(order.totalAmount).toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 ))
@@ -148,12 +167,15 @@ export default ViewTableOrder;
 
 function StatusTag({
   status,
+  orderId,
 }: {
   status: "pending" | "completed" | "cancelled";
+  orderId: number;
 }) {
   console.log("status", status);
   return (
-    <div className="flex justify-end py-2">
+    <div className="flex justify-between py-2">
+      <p className="text-[14px] font-semibold">Order No: {orderId}</p>
       <span
         className={`px-4 py-2 text-xs font-semibold rounded-full 
             ${

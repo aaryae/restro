@@ -103,6 +103,7 @@ type FormValues = PurchaseFormInput;
 const AddEditPurchase: React.FC = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const [submitMode, setSubmitMode] = useState<"draft" | "complete">("draft");
   const {
     control,
     register,
@@ -145,6 +146,11 @@ const AddEditPurchase: React.FC = () => {
   const [completePurchase] = useCompletePurchaseByIdMutation();
   const { data: purchaseData, isSuccess: purchaseFetched } =
     useGetPurchaseByIdQuery(id as string, { skip: !isEdit });
+  const isCompleted = useMemo(() => {
+    const p: any = purchaseData?.data;
+    const raw = (p?.status ?? p?.purchaseStatus ?? p?.state ?? "").toString().toLowerCase();
+    return raw === "completed" || raw === "complete";
+  }, [purchaseData]);
 
   // Suppliers dropdown
   const supplierUrl = buildQueryString("supplier/list", {
@@ -268,6 +274,9 @@ const AddEditPurchase: React.FC = () => {
           url: `${PURCHASE_URL}${id}`,
           body: payload,
         }).unwrap();
+        if (submitMode === "complete") {
+          await completePurchase(id as string).unwrap();
+        }
         handleResponse({
           res: { success: true, msg: response?.message },
           onSuccess: () => navigate(-1),
@@ -282,20 +291,12 @@ const AddEditPurchase: React.FC = () => {
           (response as any)?.data?.id ??
           (response as any)?.data?.data?.id ??
           (response as any)?.id;
-        const paymentTerms = payload.paymentTerms;
-        if (paymentTerms !== "credit") {
+
+        if (submitMode === "complete") {
           if (!createdId) {
-            console.warn(
-              "Could not determine created purchase ID to complete.",
-              response,
-            );
+            console.warn("Could not determine created purchase ID to complete.", response);
           } else {
-            try {
-              await completePurchase(createdId).unwrap();
-            } catch (e) {
-              console.error("Failed to complete purchase", e);
-              throw e;
-            }
+            await completePurchase(createdId).unwrap();
           }
         }
 
@@ -312,10 +313,8 @@ const AddEditPurchase: React.FC = () => {
   return (
     <div className="p-6">
       <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col space-y-6"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col space-y-6">
+        <fieldset disabled={isCompleted} className="contents">
         <div className="flex flex-col lg:flex-row gap-6 items-stretch">
           <div className="w-full lg:flex-1 flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
             <div>
@@ -677,17 +676,36 @@ const AddEditPurchase: React.FC = () => {
             </div>
           </div>
         </div>
+        </fieldset>
         <div className="w-full flex justify-start gap-3">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
-            disabled={creating || updating}
-          >
-            {isEdit ? "Update" : "Submit"}
-          </button>
-          <button type="reset" className="px-4 py-2 border rounded">
-            Reset
-          </button>
+          {!isCompleted && (
+            <>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-gray-600 text-white rounded disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("draft")}
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("complete")}
+              >
+                Complete Payment
+              </button>
+              <button type="reset" className="px-4 py-2 border rounded">
+                Reset
+              </button>
+            </>
+          )}
+          {isCompleted && (
+            <span className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+              This purchase is completed and cannot be edited.
+            </span>
+          )}
         </div>
       </form>
     </div>

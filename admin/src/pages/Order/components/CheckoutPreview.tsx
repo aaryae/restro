@@ -39,16 +39,11 @@ const CheckoutPreview: React.FC<CheckoutPreviewProps> = ({
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
+      <div className="bg-white rounded-[8px] p-[28px] w-[50%] h-[35%]">
         <h2 className={styles.modalTitle}>Checkout Summary</h2>
 
         <div id="bill-print-area" className="max-h-[70vh] overflow-y-auto">
           <div className="text-sm text-gray-700 space-y-1 mb-4">
-            {data.orderNumber && (
-              <p>
-                <span className="font-medium">Order #:</span> {data.orderNumber}
-              </p>
-            )}
             {data.tableNo && (
               <p>
                 <span className="font-medium">Table:</span> {data.tableNo}
