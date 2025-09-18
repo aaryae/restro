@@ -493,7 +493,7 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
             slug: generateSlug(productName),
             quantity: 10, // Default value
             orders: 0,
-            price: 5.99, // Default value
+            price: 125.0, // Default value
             stockStatus: "in_stock",
             reservedQuantity: 0,
           });
