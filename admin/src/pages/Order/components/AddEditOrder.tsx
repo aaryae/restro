@@ -6,7 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Button from "@/components/Button";
 import { z } from "zod";
 import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
 import Select from "@/components/Select";
@@ -105,18 +105,54 @@ export default function AddEditOrder({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [audio] = useState(new Audio(Beep));
-  const [deleteAudio] = useState(new Audio(DeleteBeep));
+  // Use refs for audio to avoid SSR/build-time issues and allow imperative control
+  const beepRef = useRef<HTMLAudioElement | null>(null);
+  const deleteBeepRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create and configure audio elements on mount
+  useEffect(() => {
+    const beep = new Audio(Beep);
+    const del = new Audio(DeleteBeep);
+    // Preload and configure for reliable playback
+    beep.preload = "auto";
+    del.preload = "auto";
+    beep.muted = false;
+    del.muted = false;
+    beep.volume = 1.0;
+    del.volume = 1.0;
+    beepRef.current = beep;
+    deleteBeepRef.current = del;
+    // No auto play/unlock here; sounds will play only on explicit user clicks
+    return () => {};
+  }, []);
 
   const watchedOrderType = watch("orderType");
   const watchedTableId = watch("tableId");
 
   const playAudio = () => {
-    audio.play();
+    const a = beepRef.current;
+    if (!a) return;
+    try {
+      a.currentTime = 0;
+      const p = a.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {
+          // ignored: browser blocked due to gesture policy; unlocked handler will fix on next gesture
+        });
+      }
+    } catch {}
   };
 
   const playDeleteAudio = () => {
-    deleteAudio.play();
+    const a = deleteBeepRef.current;
+    if (!a) return;
+    try {
+      a.currentTime = 0;
+      const p = a.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {});
+      }
+    } catch {}
   };
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
