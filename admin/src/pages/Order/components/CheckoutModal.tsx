@@ -4,11 +4,12 @@ import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
 import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
+import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
 import { Mail, CircleUserRound, Contact } from "lucide-react";
-import { CurrencySign } from "@/constants";
+import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
@@ -89,9 +90,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<
-    "Digital" | "2" | "3"
-  >("Digital");
+  const [selectedQrCategory, setSelectedQrCategory] = useState<
+    "bank" | "wallet"
+  >("bank");
+  const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
   const [tenderAmount, setTenderAmount] = useState<string>("");
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
@@ -120,6 +123,42 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       skip: orderId === null || orderId === undefined,
     },
   );
+
+  // Fetch all accounts to populate bank and wallet dropdowns
+  const { data: accountsResp } = useGetApiQuery({
+    url: buildQueryString("account/list", { page: 1, limit: 100 }),
+  });
+
+  const bankAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
+    ? accountsResp?.data?.data.filter((a: any) => a?.accountType === "bank")
+    : [];
+  const walletAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
+    ? accountsResp?.data?.data.filter((a: any) => a?.accountType === "wallet")
+    : [];
+
+  // Fetch selected account details to fetch staticQr
+  const { data: selectedBankDetail } = useGetApiQuery(
+    selectedBankId ? { url: `${ACCOUNT_URL}${selectedBankId}` } : ({} as any),
+    { skip: !selectedBankId },
+  );
+  const { data: selectedWalletDetail } = useGetApiQuery(
+    selectedWalletId
+      ? { url: `${ACCOUNT_URL}${selectedWalletId}` }
+      : ({} as any),
+    { skip: !selectedWalletId },
+  );
+
+  // Prefer media array image when present, otherwise fall back to staticQrUrl fields
+  const bankQrUrl =
+    (selectedBankDetail?.data as any)?.mediaArr?.[0]?.imageUrl ||
+    (selectedBankDetail?.data as any)?.bankAccount?.staticQrUrl ||
+    (selectedBankDetail?.data as any)?.walletAccount?.staticQrUrl ||
+    null;
+  const walletQrUrl =
+    (selectedWalletDetail?.data as any)?.mediaArr?.[0]?.imageUrl ||
+    (selectedWalletDetail?.data as any)?.walletAccount?.staticQrUrl ||
+    (selectedWalletDetail?.data as any)?.bankAccount?.staticQrUrl ||
+    null;
 
   const {
     data: allCustomers,
@@ -546,7 +585,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                             : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                         }`}
-                        aria-pressed={paymentType === "cash" ? "true" : "false"}
+                        aria-pressed={paymentType === "cash"}
                       >
                         Cash
                       </button>
@@ -558,7 +597,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             ? "bg-blue-50 border-blue-300 text-blue-700"
                             : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                         }`}
-                        aria-pressed={paymentType === "qr" ? "true" : "false"}
+                        aria-pressed={paymentType === "qr"}
                       >
                         QR / E-Payment
                       </button>
@@ -657,44 +696,134 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <div className="mt-4">
                         <div className="mb-4">
                           <p className="text-sm font-medium mb-2">
-                            Select Provider:
+                            Select QR Type:
                           </p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {["Digital", "2", "3"].map((provider) => (
+                          <div className="grid grid-cols-2 gap-2">
+                            {(["bank", "wallet"] as const).map((type) => (
                               <button
-                                key={provider}
+                                key={type}
                                 type="button"
                                 onClick={() =>
-                                  setSelectedProvider(
-                                    provider as "Digital" | "2" | "3",
+                                  setSelectedQrCategory(
+                                    type as "bank" | "wallet",
                                   )
                                 }
                                 className={`border rounded-md p-2 text-sm font-medium transition ${
-                                  selectedProvider === provider
+                                  selectedQrCategory === type
                                     ? "bg-blue-50 border-blue-300 text-blue-700"
                                     : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                                 }`}
-                                aria-pressed={
-                                  selectedProvider === provider
-                                    ? "true"
-                                    : "false"
-                                }
+                                aria-pressed={selectedQrCategory === type}
                               >
-                                {provider}
+                                {type === "bank" ? "Bank" : "Wallet"}
                               </button>
                             ))}
                           </div>
                         </div>
+
+                        {/* Dropdown for selected type */}
+                        {selectedQrCategory === "bank" ? (
+                          <div className="mb-4">
+                            <label
+                              htmlFor="qr-bank-select"
+                              className="text-sm font-medium mb-2 block"
+                            >
+                              Select Bank Account:
+                            </label>
+                            <select
+                              className="w-full bg-white px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
+                              id="qr-bank-select"
+                              value={selectedBankId ?? ""}
+                              onChange={(e) =>
+                                setSelectedBankId(
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                )
+                              }
+                            >
+                              <option value="">-- Choose --</option>
+                              {bankAccounts.map((acc: any) => (
+                                <option key={acc.id} value={acc.id}>
+                                  {acc?.name ||
+                                    acc?.accountName ||
+                                    `Bank #${acc.id}`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div className="mb-4">
+                            <label
+                              htmlFor="qr-wallet-select"
+                              className="text-sm font-medium mb-2 block"
+                            >
+                              Select Wallet Account:
+                            </label>
+                            <select
+                              className="w-full bg-white px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
+                              id="qr-wallet-select"
+                              value={selectedWalletId ?? ""}
+                              onChange={(e) =>
+                                setSelectedWalletId(
+                                  e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                )
+                              }
+                            >
+                              <option value="">-- Choose --</option>
+                              {walletAccounts.map((acc: any) => (
+                                <option key={acc.id} value={acc.id}>
+                                  {acc?.name ||
+                                    acc?.accountName ||
+                                    `Wallet #${acc.id}`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* QR Preview */}
                         <div className="flex flex-col items-center ">
-                          <img
-                            src={QR_IMAGE}
-                            alt="QR Code for Payment"
-                            className="w-full max-w-[280px] rounded-md border"
-                          />
-                          <p className="mt-2 text-xs text-gray-500">
-                            Provider {selectedProvider} - Scan to pay. Confirm
-                            payment on your device.
-                          </p>
+                          {selectedQrCategory === "bank" && selectedBankId && (
+                            <>
+                              <img
+                                src={
+                                  `${IMAGE_BASE_URL}${bankQrUrl}` || QR_IMAGE
+                                }
+                                alt="Bank Static QR"
+                                className="w-full max-w-[280px] rounded-md border"
+                              />
+                              <p className="mt-2 text-xs text-gray-500">
+                                Scan to pay via selected bank account.
+                              </p>
+                            </>
+                          )}
+                          {selectedQrCategory === "wallet" &&
+                            selectedWalletId && (
+                              <>
+                                <img
+                                  src={
+                                    `${IMAGE_BASE_URL}${walletQrUrl}` ||
+                                    QR_IMAGE
+                                  }
+                                  alt="Wallet Static QR"
+                                  className="w-full max-w-[280px] rounded-md border"
+                                />
+                                <p className="mt-2 text-xs text-gray-500">
+                                  Scan to pay via selected wallet account.
+                                </p>
+                              </>
+                            )}
+                          {((selectedQrCategory === "bank" &&
+                            !selectedBankId) ||
+                            (selectedQrCategory === "wallet" &&
+                              !selectedWalletId)) && (
+                            <p className="text-xs text-gray-500">
+                              Select an account to view its static QR.
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}

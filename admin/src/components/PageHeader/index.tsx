@@ -18,6 +18,7 @@ interface PageHeaderType {
   handleNewButton?: () => void;
   handleReloadButton: () => void;
   hasDeleteButton?: boolean;
+  refetch?: () => void;
   handleDeleteButton?: () => void;
   children?: React.ReactNode;
 }
@@ -33,6 +34,7 @@ export default function PageHeader({
   handleNewButton,
   handleReloadButton,
   hasDeleteButton,
+  refetch,
   handleDeleteButton,
   children,
 }: Readonly<PageHeaderType>) {
@@ -42,6 +44,7 @@ export default function PageHeader({
   const handleClick = () => {
     setIsRotating(true);
     handleReloadButton();
+    refetch?.();
     setTimeout(() => setIsRotating(false), 1000);
   };
 
