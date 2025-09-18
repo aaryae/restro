@@ -21,55 +21,62 @@ const Table: React.FC<TableProps> = ({
 }) => {
   const translate = useTranslation();
   return (
-    <div className="overflow-x-auto">
+    <div>
       {/* Card Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Table */}
-        <table className="min-w-full text-sm text-gray-800">
-          <thead className="bg-primaryColor">
-            <tr>
-              {isSN && (
-                <th className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap">
-                  S.N.
-                </th>
-              )}
-              {headers.map((header, index) => (
-                <th
-                  key={index}
-                  className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap"
-                >
-                  {translate(header)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className={`${styles.tableBody}`}>
-            {data.length > 0 ? (
-              data.map((row, index) => (
-                <tr key={index} className={`${styles.row} hover:bg-gray-50 transition-colors`}>
-                  {isSN && <td className="px-6 py-3 text-center">{index + 1}</td>}
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="px-6 py-3 text-center">
-                      {React.isValidElement(cell) ? cell : `${cell}`}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        {/* Table (horizontal scroll only for table) */}
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full text-sm text-gray-800">
+            <thead className="bg-primaryColor">
               <tr>
-                <td
-                  colSpan={isSN ? headers.length + 1 : headers.length}
-                  className="px-6 py-8 text-center text-gray-500"
-                >
-                  {translate("No data available")}
-                </td>
+                {isSN && (
+                  <th className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap">
+                    S.N.
+                  </th>
+                )}
+                {headers.map((header, index) => (
+                  <th
+                    key={index}
+                    className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap"
+                  >
+                    {translate(header)}
+                  </th>
+                ))}
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className={`${styles.tableBody}`}>
+              {data.length > 0 ? (
+                data.map((row, index) => (
+                  <tr
+                    key={index}
+                    className={`${styles.row} hover:bg-gray-50 transition-colors`}
+                  >
+                    {isSN && (
+                      <td className="px-6 py-3 text-center">{index + 1}</td>
+                    )}
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="px-6 py-3 text-center">
+                        {React.isValidElement(cell) ? cell : `${cell}`}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={isSN ? headers.length + 1 : headers.length}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    {translate("No data available")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
         {/* Pagination */}
         {pagination && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-4 py-3 bg-white">
+          <div className="sticky bottom-0 sm:static flex sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white">
             <div>
               <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                 Show:
@@ -138,4 +145,3 @@ const Table: React.FC<TableProps> = ({
   );
 };
 export default Table;
-

@@ -89,13 +89,13 @@ export default function AddEditProductCategory({
         <Input
           label="Name"
           placeholder="Enter Product Category"
-          className="w-1/2"
+          className="w-full md:w-1/2"
           {...register("name")}
           error={errors.name?.message}
         />
         <TextArea
           label="Description"
-          className="w-1/2"
+          className="w-full md:w-1/2"
           {...register("description")}
           error={errors.description?.message}
         />

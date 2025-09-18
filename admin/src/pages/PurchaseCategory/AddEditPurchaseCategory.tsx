@@ -98,14 +98,14 @@ const AddPurchaseCategory: React.FC = () => {
         <Input
           label={translate("Purchase Category Title")}
           placeholder="Enter purchase category title"
-          className="w-1/2"
+          className="w-full md:w-1/2"
           {...register("title")}
           error={errors.title?.message}
         />
         <TextArea
           label={translate("Purchase Category Description")}
           placeholder="Enter purchase category description"
-          className="w-1/2"
+          className="w-full md:w-1/2"
           {...register("description")}
           error={errors.description?.message}
         />

@@ -253,6 +253,9 @@ const Purchase: React.FC = () => {
       typeof rawStatus === "string" && rawStatus !== "-"
         ? `${rawStatus}`.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
         : "-";
+    const isCompleted =
+      typeof rawStatus === "string" &&
+      ["completed", "complete"].includes(rawStatus.toLowerCase());
     const paymentSourceName = (() => {
       const acc = r?.account || r?.paymentSource;
       const direct = acc?.name || r?.accountName || r?.paymentSourceName;
@@ -283,11 +286,16 @@ const Purchase: React.FC = () => {
           className="text-[#0090DD] cursor-pointer"
           onClick={() => handleViewPurchase(id)}
         />
-        <MdEditSquare
-          size={18}
-          className="text-[#0090DD] hover:text-blue-800"
-          onClick={() => handleNewUser(id)}
-        />
+        <button
+          type="button"
+          onClick={() => !isCompleted && handleNewUser(id)}
+          title={isCompleted ? "Completed purchases cannot be edited" : "Edit"}
+          disabled={isCompleted}
+          className={`${isCompleted ? "opacity-50 cursor-not-allowed" : "hover:text-blue-800"}`}
+          aria-disabled={isCompleted}
+        >
+          <MdEditSquare size={18} className="text-[#0090DD]" />
+        </button>
         <DeleteModal
           open={open}
           setOpen={setOpen}

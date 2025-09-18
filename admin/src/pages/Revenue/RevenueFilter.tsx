@@ -101,11 +101,11 @@ export default function RevenueFilter({
   return (
     <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
       <div className="space-y-6">
-        <div className="flex flex-col justify-between items-start gap-3">
-          <h3 className="text-lg font-semibold text-gray-800">
+        <div className="flex flex-col justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-800 text-start">
             Revenue Filter
           </h3>
-          <div className="flex gap-[39rem]">
+          <div className="flex justify-between">
             <div className="flex flex-wrap gap-2 items-center">
               <button
                 type="button"
@@ -159,12 +159,12 @@ export default function RevenueFilter({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-4 ml-2">
               <label
                 htmlFor="cash_or_credit"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-gray-700 "
               >
-                Cash / Credit
+                Payment Method
               </label>
               <select
                 id="cash_or_credit"

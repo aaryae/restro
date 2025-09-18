@@ -117,8 +117,7 @@ const Account: React.FC = () => {
     "S.N",
     "Name",
     "Type",
-    "Opening Balance",
-    "Current Balance",
+    "Balance",
     "Status",
     "Default",
     "Actions",
@@ -137,9 +136,6 @@ const Account: React.FC = () => {
             sn,
             row?.name || "-",
             row?.accountType || "-",
-            row?.openingBalance != null
-              ? `${CurrencySign}${Number(row.openingBalance)}`
-              : "-",
             row?.currentBalance != null
               ? `${CurrencySign}${Number(row.currentBalance)}`
               : "-",
