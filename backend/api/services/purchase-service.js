@@ -362,16 +362,31 @@ const completePurchase = async (req) => {
     if (purchase.paymentTerms !== "credit") {
       const account = await accountModel.findByPk(purchase.accountId, {
         transaction,
+        lock: true,
       });
-      if (
-        !account ||
-        Number(account.currentBalance) < Number(purchase.totalAmount)
-      ) {
+      if (!account) {
         await transaction.rollback();
         return {
           status: 400,
           success: false,
-          message: "Insufficient account balance",
+          message: "Account not found",
+          data: null,
+        };
+      }
+
+      // Refreshing the account to get the latest balance
+      await account.reload({ transaction });
+
+      // Convert to numbers for proper comparison
+      const availableBalance = parseFloat(account.currentBalance);
+      const requiredAmount = parseFloat(purchase.totalAmount);
+
+      if (availableBalance < requiredAmount) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `Insufficient account balance. Available: ${availableBalance}, Required: ${requiredAmount}`,
           data: null,
         };
       }
@@ -446,24 +461,31 @@ const recordCreditPayment = async (req) => {
     const paymentAccountId = req.body.paymentAccountId || purchase.accountId;
     const account = await accountModel.findByPk(paymentAccountId, {
       transaction,
+      lock: true,
     });
-
-    if (!account || account.status !== "active") {
+    if (!account) {
       await transaction.rollback();
       return {
         status: 400,
         success: false,
-        message: "Invalid or inactive payment account",
+        message: "Account not found",
         data: null,
       };
     }
 
-    if (Number(account.currentBalance) < Number(purchase.totalAmount)) {
+    // Refresh the account to get the latest balance
+    await account.reload({ transaction });
+
+    // Convert to numbers for proper comparison
+    const availableBalance = Number(account.currentBalance);
+    const requiredAmount = Number(purchase.totalAmount);
+
+    if (availableBalance < requiredAmount) {
       await transaction.rollback();
       return {
         status: 400,
         success: false,
-        message: "Insufficient account balance",
+        message: `Insufficient account balance. Available: ${availableBalance}, Required: ${requiredAmount}`,
         data: null,
       };
     }

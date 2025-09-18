@@ -87,33 +87,17 @@
     {
       "accountId": 1,
       "accountType": "cash",
-      "name": "Main Cash Register",
-      "openingBalance": 1000.0,
+      "name": "Counter Cash",
+      "openingBalance": 0.0,
       "isDefault": true
     },
     {
       "accountId": 2,
       "accountType": "bank",
-      "name": "Primary Bank Account",
-      "openingBalance": 5000.0,
+      "name": "Phone Pay",
+      "openingBalance": 0.0,
       "isDefault": false,
       "bankAccountNumber": "1234567890"
-    },
-    {
-      "accountId": 3,
-      "accountType": "wallet",
-      "name": "Digital Wallet",
-      "openingBalance": 200.0,
-      "isDefault": false,
-      "walletId": "WALLET123"
-    },
-    {
-      "accountId": 4,
-      "accountType": "bank",
-      "name": "Secondary Bank Account",
-      "openingBalance": 3000.0,
-      "isDefault": false,
-      "bankAccountNumber": "0987654321"
     }
   ],
   "setting": {

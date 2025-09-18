@@ -63,8 +63,11 @@ export default function Order() {
             </Button>
           )}
           {selectedView === "kot" && (
-            <Button className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]">
-              Create KOT
+            <Button
+              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              handleClick={() => navigate(ORDER_ADD_ROUTE)}
+            >
+              Create Order
             </Button>
           )}
         </div>
