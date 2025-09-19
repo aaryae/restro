@@ -117,6 +117,7 @@ const updateById = async (req) => {
           status: 400,
           success: false,
           data: null,
+          message: "Expense category name already exists",
         };
       }
     }
@@ -164,6 +165,7 @@ const deleteById = async (req) => {
         status: 400,
         success: false,
         data: null,
+        message: "Expense category is used by some expenses",
       };
     }
 

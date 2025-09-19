@@ -14,25 +14,15 @@ const { kotPutValidation } = require("../../validations/kot-validation");
 
 // Admin routes
 
-router.get(
-  "/list",
-  authentication,
-  // authorization,
-  paginationValidation,
-  list,
-);
-
-// router.get("/:id", authentication, authorization, idValidation, getById);
+router.get("/list", authentication, authorization, paginationValidation, list);
 
 router.put(
   "/:id",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   kotPutValidation,
   updateById,
 );
-
-// router.delete("/:id", authentication, authorization, idValidation, deleteById);
 
 module.exports = router;

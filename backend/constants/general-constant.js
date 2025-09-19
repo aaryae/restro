@@ -1701,6 +1701,11 @@ module.exports = {
         success: true,
         message: "Expense categories retrieved successfully",
       },
+      EXPENSE_CATEGORY_LIST_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve expense categories",
+      },
       EXPENSE_CATEGORY_NOT_FOUND: {
         status: 404,
         success: false,

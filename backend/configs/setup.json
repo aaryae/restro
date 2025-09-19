@@ -1194,6 +1194,52 @@
       ]
     },
     {
+      "title": "Expense Category",
+      "key": "expense-category",
+      "actions": [
+        {
+          "title": "Add Expense Category",
+          "key": "add",
+          "clientPath": "/expense-category",
+          "serverPath": "/expense-category",
+          "requestMethod": "POST",
+          "list": "Expense Category"
+        },
+        {
+          "title": "View Expense Category",
+          "key": "view",
+          "clientPath": "/expense-category/list",
+          "serverPath": "/expense-category/list",
+          "requestMethod": "GET",
+          "list": "Expense Category"
+        },
+        {
+          "title": "View One Expense Category",
+          "key": "view-one",
+          "clientPath": "/expense-category/:id",
+          "serverPath": "/expense-category/:id",
+          "requestMethod": "GET",
+          "list": "Expense Category"
+        },
+        {
+          "title": "Edit Expense Category",
+          "key": "edit",
+          "clientPath": "/expense-category/update/:id",
+          "serverPath": "/expense-category/update/:id",
+          "requestMethod": "PUT",
+          "list": "Expense Category"
+        },
+        {
+          "title": "Delete Expense Category",
+          "key": "delete",
+          "clientPath": "/expense-category/:id",
+          "serverPath": "/expense-category/:id",
+          "requestMethod": "DELETE",
+          "list": "Expense Category"
+        }
+      ]
+    },
+    {
       "title": "Supplier",
       "key": "supplier",
       "actions": [
@@ -1308,6 +1354,28 @@
           "serverPath": "/open-item/:id",
           "requestMethod": "DELETE",
           "list": "Open Item"
+        }
+      ]
+    },
+    {
+      "title": "Kot",
+      "key": "kot",
+      "actions": [
+        {
+          "title": "View Kot",
+          "key": "view",
+          "clientPath": "/kot/list",
+          "serverPath": "/kot/list",
+          "requestMethod": "GET",
+          "list": "Kot"
+        },
+        {
+          "title": "Edit Kot",
+          "key": "edit",
+          "clientPath": "/kot/:id",
+          "serverPath": "/kot/:id",
+          "requestMethod": "PUT",
+          "list": "Kot"
         }
       ]
     }
