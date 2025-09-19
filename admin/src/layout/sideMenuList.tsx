@@ -108,6 +108,12 @@ export const SideMenuList: SideListMenuType[] = [
       },
       {
         key: 3.5,
+        name: "Expense Category",
+        icon: <GiExpense />,
+        path: "/admin/expense-category/list",
+      },
+      {
+        key: 3.6,
         name: "Supplier",
         icon: <GiExpense />,
         path: "/admin/supplier/list",

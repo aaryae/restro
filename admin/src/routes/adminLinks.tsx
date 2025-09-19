@@ -42,6 +42,8 @@ import AddEditExpense from "@/pages/Expenses/AddEditExpense";
 import AddEditAccount from "@/pages/Account/AddEditAccount";
 import OpenItem from "@/pages/OpenItem";
 import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
+import ExpenseCategory from "@/pages/ExpenseCategory";
+import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
 
 export const adminLinks = [
   {
@@ -191,6 +193,18 @@ export const adminLinks = [
   {
     path: "/purchase-category/:id",
     element: <AddPurchaseCategory />,
+  },
+  {
+    path: "/expense-category/list",
+    element: <ExpenseCategory />,
+  },
+  {
+    path: "/expense-category/",
+    element: <AddExpenseCategory />,
+  },
+  {
+    path: "/expense-category/:id",
+    element: <AddExpenseCategory />,
   },
   {
     path: "/customer/list",

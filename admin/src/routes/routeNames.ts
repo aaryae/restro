@@ -71,3 +71,7 @@ export const BANK_ADD_ROUTE = "/admin/account/";
 export const EXPENSE_LIST_ROUTE = "/admin/expense/list";
 export const EXPENSE_ADD_ROUTE = "/admin/expense/";
 export const EXPENSE_EDIT_ROUTE = "/admin/expense/:id";
+
+export const EXPENSE_CATEGORY_LIST_ROUTE = "/admin/expense-category/list";
+export const EXPENSE_CATEGORY_ADD_ROUTE = "/admin/expense-category/";
+export const EXPENSE_CATEGORY_EDIT_ROUTE = "/admin/expense-category/:id";

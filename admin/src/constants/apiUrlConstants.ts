@@ -12,4 +12,5 @@ export const REVENUE_URL = "revenue/";
 export const ACCOUNT_URL = "account/";
 export const PURCHASE_URL = "purchase/";
 export const PURCHASE_CATEGORY_URL = "purchase-category/";
+export const EXPENSE_CATEGORY_URL = "expense-category/";
 export const KOT_URL = "kot/";
