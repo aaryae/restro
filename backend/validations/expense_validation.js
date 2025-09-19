@@ -66,6 +66,11 @@ const expensePostValidation = async (req, res, next) => {
 
 const expensePutValidation = async (req, res, next) => {
   const joiModel = Joi.object({
+    id: Joi.number().integer().positive().required().messages({
+      "number.base": "ID must be a number",
+      "number.positive": "ID must be positive",
+      "any.required": "ID is required",
+    }),
     cash_or_credit: Joi.string().valid("cash", "credit").optional(),
     paymentMethod: Joi.string().valid("cash", "card", "online").optional(),
     amount: Joi.number().precision(2).positive().optional(),

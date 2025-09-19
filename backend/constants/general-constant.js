@@ -914,6 +914,11 @@ module.exports = {
         success: true,
         message: "Supplier Created Successfully",
       },
+      LIST_SUPPLIER_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "Supplier List Successfully",
+      },
     },
 
     PRODUCT: {

@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
-
-import { useMemo } from "react";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
@@ -11,68 +9,51 @@ import { useNavigate } from "react-router-dom";
 import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
-
-type ExpenseRow = {
-  expenseId: number;
-  dateAD: string;
-  dateBS: string;
-  particulars: string;
-  categoryId: number; // FK
-  amount: number;
-  paidOrCredit: "Paid" | "Credit";
-  paymentSourceId: number;
-};
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { buildQueryString } from "@/utils/generalHelper";
+import { EXPENSE_URL } from "@/constants/apiUrlConstants";
+import { format } from "date-fns";
+import { ADToBS } from "bikram-sambat-js";
 
 const Expenses: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  //This is mock data without API
-  const allData: ExpenseRow[] = useMemo(
-    () => [
-      {
-        expenseId: 1,
-        dateAD: "2025-09-01",
-        dateBS: "2082-05-16",
-        particulars: "Electricity Bill",
-        categoryId: 30,
-        amount: 9500,
-        paidOrCredit: "Paid",
-        paymentSourceId: 4001,
-      },
-    ],
-    [],
-  );
-
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
-  const start = (query.page - 1) * query.limit;
-  const pageRows = allData.slice(start, start + query.limit);
-
-  const pagination: PaginationType = {
+  const url = buildQueryString(`${EXPENSE_URL}list`, {
     page: query.page,
     limit: query.limit,
-    total: allData.length,
-    totalPages: Math.max(1, Math.ceil(allData.length / query.limit)),
+  });
+
+  const { data: apiData, isSuccess: success } = useGetApiQuery({ url });
+
+  const pagination: PaginationType = {
+    page: apiData?.data?.page ?? query.page,
+    limit: apiData?.data?.limit ?? query.limit,
+    total: apiData?.data?.total ?? 0,
+    totalPages: apiData?.data?.totalPages ?? 1,
   };
 
   const headers = [
     "Expense ID",
     "Date (AD)",
     "Date (BS)",
-    "Particulars",
-    "Category ID",
+    "Remarks",
+    "Category",
     "Amount",
-    "Paid or Credit",
+    "Cash or Credit",
     "Payment Source ID",
     "Actions",
   ];
 
   const handleNewExpense = (id: number | null) => {
-    id === null
-      ? navigate(EXPENSE_ADD_ROUTE)
-      : navigate(`${EXPENSE_ADD_ROUTE}${id}`);
+    if (id === null) {
+      navigate(EXPENSE_ADD_ROUTE);
+    } else {
+      navigate(`${EXPENSE_ADD_ROUTE}${id}`);
+    }
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -87,32 +68,34 @@ const Expenses: React.FC = () => {
     setOpen(false);
   };
 
-  const data = pageRows.map((r) => [
-    r.expenseId,
-    r.dateAD,
-    r.dateBS,
-    r.particulars,
-    r.categoryId,
-    CurrencySign + r.amount,
-    r.paidOrCredit,
-    r.paymentSourceId,
-    <div
-      className="flex items-center justify-center gap-3"
-      key={`act-${r.expenseId}`}
-    >
-      <MdEditSquare
-        size={18}
-        className="text-[#0090DD] hover:text-blue-800"
-        onClick={() => handleNewExpense(r.expenseId)}
-      />
-      <DeleteModal
-        open={open}
-        setOpen={setOpen}
-        handleDeleteTrigger={() => handleDeleteTrigger(r.expenseId)}
-        handleConfirmDelete={handleDelete}
-      />
-    </div>,
-  ]);
+  const data = success
+    ? apiData?.data?.data?.map((expense) => [
+        expense?.id,
+        format(expense.createdAt, "yyyy-MM-dd"),
+        ADToBS(expense.createdAt),
+        expense?.remarks,
+        expense?.category?.name,
+        CurrencySign + expense?.amount,
+        expense?.cash_or_credit,
+        expense?.account?.name,
+        <div
+          className="flex items-center justify-center gap-3"
+          key={`act-${expense?.id}`}
+        >
+          <MdEditSquare
+            size={18}
+            className="text-[#0090DD] hover:text-blue-800 hover:cursor-pointer"
+            onClick={() => handleNewExpense(expense?.id)}
+          />
+          <DeleteModal
+            open={open}
+            setOpen={setOpen}
+            handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
+            handleConfirmDelete={handleDelete}
+          />
+        </div>,
+      ])
+    : [];
 
   return (
     <>
@@ -124,12 +107,13 @@ const Expenses: React.FC = () => {
         handleReloadButton={() => {}}
         hasSubText={false}
       />
+
       <Table
         headers={headers}
         data={data}
         pagination={pagination}
         handlePagination={(p) =>
-          handlePagination({ ...p, total: allData.length })
+          handlePagination({ ...p, total: apiData?.data?.total ?? 0 })
         }
       />
     </>

@@ -115,6 +115,7 @@ const create = async (req) => {
         userId: req.user.id,
         accountId,
         supplierId,
+        paymentDate: new Date(),
       },
       { transaction },
     );
@@ -172,7 +173,7 @@ const getById = async (req) => {
     const expense = await expenseModel.findByPk(+req.params.id, {
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
+        { model: accountModel, as: "account" },
       ],
     });
     if (!expense) {
@@ -213,7 +214,7 @@ const updateById = async (req) => {
       accountId,
     } = req.body;
     if (accountId) {
-      const account = await Account.findByPk(accountId, { transaction });
+      const account = await accountModel.findByPk(accountId, { transaction });
       if (!account || account.status !== "active") {
         await transaction.rollback();
         return {
@@ -252,7 +253,7 @@ const updateById = async (req) => {
     const result = await expenseModel.findByPk(expense.id, {
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
+        { model: accountModel, as: "account" },
       ],
       transaction,
     });
@@ -298,7 +299,9 @@ const recordCreditPayment = async (req) => {
     }
 
     const paymentAccountId = req.body.paymentAccountId || expense.accountId;
-    const account = await Account.findByPk(paymentAccountId, { transaction });
+    const account = await accountModel.findByPk(paymentAccountId, {
+      transaction,
+    });
     if (!account || account.status !== "active") {
       await transaction.rollback();
       return {
@@ -335,8 +338,8 @@ const recordCreditPayment = async (req) => {
     const result = await expenseModel.findByPk(expense.id, {
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
-        { model: Account, as: "paymentAccount" },
+        { model: accountModel, as: "account" },
+        { model: accountModel, as: "paymentAccount" },
       ],
       transaction,
     });
@@ -392,7 +395,7 @@ const getUnpaidCredits = async (req) => {
       order: [["createdAt", "ASC"]],
       include: [
         { model: expenseCategoryModel, as: "category" },
-        { model: Account, as: "account" },
+        { model: accountModel, as: "account" },
       ],
     });
 

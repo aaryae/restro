@@ -12,6 +12,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleResponse } from "@/utils/responseHandler";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
+import Table from "@/components/Table";
 
 // type PurchaseCategoryRow = {
 //   id: number;
@@ -32,9 +33,14 @@ const PurchaseCategory: React.FC = () => {
 
   const handleDelete = async () => {
     try {
-      const res = await deleteApi(`${PURCHASE_CATEGORY_URL}${deleteId}`).unwrap();
+      const res = await deleteApi(
+        `${PURCHASE_CATEGORY_URL}${deleteId}`,
+      ).unwrap();
       handleResponse({
-        res: { success: true, msg: res?.message || "Purchase category deleted successfully." },
+        res: {
+          success: true,
+          msg: res?.message || "Purchase category deleted successfully.",
+        },
         onSuccess: () => refetch(),
       });
     } finally {
@@ -47,10 +53,15 @@ const PurchaseCategory: React.FC = () => {
     page: query.page,
     limit: query.limit,
   });
-  const { data: apiData, isSuccess: success, isFetching, refetch } = useGetApiQuery({ url });
+  const {
+    data: apiData,
+    isSuccess: success,
+    isFetching,
+    refetch,
+  } = useGetApiQuery({ url });
   const [deleteApi] = useDeleteApiMutation();
 
-  const rows: any[] = success ? apiData?.data?.data ?? [] : [];
+  const rows: any[] = success ? (apiData?.data?.data ?? []) : [];
 
   const pagination: PaginationType = {
     page: apiData?.data?.page ?? query.page,
@@ -60,7 +71,6 @@ const PurchaseCategory: React.FC = () => {
   };
 
   const headers = [
-    "ID",
     "Purchase Category Title",
     "Purchase Category Description",
     "Action",
@@ -73,8 +83,6 @@ const PurchaseCategory: React.FC = () => {
   };
   // For DraggableTable, the first array element is the row identifier and is not rendered.
   const data = rows.map((r: any) => [
-    r.id,
-    r.id,
     r.name,
     r.description,
     <div key={r.id} className="flex items-center justify-center gap-[0.5rem]">
@@ -103,16 +111,11 @@ const PurchaseCategory: React.FC = () => {
         hasSubText
         subText="This module allows dynamically adding various types of categories related to purchase entry."
       />
-      <DraggableTable
-        headers={headers}
+      <Table
         data={data}
-        loading={isFetching}
-        fetching={isFetching}
-        success={success}
-        url="purchase-category/update-order"
-        action={() => {}}
+        headers={headers}
+        handlePagination={handlePagination}
         pagination={pagination}
-        handlePagination={(p) => handlePagination({ ...p, total: pagination.total })}
       />
     </>
   );

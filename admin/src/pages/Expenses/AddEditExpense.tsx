@@ -1,24 +1,41 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageTitle from "@/components/PageTitle";
 import { useForm } from "react-hook-form";
 import { CurrencySign } from "@/constants";
+import {
+  useCreateApiMutation,
+  useGetApiQuery,
+  useUpdateApiMutation,
+} from "@/redux/services/crudApi";
+import {
+  ACCOUNT_URL,
+  EXPENSE_CATEGORY_URL,
+  EXPENSE_URL,
+  SUPPLIER_URL,
+} from "@/constants/apiUrlConstants";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { EXPENSE_LIST_ROUTE } from "@/routes/routeNames";
 
 type FormValues = {
   categoryId: string;
-  paymentMethod: "cash" | "card" | "bank_transfer" | "cheque" | "";
-  paymentSource: string; // selected from dropdown
+  paymentMethod: "cash" | "card" | "online";
+  accountId: string;
   amount: number;
   description: string;
   remarks: string;
-  enteredBy: string;
+  supplierId: string;
 };
 
 const AddEditExpense: React.FC = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
-
+  const [expenseCategoryOptions, setExpenseCategoryOptions] = useState<any[]>(
+    [],
+  );
+  const [paymentSourceOptions, setPaymentSourceOptions] = useState<any[]>([]);
+  const [supplierOptions, setSupplierOptions] = useState<any[]>([]);
   const {
     register,
     handleSubmit,
@@ -27,64 +44,102 @@ const AddEditExpense: React.FC = () => {
   } = useForm<FormValues>({
     defaultValues: {
       categoryId: "",
-      paymentMethod: "",
-      paymentSource: "",
+      accountId: "",
       amount: 0,
-      description: "",
       remarks: "",
-      enteredBy: "",
+      supplierId: "",
     },
   });
-
-  const expenseCategoryOptions = useMemo(
-    () => [
-      { label: "Utilities", value: "utilities" },
-      { label: "Maintenance and Repairs", value: "maintenance" },
-      { label: "Rent", value: "rent" },
-      { label: "Office Supplies", value: "office_supplies" },
-      { label: "Marketing", value: "marketing" },
-      { label: "Transport/Logistics", value: "transport" },
-      { label: "Miscellaneous", value: "misc" },
-    ],
-    [],
+  const { data: expenseCategoryData, isSuccess: expenseCategoryFetched } =
+    useGetApiQuery({ url: `${EXPENSE_CATEGORY_URL}/list` });
+  const {
+    data: expensePaymentSourceData,
+    isSuccess: expensePaymentSourceFetched,
+  } = useGetApiQuery({ url: `${ACCOUNT_URL}/list` });
+  const { data: supplierData, isSuccess: supplierFetched } = useGetApiQuery({
+    url: `${SUPPLIER_URL}list`,
+  });
+  const { data: expenseData, isSuccess: expenseFetched } = useGetApiQuery(
+    {
+      url: `${EXPENSE_URL}${id}`,
+    },
+    { skip: !isEdit },
   );
-
-  const paymentSourceOptions = useMemo(
-    () => [
-      { label: "Cash on Hand", value: "cash_on_hand" },
-      { label: "Nabil Bank - 00123456789", value: "nabil_00123456789" },
-      { label: "NIC Asia - 00987654321", value: "nicasia_00987654321" },
-      { label: "eSewa Wallet", value: "esewa_wallet" },
-    ],
-    [],
-  );
+  const [createExpense] = useCreateApiMutation();
+  const [updateExpense] = useUpdateApiMutation();
 
   useEffect(() => {
-    if (!isEdit) return;
+    if (
+      !expenseCategoryFetched ||
+      !expensePaymentSourceFetched ||
+      !supplierFetched
+    )
+      return;
 
-    const mock = {
-      categoryId: "utilities",
-      paymentMethod: "bank_transfer" as const,
-      paymentSource: "nabil_00123456789",
-      amount: 10170,
-      description: "Monthly electricity bill payment",
-      remarks: "Includes service charge.",
-      enteredBy: "Administrator",
-    } satisfies FormValues;
+    setExpenseCategoryOptions(
+      expenseCategoryData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+    setPaymentSourceOptions(
+      expensePaymentSourceData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+    setSupplierOptions(
+      supplierData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+  }, [
+    expenseCategoryData,
+    expenseCategoryFetched,
+    expensePaymentSourceData,
+    expensePaymentSourceFetched,
+    supplierData,
+    supplierFetched,
+  ]);
 
-    reset(mock);
-  }, [isEdit, reset]);
+  useEffect(() => {
+    console.log(expenseData, "expense data");
+    if (!isEdit || !id || !expenseData?.data) return;
+    const row = expenseData?.data;
+    console.log(row, "expense data");
+    reset({
+      categoryId: row.categoryId,
+      paymentMethod: row.paymentMethod,
+      accountId: row.accountId,
+      amount: row.amount,
+      remarks: row.remarks,
+      supplierId: row.supplierId,
+    });
+  }, [isEdit, id, expenseData, reset]);
 
-  const onSubmit = async (data: FormValues) => {
-    const payload = {
+  const onSubmit = async (data: any) => {
+    if (isEdit) delete data.supplierId;
+    const body = {
       ...data,
       id: isEdit ? id : undefined,
+      cash_or_credit: "cash",
     };
 
-    // In real implementation  create/update API here
-
-    console.log("Expense form submit payload:", payload);
-    navigate(-1);
+    try {
+      const response = isEdit
+        ? await updateExpense({
+            url: `${EXPENSE_URL}${id}`,
+            body,
+          }).unwrap()
+        : await createExpense({ url: EXPENSE_URL, body }).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => navigate(EXPENSE_LIST_ROUTE),
+      });
+    } catch (error) {
+      handleError({ error });
+    }
   };
 
   return (
@@ -131,8 +186,7 @@ const AddEditExpense: React.FC = () => {
                   <option value="">Select</option>
                   <option value="cash">Cash</option>
                   <option value="card">Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
+                  <option value="online">Online</option>
                 </select>
                 {errors.paymentMethod && (
                   <span className="text-red-600 text-sm mt-1">
@@ -146,8 +200,9 @@ const AddEditExpense: React.FC = () => {
                   Payment Source
                 </label>
                 <select
+                  disabled={isEdit}
                   className="border rounded px-3 py-2 bg-white"
-                  {...register("paymentSource", {
+                  {...register("accountId", {
                     required: "Payment source is required",
                   })}
                 >
@@ -158,9 +213,31 @@ const AddEditExpense: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {errors.paymentSource && (
+                {errors.accountId && (
                   <span className="text-red-600 text-sm mt-1">
-                    {errors.paymentSource.message}
+                    {errors.accountId.message}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm text-gray-700 mb-1">Supplier</label>
+                <select
+                  disabled={isEdit}
+                  className="border rounded px-3 py-2 bg-white"
+                  {...register("supplierId", {
+                    required: "Supplier is required",
+                  })}
+                >
+                  <option value="">Select</option>
+                  {supplierOptions?.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.supplier && (
+                  <span className="text-red-600 text-sm mt-1">
+                    {errors.supplier.message}
                   </span>
                 )}
               </div>
@@ -181,44 +258,6 @@ const AddEditExpense: React.FC = () => {
                 {errors.amount && (
                   <span className="text-red-600 text-sm mt-1">
                     {errors.amount.message}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">Entered By</label>
-                <input
-                  type="text"
-                  placeholder="Staff name"
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("enteredBy", {
-                    required: "Entered by is required",
-                    minLength: { value: 2, message: "Too short" },
-                  })}
-                />
-                {errors.enteredBy && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.enteredBy.message}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col md:col-span-2">
-                <label className="text-sm text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Describe this expense"
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("description", {
-                    required: "Description is required",
-                    minLength: { value: 3, message: "Too short" },
-                  })}
-                />
-                {errors.description && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.description.message}
                   </span>
                 )}
               </div>

@@ -1,5 +1,7 @@
 const generalConstant = require("../../constants/general-constant");
 const { supplierModel, sequelize } = require("../../models");
+const { Op } = require("sequelize");
+const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
 
 // const create = async (req) => {
@@ -52,13 +54,33 @@ const create = async (req) => {
   }
 };
 
-const getList = async () => {
+const getList = async (req) => {
   try {
-    const suppliers = await supplierModel.findAll();
+    let { limit, page, name, slug } = req.query;
+    const filters = {};
+    const include = [];
+
+    if (name) {
+      filters.name = { [Op.like]: `%${name}%` };
+    }
+    if (slug) {
+      filters.slug = { [Op.like]: `%${slug}%` };
+    }
+
+    const order = [["createdAt", "DESC"]];
+
+    const result = await paginate(supplierModel, {
+      limit,
+      page,
+      filters,
+      include,
+      order,
+    });
+
     return {
       status: 200,
-      ...generalConstant.EN.SUPPLIER.LIST_SUCCESS,
-      data: suppliers,
+      ...generalConstant.EN.SUPPLIER.LIST_SUPPLIER_SUCCESS,
+      data: result,
     };
   } catch (error) {
     throw error;

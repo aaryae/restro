@@ -12,6 +12,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EXPENSE_CATEGORY_URL } from "@/constants/apiUrlConstants";
+import Table from "@/components/Table";
 
 // type PurchaseCategoryRow = {
 //   id: number;
@@ -69,28 +70,27 @@ const ExpenseCategory: React.FC = () => {
   };
 
   const headers = [
-    "ID",
     "Expense Category Title",
     "Expense Category Description",
     "Action",
   ];
 
-  const handleNewUser = (id: number | null) => {
-    id === null
-      ? navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}`)
-      : navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}${id}`);
+  const handleNewExpenseCategory = (id: number | null) => {
+    if (id === null) {
+      navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}`);
+    } else {
+      navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}${id}`);
+    }
   };
   // For DraggableTable, the first array element is the row identifier and is not rendered.
   const data = rows.map((row: any) => [
-    row.id,
-    row.id,
     row.name,
     row.description,
     <div key={row.id} className="flex items-center justify-center gap-[0.5rem]">
       <MdEditSquare
         size={18}
         className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-        onClick={() => handleNewUser(row.id)}
+        onClick={() => handleNewExpenseCategory(row.id)}
         title="Edit"
       />
       <DeleteModal
@@ -107,23 +107,16 @@ const ExpenseCategory: React.FC = () => {
       <PageHeader
         hasAddButton={true}
         newButtonText={translate("Add New Expense Category")}
-        handleNewButton={() => handleNewUser(null)}
+        handleNewButton={() => handleNewExpenseCategory(null)}
         handleReloadButton={() => refetch()}
         hasSubText
         subText="This module allows dynamically adding various types of categories related to expense entry."
       />
-      <DraggableTable
-        headers={headers}
+      <Table
         data={data}
-        loading={isFetching}
-        fetching={isFetching}
-        success={success}
-        url="expense-category/update-order"
-        action={() => {}}
+        headers={headers}
+        handlePagination={handlePagination}
         pagination={pagination}
-        handlePagination={(p) =>
-          handlePagination({ ...p, total: pagination.total })
-        }
       />
     </>
   );
