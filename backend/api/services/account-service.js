@@ -200,8 +200,35 @@ const updateAccount = async (req) => {
     const baseUpdates = {};
     if (name !== undefined) baseUpdates.name = name;
     if (description !== undefined) baseUpdates.description = description;
-    if (openingBalance !== undefined)
-      baseUpdates.openingBalance = openingBalance;
+    if (openingBalance !== undefined) {
+      // Adjust currentBalance by the difference in opening balance while preventing negative currentBalance
+      const oldOpening = Number(account.openingBalance) || 0;
+      const newOpening = Number(openingBalance);
+      if (Number.isNaN(newOpening)) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Invalid openingBalance value",
+        };
+      }
+
+      const diff = newOpening - oldOpening; // positive -> increase currentBalance, negative -> decrease currentBalance
+      const proposedCurrent = Number(account.currentBalance) + diff;
+
+      if (proposedCurrent < 0) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message:
+            "Requested opening balance would result in negative current balance",
+        };
+      }
+
+      baseUpdates.openingBalance = newOpening;
+      baseUpdates.currentBalance = proposedCurrent;
+    }
     if (status !== undefined) {
       const newStatus = String(status).toLowerCase();
       if (!["active", "inactive"].includes(newStatus)) {
