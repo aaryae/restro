@@ -146,20 +146,6 @@ export default function Supplier() {
     refetch,
   } = useGetListAllSupplierQuery({ url });
   console.log("allSupplier", allSupplier);
-  const {
-    data: allSupplierReport,
-    isSuccess: reportSuccess,
-    refetch: reportRefetch,
-  } = useGetListAllSupplierQuery(
-    {
-      url: `/supplier/list`,
-      page: 1,
-      limit: allSupplier?.data.limit * allSupplier?.data.totalPages,
-    },
-    {
-      skip: !allSupplier?.data || !isExportTriggered,
-    },
-  );
 
   useEffect(() => {
     refetch();
@@ -195,8 +181,8 @@ export default function Supplier() {
   ];
 
   const tableData =
-    success && allSupplier?.data
-      ? allSupplier?.data.map(
+    success && allSupplier?.data?.data
+      ? allSupplier?.data?.data.map(
           ({
             id,
             name,
@@ -236,25 +222,6 @@ export default function Supplier() {
         )
       : [];
 
-  const tableDataReport =
-    reportSuccess && allSupplierReport?.data
-      ? allSupplierReport?.data.map(
-          ({
-            name,
-            address,
-            pan_vat_number,
-            contact_person,
-            contact_number,
-          }: any) => [
-            name,
-            address,
-            pan_vat_number,
-            contact_person,
-            contact_number,
-          ],
-        )
-      : [];
-
   if (supplierDataLoading) {
     return <Spinner className="flex justify-center items-center h-full" />;
   }
@@ -266,18 +233,7 @@ export default function Supplier() {
         newButtonText="Add New Supplier"
         handleNewButton={() => handleNewButton(null)}
         handleReloadButton={handleReload}
-      >
-        {success && (
-          <ExportToExcel
-            title="Supplier Report"
-            headers={tableHeaders}
-            data={tableDataReport}
-            success={reportSuccess}
-            refetch={reportRefetch}
-            setIsExportTriggered={setIsExportTriggered}
-          />
-        )}
-      </PageHeader>
+      ></PageHeader>
       <PageFilterWrapper title="Supplier Filters">
         {Component}
       </PageFilterWrapper>

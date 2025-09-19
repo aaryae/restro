@@ -9,11 +9,12 @@ import { useNavigate } from "react-router-dom";
 import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
-import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 const Expenses: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const Expenses: React.FC = () => {
     page: query.page,
     limit: query.limit,
   });
+
+  const [deleteExpense] = useDeleteApiMutation();
 
   const { data: apiData, isSuccess: success } = useGetApiQuery({ url });
 
@@ -61,11 +64,20 @@ const Expenses: React.FC = () => {
     setOpen(true);
   };
 
-  const handleDelete = () => {
-    // Since this page currently uses mock data, just close the modal.
-    // Wire this up to API similar to Revenue when backend is ready.
-    console.log("Delete expense id:", deleteId);
-    setOpen(false);
+  const handleDelete = async () => {
+    try {
+      const response = await deleteExpense(
+        `${EXPENSE_URL}${deleteId}`,
+      ).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {},
+      });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setOpen(false);
+    }
   };
 
   const data = success

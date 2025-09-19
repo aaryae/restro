@@ -195,15 +195,7 @@ const updateById = async (req) => {
       await transaction.rollback();
       return { ...generalConstant.EN.EXPENSE.EXPENSE_NOT_FOUND, data: null };
     }
-    if (expense.paymentDate || expense.cash_or_credit === "cash") {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: "Cannot update paid or cash expense",
-        data: null,
-      };
-    }
+    // Allow updating even if paid or cash expense; hooks will handle balance adjustments
 
     const {
       cash_or_credit,
@@ -213,17 +205,27 @@ const updateById = async (req) => {
       categoryId,
       accountId,
     } = req.body;
-    if (accountId) {
-      const account = await accountModel.findByPk(accountId, { transaction });
-      if (!account || account.status !== "active") {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: "Invalid or inactive account",
-          data: null,
-        };
-      }
+    // Do not allow changing the associated account in an update to avoid
+    // double/missed balance adjustments with model hooks.
+    if (accountId && Number(accountId) !== Number(expense.accountId)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Changing account on an existing expense is not allowed",
+        data: null,
+      };
+    }
+    // Validate current associated account
+    const currentAccount = await accountModel.findByPk(expense.accountId, { transaction });
+    if (!currentAccount || currentAccount.status !== "active") {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Invalid or inactive associated account",
+        data: null,
+      };
     }
     if (categoryId) {
       const category = await expenseCategoryModel.findByPk(categoryId, {
@@ -243,10 +245,35 @@ const updateById = async (req) => {
     const updateData = {};
     if (cash_or_credit) updateData.cash_or_credit = cash_or_credit;
     if (paymentMethod) updateData.paymentMethod = paymentMethod;
-    if (amount) updateData.amount = amount;
+    // Determine and validate amount change against account balance
+    const oldAmount = Number(expense.amount) || 0;
+    const newAmount = amount !== undefined ? Number(amount) : oldAmount;
+    if (Number.isNaN(newAmount) || newAmount < 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Amount must be a non-negative number",
+        data: null,
+      };
+    }
+    const amountDifference = newAmount - oldAmount;
+    if (amountDifference > 0) {
+      // Increasing expense: ensure sufficient balance in associated account
+      if (Number(currentAccount.currentBalance) < Number(amountDifference)) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Insufficient account balance for increased expense amount",
+          data: null,
+        };
+      }
+    }
+    if (amount !== undefined) updateData.amount = newAmount;
     if (remarks !== undefined) updateData.remarks = remarks;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
-    if (accountId) updateData.accountId = accountId;
+    // We already disallow changing accountId, so do not update it here
 
     await expense.update(updateData, { transaction });
 
@@ -362,15 +389,7 @@ const cancelExpense = async (req) => {
       await transaction.rollback();
       return { ...generalConstant.EN.EXPENSE.EXPENSE_NOT_FOUND, data: null };
     }
-    if (expense.paymentDate || expense.cash_or_credit === "cash") {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: "Cannot cancel paid or cash expense",
-        data: null,
-      };
-    }
+    // Allow deleting any expense; refund will be handled by the Expense.afterDestroy hook
 
     await expense.destroy({ transaction });
 

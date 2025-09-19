@@ -69,41 +69,6 @@ const AddEditExpense: React.FC = () => {
   const [updateExpense] = useUpdateApiMutation();
 
   useEffect(() => {
-    if (
-      !expenseCategoryFetched ||
-      !expensePaymentSourceFetched ||
-      !supplierFetched
-    )
-      return;
-
-    setExpenseCategoryOptions(
-      expenseCategoryData?.data?.data?.map((item) => ({
-        value: item.id,
-        label: item.name,
-      })),
-    );
-    setPaymentSourceOptions(
-      expensePaymentSourceData?.data?.data?.map((item) => ({
-        value: item.id,
-        label: item.name,
-      })),
-    );
-    setSupplierOptions(
-      supplierData?.data?.data?.map((item) => ({
-        value: item.id,
-        label: item.name,
-      })),
-    );
-  }, [
-    expenseCategoryData,
-    expenseCategoryFetched,
-    expensePaymentSourceData,
-    expensePaymentSourceFetched,
-    supplierData,
-    supplierFetched,
-  ]);
-
-  useEffect(() => {
     console.log(expenseData, "expense data");
     if (!isEdit || !id || !expenseData?.data) return;
     const row = expenseData?.data;
@@ -117,6 +82,39 @@ const AddEditExpense: React.FC = () => {
       supplierId: row.supplierId,
     });
   }, [isEdit, id, expenseData, reset]);
+
+  useEffect(() => {
+    if (!expenseCategoryFetched) return;
+
+    setExpenseCategoryOptions(
+      expenseCategoryData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+  }, [expenseCategoryData, expenseCategoryFetched]);
+
+  useEffect(() => {
+    if (!expensePaymentSourceFetched) return;
+
+    setPaymentSourceOptions(
+      expensePaymentSourceData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+  }, [expensePaymentSourceData, expensePaymentSourceFetched]);
+
+  useEffect(() => {
+    if (!supplierFetched) return;
+
+    setSupplierOptions(
+      supplierData?.data?.data?.map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
+    );
+  }, [supplierData, supplierFetched]);
 
   const onSubmit = async (data: any) => {
     if (isEdit) delete data.supplierId;
@@ -161,7 +159,7 @@ const AddEditExpense: React.FC = () => {
                   })}
                 >
                   <option value="">Select</option>
-                  {expenseCategoryOptions.map((opt) => (
+                  {expenseCategoryOptions?.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -207,7 +205,7 @@ const AddEditExpense: React.FC = () => {
                   })}
                 >
                   <option value="">Select</option>
-                  {paymentSourceOptions.map((opt) => (
+                  {paymentSourceOptions?.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -235,9 +233,9 @@ const AddEditExpense: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                {errors.supplier && (
+                {errors.supplierId && (
                   <span className="text-red-600 text-sm mt-1">
-                    {errors.supplier.message}
+                    {errors.supplierId.message}
                   </span>
                 )}
               </div>
