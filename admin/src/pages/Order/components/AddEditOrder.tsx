@@ -63,6 +63,7 @@ export default function AddEditOrder({
   closeModal = () => {},
 }: Props) {
   const { tableId, orderId } = useParams();
+  const [productSearchTerm, setProductSearchTerm] = useState("");
   const navigate = useNavigate();
   const isEditMode = !!orderId;
 
@@ -83,9 +84,7 @@ export default function AddEditOrder({
     },
   });
 
-  const [queryStringOptions, setQueryStringOptions] = useState({
-    name: "",
-  });
+  const [queryStringOptions, setQueryStringOptions] = useState("");
 
   const { query, handlePagination } = usePagination({
     page: 1,
@@ -96,7 +95,9 @@ export default function AddEditOrder({
     return buildQueryString("product/list", {
       page: query.page,
       limit: query.limit,
-      search: queryStringOptions,
+      search: {
+        name: queryStringOptions,
+      },
     });
   }, [query, queryStringOptions]);
 
@@ -105,6 +106,7 @@ export default function AddEditOrder({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
   const beepRef = useRef<HTMLAudioElement | null>(null);
   const deleteBeepRef = useRef<HTMLAudioElement | null>(null);
@@ -441,12 +443,9 @@ export default function AddEditOrder({
                   <div className="relative">
                     <Input
                       placeholder="Search menu items..."
-                      value={queryStringOptions.name}
+                      value={queryStringOptions}
                       onChange={(e) => {
-                        setQueryStringOptions({
-                          ...queryStringOptions,
-                          name: e.target.value,
-                        });
+                        setQueryStringOptions(e.target.value);
                       }}
                       className="w-full"
                     />
@@ -463,7 +462,7 @@ export default function AddEditOrder({
                 ) : productData?.data?.data?.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     <div className="text-left text-lg font-semibold text-gray-900">
-                      {queryStringOptions.name
+                      {queryStringOptions
                         ? `Search Results (${productData?.data?.data?.length})`
                         : "Top Selling Menu Items"}
                     </div>

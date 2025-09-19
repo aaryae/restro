@@ -46,25 +46,9 @@ export default function Order() {
           )}
         />
         <div className="flex items-center w-full sm:w-auto">
-          {selectedView === "table" && (
+          {["table", "order", "kot"].includes(selectedView) && (
             <Button
-              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
-              handleClick={() => navigate(ORDER_ADD_ROUTE)}
-            >
-              Create Order
-            </Button>
-          )}
-          {selectedView === "order" && (
-            <Button
-              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
-              handleClick={() => navigate(ORDER_ADD_ROUTE)}
-            >
-              Create Order
-            </Button>
-          )}
-          {selectedView === "kot" && (
-            <Button
-              className="w-full sm:w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              className="md:w-full w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
               handleClick={() => navigate(ORDER_ADD_ROUTE)}
             >
               Create Order

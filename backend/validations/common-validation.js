@@ -58,6 +58,7 @@ const paginationValidation = async (req, res, next) => {
   let joiModel = joi.object({
     name: joi.string().optional().label("name"),
     page: joi.number().optional().label("page"),
+    name: joi.string().optional().label("name"),
     limit: joi.number().optional().label("limit"),
     isDeleted: joi.boolean().optional().label("isDeleted"),
     mediaCategoryId: joi.number().optional().label("id"),

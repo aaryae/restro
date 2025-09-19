@@ -237,7 +237,7 @@ export default function ProductForm() {
               <Select
                 {...field}
                 options={productCategoryOptions}
-                className="w-1/4"
+                className="w-[50%] md:w-1/4"
                 label="Product Category"
                 onChange={(event) => handleSelectComponent(event)}
                 error={errors.productCategoryId?.message}

@@ -8,6 +8,7 @@ const {
 } = require("../../models");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
+// const { Op } = require("sequelize");
 // REDIS EXCLUSION
 // const redis = require("../../configs/redis");
 const create = async (req) => {

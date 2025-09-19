@@ -105,7 +105,7 @@ export default function RevenueFilter({
           <h3 className="text-lg font-semibold text-gray-800 text-start">
             Revenue Filter
           </h3>
-          <div className="flex justify-between">
+          <div className="flex justify-between flex-col md:flex-row gap-4">
             <div className="flex flex-wrap gap-2 items-center">
               <button
                 type="button"
@@ -162,7 +162,7 @@ export default function RevenueFilter({
             <div className="flex items-center gap-4 ml-2">
               <label
                 htmlFor="cash_or_credit"
-                className="text-sm font-medium text-gray-700 "
+                className="text-base font-semibold text-gray-700 "
               >
                 Payment Method
               </label>

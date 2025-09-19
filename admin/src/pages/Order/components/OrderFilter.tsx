@@ -3,6 +3,7 @@ import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Main style file
 import "react-date-range/dist/theme/default.css"; // Theme CSS file
+import "./DateRange.css";
 
 interface OrderFilterPropsType {
   start: string;
@@ -39,6 +40,9 @@ export default function OrderFilter({
     return "custom";
   });
 
+  // responsive breakpoint for date picker behavior
+  const [mobileView, setMobileView] = useState<boolean>(false);
+
   useEffect(() => {
     if (!queryStringOptions.start && !queryStringOptions.end) {
       const todayDate = formatDate(today);
@@ -49,6 +53,13 @@ export default function OrderFilter({
       }));
       setSelectedQuick("today");
     }
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setMobileView(window.innerWidth < 768);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const handleTodayClick = () => {
@@ -125,7 +136,7 @@ export default function OrderFilter({
 
   return (
     <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6 flex justify-between">
+      <div className="space-y-6 flex justify-between flex-col md:flex-row">
         <div className="flex flex-col justify-between items-start gap-3">
           <h3 className="text-lg font-semibold text-gray-800">Order Filter</h3>
           <div className="flex flex-wrap gap-2">
@@ -184,28 +195,38 @@ export default function OrderFilter({
         </div>
         {showDatePicker && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="relative bg-white p-8 rounded-lg shadow-lg">
+            <div
+              className={`relative bg-white rounded-lg shadow-lg ${
+                mobileView
+                  ? "w-[95%] p-8 max-h-[85vh] overflow-x-scroll"
+                  : "p-8"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setShowDatePicker(false)}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                className={`text-red-500 hover:text-red-700 ${mobileView ? "absolute top-2 left-[36rem]" : "absolute top-2 right-2"}`}
               >
                 ✕
               </button>
+
               <DateRangePicker
                 ranges={[dateRange]}
                 onChange={handleDateRangeSelect}
                 showSelectionPreview={true}
                 moveRangeOnFirstSelection={false}
-                months={2}
-                direction="horizontal"
-                className=""
+                months={mobileView ? 1 : 2}
+                direction={mobileView ? "vertical" : "horizontal"}
+                className={mobileView ? "w-full" : ""}
               />
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+        <div className="flex gap-4">
+          <div
+            className="flex flex-col items-start
+          "
+          >
             <label
               htmlFor="paymentStatus"
               className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
@@ -216,7 +237,7 @@ export default function OrderFilter({
               id="paymentStatus"
               value={queryStringOptions.paymentStatus}
               onChange={handlePaymentStatusChange}
-              className="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="md:w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">All</option>
               <option value="paid">Paid</option>
@@ -224,7 +245,7 @@ export default function OrderFilter({
               <option value="failed">Failed</option>
             </select>
           </div>
-          <div>
+          <div className="flex flex-col items-start">
             <label
               htmlFor="orderStatus"
               className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
@@ -235,7 +256,7 @@ export default function OrderFilter({
               id="orderStatus"
               value={queryStringOptions.orderStatus}
               onChange={handleOrderStatusChange}
-              className="w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="md:w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">All</option>
               <option value="pending">Pending</option>
