@@ -63,7 +63,7 @@ export default function KotList() {
 
   return (
     <>
-      <div className="flex gap-2 my-4">
+      <div className="md:flex md:gap-2 my-4 grid grid-cols-4 gap-2 pb-8">
         <button
           className={`px-3 py-2 rounded border ${
             queryStringOptions.status === "all" ? "bg-blue-500 text-white" : ""
@@ -152,37 +152,39 @@ export default function KotList() {
       </div>
 
       {/* Pagination controls */}
-      <div className="mt-4 flex items-center justify-between">
-        <button
-          className={`px-3 py-2 rounded border ${
-            query.page === 1
-              ? "text-gray-400 cursor-not-allowed bg-gray-100"
-              : "bg-white hover:bg-gray-50"
-          }`}
-          disabled={query.page === 1}
-          onClick={() =>
-            handlePagination({ page: Math.max(1, query.page - 1) })
-          }
-        >
-          Prev
-        </button>
-        <div className="text-sm text-gray-700">
-          Page {query.page} of {totalPages}
+      {kots?.data?.data?.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            className={`px-3 py-2 rounded border ${
+              query.page === 1
+                ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                : "bg-white hover:bg-gray-50"
+            }`}
+            disabled={query.page === 1}
+            onClick={() =>
+              handlePagination({ page: Math.max(1, query.page - 1) })
+            }
+          >
+            Prev
+          </button>
+          <div className="text-sm text-gray-700">
+            Page {query.page} of {totalPages}
+          </div>
+          <button
+            className={`px-3 py-2 rounded border ${
+              query.page >= totalPages
+                ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                : "bg-white hover:bg-gray-50"
+            }`}
+            disabled={query.page >= totalPages}
+            onClick={() =>
+              handlePagination({ page: Math.min(totalPages, query.page + 1) })
+            }
+          >
+            Next
+          </button>
         </div>
-        <button
-          className={`px-3 py-2 rounded border ${
-            query.page >= totalPages
-              ? "text-gray-400 cursor-not-allowed bg-gray-100"
-              : "bg-white hover:bg-gray-50"
-          }`}
-          disabled={query.page >= totalPages}
-          onClick={() =>
-            handlePagination({ page: Math.min(totalPages, query.page + 1) })
-          }
-        >
-          Next
-        </button>
-      </div>
+      )}
     </>
   );
 }
@@ -304,11 +306,11 @@ function KotCard({ kot }) {
           <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
 
           <div className="space-y-3 leading-[10px]">
-            {items.map((it, i) => (
+            {items.map((it, index) => (
               <>
                 <div key={String(it.id)} className="grid grid-cols-12 ">
                   <div className="col-span-8 flex gap-2">
-                    <span>{i + 1}.</span>
+                    <span>{index + 1}.</span>
                     <span>{it.product?.name || "-"}</span>
                   </div>
                   <div className="col-span-4 text-right">{it.quantity}</div>

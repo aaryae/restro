@@ -101,7 +101,7 @@ export default function DraggableTable({
   }
 
   return (
-    <div className="bg-white py-[3rem] px-[1rem] rounded-lg">
+    <div className="bg-white pt-[2rem] pb-[0.5rem] px-[1rem] rounded-lg">
       <div className="overflow-x-auto">
         <div className="border rounded-lg overflow-hidden">
           <DndContext
@@ -148,7 +148,7 @@ export default function DraggableTable({
         </div>
       </div>
       {/* Pagination */}
-      <div className="mt-[6px] flex justify-between ">
+      {/* <div className="mt-[6px] flex justify-between ">
         <div>
           <p className="font-[500] text-[0.875rem] text-[#2F2B3D] bg-white px-[0.75rem] py-[0.5rem]">
             Show:{" "}
@@ -207,6 +207,69 @@ export default function DraggableTable({
           <p className="font-[500] text-[0.875rem] text-[#2F2B3D] bg-white px-[0.75rem] py-[0.5rem]">
             Total Data: {pagination.total}
           </p>
+        </div>
+      </div> */}
+      <div className="sticky bottom-0 sm:static flex sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white">
+        <div>
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+            Show:
+            <select
+              name="pagination"
+              id="pagination"
+              value={pagination.limit}
+              className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) =>
+                handlePagination &&
+                handlePagination({
+                  ...pagination,
+                  limit: Number(e.target.value),
+                })
+              }
+            >
+              {[10, 25, 50, 100].map((each) => (
+                <option key={each} value={each}>
+                  {each}
+                </option>
+              ))}
+            </select>
+            entries
+          </label>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+              pagination.page === 1 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={pagination.page === 1}
+            onClick={() =>
+              handlePagination({ ...pagination, page: pagination.page - 1 })
+            }
+            aria-label="Previous Page"
+          >
+            <FaAngleLeft size={18} />
+          </button>
+          <button
+            className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+              pagination.page === pagination.totalPages
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
+            disabled={pagination.page === pagination.totalPages}
+            onClick={() =>
+              handlePagination({ ...pagination, page: pagination.page + 1 })
+            }
+            aria-label="Next Page"
+          >
+            <FaAngleRight size={18} />
+          </button>
+        </div>
+        <div className="flex gap-2 text-sm">
+          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
+            Total: {pagination.total}
+          </span>
         </div>
       </div>
     </div>

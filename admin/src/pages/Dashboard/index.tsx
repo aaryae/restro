@@ -42,17 +42,17 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      <div className="flex justify-between mt-4">
+      <div className="flex mt-4">
         <Controller
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="flex space-x-5 p-1 rounded-lg">
+            <div className="flex p-1 gap-[18px] rounded-lg justify-between">
               {headerOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                  className={`flex border-2 md:py-3 md:px-8 py-4 px-6 justify-between text-base font-medium rounded-md transition-colors ${
                     field.value === option.value
                       ? "bg-primaryColor text-white border-none"
                       : "bg-white text-gray-700 hover:bg-gray-200"

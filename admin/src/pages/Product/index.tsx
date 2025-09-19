@@ -1,7 +1,7 @@
 import PageHeader from "@/components/PageHeader";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -15,7 +15,9 @@ import { PRODUCT_URL } from "@/constants/apiUrlConstants";
 import { buildQueryString } from "@/utils/generalHelper";
 import DraggableTable from "@/components/Table/dragableTable";
 import Loader from "@/components/Loader";
-
+import Input from "@/components/Input";
+import Select from "@/components/Select";
+import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
 export default function Product() {
   const translate = useTranslation();
   const navigate = useNavigate();
@@ -28,7 +30,32 @@ export default function Product() {
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const url = buildQueryString(`${PRODUCT_URL}list`, query);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  // fetch categories for filter dropdown
+  const { data: categoriesData } = useListAllProductCategoryQuery({
+    page: 1,
+    limit: 100,
+  });
+
+  const categoryOptions = useMemo(() => {
+    const list = categoriesData?.data?.data || [];
+    const opts = list.map((c: { id: number; name: string }) => ({
+      label: c.name,
+      value: String(c.id),
+    }));
+    return [{ label: translate("All Categories"), value: "" }, ...opts];
+  }, [categoriesData, translate]);
+
+  const url = buildQueryString(`${PRODUCT_URL}list`, {
+    page: query.page,
+    limit: query.limit,
+    search: {
+      name: productSearchTerm,
+      category: selectedCategory,
+    },
+  });
 
   const {
     data: allProduct,
@@ -92,7 +119,7 @@ export default function Product() {
             <img
               src={`${IMAGE_BASE_URL}${mediaArr[0].imageUrl}`}
               alt="Product Image"
-              className="w-[8rem] h-[6rem] object-cover"
+              className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
               // crossOrigin="anonymous"
             />
             <p>{name}</p>
@@ -123,20 +150,48 @@ export default function Product() {
       : [];
   return (
     <>
-      <PageHeader
-        hasAddButton={accessList.includes("add")}
-        newButtonText={translate("Add New Product")}
-        handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={handleReload}
-        hasSubText
-        subText={translate(
-          "Add Comprehensive Product Information in Each Section",
-        )}
-      />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
+          <Input
+            placeholder="Search items"
+            className="w-full md:w-[30rem]"
+            value={productSearchTerm}
+            onChange={(e) => {
+              setProductSearchTerm(e.target.value);
+              // optional: reset to first page when searching
+              handlePagination({ page: 1, limit: query.limit });
+            }}
+          />
+          <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto">
+            <Select
+              options={categoryOptions as any}
+              value={selectedCategory}
+              className="w-full"
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                // reset to first page when category changes
+                handlePagination({ page: 1, limit: query.limit });
+              }}
+            />
+          </div>
+        </div>
+        <div className="w-full ">
+          <PageHeader
+            hasAddButton={accessList.includes("add")}
+            newButtonText={translate("Add New Product")}
+            handleNewButton={() => handleNewUser(null)}
+            handleReloadButton={handleReload}
+            hasSubText
+            subText={translate(
+              "Add Comprehensive Product Information in Each Section",
+            )}
+          />
+        </div>
+      </div>
       {!success ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <div>
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
           <DraggableTable
             headers={tableHeaders}
             data={tableData}

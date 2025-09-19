@@ -162,33 +162,35 @@ function TakeAwayOrders() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between gap-3 mt-6">
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
-            onClick={handlePrev}
-            disabled={query.page <= 1}
-          >
-            Prev
-          </button>
-          <div className="text-sm text-gray-600">
-            Page {query.page} of {totalPages || 1}
+        {allOrders?.data?.data?.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mt-6">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              onClick={handlePrev}
+              disabled={query.page <= 1}
+            >
+              Prev
+            </button>
+            <div className="text-sm text-gray-600">
+              Page {query.page} of {totalPages || 1}
+            </div>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              onClick={() =>
+                handlePagination({
+                  page: totalPages
+                    ? Math.min(totalPages, query.page + 1)
+                    : query.page + 1,
+                })
+              }
+              disabled={!canGoNext}
+            >
+              Next
+            </button>
           </div>
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
-            onClick={() =>
-              handlePagination({
-                page: totalPages
-                  ? Math.min(totalPages, query.page + 1)
-                  : query.page + 1,
-              })
-            }
-            disabled={!canGoNext}
-          >
-            Next
-          </button>
-        </div>
+        )}
       </div>
       <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
         <ViewOrder id={orderId} isOpen={open} setIsOpen={setOpen} />

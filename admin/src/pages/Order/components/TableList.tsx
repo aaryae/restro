@@ -191,7 +191,7 @@ function Tables({
   });
 
   return (
-    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="mt-8 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {!filteredTables || filteredTables.length === 0 ? (
         <div className="col-span-full text-center text-gray-500 py-8">
           No table found
@@ -240,7 +240,7 @@ function Header({
     <>
       <div className="flex justify-between items-center">
         <div className="flex flex-wrap gap-2 items-center mt-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {TableStatus.map((option) => (
               <button
                 key={`status-${option.value}`}
@@ -258,21 +258,21 @@ function Header({
                 {option.label}
               </button>
             ))}
-          </div>
-          <div className="ml-4">
-            <select
-              value={selectedFloor || "all"}
-              onChange={(e) =>
-                onFloorChange(e.target.value === "all" ? "" : e.target.value)
-              }
-              className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
-            >
-              {floorOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="ml-4">
+              <select
+                value={selectedFloor || "all"}
+                onChange={(e) =>
+                  onFloorChange(e.target.value === "all" ? "" : e.target.value)
+                }
+                className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
+              >
+                {floorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
