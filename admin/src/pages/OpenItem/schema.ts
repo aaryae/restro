@@ -11,6 +11,9 @@ export const OpenItemSchema = z.object({
     .number({ message: "Price must be a number" })
     .min(0, "Price cannot be negative")
     .optional(),
+  departmentId: z.coerce
+    .number({ message: "Department is required" })
+    .min(1, "Please select a department"),
   stockStatus: z
     .enum(["in_stock", "out_of_stock", "low_stock"])
     .default("in_stock"),

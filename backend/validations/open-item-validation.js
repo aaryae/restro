@@ -35,6 +35,12 @@ const openItemPostValidation = async (req, res, next) => {
       "number.precision": "Price must have at most 2 decimal places",
       "number.min": "Price must be non-negative",
     }),
+    departmentId: joi.number().integer().min(1).required().messages({
+      "number.base": "Department ID must be a number",
+      "number.integer": "Department ID must be an integer",
+      "number.min": "Please select a valid department",
+      "any.required": "Department is required",
+    }),
     stockStatus: joi
       .string()
       .valid("in_stock", "out_of_stock", "low_stock")
@@ -95,6 +101,11 @@ const openItemPutValidation = async (req, res, next) => {
       "number.base": "Price must be a number",
       "number.precision": "Price must have at most 2 decimal places",
       "number.min": "Price must be non-negative",
+    }),
+    departmentId: joi.number().integer().min(1).optional().messages({
+      "number.base": "Department ID must be a number",
+      "number.integer": "Department ID must be an integer",
+      "number.min": "Please select a valid department",
     }),
     stockStatus: joi
       .string()

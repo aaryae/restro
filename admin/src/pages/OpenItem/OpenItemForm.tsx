@@ -12,14 +12,15 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { OPEN_ITEM_LIST_ROUTE } from "@/routes/routeNames";
 
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useImageHandler from "@/hooks/useImageHandler";
 import {
   useCreateApiMutation,
   useGetApiQuery,
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
-import { OPEN_ITEM_URL } from "@/constants/apiUrlConstants";
+import { OPEN_ITEM_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
+import { Department } from "../../types/department";
 
 type OpenItemFormType = z.infer<typeof OpenItemSchema>;
 
@@ -44,6 +45,7 @@ export default function OpenItemForm() {
       description: "",
       quantity: 1,
       price: 0,
+      departmentId: undefined,
       stockStatus: "in_stock",
       mediaArr: [],
     },
@@ -68,6 +70,28 @@ export default function OpenItemForm() {
 
   const [createOpenItem] = useCreateApiMutation();
   const [updateOpenItem] = useUpdateApiMutation();
+  const [departments, setDepartments] = useState<
+    { value: number; label: string }[]
+  >([]);
+
+  // Fetch departments
+  const { data: departmentsData } = useGetApiQuery({
+    url: `${DEPARTMENT_URL}list?page=1&limit=100`,
+  });
+
+  useEffect(() => {
+    if (departmentsData?.data?.data) {
+      const deptOptions = departmentsData.data.data.map(
+        (department: Department) => ({
+          value: department.id,
+          label: department.name,
+        }),
+      );
+      setDepartments(deptOptions);
+    }
+  }, [departmentsData]);
+
+  console.log("departments", departmentsData);
 
   useEffect(() => {
     if (id && success && openItem?.data) {
@@ -76,6 +100,7 @@ export default function OpenItemForm() {
         description: openItem.data.description || "",
         quantity: openItem.data.quantity,
         price: openItem.data.price || 0,
+        departmentId: openItem.data.departmentId,
         stockStatus: openItem.data.stockStatus,
         mediaArr:
           openItem.data.mediaArr?.map((each: any) => each.imageUrl) || [],
@@ -88,6 +113,7 @@ export default function OpenItemForm() {
       ...data,
       quantity: Number(data.quantity),
       price: data.price !== undefined ? Number(data.price) : undefined,
+      departmentId: Number(data.departmentId),
     };
     console.log("Submitting payload:", body);
     try {
@@ -138,6 +164,24 @@ export default function OpenItemForm() {
         {...register("quantity", { valueAsNumber: true })}
         error={errors.quantity?.message}
       />
+
+      <div className="w-1/2">
+        <Controller
+          name="departmentId"
+          control={control}
+          render={({ field }) => (
+            <>
+              <label className="input-label block mb-1">Department</label>
+              <Select
+                {...field}
+                options={departments}
+                className="w-full"
+                error={errors.departmentId?.message}
+              />
+            </>
+          )}
+        />
+      </div>
 
       <Input
         label={"Price"}
