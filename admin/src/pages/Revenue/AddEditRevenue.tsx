@@ -136,6 +136,9 @@ export default function AddEditRevenue() {
 
   const onSubmit = async (form: RevenueFormType) => {
     const body: any = { ...form, userId: authUserId };
+    if (isEditMode) {
+      delete body.accountId;
+    }
     if (selectedCustomer?.id) body.customerId = selectedCustomer.id;
     try {
       const response = isEditMode
@@ -173,11 +176,15 @@ export default function AddEditRevenue() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setCustomerQuery(e.target.value)
                     }
-                    placeholder="Search by name, phone or email"
+                    placeholder={
+                      selectedCustomer?.label?.trim() === ""
+                        ? "Search by name, phone or email"
+                        : ""
+                    }
                   />
                   {selectedCustomer ? (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <span className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                    <div className="absolute w-[90%] left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 flex justify-between items-center gap-2">
+                      <span className="text-base px-2 py-1 rounded">
                         {selectedCustomer.label}
                       </span>
                       <button
@@ -253,6 +260,7 @@ export default function AddEditRevenue() {
               <div className="flex flex-col">
                 <label className="input-label flex">Account</label>
                 <select
+                  disabled={isEditMode}
                   className="input-field flex border border-gray-200 rounded px-3 py-2 bg-white"
                   {...register("accountId", { valueAsNumber: true })}
                 >

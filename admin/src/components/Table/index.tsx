@@ -108,9 +108,11 @@ const Table: React.FC<TableProps> = ({
             <div className="flex items-center gap-2">
               <button
                 className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
-                  pagination.page === 1 ? "opacity-50 cursor-not-allowed" : ""
+                  pagination.page === 1 || pagination.total === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
-                disabled={pagination.page === 1}
+                disabled={pagination.page === 1 || pagination.total === 0}
                 onClick={() =>
                   handlePagination({ ...pagination, page: pagination.page - 1 })
                 }

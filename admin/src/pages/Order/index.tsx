@@ -4,7 +4,6 @@ import TableList from "./components/TableList";
 import KotList from "./components/KotList";
 import Button from "@/components/Button";
 import { useNavigate } from "react-router-dom";
-import { TABLE_ADD_ROUTE } from "@/routes/routeNames";
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 
 export default function Order() {

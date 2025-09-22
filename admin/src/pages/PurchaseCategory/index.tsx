@@ -66,10 +66,10 @@ const PurchaseCategory: React.FC = () => {
   const rows: any[] = success ? (apiData?.data?.data ?? []) : [];
 
   const pagination: PaginationType = {
-    page: apiData?.data?.page ?? query.page,
-    limit: apiData?.data?.limit ?? query.limit,
-    total: apiData?.data?.total ?? 0,
-    totalPages: apiData?.data?.totalPages ?? 1,
+    page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
+    limit: apiData?.data?.limit,
+    total: apiData?.data?.total,
+    totalPages: apiData?.data?.totalPages,
   };
 
   const headers = [

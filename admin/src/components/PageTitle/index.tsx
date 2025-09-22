@@ -15,7 +15,8 @@ export default function PageTitle({
 
   const handleNavigation = () => {
     const path = pathname.split("/");
-    navigate(`/admin/${path[path.length - 2]}/list`);
+    // navigate(`/admin/${path[path.length - 2]}/list`);
+    navigate(-1);
   };
 
   return (
