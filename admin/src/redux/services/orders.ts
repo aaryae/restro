@@ -33,7 +33,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "revenue"],
+      invalidatesTags: ["table", "order", "revenue", "kot"],
     }),
   }),
   overrideExisting: true,

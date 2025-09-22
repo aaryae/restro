@@ -10,7 +10,7 @@ import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
-import { handleResponse } from "@/utils/responseHandler";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
 import Table from "@/components/Table";
 
@@ -43,6 +43,8 @@ const PurchaseCategory: React.FC = () => {
         },
         onSuccess: () => refetch(),
       });
+    } catch (error) {
+      handleError({ error });
     } finally {
       setDeleteModelOpen(false);
       setDeleteId(null);

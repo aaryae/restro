@@ -1,5 +1,10 @@
 const generalConstant = require("../../constants/general-constant");
-const { supplierModel, sequelize } = require("../../models");
+const {
+  supplierModel,
+  sequelize,
+  purchaseModel,
+  expenseModel,
+} = require("../../models");
 const { Op } = require("sequelize");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
@@ -142,6 +147,21 @@ const update = async (id, data) => {
 
 const deleteById = async (id) => {
   try {
+    // Prevent delete if supplier is referenced in purchases or expenses
+    const [purchaseCount, expenseCount] = await Promise.all([
+      purchaseModel.count({ where: { supplierId: id } }),
+      expenseModel.count({ where: { supplierId: id } }),
+    ]);
+
+    if (purchaseCount > 0 || expenseCount > 0) {
+      return {
+        status: 406,
+        success: false,
+        message: "Supplier is used and cannot be deleted",
+        data: null,
+      };
+    }
+
     const deleted = await supplierModel.destroy({ where: { id } });
     if (!deleted) {
       return {
