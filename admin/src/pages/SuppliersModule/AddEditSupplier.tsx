@@ -144,12 +144,10 @@ export default function AddEditSupplier({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Name of Entity
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <UserRound className="w-4 h-4" /> Name of Entity
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <UserRound className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="Acme Supplies Pvt. Ltd."
                 className="w-full pl-9"
@@ -160,12 +158,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Person
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <IdCard className="w-4 h-4" /> Contact Person
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <IdCard className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="Contact person name"
                 className="w-full pl-9"
@@ -176,12 +172,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Number
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <Phone className="w-4 h-4" /> Contact Number
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <Phone className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="9800000000"
                 className="w-full pl-9"
@@ -191,12 +185,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                PAN/VAT Number
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <IdCard className="w-4 h-4" /> PAN/VAT Number
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <IdCard className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="Enter PAN/VAT number"
                 className="w-full pl-9"
@@ -206,12 +198,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Supplier Code
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <IdCard className="w-4 h-4" /> Supplier Code
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <IdCard className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="ASP001"
                 className="w-full pl-9"
@@ -221,12 +211,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <Mail className="w-4 h-4" /> Email Address
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <Mail className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 type="email"
                 placeholder="supplier@example.com"
@@ -237,12 +225,10 @@ export default function AddEditSupplier({
             </div>
 
             <div className="relative md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-3 pl-10">
+                <MapPin className="w-4 h-4" /> Address
               </label>
-              <div className="absolute left-3 top-10 text-gray-400">
-                <MapPin className="w-4 h-4" />
-              </div>
+              <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
                 placeholder="Street, City, State"
                 className="w-full pl-9"
@@ -253,17 +239,17 @@ export default function AddEditSupplier({
           </div>
 
           {/* Action Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
+          <div className="flex sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={() => (isComponent ? closeModal() : navigate(-1))}
-              className="px-4 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+              className="px-6 py-4 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-4"
               disabled={isSubmitting || creatingSupplier || updatingSupplier}
             >
               <div className="flex justify-center items-center gap-2">

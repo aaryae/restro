@@ -51,12 +51,9 @@ export default function Card1({
               {gender.charAt(0)}
             </span>
           </p>
-          <p>Role</p>
+          <p>User</p>
         </div>
-        <div className="mt-[0.75rem] space-y-[2px]">
-          <p>{mobileNo}</p>
-          <p>Japan</p>
-        </div>
+
         <p className="mt-[1rem] text-blue-500">{email}</p>
       </div>
     </button>

@@ -151,7 +151,7 @@ const AddEditExpense: React.FC = () => {
           <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">Category</label>
+                <label className="text-sm text-gray-700 mb-1 ">Category</label>
                 <select
                   className="border rounded px-3 py-2 bg-white"
                   {...register("categoryId", {

@@ -15,9 +15,20 @@
   background-color: #fff;
   border-radius: 8px;
   padding: 24px;
-  width: 90%;
-  height: 90%;
+  width: 95%;
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Larger screens */
+@media (min-width: 1024px) {
+  .modalContent {
+    width: 80%;
+    height: 90%;
+    max-height: 90vh;
+  }
 }
 
 .successContainer {
@@ -146,8 +157,21 @@
 }
 
 .qrImage {
-  width: 300px;
-  height: 300px;
+  width: 100%;
+  height: auto;
+  max-width: 300px;
+  max-height: 300px;
+}
+
+/* Small devices tweaks */
+@media (max-width: 640px) {
+  .modalTitle {
+    font-size: 18px;
+  }
+
+  .successContainer {
+    padding: 8px;
+  }
 }
 
 .buttonContainer {
