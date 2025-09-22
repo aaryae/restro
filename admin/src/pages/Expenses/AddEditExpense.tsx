@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageTitle from "@/components/PageTitle";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { CurrencySign } from "@/constants";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCreateApiMutation,
   useGetApiQuery,
@@ -16,16 +18,24 @@ import {
 } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EXPENSE_LIST_ROUTE } from "@/routes/routeNames";
+import Select from "@/components/Select";
 
-type FormValues = {
-  categoryId: string;
-  paymentMethod: "cash" | "card" | "online";
-  accountId: string;
-  amount: number;
-  description: string;
-  remarks: string;
-  supplierId: string;
-};
+// Zod schema aligned with backend Joi (expense_validation.js)
+export const ExpenseSchema = z.object({
+  paymentMethod: z.enum(["cash", "card", "online"], {
+    required_error: "Payment method is required",
+  }),
+  accountId: z.string().min(1, "Payment source is required"),
+  amount: z.coerce
+    .number({ message: "Amount must be a number" })
+    .positive("Amount must be positive"),
+  // Required in UI
+  categoryId: z.string().min(1, "Category is required"),
+  supplierId: z.string().optional(),
+  remarks: z.string().optional().or(z.literal("")),
+});
+
+export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
 
 const AddEditExpense: React.FC = () => {
   const { id } = useParams();
@@ -40,16 +50,25 @@ const AddEditExpense: React.FC = () => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
+  } = useForm<ExpenseFormInput>({
+    resolver: zodResolver(ExpenseSchema),
     defaultValues: {
-      categoryId: "",
-      accountId: "",
+      paymentMethod: "cash",
+      categoryId: undefined,
+      accountId: undefined,
       amount: 0,
       remarks: "",
-      supplierId: "",
+      supplierId: undefined,
     },
   });
+  const { data: expenseData, isSuccess: expenseFetched } = useGetApiQuery(
+    {
+      url: `${EXPENSE_URL}${id}`,
+    },
+    { skip: !isEdit },
+  );
   const { data: expenseCategoryData, isSuccess: expenseCategoryFetched } =
     useGetApiQuery({ url: `${EXPENSE_CATEGORY_URL}/list` });
   const {
@@ -59,27 +78,19 @@ const AddEditExpense: React.FC = () => {
   const { data: supplierData, isSuccess: supplierFetched } = useGetApiQuery({
     url: `${SUPPLIER_URL}list`,
   });
-  const { data: expenseData, isSuccess: expenseFetched } = useGetApiQuery(
-    {
-      url: `${EXPENSE_URL}${id}`,
-    },
-    { skip: !isEdit },
-  );
   const [createExpense] = useCreateApiMutation();
   const [updateExpense] = useUpdateApiMutation();
 
   useEffect(() => {
-    console.log(expenseData, "expense data");
     if (!isEdit || !id || !expenseData?.data) return;
-    const row = expenseData?.data;
-    console.log(row, "expense data");
+    const row = expenseData?.data as any;
     reset({
-      categoryId: row.categoryId,
-      paymentMethod: row.paymentMethod,
-      accountId: row.accountId,
-      amount: row.amount,
-      remarks: row.remarks,
-      supplierId: row.supplierId,
+      categoryId: row?.categoryId ? String(row.categoryId) : "",
+      paymentMethod: row?.paymentMethod,
+      accountId: String(row.accountId),
+      amount: Number(row?.amount) || 0,
+      remarks: row?.remarks || "",
+      supplierId: row?.supplierId ? String(row.supplierId) : undefined,
     });
   }, [isEdit, id, expenseData, reset]);
 
@@ -88,7 +99,7 @@ const AddEditExpense: React.FC = () => {
 
     setExpenseCategoryOptions(
       expenseCategoryData?.data?.data?.map((item) => ({
-        value: item.id,
+        value: String(item.id),
         label: item.name,
       })),
     );
@@ -99,7 +110,7 @@ const AddEditExpense: React.FC = () => {
 
     setPaymentSourceOptions(
       expensePaymentSourceData?.data?.data?.map((item) => ({
-        value: item.id,
+        value: String(item.id),
         label: item.name,
       })),
     );
@@ -110,19 +121,29 @@ const AddEditExpense: React.FC = () => {
 
     setSupplierOptions(
       supplierData?.data?.data?.map((item) => ({
-        value: item.id,
+        value: String(item.id),
         label: item.name,
       })),
     );
   }, [supplierData, supplierFetched]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: ExpenseFormInput) => {
     if (isEdit) delete data.supplierId;
+
     const body = {
-      ...data,
-      id: isEdit ? id : undefined,
+      id: isEdit ? Number(id) : undefined,
       cash_or_credit: "cash",
-    };
+      paymentMethod: data.paymentMethod,
+      amount: Number(data.amount),
+      accountId: Number(data.accountId),
+      categoryId: data.categoryId ? Number(data.categoryId) : null,
+      supplierId: isEdit
+        ? undefined
+        : data.supplierId
+          ? Number(data.supplierId)
+          : null,
+      remarks: data.remarks ?? null,
+    } as any;
 
     try {
       const response = isEdit
@@ -150,94 +171,69 @@ const AddEditExpense: React.FC = () => {
         <div className="flex gap-2 w-full max-w-[900px]">
           <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1 ">Category</label>
-                <select
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("categoryId", {
-                    required: "Category is required",
-                  })}
-                >
-                  <option value="">Select</option>
-                  {expenseCategoryOptions?.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.categoryId && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.categoryId.message}
-                  </span>
+              <Controller
+                name="categoryId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    required
+                    {...field}
+                    options={expenseCategoryOptions}
+                    label="Category"
+                    error={errors.categoryId?.message}
+                  />
                 )}
-              </div>
+              />
               <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("paymentMethod", {
-                    required: "Payment method is required",
-                  })}
-                >
-                  <option value="">Select</option>
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="online">Online</option>
-                </select>
-                {errors.paymentMethod && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.paymentMethod.message}
-                  </span>
-                )}
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      required
+                      {...field}
+                      options={[
+                        { value: "cash", label: "Cash" },
+                        { value: "card", label: "Card" },
+                        { value: "online", label: "Online" },
+                      ]}
+                      label="Payment Method"
+                      error={errors.paymentMethod?.message}
+                    />
+                  )}
+                />
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
-                  Payment Source
-                </label>
-                <select
-                  disabled={isEdit}
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("accountId", {
-                    required: "Payment source is required",
-                  })}
-                >
-                  <option value="">Select</option>
-                  {paymentSourceOptions?.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.accountId && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.accountId.message}
-                  </span>
-                )}
+              <div className={`flex flex-col ${isEdit ? "hidden" : ""}`}>
+                <Controller
+                  name="accountId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      required
+                      {...field}
+                      options={paymentSourceOptions}
+                      label="Payment Source"
+                      error={errors.accountId?.message}
+                    />
+                  )}
+                />
               </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">Supplier</label>
-                <select
+
+              <div className={`flex flex-col ${isEdit ? "hidden" : ""}`}>
+                <Controller
                   disabled={isEdit}
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("supplierId", {
-                    required: "Supplier is required",
-                  })}
-                >
-                  <option value="">Select</option>
-                  {supplierOptions?.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.supplierId && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.supplierId.message}
-                  </span>
-                )}
+                  name="supplierId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={supplierOptions}
+                      label="Supplier"
+                      error={errors.supplierId?.message}
+                    />
+                  )}
+                />
               </div>
 
               <div className="flex flex-col">
