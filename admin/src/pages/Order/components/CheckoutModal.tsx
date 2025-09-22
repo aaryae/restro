@@ -345,8 +345,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
                 {/* Left column: Order details and member section */}
                 <div className="flex flex-col gap-4 lg:col-span-2">
-                  <div className="mt-4 border border-1 rounded p-4">
-                    <div className="flex items-center justify-between mb-4 ">
+                  <div className="mt-4 border border-1 rounded p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 ">
                       <h2 className="font-semibold">Order Details</h2>
                       <label className="flex items-center gap-2 text-sm">
                         <input
@@ -370,12 +370,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 aria-label="Select all order items"
                               />
                             </th>
-                            <th className="p-4 border text-left w-12">S.N</th>
-                            <th className="p-4 border text-left">Item</th>
-                            <th className="p-4 border text-right w-24">
+                            <th className="p-2 sm:p-4 border text-left w-12">S.N</th>
+                            <th className="p-2 sm:p-4 border text-left">Item</th>
+                            <th className="p-2 sm:p-4 border text-right w-24">
                               Quantity
                             </th>
-                            <th className="p-4 border text-right w-28">
+                            <th className="p-2 sm:p-4 border text-right w-28">
                               Total
                             </th>
                           </tr>
@@ -398,7 +398,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 key={sid}
                                 className="odd:bg-white even:bg-gray-50 text-[15px]"
                               >
-                                <td className="p-4 border text-center">
+                                <td className="p-2 sm:p-4 border text-center">
                                   <input
                                     type="checkbox"
                                     checked={selectedIds.includes(sid)}
@@ -406,14 +406,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                     aria-label={`Select item ${it.productName}`}
                                   />
                                 </td>
-                                <td className="p-4 border">{idx + 1}</td>
-                                <td className="p-4 border flex">
+                                <td className="p-2 sm:p-4 border">{idx + 1}</td>
+                                <td className="p-2 sm:p-4 border flex">
                                   {it.productName}
                                 </td>
-                                <td className="p-4 border text-right">
+                                <td className="p-2 sm:p-4 border text-right">
                                   {it.quantity}
                                 </td>
-                                <td className="p-4 border text-right">
+                                <td className="p-2 sm:p-4 border text-right">
                                   {it.subtotal.toFixed(2)}
                                 </td>
                               </tr>
@@ -426,7 +426,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       Selected: {selectedIds.length} / {items?.length || 0}
                     </div>
                   </div>
-                  <div className="flex flex-col border border-1 rounded p-6 gap-6 font-bold ">
+                  <div className="flex flex-col border border-1 rounded p-4 sm:p-6 gap-4 sm:gap-6 font-bold ">
                     <div className="flex justify-between">
                       <h3 className="text-[17px]">Sub Total</h3>
                       <h3 className="text-[17px]">
@@ -440,11 +440,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </h3>
                     </div>
                   </div>
-                  <div className="flex flex-col border border-1 rounded p-4 gap-6 font-bold ">
+                  <div className="flex flex-col border border-1 rounded p-4 gap-4 sm:gap-6 font-bold ">
                     <div className="flex justify-between">
                       <h2>Checkout As:</h2>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -455,7 +455,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         />
                         <span className={styles.paymentText}>Guest</span>
                       </label>
-                      <div className="flex gap-8">
+                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
                         <label className="flex items-center">
                           <input
                             type="radio"
@@ -491,7 +491,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                     {checkoutType === "member" && (
                       <div>
-                        <div className="mb-4 flex items-center gap-8">
+                        <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-8">
                           <label
                             className={`${styles.paymentLabel} block mb-1`}
                           >
@@ -502,7 +502,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             onChange={(e) => {
                               setCustomerSearchTerm(e.target.value);
                             }}
-                            className="w-[75%] "
+                            className="w-full sm:w-[75%]"
                           />
                           <button
                             onClick={customerRefetch}
@@ -548,10 +548,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                     )}
                     {selectedMember && (
-                      <div className="p-10 bg-gray-100 rounded-md flex gap-11">
+                      <div className="p-4 sm:p-6 lg:p-10 bg-gray-100 rounded-md flex flex-col sm:flex-row gap-4 sm:gap-8 lg:gap-11">
                         <p className={styles.paymentLabel}>Selected Member:</p>
-                        <div className="flex gap-[8rem]">
-                          <p className="flex items-center justify-center gap-2 font-medium">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 lg:gap-[8rem]">
+                          <p className="flex items-center justify-start gap-2 font-medium">
                             <Contact size={17} />
                             <span className={styles.paymentLabel}>Name: </span>
 
@@ -559,11 +559,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               " " +
                               selectedMember.lastName || "N/A"}
                           </p>
-                          <p className="flex items-center justify-center gap-2 font-medium">
+                          <p className="flex items-center justify-start gap-2 font-medium">
                             <Mail size={17} />
                             <span className={styles.paymentLabel}>
-                              Email:{" "}
-                            </span>{" "}
+                              Email: {" "}
+                            </span> {" "}
                             {selectedMember.email || "N/A"}
                           </p>
                         </div>
@@ -574,7 +574,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Right column: Payment Method panel */}
                 <div className="mt-4 lg:mt-4">
-                  <div className="border border-1 rounded px-4 py-8 sticky top-4">
+                  <div className="border border-1 rounded px-4 py-6 sm:py-8 md:sticky md:top-4">
                     <h2 className="font-semibold mb-4">Payment Method</h2>
                     <div className="grid grid-cols-2 gap-3">
                       <button

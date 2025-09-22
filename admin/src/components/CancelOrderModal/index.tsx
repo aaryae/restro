@@ -61,7 +61,7 @@ export default function CancelOrderModal({
           <div className="flex justify-center gap-[2rem] w-full mt-[1rem]">
             <button
               disabled={remarks.trim().length <= 0}
-              className={`md:py-[0.5rem] md:px-[0.75rem] py-[1rem] px-[1.5rem] h-fit rounded-[6px] flex items-center ${remarks.trim().length <= 0 ? "bg-red-200" : "bg-red-500"}`}
+              className={`py-[0.7rem] px-[1.5rem] h-fit rounded-[6px] flex items-center ${remarks.trim().length <= 0 ? "bg-red-200" : "bg-red-500"}`}
               onClick={() => handleConfirmCancel(remarks)}
             >
               <span className="font-[400] text-[1rem] text-white ">
@@ -69,7 +69,7 @@ export default function CancelOrderModal({
               </span>
             </button>
             <button
-              className="bg-gray-400 h-fit md:py-[0.5rem] md:px-[0.75rem] py-[1rem] px-[1.5rem] rounded-[6px] flex items-center"
+              className="bg-gray-400 h-fit py-[0.7rem] px-[1.5rem] rounded-[6px] flex items-center"
               onClick={handleCancelButton}
             >
               <span className="font-[400] text-[1rem] text-white ">

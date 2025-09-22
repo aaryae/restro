@@ -41,7 +41,10 @@ function AccountDropdown({
   // Fetch active accounts
   const url = buildQueryString("account/list", { page: 1, limit: 100 });
   const { data, isFetching, isSuccess } = useGetApiQuery({ url });
-  const rows: any[] = isSuccess ? (data?.data?.data ?? []) : [];
+  const rows: any[] =
+    isSuccess && Array.isArray((data as any)?.data?.data)
+      ? ((data as any).data.data as any[])
+      : [];
   const options = [{ label: "Select Account", value: "" }].concat(
     rows.map((a: any) => ({
       label: `${a.name} (${a.accountType})`,
@@ -162,7 +165,15 @@ const AddEditPurchase: React.FC = () => {
   const { data: suppliersResp, isSuccess: suppliersOk } =
     useGetListAllSupplierQuery({ url: supplierUrl });
   const supplierOptions = useMemo(() => {
-    const rows: any[] = suppliersOk ? (suppliersResp?.data ?? []) : [];
+    let rows: any[] = [];
+    if (suppliersOk) {
+      const raw: any = (suppliersResp as any)?.data;
+      if (Array.isArray(raw)) {
+        rows = raw;
+      } else if (Array.isArray(raw?.data)) {
+        rows = raw.data;
+      }
+    }
     return [{ label: "Select Supplier", value: "" }].concat(
       rows.map((s: any) => ({ label: s.name, value: String(s.id) })),
     );
@@ -175,7 +186,10 @@ const AddEditPurchase: React.FC = () => {
   });
   const { data: pcResp, isSuccess: pcOk } = useGetApiQuery({ url: pcUrl });
   const purchaseCategoryOptions = useMemo(() => {
-    const rows: any[] = pcOk ? (pcResp?.data?.data ?? []) : [];
+    const rows: any[] =
+      pcOk && Array.isArray((pcResp as any)?.data?.data)
+        ? (((pcResp as any).data.data as any[]) ?? [])
+        : [];
     return [{ label: "Select Category", value: "" }].concat(
       rows.map((c: any) => ({ label: c.name, value: String(c.id) })),
     );

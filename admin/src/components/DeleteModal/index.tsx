@@ -35,7 +35,7 @@ export default function DeleteModal({
       <DialogTrigger onClick={handleDeleteTrigger}>
         <TbTrashXFilled size={22} className="text-red-500 cursor-pointer" />
       </DialogTrigger>
-      <DialogContent className="w-fit p-[3rem]">
+      <DialogContent className="w-[25rem] p-[3rem] md:w-fit">
         <DialogHeader>
           <DialogTitle>
             <span className="text-[1rem] font-[500] text-red-500 text-center">
@@ -53,18 +53,18 @@ export default function DeleteModal({
         <DialogFooter>
           <div className="flex justify-center gap-[2rem] w-full mt-[1rem]">
             <button
-              className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center"
+              className="bg-red-500 py-[0.7rem] px-[1.5rem] h-fit rounded-[6px] flex items-center"
               onClick={handleConfirmDelete}
             >
-              <span className="font-[400] text-[0.75rem] text-white ">
+              <span className="font-[400] text-[1rem] text-white ">
                 {translate("Delete")}
               </span>
             </button>
             <button
-              className="bg-gray-400 h-fit py-[0.5rem] px-[0.75rem] rounded-[6px] flex items-center"
+              className="bg-gray-400 h-fit py-[0.7rem] px-[1.5rem] rounded-[6px] flex items-center"
               onClick={handleCancelButton}
             >
-              <span className="font-[400] text-[0.75rem] text-white ">
+              <span className="font-[400] text-[1rem] text-white ">
                 {translate("Cancel")}
               </span>
             </button>

@@ -366,20 +366,20 @@ export default function AddEditOrder({
         />
       )}
 
-      <div className="max-w-[95rem] mx-auto">
+      <div className="max-w-[95rem] mx-auto px-3 mt-4">
         <form
-          className={`grid grid-cols-[2fr,1fr] gap-2 ${isComponent ? "" : "form-container"}`}
+          className={`grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 lg:gap-6 ${isComponent ? "" : "form-container"}`}
           onSubmit={handleSubmit(onSubmit)}
         >
           <div>
             {/* Order Information Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <MdShoppingCart className="mr-2 text-blue-600" />
                 Order Information
               </h3>
 
-              <div className="mb-4 flex items-center gap-8">
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                 <div>
                   {/* Order Type */}
                   <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
@@ -390,7 +390,7 @@ export default function AddEditOrder({
                     control={control}
                     defaultValue="dineIn"
                     render={({ field }) => (
-                      <div className="flex space-x-5 p-1 rounded-lg">
+                      <div className="flex flex-wrap gap-3 sm:space-x-5 p-1 rounded-lg">
                         {orderTypeOptions.map((option) => (
                           <button
                             key={option.value}
@@ -466,7 +466,7 @@ export default function AddEditOrder({
                         ? `Search Results (${productData?.data?.data?.length})`
                         : "Top Selling Menu Items"}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                       {productData?.data?.data?.map(
                         (product: {
                           id: string;
@@ -577,8 +577,8 @@ export default function AddEditOrder({
           </div>
           <div>
             {/* Order Items Section */}
-            <div className="bg-white rounded-lg flex flex-col h-full shadow-sm border border-gray-200 px-3">
-              <div className="flex items-center justify-between py-6">
+            <div className="bg-white rounded-lg flex flex-col h-full shadow-sm border border-gray-200 px-3 py-4 sm:py-6">
+              <div className="flex items-center justify-between py-4 sm:py-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Order Items
                 </h3>
@@ -599,7 +599,7 @@ export default function AddEditOrder({
                   {orderItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex items-center justify-between px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
                     >
                       <div
                         className={`flex flex-col items-start ${item.status === "cancelled" ? "line-through" : ""}`}
@@ -679,7 +679,7 @@ export default function AddEditOrder({
                 </div>
               </div>
               {/* Submit Button */}
-              <div className="flex justify-end space-x-4 mt-4 pb-3">
+              <div className="flex flex-wrap justify-end gap-3 mt-4 pb-3">
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
