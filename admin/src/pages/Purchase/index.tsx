@@ -20,6 +20,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 import { FaEye } from "react-icons/fa";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
@@ -186,11 +187,17 @@ const Purchase: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return setOpen(false);
     try {
-      await deleteApi(`${PURCHASE_URL}${deleteId}`).unwrap();
-      setOpen(false);
-      setDeleteId(null);
-      refetch();
-    } catch (e) {
+      const response = await deleteApi(`${PURCHASE_URL}${deleteId}`).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          setOpen(false);
+          setDeleteId(null);
+          refetch();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
       setOpen(false);
     }
   };
@@ -361,22 +368,39 @@ const Purchase: React.FC = () => {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <div className="text-xs text-gray-500">Invoice Date</div>
+                          <div className="text-xs text-gray-500">
+                            Invoice Date
+                          </div>
                           <div className="text-sm font-medium">
-                            {(d?.invoiceDate || d?.date || "").toString().slice(0, 10) || "-"}
+                            {(d?.invoiceDate || d?.date || "")
+                              .toString()
+                              .slice(0, 10) || "-"}
                           </div>
                         </div>
                         <div>
                           <div className="text-xs text-gray-500">Supplier</div>
-                          <div className="text-sm font-medium">{supplier?.name || d?.supplierName || d?.vendorName || "-"}</div>
+                          <div className="text-sm font-medium">
+                            {supplier?.name ||
+                              d?.supplierName ||
+                              d?.vendorName ||
+                              "-"}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Invoice No.</div>
-                          <div className="text-sm font-medium">{d?.invoiceNumber || "-"}</div>
+                          <div className="text-xs text-gray-500">
+                            Invoice No.
+                          </div>
+                          <div className="text-sm font-medium">
+                            {d?.invoiceNumber || "-"}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Payment Terms</div>
-                          <div className="text-sm font-medium">{d?.paymentTerms || d?.paymentStatus || "-"}</div>
+                          <div className="text-xs text-gray-500">
+                            Payment Terms
+                          </div>
+                          <div className="text-sm font-medium">
+                            {d?.paymentTerms || d?.paymentStatus || "-"}
+                          </div>
                         </div>
                       </div>
 
@@ -396,18 +420,34 @@ const Purchase: React.FC = () => {
                             <tbody>
                               {items.length === 0 ? (
                                 <tr>
-                                  <td className="p-3 text-center text-gray-500" colSpan={5}>
+                                  <td
+                                    className="p-3 text-center text-gray-500"
+                                    colSpan={5}
+                                  >
                                     No items
                                   </td>
                                 </tr>
                               ) : (
                                 items.map((it: any, i: number) => (
                                   <tr key={i}>
-                                    <td className="p-2 border text-center">{i + 1}</td>
-                                    <td className="p-2 border">{it.particulars || "-"}</td>
-                                    <td className="p-2 border text-right">{it.quantity ?? it.qty ?? 0}</td>
-                                    <td className="p-2 border text-right">{Number(it.rate ?? 0).toFixed(2)}</td>
-                                    <td className="p-2 border text-right">{Number((it.quantity ?? it.qty ?? 0) * (it.rate ?? 0)).toFixed(2)}</td>
+                                    <td className="p-2 border text-center">
+                                      {i + 1}
+                                    </td>
+                                    <td className="p-2 border">
+                                      {it.particulars || "-"}
+                                    </td>
+                                    <td className="p-2 border text-right">
+                                      {it.quantity ?? it.qty ?? 0}
+                                    </td>
+                                    <td className="p-2 border text-right">
+                                      {Number(it.rate ?? 0).toFixed(2)}
+                                    </td>
+                                    <td className="p-2 border text-right">
+                                      {Number(
+                                        (it.quantity ?? it.qty ?? 0) *
+                                          (it.rate ?? 0),
+                                      ).toFixed(2)}
+                                    </td>
                                   </tr>
                                 ))
                               )}
@@ -419,11 +459,18 @@ const Purchase: React.FC = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="text-xs text-gray-500">Status</div>
-                          <div className="text-sm font-medium">{d?.status || d?.purchaseStatus || "-"}</div>
+                          <div className="text-sm font-medium">
+                            {d?.status || d?.purchaseStatus || "-"}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Total Amount</div>
-                          <div className="text-sm font-semibold">{CurrencySign}{Number(d?.totalAmount ?? d?.total ?? 0).toFixed(2)}</div>
+                          <div className="text-xs text-gray-500">
+                            Total Amount
+                          </div>
+                          <div className="text-sm font-semibold">
+                            {CurrencySign}
+                            {Number(d?.totalAmount ?? d?.total ?? 0).toFixed(2)}
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -623,6 +623,76 @@ const getUnpaidCredits = async (req) => {
   }
 };
 
+// Delete purchase and refund account if applicable
+const deleteById = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const id = +req.params.id;
+    const purchase = await purchaseModel.findByPk(id, { transaction, lock: true });
+    if (!purchase) {
+      await transaction.rollback();
+      return { ...generalConstant.EN.PURCHASE.PURCHASE_NOT_FOUND, data: null };
+    }
+
+    // Determine refund behavior
+    let refundAccountId = null;
+    let refundAmount = 0;
+
+    if (purchase.status === "draft") {
+      // No refund for drafts; they don't affect accounts
+      refundAccountId = null;
+    } else if (purchase.status === "completed") {
+      // Completed purchases may have affected an account
+      refundAmount = Number(purchase.totalAmount) || 0;
+      if (purchase.paymentTerms === "credit") {
+        // If credit purchase is already paid (paymentDate set), refund the payment account if known
+        if (purchase.paymentDate) {
+          // paymentAccountId may be present if your schema has it; else fallback to accountId
+          refundAccountId = purchase.paymentAccountId || purchase.accountId;
+        } else {
+          // Unpaid credit purchase – no account deduction happened yet
+          refundAccountId = null;
+        }
+      } else {
+        // Non-credit purchase: amount was deducted from purchase.accountId on completion
+        refundAccountId = purchase.accountId;
+      }
+    } else if (purchase.status === "cancelled") {
+      // Cancelled purchases generally should not have led to deductions per service logic
+      refundAccountId = null;
+    }
+
+    // Process refund if needed
+    if (refundAccountId && refundAmount > 0) {
+      const account = await accountModel.findByPk(refundAccountId, {
+        transaction,
+        lock: true,
+      });
+      if (account) {
+        await account.increment("currentBalance", {
+          by: refundAmount,
+          transaction,
+        });
+      }
+    }
+
+    // Delete children first due to FK, then the purchase
+    await purchaseItemModel.destroy({ where: { purchaseId: purchase.id }, transaction });
+    await purchase.destroy({ transaction });
+
+    await transaction.commit();
+    return {
+      status: 200,
+      success: true,
+      message: "Purchase deleted successfully",
+      data: { id },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -632,4 +702,5 @@ module.exports = {
   recordCreditPayment,
   cancelPurchase,
   getUnpaidCredits,
+  deleteById,
 };

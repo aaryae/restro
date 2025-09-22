@@ -24,6 +24,7 @@ const {
   recordCreditPayment,
   cancelPurchase,
   getUnpaidCredits,
+  deleteById,
 } = require("../controllers/purchase-controller");
 
 router.post("/", authentication, authorization, purchasePostValidation, create);
@@ -67,5 +68,7 @@ router.put(
   cancelPurchaseValidation,
   cancelPurchase,
 );
+
+router.delete("/:id", authentication, authorization, idValidation, deleteById);
 
 module.exports = router;
