@@ -5,7 +5,7 @@ import QR_IMAGE from "@/assets/qr-code.png";
 import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
-import { handleResponse } from "@/utils/responseHandler";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
 import { Mail, CircleUserRound, Contact } from "lucide-react";
@@ -179,34 +179,38 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handlePayment = async () => {
-    const payload =
-      checkoutType === "member" && selectedMember
-        ? {
-            paymentMethod: paymentType,
-            customerId: selectedMember.id,
-            orderId: orderId,
-            checkoutAll: typeof orderId === "object",
-          }
-        : {
-            paymentMethod: paymentType,
-            orderId: orderId,
-            checkoutAll: typeof orderId === "object",
-          };
+    try {
+      const payload =
+        checkoutType === "member" && selectedMember
+          ? {
+              paymentMethod: paymentType,
+              customerId: selectedMember.id,
+              orderId: orderId,
+              checkoutAll: typeof orderId === "object",
+            }
+          : {
+              paymentMethod: paymentType,
+              orderId: orderId,
+              checkoutAll: typeof orderId === "object",
+            };
 
-    if (paymentType === "cash") {
-      const response = await checkoutOrderApi({
-        id: tableId,
-        body: payload,
-      }).unwrap();
-      if (response?.success) {
-        handleResponse({ res: response });
-        setIsPaymentSuccess(true);
+      if (paymentType === "cash") {
+        const response = await checkoutOrderApi({
+          id: tableId,
+          body: payload,
+        }).unwrap();
+        if (response?.success) {
+          handleResponse({ res: response });
+          setIsPaymentSuccess(true);
+        }
       }
+      setTimeout(() => {
+        setIsPaymentSuccess(false);
+        onClose();
+      }, 2000); // Close modal after 2 seconds
+    } catch (error) {
+      handleError({ error });
     }
-    setTimeout(() => {
-      setIsPaymentSuccess(false);
-      onClose();
-    }, 2000); // Close modal after 2 seconds
   };
 
   // Preview helpers
@@ -370,8 +374,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 aria-label="Select all order items"
                               />
                             </th>
-                            <th className="p-2 sm:p-4 border text-left w-12">S.N</th>
-                            <th className="p-2 sm:p-4 border text-left">Item</th>
+                            <th className="p-2 sm:p-4 border text-left w-12">
+                              S.N
+                            </th>
+                            <th className="p-2 sm:p-4 border text-left">
+                              Item
+                            </th>
                             <th className="p-2 sm:p-4 border text-right w-24">
                               Quantity
                             </th>
@@ -562,8 +570,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           <p className="flex items-center justify-start gap-2 font-medium">
                             <Mail size={17} />
                             <span className={styles.paymentLabel}>
-                              Email: {" "}
-                            </span> {" "}
+                              Email:{" "}
+                            </span>{" "}
                             {selectedMember.email || "N/A"}
                           </p>
                         </div>

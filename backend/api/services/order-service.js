@@ -388,11 +388,8 @@ const checkoutOrder = async (req) => {
 
     console.log(`******************\n${accountId}\n****************`);
 
-    // Validate tableId
-    if (!tableId) {
-      await transaction.rollback();
-      return { status: 400, success: false, message: "Table ID is required" };
-    }
+    // For dine-in flow, tableId is used; for takeaway, tableId may be missing/ignored
+    const hasTable = !!tableId && tableId !== "0" && tableId !== "null" && tableId !== "undefined";
 
     // Validate paymentMethod if provided
     const validPaymentMethods = ["cash", "card", "online", "cheque"];
@@ -560,19 +557,21 @@ const checkoutOrder = async (req) => {
       }
 
       // Free table if no other active orders remain
-      const stillOrderInTable = await orderModel.findOne({
-        where: {
-          tableId,
-          sessionId: sessionId || { [Op.ne]: null },
-          status: { [Op.notIn]: ["completed", "cancelled"] },
-        },
-        transaction,
-      });
-      if (!stillOrderInTable) {
-        await tableModel.update(
-          { status: "available", sessionId: null, sessionStartTime: null },
-          { where: { id: tableId }, transaction },
-        );
+      if (hasTable) {
+        const stillOrderInTable = await orderModel.findOne({
+          where: {
+            tableId,
+            sessionId: sessionId || { [Op.ne]: null },
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          transaction,
+        });
+        if (!stillOrderInTable) {
+          await tableModel.update(
+            { status: "available", sessionId: null, sessionStartTime: null },
+            { where: { id: tableId }, transaction },
+          );
+        }
       }
 
       await transaction.commit();
@@ -596,7 +595,7 @@ const checkoutOrder = async (req) => {
       const order = await orderModel.findOne({
         where: {
           id: orderId,
-          tableId,
+          ...(hasTable ? { tableId } : {}),
           status: { [Op.notIn]: ["completed", "cancelled"] },
         },
         include: [{ model: orderItemModel, as: "orderItems" }],
@@ -613,22 +612,42 @@ const checkoutOrder = async (req) => {
       orders = [order];
     } else {
       // Multiple order checkout
-      orders = await orderModel.findAll({
-        where: {
-          tableId,
-          ...(sessionId ? { sessionId } : {}),
-          status: { [Op.notIn]: ["completed", "cancelled"] },
-        },
-        include: [{ model: orderItemModel, as: "orderItems" }],
-        transaction,
-      });
-      if (!orders || orders.length === 0) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: "No active orders found for this table",
-        };
+      if (hasTable) {
+        orders = await orderModel.findAll({
+          where: {
+            tableId,
+            ...(sessionId ? { sessionId } : {}),
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          include: [{ model: orderItemModel, as: "orderItems" }],
+          transaction,
+        });
+        if (!orders || orders.length === 0) {
+          await transaction.rollback();
+          return {
+            status: 404,
+            success: false,
+            message: "No active orders found for this table",
+          };
+        }
+      } else {
+        // Takeaway: checkoutAll without a table -> all active takeaway orders
+        orders = await orderModel.findAll({
+          where: {
+            orderType: { [Op.like]: "%takeaway%" },
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          include: [{ model: orderItemModel, as: "orderItems" }],
+          transaction,
+        });
+        if (!orders || orders.length === 0) {
+          await transaction.rollback();
+          return {
+            status: 404,
+            success: false,
+            message: "No active takeaway orders found",
+          };
+        }
       }
     }
 
@@ -875,29 +894,31 @@ const checkoutOrder = async (req) => {
     }
 
     // Check for other active orders
-    const stillOrderInTable = await orderModel.findOne({
-      where: {
-        tableId,
-        sessionId: sessionId || { [Op.ne]: null },
-        status: { [Op.notIn]: ["completed", "cancelled"] },
-        id: { [Op.notIn]: orders.map((o) => o.id) },
-      },
-      transaction,
-    });
+    if (hasTable) {
+      const stillOrderInTable = await orderModel.findOne({
+        where: {
+          tableId,
+          sessionId: sessionId || { [Op.ne]: null },
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+          id: { [Op.notIn]: orders.map((o) => o.id) },
+        },
+        transaction,
+      });
 
-    // Free table if no other active orders
-    if (!stillOrderInTable) {
-      await tableModel.update(
-        {
-          status: "available",
-          sessionId: null,
-          sessionStartTime: null,
-        },
-        {
-          where: { id: tableId },
-          transaction,
-        },
-      );
+      // Free table if no other active orders
+      if (!stillOrderInTable) {
+        await tableModel.update(
+          {
+            status: "available",
+            sessionId: null,
+            sessionStartTime: null,
+          },
+          {
+            where: { id: tableId },
+            transaction,
+          },
+        );
+      }
     }
 
     await transaction.commit();
