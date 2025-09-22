@@ -276,12 +276,9 @@ export default function AddEditOrder({
       } catch (error) {
         handleError({ error });
       }
+    } else {
+      setOrderItems((prev) => prev.filter((item) => item.id !== itemId));
     }
-    setOrderItems((prev) =>
-      prev.filter(
-        (item) => item.id !== itemId && String(item.id).includes("newitem_"),
-      ),
-    );
   };
 
   const handleSuccess = () => {
