@@ -174,11 +174,11 @@ export default function MediaImages() {
         </button> */}
       </div>
       {/* images */}
-      <div className="flex flex-wrap gap-[2rem] md:gap-[4rem] mt-[5rem]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-4 md:gap-[4rem] mt-8 md:mt-12 w-full">
         {media?.data?.data.map(
           (each: { id: number; path: string; name: string }, index: number) => (
             <div
-              className="relative border w-fit px-[1.5rem] pt-[1.5rem] pb-[1rem] cursor-pointer hover:scale-80 group transition-transform duration-300 ease-in-out "
+              className="relative border w-full sm:w-auto px-4 pt-4 pb-2 cursor-pointer hover:scale-95 md:hover:scale-80 group transition-transform duration-300 ease-in-out flex flex-col items-center"
               key={index}
             >
               {accessList.includes("delete") && (
@@ -200,7 +200,7 @@ export default function MediaImages() {
               <img
                 src={`${IMAGE_BASE_URL}${each.path}`}
                 alt="Gallery"
-                className="w-[109px] h-[90px] object-cover"
+                className="w-full max-w-[200px] md:w-[109px] md:h-[90px] h-auto aspect-square object-cover rounded-md"
               />
               <input
                 type="text"

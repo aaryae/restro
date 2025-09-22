@@ -22,6 +22,7 @@ export default function Dashboard() {
     { label: "Overview", value: "overview" },
     { label: "Revenue", value: "revenue" },
     { label: "Purchase", value: "purchase" },
+    { label: "Cash & Banks", value: "cashbanks" },
   ];
 
   const { control, watch } = useForm<{ accountType: string }>({

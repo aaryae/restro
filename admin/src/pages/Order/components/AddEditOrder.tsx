@@ -24,7 +24,7 @@ import {
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Minus, Plus, PlusCircle } from "lucide-react";
+import { Minus, Plus, PlusCircle, ShoppingBasket } from "lucide-react";
 import { id } from "date-fns/locale";
 import {
   useCreateOrderMutation,
@@ -374,9 +374,19 @@ export default function AddEditOrder({
           <div>
             {/* Order Information Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                <MdShoppingCart className="mr-2 text-blue-600" />
-                Order Information
+              <h3 className="flex justify-between text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <span className="flex items-center">
+                  <MdShoppingCart className="mr-2 text-blue-600" />
+                  Order Information
+                </span>
+                <span className="ml-auto relative">
+                  <ShoppingBasket className="text-black size-[2.5rem] cursor-pointer" />
+                  {orderItems?.length > 0 && (
+                    <span className="absolute -top-[0.3rem] -right-[0.5rem] text-[0.9rem] font-medium rounded-full bg-blue-500 text-white w-6 h-6 flex items-center justify-center">
+                      {orderItems?.length}
+                    </span>
+                  )}
+                </span>
               </h3>
 
               <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
@@ -618,6 +628,7 @@ export default function AddEditOrder({
                       >
                         <div className="flex items-center space-x-2">
                           <Button
+                            disabled={item.status === "preparing"}
                             handleClick={() => {
                               updateOrderItemQuantity(
                                 item.id,
@@ -625,10 +636,13 @@ export default function AddEditOrder({
                               );
                               playAudio();
                             }}
-                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
+                            className={`bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center
+                                ${item.status === "preparing" ? "opacity-50 cursor-not-allowed" : ""}
+                            `}
                           >
                             <Minus className="w-4 h-4" />
                           </Button>
+
                           <span className="w-8 text-center font-medium text-[15px]">
                             {item.quantity}
                           </span>
@@ -646,15 +660,22 @@ export default function AddEditOrder({
                           </Button>
                         </div>
 
-                        <div
-                          onClick={() => {
+                        <Button
+                          disabled={item.status === "preparing"}
+                          handleClick={() => {
                             removeOrderItem(item.id);
                             playDeleteAudio();
                           }}
-                          className="text-right"
+                          className={`text-right ${
+                            item.status === "preparing"
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
                         >
-                          <Plus className="rotate-45 text-red-400 cursor-pointer" />
-                        </div>
+                          <Plus
+                            className={`rotate-45 ${item.status === "preparing" ? "text-red-300" : "text-red-400"} cursor-pointer`}
+                          />
+                        </Button>
                         {/* {item?.status === "pending" && (
                           <Button
                             type="button"

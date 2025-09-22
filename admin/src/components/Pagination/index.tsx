@@ -2,7 +2,7 @@ import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 
 export default function Pagination({ media, handlePageChange }) {
   return (
-    <div className="mt-auto w-[90rem] flex justify-between font-[400] text-[14px] text-[#2F2B3D] py-[1rem] px-[0.5rem]">
+    <div className="mt-auto w-[90rem] flex justify-between font-[400] text-[14px] text-[#2F2B3D] py-[1rem] px-[0.5rem] ">
       <div>Show: {media.data.limit ?? 0} Entries</div>
       <div className="font-[500] text-[#333333] text-[0.75rem] flex gap-[0.25rem]">
         {/* Left Arrow */}

@@ -105,11 +105,13 @@ export default function ViewOrder({
                     {item.quantity}
                   </p>
                   <p>
-                    <span className="font-medium">Price:</span> $
+                    <span className="font-medium">Price:</span>
+                    {CurrencySign}
                     {parseFloat(item.price).toFixed(2)}
                   </p>
                   <p>
-                    <span className="font-medium">Subtotal:</span> $
+                    <span className="font-medium">Subtotal:</span>
+                    {CurrencySign}
                     {parseFloat(item.subtotal).toFixed(2)}
                   </p>
                   {item.discount > 0 && (

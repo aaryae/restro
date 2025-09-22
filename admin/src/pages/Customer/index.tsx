@@ -242,7 +242,7 @@ export default function Customer() {
         handleNewButton={() => handleNewButton(null)}
         handleReloadButton={handleReload}
       >
-        {success && (
+        {/* {success && (
           <ExportToExcel
             title="Customer Report"
             headers={tableHeaders}
@@ -251,7 +251,7 @@ export default function Customer() {
             refetch={reportRefetch}
             setIsExportTriggered={setIsExportTriggered}
           />
-        )}
+        )} */}
       </PageHeader>
       <PageFilterWrapper title="Customer Filters">
         {Component}

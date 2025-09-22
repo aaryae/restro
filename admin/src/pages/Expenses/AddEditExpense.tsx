@@ -150,8 +150,10 @@ const AddEditExpense: React.FC = () => {
         <div className="flex gap-2 w-full max-w-[900px]">
           <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1 ">Category</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
+                  Category
+                </label>
                 <select
                   className="border rounded px-3 py-2 bg-white"
                   {...register("categoryId", {
@@ -171,8 +173,8 @@ const AddEditExpense: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
                   Payment Method
                 </label>
                 <select
@@ -193,8 +195,8 @@ const AddEditExpense: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
                   Payment Source
                 </label>
                 <select
@@ -217,8 +219,10 @@ const AddEditExpense: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">Supplier</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
+                  Supplier
+                </label>
                 <select
                   disabled={isEdit}
                   className="border rounded px-3 py-2 bg-white"
@@ -240,8 +244,8 @@ const AddEditExpense: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
                   Amount ({CurrencySign})
                 </label>
                 <input
@@ -260,8 +264,10 @@ const AddEditExpense: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col md:col-span-2">
-                <label className="text-sm text-gray-700 mb-1">Remarks</label>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
+                  Remarks
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Additional remarks"

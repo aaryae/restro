@@ -156,7 +156,7 @@ export default function Settings() {
         <h2 className="text-start w-full p-[1rem]">
           {translate("Brand Setting")}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[1rem] px-[1rem] py-[3rem]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[1rem] px-[1rem] pb-[3rem] pt-[1rem]">
           <Input
             label="Brand Name"
             placeholder="Brand Name"
@@ -383,7 +383,7 @@ export default function Settings() {
       </div>
 
       <Button type="submit" className="submit-button w-fit">
-        <div className="flex justify-center items-center gap-[0.5rem] text-white">
+        <div className="flex justify-center items-center gap-[0.5rem] text-white px-[1.5rem] py-[0.5rem]">
           {translate("Submit")}
         </div>
       </Button>

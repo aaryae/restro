@@ -79,21 +79,24 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         <>
                           <div
                             key={item.id}
-                            className="flex items-center border-b border-gray-200 py-2 gap-6"
+                            className=" border-b border-gray-200 py-2 gap-6"
                           >
-                            <Checkbox
-                              key={item.id}
-                              checked={item.selected}
-                              onChange={(e) =>
-                                handleCheckboxChange(item.id, e.target.checked)
-                              }
-                            />
-                            <div className="flex justify-between items-center gap-[7rem]">
-                              <div className="leading-[1.5] text-gray-600">
+                            <div className="flex justify-between items-center">
+                              <Checkbox
+                                key={item.id}
+                                checked={item.selected}
+                                onChange={(e) =>
+                                  handleCheckboxChange(
+                                    item.id,
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                              <div className="leading-[1.5] text-gray-600 md:pr-[6rem] pr-[3rem] ">
                                 <p className="font-medium text-[15px]">
                                   Item: {item.product.name}
                                 </p>
-                                <p className="flex text-[15px]">
+                                <p className="flex text-[13px]">
                                   Qty: {item.quantity}
                                 </p>
                                 {item.specialInstructions && (
@@ -129,14 +132,16 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                 Checkout
                               </span>
                             </button>
-                            <Link
-                              to={`/admin/${ORDER_URL}${id}/${order.id}`}
-                              className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
-                            >
-                              <span className="font-[500] text-[15px]">
-                                Update
-                              </span>
-                            </Link>
+                            {order.status !== "prepared" && (
+                              <Link
+                                to={`/admin/${ORDER_URL}${id}/${order.id}`}
+                                className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
+                              >
+                                <span className="font-[500] text-[15px]">
+                                  Update
+                                </span>
+                              </Link>
+                            )}
                           </>
                         )}
                       </div>
@@ -150,12 +155,14 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
             </div>
           )}
           <div className="flex justify-end">
-            <Button
-              className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
-              handleClick={() => handleCheckout(id!, allOrderIds)}
-            >
-              Checkout ALL
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
+                handleClick={() => handleCheckout(id!, allOrderIds)}
+              >
+                Checkout ALL
+              </Button>
+            </div>
           </div>
         </div>
       </div>

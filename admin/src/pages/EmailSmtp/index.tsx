@@ -64,9 +64,9 @@ export default function EmailSmtp() {
 
   return (
     <>
-      <PageTitle title="Email Smtp" isBack />
+      <PageTitle title="Email Smtp" />
       <form
-        className="w-1/2 space-y-[1rem] form-container"
+        className="w-1/2 space-y-[1rem] form-container mt-4"
         onSubmit={handleSubmit(onSubmit)}
       >
         <Input

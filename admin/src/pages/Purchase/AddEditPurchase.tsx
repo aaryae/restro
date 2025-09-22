@@ -337,7 +337,7 @@ const AddEditPurchase: React.FC = () => {
         className="flex flex-col space-y-6"
       >
         <fieldset disabled={isCompleted} className="contents">
-          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+          <div className="flex flex-col gap-6 items-stretch">
             <div className="w-full lg:flex-1 flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg mt-4">
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-2">
@@ -345,9 +345,9 @@ const AddEditPurchase: React.FC = () => {
                 </h3>
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start md:justify-center">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Invoice Date
                   </label>
                   <input
@@ -367,7 +367,7 @@ const AddEditPurchase: React.FC = () => {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start md:justify-center">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Supplier
                   </label>
                   <select
@@ -389,7 +389,7 @@ const AddEditPurchase: React.FC = () => {
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start md:justify-center">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start ">
                     Invoice Number
                   </label>
                   <input
@@ -408,7 +408,7 @@ const AddEditPurchase: React.FC = () => {
                 </div>
                 {/* Removed global Purchase Category field in favor of per-item category */}
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start md:justify-center">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Payment Terms
                   </label>
                   <select
@@ -423,7 +423,7 @@ const AddEditPurchase: React.FC = () => {
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start md:justify-center">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start ">
                     Account
                   </label>
                   <AccountDropdown
@@ -443,7 +443,7 @@ const AddEditPurchase: React.FC = () => {
               {/* Items table */}
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                  <h2 className="text-sm font-semibold text-gray-900 flex justify-start md:justify-center">
+                  <h2 className="text-sm font-semibold text-gray-900 flex justify-start ">
                     Purchase Items
                   </h2>
                   <button
@@ -637,7 +637,7 @@ const AddEditPurchase: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="w-full lg:max-w-xl shrink-0">
+            <div className="w-full shrink-0">
               <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl">
                 {/* Accent gradient blob */}
                 <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
@@ -650,15 +650,15 @@ const AddEditPurchase: React.FC = () => {
                   </div>
 
                   {/* Stats grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="text-xs text-gray-500">Subtotal</div>
                       <div className="mt-1 text-lg font-semibold text-gray-900">
                         {CurrencySign}
                         {totals.subtotal.toFixed(2)}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>Discount</span>
                         <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
@@ -671,7 +671,7 @@ const AddEditPurchase: React.FC = () => {
                         {(totals.subtotal - totals.discount).toFixed(2)}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="text-xs text-gray-500">Tax (13%)</div>
                       <div className="mt-1 text-lg font-semibold text-amber-600">
                         {CurrencySign}
@@ -685,6 +685,11 @@ const AddEditPurchase: React.FC = () => {
 
                   {/* Grand total row */}
                   <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                        Entry By: {username || "-"}
+                      </span>
+                    </div>
                     <div>
                       <div className="text-sm font-medium text-gray-600">
                         Grand Total
@@ -693,11 +698,6 @@ const AddEditPurchase: React.FC = () => {
                         {CurrencySign}
                         {totals.grand.toFixed(2)}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                        Entry By: {username || "-"}
-                      </span>
                     </div>
                   </div>
                 </div>
