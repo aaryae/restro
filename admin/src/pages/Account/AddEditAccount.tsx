@@ -186,40 +186,42 @@ const AddEditAccount: React.FC = () => {
             isRequired
           />
 
-          <div className="w-full md:w-1/2">
-            <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
-              Account Type
-            </label>
-            <Controller
-              name="accountType"
-              control={control}
-              render={({ field }) => (
-                <>
-                  <div className="flex space-x-5 p-1 rounded-lg">
-                    {accountTypeOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
-                          field.value === option.value
-                            ? "bg-primaryColor text-white border-none"
-                            : "bg-white text-gray-700 hover:bg-gray-200"
-                        }`}
-                        onClick={() => field.onChange(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  {errors.accountType && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.accountType.message}
-                    </p>
-                  )}
-                </>
-              )}
-            />
-          </div>
+          {!isEditMode && (
+            <div className="w-full md:w-1/2">
+              <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
+                Account Type
+              </label>
+              <Controller
+                name="accountType"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <div className="flex space-x-5 p-1 rounded-lg">
+                      {accountTypeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
+                            field.value === option.value
+                              ? "bg-primaryColor text-white border-none"
+                              : "bg-white text-gray-700 hover:bg-gray-200"
+                          }`}
+                          onClick={() => field.onChange(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    {errors.accountType && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.accountType.message}
+                      </p>
+                    )}
+                  </>
+                )}
+              />
+            </div>
+          )}
 
           {/* Status Radio Group */}
           <div className="w-full md:w-1/2">
