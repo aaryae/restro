@@ -451,6 +451,8 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
       }
 
       // Seed media entries, products, and product media
+      // Start ordering from 1 for products created from this category folder
+      let orderCounter = 1;
       for (const file of validFiles) {
         const sourcePath = path.join(sourceFolder, file);
         let targetFileName = generateFileName(file); // Generate unique name
@@ -484,7 +486,6 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
           where: { slug: generateSlug(productName) },
           raw: true,
         });
-
         if (!product) {
           product = await productModel.create({
             productCategoryId: categoryId,
@@ -492,11 +493,12 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
             name: productName,
             slug: generateSlug(productName),
             quantity: 10, // Default value
-            orders: 0,
+            order: orderCounter,
             price: 125.0, // Default value
             stockStatus: "in_stock",
             reservedQuantity: 0,
           });
+          orderCounter += 1;
           console.log(`Created product: ${productName}`);
         } else {
           console.log(`Product already exists: ${productName}`);
