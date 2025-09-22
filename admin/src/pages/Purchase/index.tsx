@@ -21,6 +21,7 @@ import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 import { FaEye } from "react-icons/fa";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { ADToBS } from "bikram-sambat-js";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
@@ -207,7 +208,7 @@ const Purchase: React.FC = () => {
     const dateAD = (r?.invoiceDate || r?.date || r?.createdAt || "")
       .toString()
       .slice(0, 10);
-    const dateBS = r?.dateBS || "-";
+    const dateBS = ADToBS(r?.createdAt);
     const particulars = (() => {
       const items: any[] = r?.purchaseItems || r?.items || [];
       if (items.length > 0) {

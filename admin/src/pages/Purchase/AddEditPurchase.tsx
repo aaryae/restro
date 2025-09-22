@@ -294,7 +294,7 @@ const AddEditPurchase: React.FC = () => {
           await completePurchase(id as string).unwrap();
         }
         handleResponse({
-          res: { success: true, msg: response?.message },
+          res: response,
           onSuccess: () => navigate(-1),
         });
       } else {
@@ -320,7 +320,7 @@ const AddEditPurchase: React.FC = () => {
         }
 
         handleResponse({
-          res: { success: true, msg: response?.message },
+          res: response,
           onSuccess: () => navigate(-1),
         });
       }
