@@ -236,8 +236,8 @@ const AddEditExpense: React.FC = () => {
                 />
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-700 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
                   Amount ({CurrencySign})
                 </label>
                 <input
@@ -256,8 +256,10 @@ const AddEditExpense: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col md:col-span-2">
-                <label className="text-sm text-gray-700 mb-1">Remarks</label>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
+                  Remarks
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Additional remarks"

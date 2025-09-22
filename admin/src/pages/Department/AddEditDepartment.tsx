@@ -149,7 +149,7 @@ export default function AddEditDepartment({
           type="color"
           label="Color (Hex Code)"
           placeholder="#FF5722"
-          className="w-1/2 md:w-1/2"
+          className="w-[30%] md:w-1/2"
           {...register("color")}
           error={errors.color?.message}
         />

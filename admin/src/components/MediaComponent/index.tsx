@@ -296,14 +296,14 @@ export default function MediaComponent({
                 </button>
               )}
             </div>
-            <div className="mt-[1rem] flex flex-wrap border-red-500 gap-[1rem] md:gap-[4rem] w-[calc(100vw-4rem)] md:w-[calc(100vw-25rem)]">
+            <div className="mt-[1rem] grid grid-cols-3 md:flex md:flex-wrap gap-4 w-full">
               {currentFolder === null && (
                 <>
                   {mediaCategory?.map(
                     (each: { id: number; name: string }, index: number) => (
                       <button
                         key={index}
-                        className="relative border w-fit px-[0.5rem] md:px-[1.5rem] pt-[1.5rem] pb-[1rem] cursor-pointer group "
+                        className="relative border w-fit px-[0.5rem] md:px-[1.5rem] pt-[1.5rem] pb-[1rem] cursor-pointer group"
                         onDoubleClick={() => handleDoubleClick(each.id)}
                         style={{ userSelect: "none" }}
                       >
