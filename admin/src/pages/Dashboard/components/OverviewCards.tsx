@@ -11,6 +11,7 @@ import {
   REVENUE_URL,
 } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
+import { useGetSettingQuery } from "@/redux/services/settings";
 
 function OverviewCards() {
   const revenueAccessList = checkAccess("Revenue");
@@ -28,8 +29,7 @@ function OverviewCards() {
     url: `${EXPENSE_URL}total-expense`,
     skip: !expenseAccessList.includes("view-total"),
   });
-
-  console.log(totalRevenueData, "reveueueueu");
+  const { data: settings } = useGetSettingQuery("");
 
   const url = buildQueryString("account/list", { page: 1, limit: 1000 });
   const { data, isLoading } = useGetApiQuery({ url });
@@ -130,6 +130,7 @@ function OverviewCards() {
           totalRevenue={totalRevenueData?.data?.total}
           totalPurchase={totalPurchaseData?.data?.total}
           totalExpense={totalExpenseData?.data?.total}
+          openingBalance={settings?.data?.openingBalance}
         />
       )}
     </>
@@ -171,10 +172,12 @@ function FiscalYearSummary({
   totalRevenue,
   totalPurchase,
   totalExpense,
+  openingBalance,
 }: {
   totalRevenue: number;
   totalPurchase: number;
   totalExpense: number;
+  openingBalance: number | undefined;
 }) {
   const profit = totalRevenue - (totalPurchase + totalExpense);
   const pieData = [
@@ -207,25 +210,19 @@ function FiscalYearSummary({
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <>
-            <h3 className="text-base font-semibold text-gray-900 mb-4">
-              Weekly Summary
-            </h3>
-            <BarChartComponent
-              data={[
-                {
-                  name: "Sales",
-                  data: [10, 20, 30, 40, 50, 60, 70],
-                },
-              ]}
-              dataKeys={["Sales"]}
-              height={260}
-              xAxisLabel="Day"
-              yAxisLabel="Sales"
-              showLegend={false}
-              colorScale={["#10b981"]}
-            />
-          </>
+          <h3 className="text-base font-semibold text-gray-900 mb-4">
+            Total Collected Amount
+          </h3>
+          <SummaryCard
+            title="Total Collected Amount"
+            value={`${CurrencySign}${profit + Number(openingBalance || 0)}`}
+            gradient="from-blue-500 via-blue-600 to-blue-500"
+            Icon={PiggyBank}
+          />
+          <h3 className="text-2xl text-left font-semibold text-gray-900 my-4">
+            Opening Balance {CurrencySign}
+            {openingBalance}
+          </h3>
         </div>
       </div>
 
