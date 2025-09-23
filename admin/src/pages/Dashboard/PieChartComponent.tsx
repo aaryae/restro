@@ -41,6 +41,9 @@ interface PieChartProps {
   nameKey?: keyof ChartData;
   dataKey?: keyof ChartData;
   responsive?: boolean;
+  // Explicit colors to use in order of the data array. If provided and sufficient,
+  // these will be used instead of the generated chroma scale colors.
+  colors?: string[];
 }
 
 interface ExtendedPreLabelRenderProps extends PieLabelRenderProps {
@@ -116,12 +119,21 @@ const PieChartComponent: React.FC<PieChartProps> = ({
   nameKey = "name",
   dataKey = "value",
   responsive = false,
+  colors: fixedColors,
 }) => {
   // Generate colors based on data length
-  const colors = useMemo(
-    () => generateColors(data.length, colorScale),
-    [data.length, colorScale],
-  );
+  const colors = useMemo(() => {
+    // Prefer explicit colors if provided and long enough
+    if (fixedColors && fixedColors.length >= data.length) {
+      return fixedColors.slice(0, data.length);
+    }
+    // If user provided a full list in colorScale, use it directly
+    if (colorScale && colorScale.length >= data.length) {
+      return colorScale.slice(0, data.length);
+    }
+    // Fallback to generated accessible colors
+    return generateColors(data.length, colorScale);
+  }, [data.length, fixedColors, colorScale]);
 
   // Render the chart inside ResponsiveContainer if responsive is true
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
