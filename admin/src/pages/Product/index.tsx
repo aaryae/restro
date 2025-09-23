@@ -162,18 +162,23 @@ export default function Product() {
               handlePagination({ page: 1, limit: query.limit });
             }}
           />
-          <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto">
-            <Select
-              options={categoryOptions as any}
-              value={selectedCategory}
-              className="w-full"
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                // reset to first page when category changes
-                handlePagination({ page: 1, limit: query.limit });
-              }}
-            />
-          </div>
+          {/* <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto"> */}
+          <select
+            value={selectedCategory}
+            className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              // reset to first page when category changes
+              handlePagination({ page: 1, limit: query.limit });
+            }}
+          >
+            {categoryOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {/* </div> */}
         </div>
         <div className="w-full ">
           <PageHeader

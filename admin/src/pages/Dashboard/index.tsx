@@ -49,7 +49,7 @@ export default function Dashboard() {
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="flex p-1 gap-[18px] rounded-lg justify-between">
+            <div className="flex p-1 gap-2 rounded-lg justify-between">
               {headerOptions.map((option) => (
                 <button
                   key={option.value}

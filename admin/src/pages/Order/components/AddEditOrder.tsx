@@ -606,7 +606,7 @@ export default function AddEditOrder({
                   {orderItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                      className={`flex items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
                     >
                       <div
                         className={`flex flex-col items-start ${item.status === "cancelled" ? "line-through" : ""}`}

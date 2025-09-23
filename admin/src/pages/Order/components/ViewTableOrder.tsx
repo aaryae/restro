@@ -92,7 +92,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                   )
                                 }
                               />
-                              <div className="leading-[1.5] text-gray-600 md:pr-[6rem] pr-[3rem] ">
+                              <div className="leading-[1.5] text-gray-600 md:pr-[3rem] pr-[3rem] ">
                                 <p className="font-medium text-[15px]">
                                   Item: {item.product.name}
                                 </p>

@@ -25,10 +25,12 @@ import {
   type PurchaseFormInput,
   type PurchaseItemInput,
 } from "./schema";
+import { Input } from "react-aria-components";
+import CustomDialog from "@/components/Dialog";
+import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 
 type ItemRow = PurchaseItemInput;
 
-// Simple dropdown components (replace with real data sources as needed)
 type IdChangeHandler = (val: string) => void;
 
 function AccountDropdown({
@@ -151,19 +153,40 @@ const AddEditPurchase: React.FC = () => {
     useGetPurchaseByIdQuery(id as string, { skip: !isEdit });
   const isCompleted = useMemo(() => {
     const p: any = purchaseData?.data;
-    const raw = (p?.status ?? p?.purchaseStatus ?? p?.state ?? "")
-      .toString()
-      .toLowerCase();
+    const raw = (
+      p?.status ??
+      p?.purchaseStatus ??
+      p?.state ??
+      ""
+    ).toLowerCase();
     return raw === "completed" || raw === "complete";
   }, [purchaseData]);
 
   // Suppliers dropdown
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<{
+    value: string;
+    label: string;
+  } | null>(null);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
     limit: 100,
+    search: {
+      name: supplierSearchTerm,
+    },
   });
-  const { data: suppliersResp, isSuccess: suppliersOk } =
-    useGetListAllSupplierQuery({ url: supplierUrl });
+  const {
+    data: suppliersResp,
+    isSuccess: suppliersOk,
+    refetch: refetchSuppliers,
+  } = useGetListAllSupplierQuery(
+    { url: supplierUrl },
+    {
+      skip: supplierSearchTerm.trim().length < 2,
+    },
+  );
   const supplierOptions = useMemo(() => {
     let rows: any[] = [];
     if (suppliersOk) {
@@ -178,6 +201,23 @@ const AddEditPurchase: React.FC = () => {
       rows.map((s: any) => ({ label: s.name, value: String(s.id) })),
     );
   }, [suppliersOk, suppliersResp]);
+
+  // Normalized supplier rows for dropdown
+  const supplierRows = useMemo(() => {
+    let rows: any[] = [];
+    if (suppliersOk) {
+      const raw: any = (suppliersResp as any)?.data;
+      if (Array.isArray(raw)) rows = raw;
+      else if (Array.isArray(raw?.data)) rows = raw.data;
+    }
+    const q = supplierSearchTerm.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return rows.filter((r) =>
+      [r?.name, r?.phone, r?.email]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q)),
+    );
+  }, [suppliersOk, suppliersResp, supplierSearchTerm]);
 
   // Purchase Categories dropdown
   const pcUrl = buildQueryString("purchase-category/list", {
@@ -366,11 +406,38 @@ const AddEditPurchase: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
-                    Supplier
-                  </label>
-                  <select
+                <div className="flex flex-col relative">
+                  <div className="flex items-center gap-2 justify-between">
+                    <label className="text-sm text-gray-700 mb-1 flex justify-start">
+                      Supplier
+                    </label>
+                    <CustomDialog
+                      buttonTitle={
+                        <button
+                          type="button"
+                          className="w-full sm:w-auto rounded-full bg-primaryColor px-3 py-2 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 absolute -top-4 right-1"
+                        >
+                          Add Supplier
+                        </button>
+                      }
+                      dialogOpen={supplierDialogOpen}
+                      setDialogOpen={setSupplierDialogOpen}
+                      title="Add Supplier"
+                      contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                    >
+                      <AddEditSupplier
+                        isComponent={true}
+                        closeModal={() => {
+                          setSupplierDialogOpen(false);
+                          // Optionally refresh search list if a term is active
+                          if (supplierSearchTerm.trim().length >= 2) {
+                            refetchSuppliers();
+                          }
+                        }}
+                      />
+                    </CustomDialog>
+                  </div>
+                  {/* <select
                     className="border rounded px-3 py-2 bg-white"
                     {...register("supplierId", {
                       required: "Supplier is required",
@@ -381,7 +448,85 @@ const AddEditPurchase: React.FC = () => {
                         {opt.label}
                       </option>
                     ))}
-                  </select>
+                  </select> */}
+
+                  <div className="relative">
+                    <Input
+                      placeholder="Search supplier"
+                      className="border rounded px-3 py-2 bg-white w-full"
+                      value={selectedSupplier?.label || supplierSearchTerm}
+                      onChange={(e) => {
+                        setSelectedSupplier(null);
+                        setSupplierSearchTerm(e.target.value);
+                        setIsSupplierDropdownOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const first = supplierRows?.[0];
+                          if (first) {
+                            setSelectedSupplier({
+                              value: String(first.id),
+                              label: first.name,
+                            });
+                            setValue("supplierId", String(first.id), {
+                              shouldValidate: true,
+                            });
+                            setSupplierSearchTerm(first.name);
+                            setIsSupplierDropdownOpen(false);
+                          }
+                        }
+                      }}
+                      onFocus={() => setIsSupplierDropdownOpen(true)}
+                      onBlur={() =>
+                        setTimeout(() => setIsSupplierDropdownOpen(false), 150)
+                      }
+                    />
+                    {isSupplierDropdownOpen &&
+                      supplierSearchTerm.trim().length >= 2 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                          {!suppliersOk ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              Type at least 2 characters to search…
+                            </div>
+                          ) : supplierRows.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No suppliers found
+                            </div>
+                          ) : (
+                            supplierRows.map((supplier: any) => (
+                              <button
+                                key={supplier.id}
+                                type="button"
+                                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setSelectedSupplier({
+                                    value: String(supplier.id),
+                                    label: supplier.name,
+                                  });
+                                  setValue("supplierId", String(supplier.id), {
+                                    shouldValidate: true,
+                                  });
+                                  setSupplierSearchTerm(supplier.name);
+                                  setIsSupplierDropdownOpen(false);
+                                }}
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">
+                                    {supplier.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {[supplier.phone, supplier.email]
+                                      .filter(Boolean)
+                                      .join(" • ")}
+                                  </div>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                  </div>
                   {errors.supplierId && (
                     <span className="text-red-600 text-sm mt-1">
                       {errors.supplierId.message}
@@ -499,7 +644,7 @@ const AddEditPurchase: React.FC = () => {
                             <td className="p-2 border">
                               <input
                                 type="text"
-                                className="border rounded px-2 py-1 w-full bg-white"
+                                className="border rounded px-2 py-1 w-20 bg-white"
                                 {...register(`items.${idx}.hsCode` as const)}
                               />
                             </td>
@@ -520,7 +665,7 @@ const AddEditPurchase: React.FC = () => {
                             <td className="p-2 border">
                               <input
                                 type="text"
-                                className="border rounded px-2 py-1 w-full bg-white"
+                                className="border rounded px-2 py-1 w-[30rem] bg-white"
                                 {...register(
                                   `items.${idx}.particulars` as const,
                                   {
@@ -581,9 +726,76 @@ const AddEditPurchase: React.FC = () => {
                   </table>
                 </div>
               </div>
+            </div>
+            <div className="w-full shrink-0">
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl">
+                {/* Accent gradient blob */}
+                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
 
-              {/* Payment and file */}
-              <div className="flex flex-col gap-4">
+                <div className="p-4 sm:p-6">
+                  <div className="mb-5 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Purchase Summary
+                    </h3>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                      <div className="text-xs text-gray-500">Subtotal</div>
+                      <div className="mt-1 text-lg font-semibold text-gray-900">
+                        {CurrencySign}
+                        {totals.subtotal.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Discount</span>
+                        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                          -{CurrencySign}
+                          {totals.discount.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-lg font-semibold text-emerald-600">
+                        {CurrencySign}
+                        {(totals.subtotal - totals.discount).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                      <div className="text-xs text-gray-500">Tax (13%)</div>
+                      <div className="mt-1 text-lg font-semibold text-amber-600">
+                        {CurrencySign}
+                        {totals.tax.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+                  {/* Grand total row */}
+                  <div className="flex items-start justify-between gap-3 ">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                        Entry By: {username || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-600">
+                        Grand Total
+                      </div>
+                      <div className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
+                        {CurrencySign}
+                        {totals.grand.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Payment and file */}
+            <div className="w-full shrink-0">
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl p-4 flex flex-col gap-4">
                 <div className="flex flex-col items-start">
                   <label className="text-sm text-gray-700 mb-1">
                     Paid By (User)
@@ -633,72 +845,6 @@ const AddEditPurchase: React.FC = () => {
                         </button>
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="w-full shrink-0">
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl">
-                {/* Accent gradient blob */}
-                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
-
-                <div className="p-4 sm:p-6">
-                  <div className="mb-5 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Purchase Summary
-                    </h3>
-                  </div>
-
-                  {/* Stats grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="text-xs text-gray-500">Subtotal</div>
-                      <div className="mt-1 text-lg font-semibold text-gray-900">
-                        {CurrencySign}
-                        {totals.subtotal.toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Discount</span>
-                        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                          -{CurrencySign}
-                          {totals.discount.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-emerald-600">
-                        {CurrencySign}
-                        {(totals.subtotal - totals.discount).toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="text-xs text-gray-500">Tax (13%)</div>
-                      <div className="mt-1 text-lg font-semibold text-amber-600">
-                        {CurrencySign}
-                        {totals.tax.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-                  {/* Grand total row */}
-                  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                        Entry By: {username || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-600">
-                        Grand Total
-                      </div>
-                      <div className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
-                        {CurrencySign}
-                        {totals.grand.toFixed(2)}
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
