@@ -64,6 +64,10 @@ module.exports = {
         type: Sequelize.DECIMAL,
         allowNull: true,
       },
+      pan_vat_number: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

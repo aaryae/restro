@@ -16,7 +16,7 @@ module.exports = {
         references: { model: "suppliers", key: "id" },
       },
       invoiceDate: { type: Sequelize.DATE, allowNull: false },
-      invoiceNumber: { type: Sequelize.STRING, allowNull: false, unique: true },
+      invoiceNumber: { type: Sequelize.STRING, allowNull: false },
       paymentTerms: {
         type: Sequelize.ENUM("cash", "cheque", "credit"),
         allowNull: false,

@@ -56,6 +56,24 @@ const totalExpense = async (req, res, next) => {
   }
 };
 
+const categorySummary = async (req, res, next) => {
+  try {
+    const result = await expenseService.categorySummary(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const result = await expenseService.getById(req);
@@ -155,4 +173,5 @@ module.exports = {
   cancelExpense,
   getUnpaidCredits,
   totalExpense,
+  categorySummary,
 };

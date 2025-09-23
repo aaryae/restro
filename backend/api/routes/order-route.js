@@ -11,6 +11,8 @@ const {
   updateOrderItemsStatus,
   checkoutOrder,
   listOrderItems,
+  categorySalesSummary,
+  productTopSales,
 } = require("../controllers/order-controller");
 
 const {
@@ -38,6 +40,18 @@ router.get(
   authorization,
   // paginationValidation,
   listOrders,
+);
+router.get(
+  "/category-sales-summary",
+  authentication,
+  authorization,
+  categorySalesSummary,
+);
+router.get(
+  "/product-top-sales",
+  authentication,
+  authorization,
+  productTopSales,
 );
 // Customer/Staff routes
 router.post(

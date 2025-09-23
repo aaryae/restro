@@ -142,6 +142,51 @@ const create = async (req) => {
   }
 };
 
+// Group expenses by category with summed amounts for pie charts
+const categorySummary = async (req) => {
+  try {
+    const { start, end, cash_or_credit, paymentMethod, categoryId } = req.query;
+
+    const where = {};
+    if (categoryId) where.categoryId = parseInt(categoryId);
+    if (cash_or_credit === "cash" || cash_or_credit === "credit")
+      where.cash_or_credit = cash_or_credit;
+    if (paymentMethod) where.paymentMethod = paymentMethod;
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      where.createdAt = { [Sequelize.Op.between]: [startDate, endDate] };
+    }
+
+    const rows = await expenseModel.findAll({
+      attributes: [
+        "categoryId",
+        [Sequelize.fn("SUM", Sequelize.col("amount")), "value"],
+      ],
+      include: [
+        { model: expenseCategoryModel, as: "category", attributes: ["name"] },
+      ],
+      where,
+      group: ["categoryId", "category.id", "category.name"],
+      raw: true,
+    });
+
+    const data = rows.map((row) => ({
+      name: row["category.name"],
+      value: Number(row.value) || 0,
+    }));
+
+    return {
+      status: 200,
+      success: true,
+      message: "Expense category summary retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 const list = async (req) => {
   try {
     const { limit, page, categoryId, cash_or_credit } = req.query;
@@ -249,7 +294,9 @@ const updateById = async (req) => {
       };
     }
     // Validate current associated account
-    const currentAccount = await accountModel.findByPk(expense.accountId, { transaction });
+    const currentAccount = await accountModel.findByPk(expense.accountId, {
+      transaction,
+    });
     if (!currentAccount || currentAccount.status !== "active") {
       await transaction.rollback();
       return {
@@ -474,4 +521,5 @@ module.exports = {
   cancelExpense,
   getUnpaidCredits,
   totalExpense,
+  categorySummary,
 };

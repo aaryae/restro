@@ -25,4 +25,10 @@ export const SettingSchema = z.object({
         message: "Invalid hex color format",
       },
     ),
+  pan_vat_number: z.string().optional().nullable(),
+  openingBalance: z.coerce
+    .number()
+    .positive("Opening Balance must be positive")
+    .optional()
+    .nullable(),
 });

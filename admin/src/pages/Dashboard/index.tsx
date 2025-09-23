@@ -5,6 +5,7 @@ import { Controller } from "react-hook-form";
 import OverviewCards from "./components/OverviewCards";
 import PurchaseSection from "./components/PurchaseChart";
 import RevenueSection from "./components/RevenueChart";
+import PurchaseExpenseSection from "./components/PurchaseExpenseChart";
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -20,8 +21,8 @@ export default function Dashboard() {
 
   const headerOptions = [
     { label: "Overview", value: "overview" },
+    { label: "Purchase & Expense", value: "purchase-expense" },
     { label: "Revenue", value: "revenue" },
-    { label: "Purchase", value: "purchase" },
     { label: "Cash & Banks", value: "cashbanks" },
   ];
 
@@ -71,6 +72,12 @@ export default function Dashboard() {
       {selectedView === "overview" && (
         <>
           <OverviewCards />
+        </>
+      )}
+      {/* Revenue content */}
+      {selectedView === "purchase-expense" && (
+        <>
+          <PurchaseExpenseSection />
         </>
       )}
       {/* Revenue content */}

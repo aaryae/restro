@@ -182,6 +182,42 @@ const checkoutOrder = async (req, res, next) => {
   }
 };
 
+const categorySalesSummary = async (req, res, next) => {
+  try {
+    const result = await orderService.categorySalesSummary(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const productTopSales = async (req, res, next) => {
+  try {
+    const result = await orderService.productTopSales(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   createOrder,
   updateOrderItems,
@@ -193,4 +229,6 @@ module.exports = {
   bulkServeOrderItems,
   updateOrderItemsStatus,
   checkoutOrder,
+  categorySalesSummary,
+  productTopSales,
 };

@@ -46,7 +46,6 @@ module.exports = (sequelize) => {
       invoiceNumber: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
       },
       paymentTerms: {
         type: DataTypes.ENUM("cash", "cheque", "credit"),

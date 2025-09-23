@@ -1,18 +1,18 @@
 import { ChartPie } from "lucide-react";
-import { ORDER_URL } from "@/constants/apiUrlConstants";
+import PieChartComponent from "../PieChartComponent";
+import { EXPENSE_URL, PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import BarChartComponent from "../BarChartComponent";
 
-function RevenueSection() {
-  const { data: orderCategoryData } = useGetApiQuery({
-    url: `${ORDER_URL}category-sales-summary`,
-    skip: !checkAccess("Order").includes("view-category-sales-summary"),
+function PurchaseExpenseSection() {
+  const { data: purchaseCategoryData } = useGetApiQuery({
+    url: `${PURCHASE_URL}category-summary?status=completed`,
+    skip: !checkAccess("Purchase").includes("view-category-summary"),
   });
 
-  const { data: orderTopSalesData } = useGetApiQuery({
-    url: `${ORDER_URL}product-top-sales`,
-    skip: !checkAccess("Order").includes("view-product-top-sales"),
+  const { data: expenseCategoryData } = useGetApiQuery({
+    url: `${EXPENSE_URL}category-summary`,
+    skip: !checkAccess("Expense").includes("view-category-summary"),
   });
 
   return (
@@ -28,25 +28,23 @@ function RevenueSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <BarChartComponent
-            data={orderCategoryData?.data || []}
-            dataKeys={["amount"]}
-            height={300}
-            xAxisLabel="category"
-            yAxisLabel="Amount"
-            showLegend={false}
-            colorScale={["#f97316"]}
+          <PieChartComponent
+            data={purchaseCategoryData?.data || []}
+            responsive
+            height={260}
+            showLegend
+            legendPosition="bottom"
+            colorScale={["#22c55e", "#8B0000"]}
           />
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <BarChartComponent
-            data={orderTopSalesData?.data || []}
-            dataKeys={["amount"]}
-            height={300}
-            xAxisLabel="Item"
-            yAxisLabel="Amount"
-            showLegend={false}
-            colorScale={["#f97316"]}
+          <PieChartComponent
+            data={expenseCategoryData?.data || []}
+            responsive
+            height={260}
+            showLegend
+            legendPosition="bottom"
+            colorScale={["#22c55e", "#8B0000"]}
           />
         </div>
       </div>
@@ -104,4 +102,4 @@ function RevenueSection() {
     </div>
   );
 }
-export default RevenueSection;
+export default PurchaseExpenseSection;

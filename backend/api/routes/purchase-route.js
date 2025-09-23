@@ -26,6 +26,7 @@ const {
   getUnpaidCredits,
   deleteById,
   totalPurchase,
+  categorySummary,
 } = require("../controllers/purchase-controller");
 
 router.post("/", authentication, authorization, purchasePostValidation, create);
@@ -36,6 +37,13 @@ router.get(
   authorization,
   paginationValidation,
   totalPurchase,
+);
+router.get(
+  "/category-summary",
+  authentication,
+  authorization,
+  paginationValidation,
+  categorySummary,
 );
 router.get(
   "/unpaid-credits",

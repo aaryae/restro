@@ -213,6 +213,20 @@ export default function Settings() {
             {...register("mapUrl")}
             error={errors?.mapUrl?.message}
           />
+          <Input
+            label="Pan/Vat Number"
+            placeholder="Pan/Vat Number"
+            type="text"
+            {...register("pan_vat_number")}
+            error={errors?.pan_vat_number?.message}
+          />
+          <Input
+            label="Opening Balance"
+            placeholder="Opening Balance"
+            type="number"
+            {...register("openingBalance")}
+            error={errors?.openingBalance?.message}
+          />
         </div>
       </div>
       {/* Images */}

@@ -41,6 +41,12 @@ const companySettingsPutValidation = async (req, res, next) => {
       .pattern(/^#[0-9A-Fa-f]{6}$/)
       .optional()
       .allow(null),
+    pan_vat_number: joi.string().optional().allow(null),
+    openingBalance: joi
+      .number()
+      .positive("Opening Balance must be positive")
+      .optional()
+      .allow(null),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {

@@ -7,6 +7,7 @@ const {
   orderModel,
   orderItemModel,
   productModel,
+  productCategoryModel,
   tableModel,
   productMediaModel,
   accountModel,
@@ -20,6 +21,132 @@ const { withTransaction } = require("../../helpers/order/transaction");
 
 const paginate = require("../../utils/paginate");
 
+// Sum paid sales by product category for bar charts
+const categorySalesSummary = async (req) => {
+  try {
+    const { start, end } = req.query;
+
+    const whereOrder = {
+      status: "completed",
+      paymentStatus: "paid",
+    };
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      whereOrder.orderFinishTime = { [Op.between]: [startDate, endDate] };
+    }
+
+    const rows = await orderItemModel.findAll({
+      attributes: [
+        [sequelize.col("product.product_category.name"), "name"],
+        [sequelize.fn("SUM", sequelize.col("subtotal")), "amount"],
+      ],
+      include: [
+        {
+          model: productModel,
+          as: "product",
+          attributes: [],
+          include: [
+            {
+              model: productCategoryModel,
+              as: "product_category",
+              attributes: [],
+            },
+          ],
+        },
+        {
+          model: orderModel,
+          as: "order",
+          attributes: [],
+          where: whereOrder,
+          required: true,
+        },
+      ],
+      where: {
+        status: { [Op.ne]: "cancelled" },
+      },
+      group: ["product.product_category.id", "product.product_category.name"],
+      raw: true,
+    });
+
+    const data = rows.map((row) => ({
+      name: row.name,
+      amount: Number(row.amount) || 0,
+    }));
+    return {
+      status: 200,
+      success: true,
+      message: "Category sales summary retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    console.error("Category sales summary error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+// Top 5 products by total sold amount (paid & completed), not by times sold
+const productTopSales = async (req) => {
+  try {
+    const { start, end, limit = 5 } = req.query;
+
+    const whereOrder = {
+      status: "completed",
+      paymentStatus: "paid",
+    };
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      whereOrder.orderFinishTime = { [Op.between]: [startDate, endDate] };
+    }
+
+    const rows = await orderItemModel.findAll({
+      attributes: [
+        "productId",
+        [sequelize.fn("SUM", sequelize.col("subtotal")), "amount"],
+      ],
+      include: [
+        { model: productModel, as: "product", attributes: ["name"] },
+        {
+          model: orderModel,
+          as: "order",
+          attributes: [],
+          where: whereOrder,
+          required: true,
+        },
+      ],
+      where: { status: { [Op.ne]: "cancelled" } },
+      group: ["productId", "product.id", "product.name"],
+      order: [[sequelize.literal("amount"), "DESC"]],
+      limit: Math.max(1, parseInt(limit) || 5),
+      raw: true,
+    });
+
+    const data = rows.map((r) => ({
+      name: r["product.name"],
+      amount: Number(r.amount) || 0,
+    }));
+
+    return {
+      status: 200,
+      success: true,
+      message: "Top product sales retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    console.error("Top product sales error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
 const createOrder = async (req) => {
   const transaction = await sequelize.transaction();
   try {
@@ -389,7 +516,11 @@ const checkoutOrder = async (req) => {
     console.log(`******************\n${accountId}\n****************`);
 
     // For dine-in flow, tableId is used; for takeaway, tableId may be missing/ignored
-    const hasTable = !!tableId && tableId !== "0" && tableId !== "null" && tableId !== "undefined";
+    const hasTable =
+      !!tableId &&
+      tableId !== "0" &&
+      tableId !== "null" &&
+      tableId !== "undefined";
 
     // Validate paymentMethod if provided
     const validPaymentMethods = ["cash", "card", "online", "cheque"];
@@ -445,7 +576,12 @@ const checkoutOrder = async (req) => {
         });
         if (!account) {
           const pm = updateData.paymentMethod || "cash";
-          const accountTypeMap = { cash: "cash", card: "bank", cheque: "bank", online: "wallet" };
+          const accountTypeMap = {
+            cash: "cash",
+            card: "bank",
+            cheque: "bank",
+            online: "wallet",
+          };
           const accountType = accountTypeMap[pm] || "cash";
           account = await accountModel.findOne({
             where: { accountType, isDefault: true, status: "active" },
@@ -460,14 +596,24 @@ const checkoutOrder = async (req) => {
         }
         if (!account) {
           await transaction.rollback();
-          return { status: 400, success: false, message: "No active account available for checkout" };
+          return {
+            status: 400,
+            success: false,
+            message: "No active account available for checkout",
+          };
         }
         selectedAccountId = account.id;
       } else {
-        const account = await accountModel.findByPk(selectedAccountId, { transaction });
+        const account = await accountModel.findByPk(selectedAccountId, {
+          transaction,
+        });
         if (!account || account.status !== "active") {
           await transaction.rollback();
-          return { status: 400, success: false, message: `Invalid or inactive account ID: ${selectedAccountId}` };
+          return {
+            status: 400,
+            success: false,
+            message: `Invalid or inactive account ID: ${selectedAccountId}`,
+          };
         }
       }
 
@@ -479,7 +625,9 @@ const checkoutOrder = async (req) => {
       for (const [oid, items] of Object.entries(itemsByOrder)) {
         // Compute subset amount for these items (use subtotal if available, else price*qty - discount)
         const subsetTotal = items.reduce((sum, it) => {
-          const line = Number(it.subtotal) || (Number(it.price) * Number(it.quantity) - Number(it.discount || 0));
+          const line =
+            Number(it.subtotal) ||
+            Number(it.price) * Number(it.quantity) - Number(it.discount || 0);
           return sum + (isNaN(line) ? 0 : line);
         }, 0);
 
@@ -488,14 +636,19 @@ const checkoutOrder = async (req) => {
         await orderItemModel.update(
           { status: "completed" },
           {
-            where: { id: { [Op.in]: ids }, status: { [Op.notIn]: ["completed", "cancelled"] } },
+            where: {
+              id: { [Op.in]: ids },
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
             validate: false,
             transaction,
           },
         );
 
         // Update KOTs that are now fully completed/cancelled
-        const touchedKotIds = Array.from(new Set(items.map((it) => it.kotId).filter(Boolean)));
+        const touchedKotIds = Array.from(
+          new Set(items.map((it) => it.kotId).filter(Boolean)),
+        );
         if (touchedKotIds.length > 0) {
           const rows = await orderItemModel.findAll({
             attributes: ["kotId"],
@@ -508,24 +661,37 @@ const checkoutOrder = async (req) => {
             raw: true,
           });
           const incompleteKot = new Set(rows.map((r) => r.kotId));
-          const completeKotIds = touchedKotIds.filter((kid) => !incompleteKot.has(kid));
+          const completeKotIds = touchedKotIds.filter(
+            (kid) => !incompleteKot.has(kid),
+          );
           if (completeKotIds.length > 0) {
             await kotModel.update(
               { status: "completed" },
-              { where: { id: { [Op.in]: completeKotIds } }, validate: false, transaction },
+              {
+                where: { id: { [Op.in]: completeKotIds } },
+                validate: false,
+                transaction,
+              },
             );
           }
         }
 
         // If all items of the order are now completed or cancelled, mark order completed
         const remaining = await orderItemModel.count({
-          where: { orderId: oid, status: { [Op.notIn]: ["completed", "cancelled"] } },
+          where: {
+            orderId: oid,
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
           transaction,
         });
         const orderRecord = await orderModel.findByPk(oid, { transaction });
         if (remaining === 0) {
           await orderRecord.update(
-            { status: "completed", paymentStatus: "paid", orderFinishTime: new Date() },
+            {
+              status: "completed",
+              paymentStatus: "paid",
+              orderFinishTime: new Date(),
+            },
             { transaction },
           );
         }
@@ -540,7 +706,9 @@ const checkoutOrder = async (req) => {
               customerId: orderRecord.customerId || null,
               userId: req.user.id,
               accountId: selectedAccountId,
-              remarks: updateData.remarks || `Revenue from partial checkout of order ${oid}`,
+              remarks:
+                updateData.remarks ||
+                `Revenue from partial checkout of order ${oid}`,
             },
             { transaction },
           );
@@ -1354,4 +1522,6 @@ module.exports = {
 
   //department services
   updateOrderItemsStatus,
+  categorySalesSummary,
+  productTopSales,
 };

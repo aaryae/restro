@@ -127,6 +127,47 @@ const create = async (req) => {
   }
 };
 
+// Group purchases by category with summed amounts for pie charts
+const categorySummary = async (req) => {
+  try {
+    let { start, end, status, supplierId, paymentTerms } = req.query;
+
+    const wherePurchase = {};
+    if (status) wherePurchase.status = status;
+    if (supplierId) wherePurchase.supplierId = parseInt(supplierId);
+    if (paymentTerms) wherePurchase.paymentTerms = paymentTerms;
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      wherePurchase.invoiceDate = { [Sequelize.Op.between]: [startDate, endDate] };
+    }
+
+    const rows = await purchaseItemModel.findAll({
+      attributes: [
+        "categoryId",
+        [Sequelize.fn("SUM", Sequelize.col("amount")), "value"],
+      ],
+      include: [
+        { model: purchaseCategoryModel, as: "category", attributes: ["name"] },
+        { model: purchaseModel, as: "purchase", attributes: [], where: wherePurchase, required: true },
+      ],
+      group: ["categoryId", "category.id", "category.name"],
+      raw: true,
+    });
+
+    const data = rows.map((r) => ({ name: r["category.name"], value: Number(r.value) || 0 }));
+
+    return {
+      status: 200,
+      success: true,
+      message: "Purchase category summary retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 const list = async (req) => {
   try {
     const { limit, page, supplierId, status } = req.query;
@@ -737,5 +778,6 @@ module.exports = {
   cancelPurchase,
   getUnpaidCredits,
   totalPurchase,
+  categorySummary,
   deleteById,
 };

@@ -22,6 +22,7 @@ const {
   cancelExpense,
   getUnpaidCredits,
   totalExpense,
+  categorySummary,
 } = require("../controllers/expense-controller");
 
 router.post("/", authentication, authorization, expensePostValidation, create);
@@ -32,6 +33,13 @@ router.get(
   authorization,
   paginationValidation,
   totalExpense,
+);
+router.get(
+  "/category-summary",
+  authentication,
+  authorization,
+  paginationValidation,
+  categorySummary,
 );
 router.get("/:id", idValidation, getById);
 router.put(

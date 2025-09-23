@@ -835,6 +835,22 @@
           "list": "Order"
         },
         {
+          "title": "View Category Sales Summary",
+          "key": "view-category-sales-summary",
+          "clientPath": "/order/category-sales-summary",
+          "serverPath": "/order/category-sales-summary",
+          "requestMethod": "GET",
+          "list": "Order"
+        },
+        {
+          "title": "View Product Top Sales",
+          "key": "view-product-top-sales",
+          "clientPath": "/order/product-top-sales",
+          "serverPath": "/order/product-top-sales",
+          "requestMethod": "GET",
+          "list": "Order"
+        },
+        {
           "title": "Delete Order",
           "key": "delete",
           "clientPath": "/order/:id",
@@ -1163,6 +1179,14 @@
           "serverPath": "/purchase/total-purchase",
           "requestMethod": "GET",
           "list": "Purchase"
+        },
+        {
+          "title": "View Purchase Category Summary",
+          "key": "view-category-summary",
+          "clientPath": "/purchase/category-summary",
+          "serverPath": "/purchase/category-summary",
+          "requestMethod": "GET",
+          "list": "Purchase"
         }
       ]
     },
@@ -1213,6 +1237,14 @@
           "key": "view-total",
           "clientPath": "/expense/total-expense",
           "serverPath": "/expense/total-expense",
+          "requestMethod": "GET",
+          "list": "Expense"
+        },
+        {
+          "title": "View Expense Category Summary",
+          "key": "view-category-summary",
+          "clientPath": "/expense/category-summary",
+          "serverPath": "/expense/category-summary",
           "requestMethod": "GET",
           "list": "Expense"
         }

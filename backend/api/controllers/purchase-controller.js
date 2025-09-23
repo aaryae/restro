@@ -56,6 +56,24 @@ const totalPurchase = async (req, res, next) => {
   }
 };
 
+const categorySummary = async (req, res, next) => {
+  try {
+    const result = await purchaseService.categorySummary(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const result = await purchaseService.getById(req);
@@ -192,5 +210,6 @@ module.exports = {
   cancelPurchase,
   getUnpaidCredits,
   totalPurchase,
+  categorySummary,
   deleteById,
 };
