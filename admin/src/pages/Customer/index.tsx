@@ -38,6 +38,10 @@ export default function Customer() {
 
   const { control, handleSubmit, reset } = useForm<CustomerFilterType>({
     resolver: zodResolver(CustomerFilterSchema),
+    defaultValues: {
+      firstName: "",
+      email: "",
+    },
   });
 
   const [queryString, setQueryString] = useState<Record<string, any>>({});
@@ -96,7 +100,11 @@ export default function Customer() {
     filterField,
     handleSubmit,
     (query: Record<string, any>) => setQueryString(query),
-    reset,
+    () => {
+      reset({ firstName: "", email: "" });
+      setQueryString({});
+      handlePagination({ page: 1, limit: query.limit });
+    },
   );
 
   const url = buildQueryString("customer-auth/list", {
@@ -162,15 +170,7 @@ export default function Customer() {
   const tableData =
     success && allCustomers?.data?.data
       ? allCustomers?.data?.data.map(
-          ({
-            id,
-            firstName,
-            lastName,
-            email,
-            mobileNo,
-            isEmailVerified,
-            createdAt,
-          }) => [
+          ({ id, firstName, lastName, email, mobileNo, createdAt }) => [
             `${firstName} ${lastName}`,
             email,
             mobileNo,

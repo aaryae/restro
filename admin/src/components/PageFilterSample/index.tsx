@@ -20,7 +20,7 @@ export default function PageFilterSample(
   handleSubmit: any,
   // reset,
   onFilter: (data: any) => void,
-  resetFn?: (values: any) => void,
+  resetFn?: any,
 ) {
   const onSubmit = (data: any) => {
     onFilter(data);
@@ -66,17 +66,15 @@ export default function PageFilterSample(
         )}
         <div className="flex items-center gap-2 h-full">
           {resetFn && (
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => {
-                resetFn({});
-                onFilter({});
+                resetFn();
               }}
-              className="h-[42px] px-4"
+              className="h-[42px] px-4 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
             >
-              <RotateCcw className="w-4 h-4 mr-2" /> Reset
-            </Button>
+              <RotateCcw className="w-4 h-4 mr-2" /> Clear
+            </button>
           )}
           <Button
             type="submit"
@@ -91,4 +89,3 @@ export default function PageFilterSample(
 
   return { Component };
 }
-
