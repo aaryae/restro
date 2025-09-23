@@ -19,6 +19,7 @@ import {
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EXPENSE_LIST_ROUTE } from "@/routes/routeNames";
 import Select from "@/components/Select";
+import Input from "@/components/Input";
 
 // Zod schema aligned with backend Joi (expense_validation.js)
 export const ExpenseSchema = z.object({
@@ -237,27 +238,17 @@ const AddEditExpense: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
-                  Amount ({CurrencySign})
-                </label>
-                <input
-                  type="number"
-                  className="border rounded px-3 py-2 bg-white"
-                  {...register("amount", {
-                    required: "Amount is required",
-                    min: { value: 0, message: "Amount must be positive" },
-                    valueAsNumber: true,
-                  })}
+                <Input
+                  label="Amount"
+                  placeholder="Enter Amount"
+                  className="w-full"
+                  {...register("amount")}
+                  error={errors.amount?.message}
                 />
-                {errors.amount && (
-                  <span className="text-red-600 text-sm mt-1">
-                    {errors.amount.message}
-                  </span>
-                )}
               </div>
 
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="text-sm text-gray-700 mb-1 flex md:justify-center pl-[1px]">
+                <label className="text-left text-sm text-gray-700 mb-1 pl-[1px] font-semibold">
                   Remarks
                 </label>
                 <textarea
