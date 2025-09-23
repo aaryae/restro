@@ -21,10 +21,18 @@ const {
   recordCreditPayment,
   cancelExpense,
   getUnpaidCredits,
+  totalExpense,
 } = require("../controllers/expense-controller");
 
 router.post("/", authentication, authorization, expensePostValidation, create);
 router.get("/list", paginationValidation, list);
+router.get(
+  "/total-expense",
+  authentication,
+  authorization,
+  paginationValidation,
+  totalExpense,
+);
 router.get("/:id", idValidation, getById);
 router.put(
   "/:id",

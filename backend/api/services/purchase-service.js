@@ -9,6 +9,7 @@ const {
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 const { Sequelize } = require("sequelize");
+const { startOfDay, endOfDay, parseISO } = require("date-fns");
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -159,6 +160,39 @@ const list = async (req) => {
     return {
       ...generalConstant.EN.PURCHASE.PURCHASE_LIST_SUCCESS,
       data: result,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sum total purchase amount with filter support
+const totalPurchase = async (req) => {
+  try {
+    let { supplierId, status, paymentTerms, start, end } = req.query;
+
+    const filters = {};
+
+    if (supplierId) filters.supplierId = parseInt(supplierId);
+    if (status) filters.status = status; // e.g., draft/completed/cancelled
+    if (paymentTerms) filters.paymentTerms = paymentTerms; // e.g., cash/credit
+
+    // If date range provided, use invoiceDate range; otherwise default to none
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      filters.invoiceDate = { [Sequelize.Op.between]: [startDate, endDate] };
+    }
+
+    const total = await purchaseModel.sum("totalAmount", {
+      where: filters,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Total purchase retrieved successfully",
+      data: { total: parseFloat(total || 0) },
     };
   } catch (error) {
     throw error;
@@ -702,5 +736,6 @@ module.exports = {
   recordCreditPayment,
   cancelPurchase,
   getUnpaidCredits,
+  totalPurchase,
   deleteById,
 };

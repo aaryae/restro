@@ -71,6 +71,10 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      openingBalance: {
+        type: DataTypes.DECIMAL,
+        allowNull: true,
+      },
     },
     {
       timestamps: true,

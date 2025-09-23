@@ -5,6 +5,8 @@ const {
   supplierModel,
   sequelize,
 } = require("../../models");
+const { Sequelize } = require("sequelize");
+const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 
@@ -163,6 +165,36 @@ const list = async (req) => {
       return { ...generalConstant.EN.EXPENSE.EXPENSE_LIST_FAILURE, data: null };
     }
     return { ...generalConstant.EN.EXPENSE.EXPENSE_LIST_SUCCESS, data: result };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sum total expense amount with filter support
+const totalExpense = async (req) => {
+  try {
+    const { categoryId, cash_or_credit, paymentMethod, start, end } = req.query;
+
+    const filters = {};
+    if (categoryId) filters.categoryId = parseInt(categoryId);
+    if (cash_or_credit === "cash" || cash_or_credit === "credit")
+      filters.cash_or_credit = cash_or_credit;
+    if (paymentMethod) filters.paymentMethod = paymentMethod;
+
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      filters.createdAt = { [Sequelize.Op.between]: [startDate, endDate] };
+    }
+
+    const total = await expenseModel.sum("amount", { where: filters });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Total expense retrieved successfully",
+      data: { total: parseFloat(total || 0) },
+    };
   } catch (error) {
     throw error;
   }
@@ -441,4 +473,5 @@ module.exports = {
   recordCreditPayment,
   cancelExpense,
   getUnpaidCredits,
+  totalExpense,
 };

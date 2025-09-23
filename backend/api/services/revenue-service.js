@@ -763,6 +763,89 @@ const groupedList = async (req) => {
   }
 };
 
+// Sum total revenue with filter support
+const totalRevenue = async (req) => {
+  try {
+    let {
+      username,
+      customerId,
+      amount,
+      paymentMethod,
+      cash_or_credit = "all",
+      start,
+      end,
+    } = req.query;
+
+    const filters = {};
+
+    // Apply filters similar to groupedList
+    if (paymentMethod) {
+      filters.paymentMethod = {
+        [Op.in]: Array.isArray(paymentMethod) ? paymentMethod : [paymentMethod],
+      };
+    }
+
+    if (cash_or_credit === "cash" || cash_or_credit === "credit") {
+      filters.cash_or_credit = cash_or_credit;
+    }
+
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      filters.createdAt = { [Op.between]: [startDate, endDate] };
+    }
+
+    if (username) {
+      filters["$user.username$"] = { [Op.like]: `%${username}%` };
+    }
+
+    if (customerId) {
+      filters.customerId = parseInt(customerId);
+    }
+
+    if (amount) {
+      filters.amount = parseFloat(amount);
+    }
+
+    const includes = [
+      {
+        model: userModel,
+        as: "user",
+        attributes: [],
+        required: false,
+      },
+      {
+        model: customerModel,
+        as: "customer",
+        attributes: [],
+        required: false,
+      },
+    ];
+
+    const total = await revenueModel.sum("amount", {
+      where: filters,
+      include: includes,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Total revenue retrieved successfully",
+      data: {
+        total: parseFloat(total || 0),
+      },
+    };
+  } catch (error) {
+    console.error("Total revenue error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
 const updateOrderStatus = async (req) => {
   const { id } = req.params;
   const { status, paymentStatus, paymentMethod } = req.body;
@@ -988,4 +1071,5 @@ module.exports = {
   updateRevenue,
   deleteRevenue,
   getRevenueById,
+  totalRevenue,
 };

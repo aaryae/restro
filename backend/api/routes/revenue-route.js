@@ -19,11 +19,19 @@ const {
   deleteRevenue,
   getById,
   groupedList,
+  totalRevenue,
 } = require("../controllers/revenue-controller");
 
 router.post("/", authentication, revenuePostValidation, create);
 router.get("/list", authentication, paginationValidation, list);
 router.get("/grouped-list", authentication, paginationValidation, groupedList);
+router.get(
+  "/total-revenue",
+  authentication,
+  authorization,
+  paginationValidation,
+  totalRevenue,
+);
 router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/:id",

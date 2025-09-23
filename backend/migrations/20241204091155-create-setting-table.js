@@ -60,6 +60,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      openingBalance: {
+        type: Sequelize.DECIMAL,
+        allowNull: true,
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

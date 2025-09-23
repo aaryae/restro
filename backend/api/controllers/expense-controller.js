@@ -38,6 +38,24 @@ const list = async (req, res, next) => {
   }
 };
 
+const totalExpense = async (req, res, next) => {
+  try {
+    const result = await expenseService.totalExpense(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const result = await expenseService.getById(req);
@@ -136,4 +154,5 @@ module.exports = {
   recordCreditPayment,
   cancelExpense,
   getUnpaidCredits,
+  totalExpense,
 };

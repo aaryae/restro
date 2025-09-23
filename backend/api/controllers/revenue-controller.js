@@ -20,6 +20,25 @@ const list = async (req, res, next) => {
     next(err);
   }
 };
+
+const totalRevenue = async (req, res, next) => {
+  try {
+    const result = await revenueService.totalRevenue(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
 const groupedList = async (req, res, next) => {
   try {
     const result = await revenueService.groupedList(req);
@@ -119,4 +138,5 @@ module.exports = {
   deleteRevenue,
   getById,
   groupedList,
+  totalRevenue,
 };

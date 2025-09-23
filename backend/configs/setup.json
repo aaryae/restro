@@ -113,7 +113,8 @@
     "brandingFooterImage": "https://res.cloudinary.com/dx9n8tsyu/image/upload/v1616740134/General_Asahi_Logo",
     "address": "Jhamshikhel, Lalitpur",
     "footer_desc": "Tech Nirvana",
-    "google_analytics": "UA-123456789"
+    "google_analytics": "UA-123456789",
+    "openingBalance": 0.0
   },
   "users": [
     {
@@ -1018,6 +1019,14 @@
           "serverPath": "/revenue/:id",
           "requestMethod": "DELETE",
           "list": "Revenue"
+        },
+        {
+          "title": "View Total Revenue",
+          "key": "view-total",
+          "clientPath": "/revenue/total-revenue",
+          "serverPath": "/revenue/total-revenue",
+          "requestMethod": "GET",
+          "list": "Revenue"
         }
       ]
     },
@@ -1146,6 +1155,14 @@
           "serverPath": "/purchase/list",
           "requestMethod": "GET",
           "list": "Purchase"
+        },
+        {
+          "title": "View Total Purchase",
+          "key": "view-total",
+          "clientPath": "/purchase/total-purchase",
+          "serverPath": "/purchase/total-purchase",
+          "requestMethod": "GET",
+          "list": "Purchase"
         }
       ]
     },
@@ -1188,6 +1205,14 @@
           "key": "view",
           "clientPath": "/expense/list",
           "serverPath": "/expense/list",
+          "requestMethod": "GET",
+          "list": "Expense"
+        },
+        {
+          "title": "View Total Expense",
+          "key": "view-total",
+          "clientPath": "/expense/total-expense",
+          "serverPath": "/expense/total-expense",
           "requestMethod": "GET",
           "list": "Expense"
         }
