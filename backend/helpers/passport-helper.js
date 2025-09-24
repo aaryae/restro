@@ -17,6 +17,7 @@ passport.use(
         raw: true,
         where: {
           username,
+          isDeleted: false,
         },
       });
       if (user) {
