@@ -13,7 +13,6 @@ import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
-// import CheckoutPreview from "./CheckoutPreview";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { OrderSchema } from "../schema";
@@ -332,7 +331,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }>;
   const allSelected = items?.length > 0 && selectedIds.length === items.length;
 
-  // Initialize selection from props (coming from ViewTableOrder) or select all by default
   useEffect(() => {
     const itemIds = (items || []).map((it) => String(it.id));
     if (itemIds.length === 0) {
@@ -347,7 +345,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       // Default to all selected if nothing provided
       setSelectedIds(itemIds);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, items, selectedItemIds]);
   const toggleSelectAll = () => {
     if (!items || items.length === 0) return;
@@ -371,22 +368,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       .reduce((sum, it) => sum + (Number(it.subtotal) || 0), 0);
   }, [items, selectedIds]);
 
-  // // Debug: verify sync input and computed items
-  // useEffect(() => {
-  //   // eslint-disable-next-line no-console
-  //   console.log('[CheckoutModal] selectedItemIds (from ViewTableOrder):', selectedItemIds);
-  //   // eslint-disable-next-line no-console
-  //   console.log('[CheckoutModal] items in modal:', items);
-  //   // eslint-disable-next-line no-console
-  //   console.log('[CheckoutModal] selectedIds (modal state):', selectedIds);
-  //   // eslint-disable-next-line no-console
-  //   console.log('[CheckoutModal] selectedSubtotal:', selectedSubtotal);
-  // }, [selectedItemIds, items, selectedIds, selectedSubtotal]);
-
-  // For Bill component: ensure a single numeric orderId or null when multiple
   const orderIdForBill = Array.isArray(orderId) ? null : orderId;
 
-  // Build Bill data containing only selected items
   const billData = useMemo(() => {
     const selectedSet = new Set(selectedIds);
     const filteredItems = (previewData.items || []).filter((it: any) =>
