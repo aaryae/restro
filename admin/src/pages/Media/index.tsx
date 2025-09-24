@@ -34,7 +34,7 @@ export default function Media() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null); // Track which input is being edited
   const [inputValues, setInputValues] = useState<{ [key: number]: string }>({}); // Store input values dynamically
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]); // Store refs for all inputs
+  const inputRefs = useRef<(HTMLTextAreaElement | null)[]>([]); // Store refs for all textarea inputs
   const [pageNumber, setPageNumber] = useState<number>(1);
 
   const { register, handleSubmit, reset } = useForm();
@@ -80,11 +80,15 @@ export default function Media() {
     }));
   };
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= mediaCategoryList.data.totalPages) {
-      // Update the current page in the state or API call
-      // setMedia((prev) => ({ ...prev, data: { ...prev.data, page } }));
-      setPageNumber(page);
+  const handlePageChange = (page: number, pageSize?: number) => {
+    if (page >= 1 && page <= mediaCategoryList?.data?.totalPages) {
+      if (pageSize) {
+        // If pageSize is provided, update both page and limit
+        setPageNumber(1); // Reset to first page when changing page size
+        // You might want to update the limit in your API call here
+      } else {
+        setPageNumber(page);
+      }
       refetch();
     }
   };
@@ -188,73 +192,76 @@ export default function Media() {
       </div>
       {/* Pagination Section */}
       {mediaCategorySuccess && (
-        <div className="mt-[1.5rem] w-full flex justify-between font-[400] text-[14px] text-[#2F2B3D] py-[1rem] px-[0.5rem]">
-          <div>Show: {mediaCategoryList.data.limit ?? 0} Entries</div>
-          <div className="font-[500] text-[#333333] text-[0.75rem] flex gap-[0.25rem]">
-            <button
-              className="rounded-full bg-white border flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
-              onClick={() => handlePageChange(mediaCategoryList.data.page - 1)} // Decrement page
-            >
-              <MdKeyboardArrowLeft />
-            </button>
+        <div className="sticky bottom-0  border-t border-gray-200 px-4 py-3 mt-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              Show:
+              <select
+                aria-label="Items per page"
+                value={mediaCategoryList.data.limit}
+                className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  // Update the limit and reset to first page
+                  handlePageChange(1, Number(e.target.value));
+                }}
+              >
+                {[10, 25, 50, 100].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+              entries
+            </div>
 
-            {/* Pagination Numbers */}
-            {Array.from({ length: mediaCategoryList.data.totalPages }).map(
-              (_, index) => {
-                const pageNumber = index + 1;
-                const isCurrentPage =
-                  mediaCategoryList.data.page === pageNumber;
-                const isNextPage =
-                  mediaCategoryList.data.page + 1 === pageNumber;
-
-                // Render only the current and next pages
-                if (isCurrentPage || isNextPage) {
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handlePageChange(pageNumber)} // Change page
-                      className={`rounded-full flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer ${
-                        isCurrentPage
-                          ? "bg-primaryColor text-white"
-                          : "bg-white border"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
+            <div className="flex items-center gap-2">
+              <button
+                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+                  mediaCategoryList.data.page === 1 ||
+                  mediaCategoryList.data.total === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+                disabled={
+                  mediaCategoryList.data.page === 1 ||
+                  mediaCategoryList.data.total === 0
                 }
-
-                // Add ellipsis after the current and next pages
-                if (pageNumber === mediaCategoryList.data.page + 2) {
-                  return (
-                    <div
-                      key="ellipsis"
-                      className="text-[#999999] flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
-                    >
-                      ...
-                    </div>
-                  );
+                onClick={() =>
+                  handlePageChange(mediaCategoryList.data.page - 1)
                 }
+                aria-label="Previous Page"
+              >
+                <MdKeyboardArrowLeft size={18} />
+              </button>
+              <span className="text-sm text-gray-700">
+                Page {mediaCategoryList.data.page} of{" "}
+                {mediaCategoryList.data.totalPages}
+              </span>
+              <button
+                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+                  mediaCategoryList.data.page ===
+                    mediaCategoryList.data.totalPages ||
+                  mediaCategoryList.data.total === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+                disabled={
+                  mediaCategoryList.data.page ===
+                    mediaCategoryList.data.totalPages ||
+                  mediaCategoryList.data.total === 0
+                }
+                onClick={() =>
+                  handlePageChange(mediaCategoryList.data.page + 1)
+                }
+                aria-label="Next Page"
+              >
+                <MdKeyboardArrowRight size={18} />
+              </button>
+            </div>
 
-                return null; // Skip other items
-              },
-            )}
-
-            {/* Right Arrow */}
-            <button
-              className="rounded-full bg-white border flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
-              onClick={() => handlePageChange(mediaCategoryList.data.page + 1)}
-              // Increment page
-            >
-              <MdKeyboardArrowRight />
-            </button>
-          </div>
-          <div className="flex gap-[1.5rem]">
-            <p>
-              Page {mediaCategoryList.data.page ?? 0} of{" "}
-              {mediaCategoryList.data.totalPages ?? 0}
-            </p>
-            <p>Total Data: {mediaCategoryList.data.total ?? 0}</p>
+            <div className="text-sm text-gray-700">
+              Total: {mediaCategoryList.data.total}
+            </div>
           </div>
         </div>
       )}

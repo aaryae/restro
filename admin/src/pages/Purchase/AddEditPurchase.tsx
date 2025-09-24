@@ -170,6 +170,8 @@ const AddEditPurchase: React.FC = () => {
     label: string;
   } | null>(null);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  // Extra summary discount percentage applied on top of line totals
+  const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(0);
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
     limit: 100,
@@ -278,6 +280,16 @@ const AddEditPurchase: React.FC = () => {
       return acc;
     },
     { subtotal: 0, discount: 0, tax: 0, grand: 0 },
+  );
+
+  // Derived summary discount (percentage-based)
+  const pct = isNaN(summaryDiscountPct)
+    ? 0
+    : Math.max(0, Math.min(100, summaryDiscountPct));
+  const summaryDiscountAmount = (totals.grand * pct) / 100;
+  const grandAfterSummaryDiscount = Math.max(
+    0,
+    totals.grand - summaryDiscountAmount,
   );
 
   useEffect(() => {
@@ -411,31 +423,32 @@ const AddEditPurchase: React.FC = () => {
                     <label className="text-sm text-gray-700 mb-1 flex justify-start">
                       Supplier
                     </label>
-                    <CustomDialog
-                      buttonTitle={
-                        <button
-                          type="button"
-                          className="w-full sm:w-auto rounded-full bg-primaryColor px-3 py-2 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 absolute -top-4 right-1"
-                        >
-                          Add Supplier
-                        </button>
-                      }
-                      dialogOpen={supplierDialogOpen}
-                      setDialogOpen={setSupplierDialogOpen}
-                      title="Add Supplier"
-                      contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
-                    >
-                      <AddEditSupplier
-                        isComponent={true}
-                        closeModal={() => {
-                          setSupplierDialogOpen(false);
-                          // Optionally refresh search list if a term is active
-                          if (supplierSearchTerm.trim().length >= 2) {
-                            refetchSuppliers();
-                          }
-                        }}
-                      />
-                    </CustomDialog>
+                    <div>
+                      <CustomDialog
+                        buttonTitle={
+                          <button
+                            type="button"
+                            className="rounded-full bg-primaryColor px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 whitespace-nowrap"
+                          >
+                            + Add Supplier
+                          </button>
+                        }
+                        dialogOpen={supplierDialogOpen}
+                        setDialogOpen={setSupplierDialogOpen}
+                        // title="Add Supplier"
+                        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                      >
+                        <AddEditSupplier
+                          isComponent={true}
+                          closeModal={() => {
+                            setSupplierDialogOpen(false);
+                            if (supplierSearchTerm.trim().length >= 2) {
+                              refetchSuppliers();
+                            }
+                          }}
+                        />
+                      </CustomDialog>
+                    </div>
                   </div>
                   {/* <select
                     className="border rounded px-3 py-2 bg-white"
@@ -587,28 +600,30 @@ const AddEditPurchase: React.FC = () => {
 
               {/* Items table */}
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <h2 className="text-sm font-semibold text-gray-900 flex justify-start ">
                     Purchase Items
                   </h2>
-                  <button
-                    type="button"
-                    className="w-full sm:w-auto rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90"
-                    onClick={() =>
-                      append({
-                        particulars: "",
-                        hsCode: "",
-                        categoryId: "",
-                        qty: 1,
-                        rate: 0,
-                        discountPercent: 0,
-                        taxPercent: 13,
-                        isTaxable: true,
-                      })
-                    }
-                  >
-                    + Add Item
-                  </button>
+                  <div>
+                    <button
+                      type="button"
+                      className="w-full sm:w-auto rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90"
+                      onClick={() =>
+                        append({
+                          particulars: "",
+                          hsCode: "",
+                          categoryId: "",
+                          qty: 1,
+                          rate: 0,
+                          discountPercent: 0,
+                          taxPercent: 13,
+                          isTaxable: true,
+                        })
+                      }
+                    >
+                      + Add Item
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
                   <table className="min-w-[1000px] lg:min-w-full w-full">
@@ -700,7 +715,7 @@ const AddEditPurchase: React.FC = () => {
                             <td className="p-2 border text-center">
                               <input
                                 type="checkbox"
-                                className="h-4 w-4"
+                                className="h-4 w-4 bg-white"
                                 {...register(`items.${idx}.isTaxable` as const)}
                                 defaultChecked={row.isTaxable !== false}
                               />
@@ -751,15 +766,30 @@ const AddEditPurchase: React.FC = () => {
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>Discount</span>
-                        <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                          -{CurrencySign}
-                          {totals.discount.toFixed(2)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={summaryDiscountPct}
+                            onChange={(e) =>
+                              setSummaryDiscountPct(Number(e.target.value) || 0)
+                            }
+                            className="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            title="Extra discount percentage"
+                            aria-label="Extra discount percentage"
+                          />
+                          <span className="text-[10px]">%</span>
+                        </div>
                       </div>
-                      <div className="mt-1 text-lg font-semibold text-emerald-600">
+                      <div className="mt-2 text-[11px] text-emerald-700">
+                        Extra Discount: -{CurrencySign}
+                        {summaryDiscountAmount.toFixed(2)}
+                      </div>
+                      {/* <div className="mt-1 text-lg font-semibold text-emerald-600">
                         {CurrencySign}
                         {(totals.subtotal - totals.discount).toFixed(2)}
-                      </div>
+                      </div> */}
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                       <div className="text-xs text-gray-500">Tax (13%)</div>
@@ -786,8 +816,14 @@ const AddEditPurchase: React.FC = () => {
                       </div>
                       <div className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
                         {CurrencySign}
-                        {totals.grand.toFixed(2)}
+                        {grandAfterSummaryDiscount.toFixed(2)}
                       </div>
+                      {pct > 0 && (
+                        <div className="text-xs text-gray-500 line-through">
+                          {CurrencySign}
+                          {totals.grand.toFixed(2)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -203,9 +203,9 @@ function KotCard({ kot }) {
       @media print {
         html, body { margin: 0 !important; padding: 0 !important; }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .kot-print { width: 80mm !important; font-size: 12px !important; line-height: 1.25 !important; }
-        .kot-print * { font-size: 12px !important; line-height: 1.25 !important; }
-        .kot-print .kot-title { font-size: 16px !important; font-weight: 800 !important; }
+        .kot-print { width: 80mm !important; font-size: 10px !important; line-height: 1.25 !important; }
+        .kot-print * { font-size: 10px !important; line-height: 1.25 !important; }
+        .kot-print .kot-title { font-size: 14px !important; font-weight: 800 !important; }
         .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
         .kot-print .section-gap { margin: 6px 0 !important; }
         .kot-print .border-dashed { border-color: #000 !important; }

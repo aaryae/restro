@@ -220,7 +220,7 @@ const Account: React.FC = () => {
         />
 
         <Button
-          className="flex gap-2 bg-purple-600 text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
           onPress={() => setTransferOpen(true)}
         >
           <BiTransfer size={20} />
