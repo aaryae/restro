@@ -1489,6 +1489,44 @@
           "list": "Account Permission"
         }
       ]
+    },
+    {
+      "title": "Withdraw",
+      "key": "withdraw",
+      "actions": [
+        {
+          "title": "Add Withdraw",
+          "key": "add",
+          "clientPath": "/withdraw",
+          "serverPath": "/withdraw",
+          "requestMethod": "POST",
+          "list": "Withdraw"
+        },
+        {
+          "title": "View Withdraw",
+          "key": "view",
+          "clientPath": "/withdraw/list",
+          "serverPath": "/withdraw/list",
+          "requestMethod": "GET",
+          "list": "Withdraw"
+        },
+        {
+          "title": "View One Withdraw",
+          "key": "view-one",
+          "clientPath": "/withdraw/:withdrawId",
+          "serverPath": "/withdraw/:withdrawId",
+          "requestMethod": "GET",
+          "list": "Withdraw"
+        },
+        {
+          "title": "Edit Withdraw",
+          "key": "edit",
+          "clientPath": "/withdraw/:id",
+          "serverPath": "/withdraw/:id",
+          "requestMethod": "PUT",
+          "list": "Withdraw"
+        }
+      ]
     }
   ]
 }

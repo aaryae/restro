@@ -44,6 +44,8 @@ import OpenItem from "@/pages/OpenItem";
 import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
 import ExpenseCategory from "@/pages/ExpenseCategory";
 import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
+import Withdraw from "@/pages/Withdraw";
+import AddEditWithdraw from "@/pages/Withdraw/AddEditWithdraw";
 
 export const adminLinks = [
   {
@@ -309,5 +311,17 @@ export const adminLinks = [
   {
     path: "/expense/:id",
     element: <AddEditExpense />,
+  },
+  {
+    path: "/withdraw/list",
+    element: <Withdraw />,
+  },
+  {
+    path: "/withdraw/",
+    element: <AddEditWithdraw />,
+  },
+  {
+    path: "/withdraw/:id",
+    element: <AddEditWithdraw />,
   },
 ];
