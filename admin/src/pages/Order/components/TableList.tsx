@@ -18,6 +18,9 @@ import { Plus } from "lucide-react";
 
 export default function TableList() {
   const [checkoutTableId, setCheckoutTableId] = useState<number | null>(null);
+  const [checkoutSelectedItemIds, setCheckoutSelectedItemIds] = useState<number[] | null>(null);
+  const [paidItemsByOrder, setPaidItemsByOrder] = useState<Record<number, number[]>>({});
+  const [ordersRefresh, setOrdersRefresh] = useState<number>(0);
   const [selectedStatus, setSelectedStatus] = useState<string | null>("all");
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
 
@@ -102,19 +105,60 @@ export default function TableList() {
     }
   }, [allTables, handlePagination]);
 
+  // Hydrate paid items map from localStorage so indicators survive full page reload
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("paidItemsByOrder");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setPaidItemsByOrder(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Persist paid items map to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("paidItemsByOrder", JSON.stringify(paidItemsByOrder));
+    } catch {}
+  }, [paidItemsByOrder]);
+
   console.log(allTables, "all tables");
   const [checkoutOrderId, setCheckoutOrderId] = useState<
     number | null | [number]
   >(null);
 
-  function handleCheckout(tableId: number, orderId: number | null | [number]) {
+  function handleCheckout(
+    tableId: number,
+    orderId: number | null | [number],
+    selectedItemIds?: number[],
+  ) {
     setCheckoutTableId(tableId);
     setCheckoutOrderId(orderId);
+    setCheckoutSelectedItemIds(selectedItemIds ?? null);
   }
 
   function closeCheckoutModal() {
     setCheckoutTableId(null);
   }
+
+  // Update paid item indicators after successful selective checkout
+  const handleCheckoutSuccessInList = (
+    tableId: number | null,
+    orderId: number | null | [number],
+    paidItemIds: number[],
+  ) => {
+    if (Array.isArray(orderId) || orderId == null) return;
+    setPaidItemsByOrder((prev) => {
+      const existing = prev[orderId] || [];
+      const merged = Array.from(new Set([...existing, ...paidItemIds]));
+      return { ...prev, [orderId]: merged };
+    });
+    // Trigger refetch of active-orders drawer
+    setOrdersRefresh((n) => n + 1);
+  };
 
   const [restroTableId, setRestroTableId] = useState<number | null>(null);
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
@@ -155,13 +199,20 @@ export default function TableList() {
           setIsOpen={setOpenDrawer}
           width="w-full lg:w-[30%]"
         >
-          <ViewTableOrder id={restroTableId} handleCheckout={handleCheckout} />
+          <ViewTableOrder
+            id={restroTableId}
+            handleCheckout={handleCheckout}
+            paidItemsByOrder={paidItemsByOrder}
+            ordersRefresh={ordersRefresh}
+          />
         </Drawer>
         <CheckoutModal
           isOpen={checkoutTableId !== null}
           onClose={closeCheckoutModal}
           tableId={checkoutTableId}
           orderId={checkoutOrderId}
+          selectedItemIds={checkoutSelectedItemIds ?? undefined}
+          onCheckoutSuccess={handleCheckoutSuccessInList}
         />
       </PageContent>
     </>

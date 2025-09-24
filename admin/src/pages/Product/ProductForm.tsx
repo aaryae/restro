@@ -336,7 +336,7 @@ export default function ProductForm() {
           />
         )}
 
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <input
             type="checkbox"
             {...register("hasVariant")}
@@ -349,7 +349,7 @@ export default function ProductForm() {
               variants. Manage variants below.
             </span>
           )}
-        </div>
+        </div> */}
 
         {!hasVariant && (
           <>

@@ -98,7 +98,7 @@ export default function Users() {
   };
 
   const pagination = {
-    page: allUsers?.data?.page ?? 1,
+    page: allUsers?.data?.total === 0 ? 0 : allUsers?.data?.page,
     limit: allUsers?.data?.limit ?? 10,
     total: allUsers?.data?.total ?? 0,
     totalPages: allUsers?.data?.totalPages ?? 0,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageTitle from "@/components/PageTitle";
 import { Controller, useForm } from "react-hook-form";
@@ -17,11 +17,13 @@ import {
   SUPPLIER_URL,
 } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { buildQueryString } from "@/utils/generalHelper";
 import { EXPENSE_LIST_ROUTE } from "@/routes/routeNames";
 import Select from "@/components/Select";
 import Input from "@/components/Input";
+import CustomDialog from "@/components/Dialog";
+import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 
-// Zod schema aligned with backend Joi (expense_validation.js)
 export const ExpenseSchema = z.object({
   paymentMethod: z.enum(["cash", "card", "online"], {
     required_error: "Payment method is required",
@@ -47,11 +49,16 @@ const AddEditExpense: React.FC = () => {
   );
   const [paymentSourceOptions, setPaymentSourceOptions] = useState<any[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<any[]>([]);
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
+  const [showAllSuppliers, setShowAllSuppliers] = useState(false);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormInput>({
     resolver: zodResolver(ExpenseSchema),
@@ -76,9 +83,55 @@ const AddEditExpense: React.FC = () => {
     data: expensePaymentSourceData,
     isSuccess: expensePaymentSourceFetched,
   } = useGetApiQuery({ url: `${ACCOUNT_URL}/list` });
+  // Suppliers for Select
   const { data: supplierData, isSuccess: supplierFetched } = useGetApiQuery({
     url: `${SUPPLIER_URL}list`,
   });
+
+  const supplierUrl = buildQueryString("supplier/list", {
+    page: 1,
+    limit: 100,
+    ...(supplierSearchTerm.trim().length > 0 && !showAllSuppliers
+      ? { search: { name: supplierSearchTerm } }
+      : {}),
+  });
+  const {
+    data: suppliersResp,
+    isSuccess: suppliersOk,
+    refetch: refetchSuppliers,
+  } = useGetApiQuery(
+    { url: supplierUrl },
+    {
+      // When the dialog is open, always fetch; otherwise
+      skip:
+        !viewSuppliersDialogOpen &&
+        !showAllSuppliers &&
+        supplierSearchTerm.trim().length < 2,
+    },
+  );
+
+  // Extract suppliers for dialog
+  const suppliers = useMemo(() => {
+    if (!suppliersOk && !showAllSuppliers) return [];
+    // Support various shapes: resp.data, resp.data.data
+    const raw: any = (suppliersResp as any)?.data ?? (suppliersResp as any);
+    let data: any[] = [];
+    if (Array.isArray(raw)) data = raw;
+    else if (Array.isArray(raw?.data)) data = raw.data;
+    else if (Array.isArray(raw?.data?.data)) data = raw.data.data;
+
+    // Filter by search term if not showing all suppliers
+    if (supplierSearchTerm.trim().length > 0 && !showAllSuppliers) {
+      const term = supplierSearchTerm.toLowerCase();
+      return data.filter(
+        (s: any) =>
+          s.name?.toLowerCase().includes(term) ||
+          s.contactNumber?.includes(term) ||
+          s.email?.toLowerCase().includes(term),
+      );
+    }
+    return data;
+  }, [suppliersOk, suppliersResp, supplierSearchTerm, showAllSuppliers]);
   const [createExpense] = useCreateApiMutation();
   const [updateExpense] = useUpdateApiMutation();
 
@@ -222,19 +275,168 @@ const AddEditExpense: React.FC = () => {
               </div>
 
               <div className={`flex flex-col ${isEdit ? "hidden" : ""}`}>
-                <Controller
-                  disabled={isEdit}
-                  name="supplierId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      options={supplierOptions}
-                      label="Supplier"
-                      error={errors.supplierId?.message}
-                    />
-                  )}
-                />
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-gray-700 mb-1 flex justify-start">
+                      Supplier
+                    </label>
+                    <div className="flex gap-2">
+                      <CustomDialog
+                        buttonTitle={
+                          <button
+                            type="button"
+                            className="rounded-full bg-green-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-green-700 whitespace-nowrap"
+                          >
+                            + Add New
+                          </button>
+                        }
+                        dialogOpen={supplierDialogOpen}
+                        setDialogOpen={setSupplierDialogOpen}
+                        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                      >
+                        <AddEditSupplier
+                          isComponent={true}
+                          closeModal={() => {
+                            setSupplierDialogOpen(false);
+                            refetchSuppliers();
+                          }}
+                        />
+                      </CustomDialog>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAllSuppliers(true);
+                          setSupplierSearchTerm("");
+                          setViewSuppliersDialogOpen(true);
+                          refetchSuppliers();
+                        }}
+                        className="rounded-full bg-gray-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-gray-700 whitespace-nowrap"
+                      >
+                        View All
+                      </button>
+                    </div>
+                  </div>
+
+                  <Controller
+                    name="supplierId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={[
+                          { label: "Select Supplier", value: "" },
+                          ...supplierOptions,
+                        ]}
+                        className="w-full mt-2"
+                        error={errors.supplierId?.message}
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* View Suppliers Dialog */}
+                <CustomDialog
+                  buttonTitle={null}
+                  dialogOpen={viewSuppliersDialogOpen}
+                  setDialogOpen={setViewSuppliersDialogOpen}
+                  title="All Suppliers"
+                  contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                >
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search suppliers..."
+                        className="w-full p-2 border rounded bg-white"
+                        value={supplierSearchTerm}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSupplierSearchTerm(val);
+                          // If there's a search term, switch off show-all mode so filtering applies
+                          setShowAllSuppliers(val.trim().length === 0);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => refetchSuppliers()}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        title="Search"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Contact
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Email
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {suppliers?.map((supplier: any) => (
+                            <tr key={supplier.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {supplier.name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {supplier.contactNumber || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {supplier.email || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setValue("supplierId", String(supplier.id));
+                                    setViewSuppliersDialogOpen(false);
+                                  }}
+                                  className="text-primaryColor hover:text-primaryColor/80"
+                                >
+                                  Select
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {(!suppliers || suppliers.length === 0) && (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-6 py-4 text-center text-sm text-gray-500"
+                              >
+                                No suppliers found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CustomDialog>
               </div>
 
               <div className="flex flex-col gap-1">

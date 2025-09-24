@@ -72,7 +72,8 @@ export default function EmailTemplate() {
   ];
 
   const pagination = {
-    page: allEmailTemplate?.data?.page,
+    page:
+      allEmailTemplate?.data?.total === 0 ? 0 : allEmailTemplate?.data?.page,
     limit: allEmailTemplate?.data?.limit,
     total: allEmailTemplate?.data?.total,
     totalPages: allEmailTemplate?.data?.totalPages,

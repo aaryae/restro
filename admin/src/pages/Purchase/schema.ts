@@ -38,7 +38,7 @@ export const PurchaseSchema = z.object({
       message: "Invalid invoice date",
     }),
   supplierId: z.string().min(1, "Supplier is required"),
-  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  invoiceNumber: z.string().optional().nullable(),
 
   items: z.array(PurchaseItemSchema).min(1, "At least one item is required"),
   billImage: z.string().optional().or(z.literal("")),

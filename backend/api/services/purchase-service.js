@@ -43,19 +43,6 @@ const create = async (req) => {
     }
 
     // Check invoiceNumber uniqueness
-    const existingPurchase = await purchaseModel.findOne({
-      where: { invoiceNumber },
-      transaction,
-    });
-    if (existingPurchase) {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: "Invoice number already exists",
-        data: null,
-      };
-    }
 
     const purchase = await purchaseModel.create(
       {
@@ -139,7 +126,9 @@ const categorySummary = async (req) => {
     if (start && end) {
       const startDate = startOfDay(parseISO(start));
       const endDate = endOfDay(parseISO(end));
-      wherePurchase.invoiceDate = { [Sequelize.Op.between]: [startDate, endDate] };
+      wherePurchase.invoiceDate = {
+        [Sequelize.Op.between]: [startDate, endDate],
+      };
     }
 
     const rows = await purchaseItemModel.findAll({
@@ -149,13 +138,22 @@ const categorySummary = async (req) => {
       ],
       include: [
         { model: purchaseCategoryModel, as: "category", attributes: ["name"] },
-        { model: purchaseModel, as: "purchase", attributes: [], where: wherePurchase, required: true },
+        {
+          model: purchaseModel,
+          as: "purchase",
+          attributes: [],
+          where: wherePurchase,
+          required: true,
+        },
       ],
       group: ["categoryId", "category.id", "category.name"],
       raw: true,
     });
 
-    const data = rows.map((r) => ({ name: r["category.name"], value: Number(r.value) || 0 }));
+    const data = rows.map((r) => ({
+      name: r["category.name"],
+      value: Number(r.value) || 0,
+    }));
 
     return {
       status: 200,
@@ -703,7 +701,10 @@ const deleteById = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const id = +req.params.id;
-    const purchase = await purchaseModel.findByPk(id, { transaction, lock: true });
+    const purchase = await purchaseModel.findByPk(id, {
+      transaction,
+      lock: true,
+    });
     if (!purchase) {
       await transaction.rollback();
       return { ...generalConstant.EN.PURCHASE.PURCHASE_NOT_FOUND, data: null };
@@ -752,7 +753,10 @@ const deleteById = async (req) => {
     }
 
     // Delete children first due to FK, then the purchase
-    await purchaseItemModel.destroy({ where: { purchaseId: purchase.id }, transaction });
+    await purchaseItemModel.destroy({
+      where: { purchaseId: purchase.id },
+      transaction,
+    });
     await purchase.destroy({ transaction });
 
     await transaction.commit();

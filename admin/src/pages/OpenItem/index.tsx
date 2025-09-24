@@ -78,7 +78,7 @@ export default function OpenItem() {
   };
 
   const pagination = {
-    page: allOpenItem?.data?.page,
+    page: allOpenItem?.data?.total === 0 ? 0 : allOpenItem?.data?.page,
     limit: allOpenItem?.data?.limit,
     total: allOpenItem?.data?.total,
     totalPages: allOpenItem?.data?.totalPages,

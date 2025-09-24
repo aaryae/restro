@@ -153,7 +153,7 @@ export default function Customer() {
   };
 
   const pagination = {
-    page: allCustomers?.data?.page ?? 1,
+    page: allCustomers?.data?.total === 0 ? 0 : allCustomers?.data?.page,
     limit: allCustomers?.data?.limit ?? 10,
     total: allCustomers?.data?.total ?? 0,
     totalPages: allCustomers?.data?.totalPages ?? 1,
