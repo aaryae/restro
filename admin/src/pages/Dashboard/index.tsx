@@ -6,6 +6,7 @@ import OverviewCards from "./components/OverviewCards";
 import PurchaseSection from "./components/PurchaseChart";
 import RevenueSection from "./components/RevenueChart";
 import PurchaseExpenseSection from "./components/PurchaseExpenseChart";
+import CashAndBank from "./components/CashAndBank";
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -87,9 +88,9 @@ export default function Dashboard() {
         </>
       )}
       {/* Purchase content */}
-      {selectedView === "purchase" && (
+      {selectedView === "cashbanks" && (
         <>
-          <PurchaseSection />
+          <CashAndBank />
         </>
       )}
     </>

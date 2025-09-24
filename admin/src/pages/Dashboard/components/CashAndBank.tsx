@@ -13,6 +13,7 @@ import {
 import BarChartComponent from "../BarChartComponent";
 import PieChartComponent from "../PieChartComponent";
 import {
+  ACCOUNT_URL,
   EXPENSE_URL,
   PURCHASE_URL,
   REVENUE_URL,
@@ -21,43 +22,12 @@ import { checkAccess } from "@/utils/accessHelper";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import SummaryCard from "@/components/SummaryCard";
 
-function OverviewCards() {
-  const revenueAccessList = checkAccess("Revenue");
-  const purchaseAccessList = checkAccess("Purchase");
-  const expenseAccessList = checkAccess("Expense");
-  const { data: totalRevenueData } = useGetApiQuery({
-    url: `${REVENUE_URL}total-revenue`,
-    skip: !revenueAccessList.includes("view-total"),
+function CashAndBank() {
+  const { data: totalAndBalancesData, isLoading } = useGetApiQuery({
+    url: `${ACCOUNT_URL}total-and-balances`,
   });
-  const { data: totalPurchaseData } = useGetApiQuery({
-    url: `${PURCHASE_URL}total-purchase`,
-    skip: !purchaseAccessList.includes("view-total"),
-  });
-  const { data: totalExpenseData } = useGetApiQuery({
-    url: `${EXPENSE_URL}total-expense`,
-    skip: !expenseAccessList.includes("view-total"),
-  });
-  const { data: settings } = useGetSettingQuery("");
 
-  const url = buildQueryString("account/list", { page: 1, limit: 1000 });
-  const { data, isLoading } = useGetApiQuery({ url });
-
-  const totals = useMemo(() => {
-    const rows: any[] = data?.data?.data || [];
-    const cash = rows.filter(
-      (r) => (r?.accountType || "").toLowerCase() === "cash",
-    );
-    const bank = rows.filter(
-      (r) => (r?.accountType || "").toLowerCase() === "bank",
-    );
-    const sum = (arr: any[]) =>
-      arr.reduce((acc, r) => acc + (Number(r?.currentBalance) || 0), 0);
-    return {
-      cash: sum(cash),
-      bank: sum(bank),
-      all: sum(rows),
-    };
-  }, [data]);
+  const { totalBalance, accounts } = totalAndBalancesData?.data;
 
   if (isLoading)
     return (
@@ -89,58 +59,33 @@ function OverviewCards() {
     <>
       <div className="mt-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {totalRevenueData && (
+          {totalBalance && (
             <SummaryCard
               title="Total Revenue"
-              value={`${CurrencySign}${totalRevenueData?.data?.total.toLocaleString()}`}
+              value={`${CurrencySign}${totalBalance.toLocaleString()}`}
               gradient="from-purple-500 via-fuchsia-600 to-purple-500"
               Icon={PiggyBank}
             />
           )}
-          {totalPurchaseData && (
-            <SummaryCard
-              title="Total Purchase"
-              value={`${CurrencySign}${totalPurchaseData?.data?.total.toLocaleString()}`}
-              gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-              Icon={ShoppingCart}
-            />
-          )}
-          {totalExpenseData && (
-            <SummaryCard
-              title="Total Expense"
-              value={`${CurrencySign}${totalExpenseData?.data?.total.toLocaleString()}`}
-              gradient="from-blue-500 via-blue-600 to-blue-500"
-              Icon={IndianRupee}
-            />
-          )}
-          {/* <SummaryCard
-            title="Total Balance (All)"
-            value={`${CurrencySign}${totals.all.toLocaleString()}`}
-            gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-            Icon={PiggyBank}
-          />
-          <SummaryCard
-            title="Total Cash Balance"
-            value={`${CurrencySign}${totals.cash.toLocaleString()}`}
-            gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-            Icon={Wallet}
-          />
-          <SummaryCard
-            title="Total Bank Balance"
-            value={`${CurrencySign}${totals.bank.toLocaleString()}`}
-            gradient="from-blue-500 via-blue-600 to-blue-500"
-            Icon={Landmark}
-          /> */}
+          {accounts?.length > 0 &&
+            accounts.map((account) => (
+              <SummaryCard
+                key={account.id}
+                title={account.name}
+                value={`${CurrencySign}${account.currentBalance.toLocaleString()}`}
+                gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+                Icon={PiggyBank}
+              />
+            ))}
         </div>
       </div>
-      {totalRevenueData && totalPurchaseData && totalExpenseData && (
-        <FiscalYearSummary
-          totalRevenue={totalRevenueData?.data?.total}
-          totalPurchase={totalPurchaseData?.data?.total}
-          totalExpense={totalExpenseData?.data?.total}
-          openingBalance={settings?.data?.openingBalance}
-        />
-      )}
+      {/* 
+      <FiscalYearSummary
+        totalRevenue={totalRevenueData?.data?.total}
+        totalPurchase={totalPurchaseData?.data?.total}
+        totalExpense={totalExpenseData?.data?.total}
+        openingBalance={settings?.data?.openingBalance}
+      /> */}
     </>
   );
 }
@@ -257,4 +202,4 @@ function FiscalYearSummary({
   );
 }
 
-export default OverviewCards;
+export default CashAndBank;
