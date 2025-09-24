@@ -27,8 +27,6 @@ function CashAndBank() {
     url: `${ACCOUNT_URL}total-and-balances`,
   });
 
-  const { totalBalance, accounts } = totalAndBalancesData?.data;
-
   if (isLoading)
     return (
       <div className="mt-6 space-y-6">
@@ -59,16 +57,16 @@ function CashAndBank() {
     <>
       <div className="mt-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {totalBalance && (
+          {totalAndBalancesData?.data?.totalBalance && (
             <SummaryCard
               title="Total Revenue"
-              value={`${CurrencySign}${totalBalance.toLocaleString()}`}
+              value={`${CurrencySign}${totalAndBalancesData?.data?.totalBalance.toLocaleString()}`}
               gradient="from-purple-500 via-fuchsia-600 to-purple-500"
               Icon={PiggyBank}
             />
           )}
-          {accounts?.length > 0 &&
-            accounts.map((account) => (
+          {totalAndBalancesData?.data?.accounts?.length > 0 &&
+            totalAndBalancesData?.data?.accounts.map((account) => (
               <SummaryCard
                 key={account.id}
                 title={account.name}
