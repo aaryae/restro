@@ -127,6 +127,25 @@ const changeDefaultAccount = async (req, res, next) => {
   }
 };
 
+const totalAndBalances = async (req, res, next) => {
+  try {
+    const result = await accountService.totalAndBalances(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -134,4 +153,5 @@ module.exports = {
   updateAccount,
   changeStatus,
   changeDefaultAccount,
+  totalAndBalances,
 };

@@ -1435,6 +1435,60 @@
           "list": "Kot"
         }
       ]
+    },
+    {
+      "title": "Account Permission",
+      "key": "account-permission",
+      "actions": [
+        {
+          "title": "Add Account Permission",
+          "key": "add",
+          "clientPath": "/account-permission",
+          "serverPath": "/account-permission",
+          "requestMethod": "POST",
+          "list": "Account Permission"
+        },
+        {
+          "title": "View Account Permission",
+          "key": "view",
+          "clientPath": "/account-permission/list",
+          "serverPath": "/account-permission/list",
+          "requestMethod": "GET",
+          "list": "Account Permission"
+        },
+        {
+          "title": "Edit Account Permission",
+          "key": "edit",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
+          "requestMethod": "PUT",
+          "list": "Account Permission"
+        },
+        {
+          "title": "Delete Account Permission",
+          "key": "delete",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
+          "requestMethod": "DELETE",
+          "list": "Account Permission"
+        },
+        {
+          "title": "View One Account Permission",
+          "key": "view-one",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
+          "requestMethod": "GET",
+          "list": "Account Permission"
+        },
+        {
+          "title": "Get Permissions By User ID",
+          "key": "get-by-user-id",
+          "clientPath": "/account-permission/user/:userId",
+          "serverPath": "/account-permission/user/:userId",
+          "requestMethod": "GET",
+          "list": "Account Permission"
+        }
+      ]
     }
   ]
 }

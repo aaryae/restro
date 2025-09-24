@@ -11,12 +11,140 @@ const {
   bankAccountModel,
   walletAccountModel,
   cashAccountModel,
+  accountPermissionModel,
+  Sequelize,
 } = require("../../models");
 
 const { withTransaction } = require("../../helpers/order/transaction");
 
 const paginate = require("../../utils/paginate");
 const paginateWithAggregate = require("../../utils/paginateWithAggregate");
+
+const totalAndBalances = async (req) => {
+  try {
+    const { id: userId, roleId } = req.user;
+    const isSuperAdmin = roleId === 1;
+
+    let accounts;
+
+    if (isSuperAdmin) {
+      accounts = await accountModel.findAll({
+        where: { status: "active" },
+        attributes: [
+          "id",
+          "name",
+          "accountType",
+          "currentBalance",
+          "openingBalance",
+        ],
+        include: [
+          {
+            model: bankAccountModel,
+            as: "bankAccount",
+            attributes: ["accountId", "bankAccountNumber"],
+          },
+          {
+            model: walletAccountModel,
+            as: "walletAccount",
+            attributes: ["accountId", "walletId"],
+          },
+          {
+            model: cashAccountModel,
+            as: "cashAccount",
+            attributes: ["accountId"],
+          },
+        ],
+      });
+    } else {
+      const accessibleAccounts = await accountPermissionModel.findAll({
+        where: { userId, canView: true },
+        attributes: ["accountId"],
+      });
+
+      const accountIds = accessibleAccounts.map((acc) => acc.accountId);
+
+      if (accountIds.length === 0) {
+        return {
+          status: 200,
+          success: true,
+          data: {
+            totalBalance: 0,
+            accounts: [],
+          },
+          message: "No accessible accounts found",
+        };
+      }
+
+      // Use Sequelize.Op.in for array of IDs
+      accounts = await accountModel.findAll({
+        where: {
+          id: { [Sequelize.Op.in]: accountIds }, // Use Op.in for array
+          status: "active",
+        },
+        attributes: [
+          "id",
+          "name",
+          "accountType",
+          "currentBalance",
+          "openingBalance",
+        ],
+        include: [
+          {
+            model: bankAccountModel,
+            as: "bankAccount",
+            attributes: ["accountId", "bankAccountNumber"],
+          },
+          {
+            model: walletAccountModel,
+            as: "walletAccount",
+            attributes: ["accountId", "walletId"],
+          },
+          {
+            model: cashAccountModel,
+            as: "cashAccount",
+            attributes: ["accountId"],
+          },
+        ],
+      });
+    }
+
+    // Transform accounts data
+    const formattedAccounts = accounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      type: account.accountType,
+      currentBalance: parseFloat(account.currentBalance) || 0,
+      accountNumber:
+        account.bankAccount?.bankAccountNumber ||
+        account.walletAccount?.walletId ||
+        "N/A",
+    }));
+
+    // Calculate total balance
+    const totalBalance = formattedAccounts.reduce(
+      (sum, account) => sum + account.currentBalance,
+      0,
+    );
+
+    return {
+      status: 200,
+      success: true,
+      data: {
+        totalBalance: parseFloat(totalBalance.toFixed(2)),
+        accounts: formattedAccounts,
+      },
+      message: "Account balances retrieved successfully",
+    };
+  } catch (error) {
+    console.error("Error in totalAndBalances:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve account balances",
+      error: error.message,
+    };
+  }
+};
 
 const createAccount = async (req) => {
   const transaction = await sequelize.transaction();
@@ -449,4 +577,5 @@ module.exports = {
   getAccountByID,
   changeStatus,
   changeDefaultAccount,
+  totalAndBalances,
 };
