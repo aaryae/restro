@@ -14,6 +14,7 @@ function TakeAwayOrders() {
   const [open, setOpen] = useState<boolean>(false);
   const [queryStringOptions, setQueryStringOptions] = useState({
     orderType: "takeaway",
+    status: "pending,preparing,prepared", // Exclude completed orders
   });
 
   // const url = buildQueryString(

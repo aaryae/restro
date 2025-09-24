@@ -1172,7 +1172,6 @@ const listOrders = async (req) => {
       page,
       status,
       paymentStatus,
-      orderStatus,
       paymentMethod,
       orderType,
       tableId,
@@ -1208,11 +1207,17 @@ const listOrders = async (req) => {
     let order = [["updatedAt", "DESC"]];
 
     // if status is all, remove it from filters
-    if (status && status !== "all")
-      filters.status = { [Op.like]: `%${status}%` };
+    if (status && status !== "all") {
+      // Handle comma-separated multiple status values
+      if (status.includes(',')) {
+        const statusArray = status.split(',').map(s => s.trim());
+        filters.status = { [Op.in]: statusArray };
+      } else {
+        filters.status = { [Op.like]: `%${status}%` };
+      }
+    }
     if (paymentStatus)
       filters.paymentStatus = { [Op.like]: `%${paymentStatus}%` };
-    if (orderStatus) filters.status = { [Op.like]: `%${orderStatus}%` };
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
     if (orderType) filters.orderType = { [Op.like]: `%${orderType}%` };
