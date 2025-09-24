@@ -27,6 +27,10 @@ module.exports = (sequelize) => {
         foreignKey: "toAccountId",
         as: "incomingTransfers",
       });
+      Account.hasMany(models.accountPermissionModel, {
+        foreignKey: "accountId",
+        as: "accountPermissions",
+      });
     }
   }
 

@@ -10,11 +10,6 @@ const {
   paginationValidation,
   idValidation,
 } = require("../../validations/common-validation");
-const {
-  revenuePutValidation,
-} = require("../../validations/revenue-validation");
-
-const { update, deleteRevenue } = require("../controllers/revenue-controller");
 
 const {
   create,
@@ -23,11 +18,27 @@ const {
   updateAccount,
   changeStatus,
   changeDefaultAccount,
+  totalAndBalances,
 } = require("../controllers/account-controller");
+const {
+  checkAccountPermission,
+} = require("../../middlewares/accountPermission");
 
 router.post("/", authentication, accountPostValidation, create);
-router.get("/list", authentication, paginationValidation, list);
-router.get("/:id", authentication, idValidation, getAccountByID);
+router.get("/list", authentication, authorization, paginationValidation, list);
+router.get(
+  "/total-and-balances",
+  authentication,
+  paginationValidation,
+  totalAndBalances,
+);
+router.get(
+  "/:accountId",
+  authentication,
+  checkAccountPermission("view"),
+  idValidation,
+  getAccountByID,
+);
 router.put(
   "/:id",
   authentication,

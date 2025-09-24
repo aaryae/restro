@@ -36,6 +36,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "userId",
         as: "user",
       });
+      this.hasMany(models.accountPermissionModel, {
+        foreignKey: "userId",
+        as: "accountPermissions",
+      });
 
       // define association here
     }
