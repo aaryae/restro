@@ -79,21 +79,18 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         <>
                           <div
                             key={item.id}
-                            className=" border-b border-gray-200 py-2 gap-6"
+                            className=" border-b border-gray-200 py-2 gap-6 flex items-center"
                           >
-                            <div className="flex justify-between items-center">
-                              <Checkbox
-                                key={item.id}
-                                checked={item.selected}
-                                onChange={(e) =>
-                                  handleCheckboxChange(
-                                    item.id,
-                                    e.target.checked,
-                                  )
-                                }
-                              />
-                              <div className="leading-[1.5] text-gray-600 md:pr-[3rem] pr-[3rem] ">
-                                <p className="font-medium text-[15px]">
+                            <Checkbox
+                              key={item.id}
+                              checked={item.selected}
+                              onChange={(e) =>
+                                handleCheckboxChange(item.id, e.target.checked)
+                              }
+                            />
+                            <div className="flex justify-between items-center w-full">
+                              <div className="leading-[1.5] text-gray-600 ">
+                                <p className="font-medium text-[14px]">
                                   Item: {item.product.name}
                                 </p>
                                 <p className="flex text-[13px]">

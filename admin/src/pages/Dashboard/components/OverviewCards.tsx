@@ -2,7 +2,14 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useMemo, useState } from "react";
 import { CurrencySign } from "@/constants";
-import { PiggyBank, Wallet, Landmark, ChartPie } from "lucide-react";
+import {
+  PiggyBank,
+  Wallet,
+  Landmark,
+  ChartPie,
+  ShoppingCart,
+  IndianRupee,
+} from "lucide-react";
 import BarChartComponent from "../BarChartComponent";
 import PieChartComponent from "../PieChartComponent";
 import {
@@ -94,7 +101,7 @@ function OverviewCards() {
               title="Total Purchase"
               value={`${CurrencySign}${totalPurchaseData?.data?.total.toLocaleString()}`}
               gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-              Icon={PiggyBank}
+              Icon={ShoppingCart}
             />
           )}
           {totalExpenseData && (
@@ -102,7 +109,7 @@ function OverviewCards() {
               title="Total Expense"
               value={`${CurrencySign}${totalExpenseData?.data?.total.toLocaleString()}`}
               gradient="from-blue-500 via-blue-600 to-blue-500"
-              Icon={PiggyBank}
+              Icon={IndianRupee}
             />
           )}
           {/* <SummaryCard

@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from "react";
-import { FaMoneyBillWave, FaPlus, FaQrcode } from "react-icons/fa";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { FaPlus } from "react-icons/fa";
 import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
 import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
@@ -8,7 +8,7 @@ import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import CustomDialog from "@/components/Dialog";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
-import { Mail, CircleUserRound, Contact } from "lucide-react";
+import { Mail, Contact } from "lucide-react";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -76,8 +76,9 @@ interface Table {
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tableId: number;
-  orderId: number | null;
+  tableId: number | null;
+  orderId: number | null | [number];
+  selectedItemIds?: number[];
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -85,6 +86,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose,
   tableId,
   orderId,
+  selectedItemIds,
 }) => {
   const [paymentType, setPaymentType] = useState<"cash" | "qr">("cash");
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
@@ -118,7 +120,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const { data: order } = useGetApiQuery(
     { url: `order/${orderId}` },
     {
-      skip: orderId === null || orderId === undefined,
+      skip:
+        orderId === null ||
+        orderId === undefined ||
+        (Array.isArray(orderId) && orderId.length > 1),
     },
   );
 
@@ -129,15 +134,45 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     },
   );
 
-  // Printing setup for Bill (react-to-print) — defined after 'order' is declared
+  // Printing setup for Bill (react-to-print)
   const printBill = useReactToPrint({
     contentRef: billRef,
     documentTitle: `Bill-${order?.data?.orderNumber || "Invoice"}`,
     pageStyle: `
-      @page { margin: 10mm; }
+      @page {
+        size: 80mm auto;
+        margin: 5mm 3mm;
+      }
       @media print {
-        html, body { margin: 0 !important; padding: 0 !important; }
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+        /* Ensure only the bill area is printed nicely for 80mm */
+        #bill-print {
+          width: 80mm !important;
+          max-width: 80mm !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          background: #fff !important;
+        }
+
+        #bill-print h1 { font-size: 14px !important; }
+        #bill-print h2 { font-size: 12px !important; }
+        #bill-print h3, #bill-print p, #bill-print span { font-size: 10px !important; }
+
+        #bill-print table { width: 100% !important; border-collapse: collapse !important; }
+        #bill-print th, #bill-print td { padding: 4px 6px !important; }
+        #bill-print th { font-weight: 600 !important; }
+
+        /* Prevent awkward page breaks */
+        #bill-print tr { page-break-inside: avoid; }
+        #bill-print thead { display: table-header-group; }
+        #bill-print tfoot { display: table-footer-group; }
+
         .no-print { display: none !important; }
       }
     `,
@@ -226,13 +261,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setTimeout(() => {
         setIsPaymentSuccess(false);
         onClose();
-      }, 2000); // Close modal after 2 seconds
+      }, 2000);
     } catch (error) {
       handleError({ error });
     }
   };
 
-  // Preview helpers
   const handleOpenPreview = () => {
     setShowPreview(true);
   };
@@ -241,24 +275,25 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setShowPreview(false);
   };
 
-  // Submit and Print: open preview, complete payment, then print only the bill
   const handleSubmitAndPrint = async () => {
     try {
-      // Show the preview so bill content is in the DOM
       setShowPreview(true);
-
-      // Wait a moment for the preview to render
       await new Promise((res) => setTimeout(res, 300));
-
-      // Complete payment
       await handlePayment();
-
-      // Trigger print of the bill using react-to-print
       await printBill();
     } catch (e) {
-      // handled upstream by handlePayment if needed
+      handleError({ error: e });
     }
   };
+
+  const displayCustomerName = useMemo(() => {
+    if (checkoutType === "member" && selectedMember) {
+      const name =
+        `${selectedMember.firstName || ""} ${selectedMember.lastName || ""}`.trim();
+      return name || "Guest";
+    }
+    return "Guest";
+  }, [checkoutType, selectedMember]);
 
   const previewData = useMemo(() => {
     const orderData: any = order?.data || {};
@@ -281,10 +316,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       orderType: orderData.orderType,
       deliveryAddress: orderData.deliveryAddress,
       orderNote: orderData.orderNote,
+      customerInfo: {
+        name: displayCustomerName,
+      },
       items,
       totalAmount: Number(orderData.totalAmount ?? 0),
     };
-  }, [order, table]);
+  }, [order, table, displayCustomerName, checkoutType, selectedMember]);
 
   const items = previewData.items as Array<{
     id: any;
@@ -293,6 +331,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     subtotal: number;
   }>;
   const allSelected = items?.length > 0 && selectedIds.length === items.length;
+
+  // Initialize selection from props (coming from ViewTableOrder) or select all by default
+  useEffect(() => {
+    const itemIds = (items || []).map((it) => String(it.id));
+    if (itemIds.length === 0) {
+      setSelectedIds([]);
+      return;
+    }
+    if (selectedItemIds && selectedItemIds.length > 0) {
+      const incoming = selectedItemIds.map((n) => String(n));
+      const filtered = itemIds.filter((id) => incoming.includes(id));
+      setSelectedIds(filtered);
+    } else {
+      // Default to all selected if nothing provided
+      setSelectedIds(itemIds);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, items, selectedItemIds]);
   const toggleSelectAll = () => {
     if (!items || items.length === 0) return;
     setSelectedIds((prev) =>
@@ -305,6 +361,43 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid],
     );
   };
+
+  // Subtotal of only selected items
+  const selectedSubtotal = useMemo(() => {
+    if (!items || items.length === 0) return 0;
+    const set = new Set(selectedIds);
+    return items
+      .filter((it) => set.has(String(it.id)))
+      .reduce((sum, it) => sum + (Number(it.subtotal) || 0), 0);
+  }, [items, selectedIds]);
+
+  // // Debug: verify sync input and computed items
+  // useEffect(() => {
+  //   // eslint-disable-next-line no-console
+  //   console.log('[CheckoutModal] selectedItemIds (from ViewTableOrder):', selectedItemIds);
+  //   // eslint-disable-next-line no-console
+  //   console.log('[CheckoutModal] items in modal:', items);
+  //   // eslint-disable-next-line no-console
+  //   console.log('[CheckoutModal] selectedIds (modal state):', selectedIds);
+  //   // eslint-disable-next-line no-console
+  //   console.log('[CheckoutModal] selectedSubtotal:', selectedSubtotal);
+  // }, [selectedItemIds, items, selectedIds, selectedSubtotal]);
+
+  // For Bill component: ensure a single numeric orderId or null when multiple
+  const orderIdForBill = Array.isArray(orderId) ? null : orderId;
+
+  // Build Bill data containing only selected items
+  const billData = useMemo(() => {
+    const selectedSet = new Set(selectedIds);
+    const filteredItems = (previewData.items || []).filter((it: any) =>
+      selectedSet.has(String(it.id)),
+    );
+    return {
+      ...previewData,
+      items: filteredItems,
+      totalAmount: selectedSubtotal,
+    } as typeof previewData;
+  }, [previewData, selectedIds, selectedSubtotal]);
 
   if (!isOpen) return null;
 
@@ -441,13 +534,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <div className="flex justify-between">
                       <h3 className="text-[17px]">Sub Total</h3>
                       <h3 className="text-[17px]">
-                        {CurrencySign} {previewData.totalAmount.toFixed(2)}
+                        {CurrencySign} {selectedSubtotal.toFixed(2)}
                       </h3>
                     </div>
                     <div className="flex justify-between">
                       <h3 className="text-[17px]">Total</h3>
                       <h3 className="text-[17px]">
-                        {CurrencySign} {previewData.totalAmount.toFixed(2)}
+                        {CurrencySign} {selectedSubtotal.toFixed(2)}
                       </h3>
                     </div>
                   </div>
@@ -504,7 +597,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <div>
                         <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-8">
                           <label
-                            className={`${styles.paymentLabel} block mb-1`}
+                            className={`${styles.paymentLabel} block mb-1 w-[12rem]`}
                           >
                             Search Member:
                           </label>
@@ -685,7 +778,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <span
                               className={`text-[16px] font-semibold ${
                                 (parseFloat(tenderAmount) || 0) -
-                                  previewData.totalAmount >=
+                                  selectedSubtotal >=
                                 0
                                   ? "text-green-600"
                                   : "text-red-600"
@@ -695,7 +788,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               {Math.max(
                                 0,
                                 (parseFloat(tenderAmount) || 0) -
-                                  previewData.totalAmount,
+                                  selectedSubtotal,
                               ).toFixed(2)}
                             </span>
                           </div>
@@ -840,7 +933,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     )}
 
                     <div className="mt-6 gap-3 flex justify-center flex-wrap">
-                      <div className="flex flex-col gap-3">
+                      <div className="flex gap-3">
                         <button
                           onClick={handleOpenPreview}
                           disabled={
@@ -898,7 +991,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         ref={billRef}
         isOpen={showPreview}
         onClose={handleClosePreview}
-        data={previewData}
+        orderId={orderIdForBill}
+        data={billData}
+        customerInfo={previewData.customerInfo}
         onCompletePayment={async () => {
           await handlePayment();
           handleClosePreview();

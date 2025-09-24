@@ -148,7 +148,7 @@ export default function Settings() {
 
   return (
     <form
-      className="flex flex-col gap-[5rem]"
+      className="flex flex-col gap-[2rem]"
       onSubmit={handleSubmit(onSubmit)}
     >
       {/* Brands */}

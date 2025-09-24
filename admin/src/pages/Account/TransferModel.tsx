@@ -135,7 +135,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
             <button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
+              className="bg-[#36a77d] hover:bg-[#36a77d]/80 disabled:opacity-60 text-white px-6 py-2 rounded-md"
             >
               {isSubmitting || isLoading ? "Processing..." : "Transfer"}
             </button>
