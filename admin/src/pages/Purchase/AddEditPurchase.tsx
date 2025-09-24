@@ -164,6 +164,7 @@ const AddEditPurchase: React.FC = () => {
 
   // Suppliers dropdown
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<{
     value: string;
@@ -172,12 +173,14 @@ const AddEditPurchase: React.FC = () => {
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   // Extra summary discount percentage applied on top of line totals
   const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(0);
+  const [showAllSuppliers, setShowAllSuppliers] = useState(false);
+
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
     limit: 100,
-    search: {
-      name: supplierSearchTerm,
-    },
+    ...(supplierSearchTerm.trim().length > 0 && !showAllSuppliers
+      ? { search: { name: supplierSearchTerm } }
+      : {}),
   });
   const {
     data: suppliersResp,
@@ -186,7 +189,8 @@ const AddEditPurchase: React.FC = () => {
   } = useGetListAllSupplierQuery(
     { url: supplierUrl },
     {
-      skip: supplierSearchTerm.trim().length < 2,
+      // Skip only if not showing all suppliers and search term is too short
+      skip: !showAllSuppliers && supplierSearchTerm.trim().length < 2,
     },
   );
   const supplierOptions = useMemo(() => {
@@ -203,6 +207,28 @@ const AddEditPurchase: React.FC = () => {
       rows.map((s: any) => ({ label: s.name, value: String(s.id) })),
     );
   }, [suppliersOk, suppliersResp]);
+
+  // Extract suppliers from API response
+  const suppliers = useMemo(() => {
+    if (!suppliersOk && !showAllSuppliers) return [];
+    const raw: any = (suppliersResp as any)?.data;
+    let data = [];
+    if (Array.isArray(raw)) data = raw;
+    else if (Array.isArray(raw?.data)) data = raw.data;
+
+    // Filter by search term if not showing all suppliers
+    if (supplierSearchTerm.trim().length > 0 && !showAllSuppliers) {
+      const term = supplierSearchTerm.toLowerCase();
+      return data.filter(
+        (s: any) =>
+          s.name?.toLowerCase().includes(term) ||
+          s.contactNumber?.includes(term) ||
+          s.email?.toLowerCase().includes(term),
+      );
+    }
+
+    return data;
+  }, [suppliersOk, suppliersResp, supplierSearchTerm, showAllSuppliers]);
 
   // Normalized supplier rows for dropdown
   const supplierRows = useMemo(() => {
@@ -264,9 +290,11 @@ const AddEditPurchase: React.FC = () => {
     const discountPercent = Number(row.discountPercent) || 0;
     const base = qty * rate;
     const discountAmt = (base * discountPercent) / 100;
-    const taxable = base - discountAmt;
-    const taxAmt = row.isTaxable === false ? 0 : (taxable * taxPercent) / 100;
-    const lineTotal = taxable + taxAmt; // tax included in line
+    const taxableAmount = base - discountAmt;
+    const taxAmt =
+      row.isTaxable === false ? 0 : (taxableAmount * taxPercent) / 100;
+    // Always include the full amount in lineTotal, tax is handled separately
+    const lineTotal = base - discountAmt + taxAmt;
     return { base, discountAmt, taxAmt, lineTotal };
   };
 
@@ -319,7 +347,7 @@ const AddEditPurchase: React.FC = () => {
     const payload = {
       supplierId: Number(data.supplierId),
       invoiceDate: new Date(data.invoiceDate).toISOString(),
-      invoiceNumber: data.invoiceNumber,
+      invoiceNumber: data.invoiceNumber?.trim() || null,
       paymentTerms: data.paymentTerm === "" ? "cash" : data.paymentTerm,
       accountId:
         data.paymentTerm === "credit"
@@ -423,30 +451,153 @@ const AddEditPurchase: React.FC = () => {
                     <label className="text-sm text-gray-700 mb-1 flex justify-start">
                       Supplier
                     </label>
-                    <div>
-                      <CustomDialog
-                        buttonTitle={
-                          <button
-                            type="button"
-                            className="rounded-full bg-primaryColor px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 whitespace-nowrap"
-                          >
-                            + Add Supplier
-                          </button>
-                        }
-                        dialogOpen={supplierDialogOpen}
-                        setDialogOpen={setSupplierDialogOpen}
-                        // title="Add Supplier"
-                        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
-                      >
-                        <AddEditSupplier
-                          isComponent={true}
-                          closeModal={() => {
-                            setSupplierDialogOpen(false);
-                            if (supplierSearchTerm.trim().length >= 2) {
-                              refetchSuppliers();
-                            }
+                    <div className="relative">
+                      <div className="flex gap-2 absolute right-0 bottom-[-8px]">
+                        <CustomDialog
+                          buttonTitle={
+                            <button
+                              type="button"
+                              className="rounded-full bg-primaryColor px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 whitespace-nowrap"
+                            >
+                              + Add New
+                            </button>
+                          }
+                          dialogOpen={supplierDialogOpen}
+                          setDialogOpen={setSupplierDialogOpen}
+                          contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                        >
+                          <AddEditSupplier
+                            isComponent={true}
+                            closeModal={() => {
+                              setSupplierDialogOpen(false);
+                              if (supplierSearchTerm.trim().length >= 2) {
+                                refetchSuppliers();
+                              }
+                            }}
+                          />
+                        </CustomDialog>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAllSuppliers(true);
+                            setSupplierSearchTerm("");
+                            setViewSuppliersDialogOpen(true);
+                            refetchSuppliers();
                           }}
-                        />
+                          className="rounded-full bg-gray-600 px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-gray-700 whitespace-nowrap"
+                        >
+                          View All
+                        </button>
+                      </div>
+
+                      {/* View Suppliers Dialog */}
+                      <CustomDialog
+                        buttonTitle={null}
+                        dialogOpen={viewSuppliersDialogOpen}
+                        setDialogOpen={setViewSuppliersDialogOpen}
+                        title="All Suppliers"
+                        contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                      >
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Search suppliers..."
+                              className="w-full p-2 border rounded bg-white"
+                              value={supplierSearchTerm}
+                              onChange={(e) =>
+                                setSupplierSearchTerm(e.target.value)
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() => refetchSuppliers()}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              title="Search"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+
+                          <div className="border rounded-lg overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Name
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Contact
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Email
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Action
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {suppliers?.map((supplier: any) => (
+                                  <tr
+                                    key={supplier.id}
+                                    className="hover:bg-gray-50"
+                                  >
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                      {supplier.name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {supplier.contactNumber || "-"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {supplier.email || "-"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setValue(
+                                            "supplierId",
+                                            String(supplier.id),
+                                          );
+                                          setSelectedSupplier({
+                                            value: String(supplier.id),
+                                            label: supplier.name,
+                                          });
+                                          setViewSuppliersDialogOpen(false);
+                                        }}
+                                        className="text-primaryColor hover:text-primaryColor/80"
+                                      >
+                                        Select
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                                {(!suppliers || suppliers.length === 0) && (
+                                  <tr>
+                                    <td
+                                      colSpan={4}
+                                      className="px-6 py-4 text-center text-sm text-gray-500"
+                                    >
+                                      No suppliers found
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       </CustomDialog>
                     </div>
                   </div>
@@ -552,17 +703,10 @@ const AddEditPurchase: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="Invoice no."
+                    placeholder="Invoice no. (Optional)"
                     className="border rounded px-3 py-2 bg-white"
-                    {...register("invoiceNumber", {
-                      required: "Invoice number is required",
-                    })}
+                    {...register("invoiceNumber")}
                   />
-                  {errors.invoiceNumber && (
-                    <span className="text-red-600 text-sm mt-1">
-                      {errors.invoiceNumber.message}
-                    </span>
-                  )}
                 </div>
                 {/* Removed global Purchase Category field in favor of per-item category */}
                 <div className="flex flex-col">
@@ -650,7 +794,7 @@ const AddEditPurchase: React.FC = () => {
                           discountPercent: 0,
                           taxPercent: 13,
                         };
-                        const { lineTotal } = computeRow(row);
+                        const { base, discountAmt } = computeRow(row);
                         return (
                           <tr key={field.id}>
                             <td className="p-2 border text-center w-16">
@@ -721,7 +865,7 @@ const AddEditPurchase: React.FC = () => {
                               />
                             </td>
                             <td className="p-2 border text-right w-28">
-                              {lineTotal.toFixed(2)}
+                              {(base - discountAmt).toFixed(2)}
                             </td>
                             <td className="p-2 border text-center">
                               <button

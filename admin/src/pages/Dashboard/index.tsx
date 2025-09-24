@@ -44,20 +44,20 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      <div className="flex mt-4">
+      <div className="mt-4 w-full">
         <Controller
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="flex p-1 gap-2 rounded-lg justify-between">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:gap-2 gap-2">
               {headerOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={`flex border-2 md:py-3 md:px-8 py-4 px-6 justify-between text-base font-medium rounded-md transition-colors ${
+                  className={`w-full md:w-auto py-2 px-4 md:py-3 md:px-8 text-sm sm:text-base font-medium rounded-md transition-colors whitespace-nowrap ${
                     field.value === option.value
                       ? "bg-primaryColor text-white border-none"
-                      : "bg-white text-gray-700 hover:bg-gray-200"
+                      : "bg-white text-gray-700 border-2 hover:bg-gray-100"
                   }`}
                   onClick={() => field.onChange(option.value)}
                 >

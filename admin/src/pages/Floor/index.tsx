@@ -82,7 +82,7 @@ export default function Floor() {
   };
 
   const pagination = {
-    page: allFloor?.data?.page,
+    page: allFloor?.data?.total === 0 ? 0 : allFloor?.data?.page,
     limit: allFloor?.data?.limit,
     total: allFloor?.data?.total,
     totalPages: allFloor?.data?.totalPages,

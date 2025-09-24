@@ -37,12 +37,7 @@ const purchasePostValidation = async (req, res, next) => {
       "date.base": "Invoice date must be a valid ISO date",
       "any.required": "Invoice date is required",
     }),
-    invoiceNumber: Joi.string().trim().min(1).max(100).required().messages({
-      "string.base": "Invoice number must be a string",
-      "string.min": "Invoice number must be at least 1 character",
-      "string.max": "Invoice number must not exceed 100 characters",
-      "any.required": "Invoice number is required",
-    }),
+    invoiceNumber: Joi.string().trim().min(1).max(100).optional().allow(null),
     paymentTerms: Joi.string()
       .valid("cash", "cheque", "credit")
       .required()
@@ -86,7 +81,7 @@ const purchasePutValidation = async (req, res, next) => {
   const joiModel = Joi.object({
     supplierId: Joi.number().integer().positive().optional(),
     invoiceDate: Joi.date().iso().optional(),
-    invoiceNumber: Joi.string().trim().min(1).max(100).optional(),
+    invoiceNumber: Joi.string().trim().min(1).max(100).optional().allow(null),
     paymentTerms: Joi.string().valid("cash", "cheque", "credit").optional(),
     accountId: Joi.number().integer().positive().optional(),
     discountAmount: Joi.number().precision(2).min(0).optional(),

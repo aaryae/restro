@@ -87,7 +87,7 @@ export default function OrderTable() {
   };
 
   const pagination = {
-    page: allTable?.data?.page,
+    page: allTable?.data?.total === 0 ? 0 : allTable?.data?.page,
     limit: allTable?.data?.limit,
     total: allTable?.data?.total,
     totalPages: allTable?.data?.totalPages,

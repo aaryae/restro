@@ -763,8 +763,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 (parseFloat(tenderAmount) || 0) -
                                   selectedSubtotal >=
                                 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
+                                  ? "text-black"
+                                  : "text-green-600"
                               }`}
                             >
                               {CurrencySign}

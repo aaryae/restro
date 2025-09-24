@@ -41,11 +41,11 @@ module.exports = (sequelize) => {
       },
       invoiceDate: {
         type: DataTypes.DATE,
-        allowNull: false,
+        allowNull: true,
       },
       invoiceNumber: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       paymentTerms: {
         type: DataTypes.ENUM("cash", "cheque", "credit"),

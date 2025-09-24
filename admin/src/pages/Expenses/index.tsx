@@ -33,7 +33,8 @@ const Expenses: React.FC = () => {
   const { data: apiData, isSuccess: success } = useGetApiQuery({ url });
 
   const pagination: PaginationType = {
-    page: apiData?.data?.page ?? query.page,
+    // page: apiData?.data?.page ?? query.page,
+    page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
     limit: apiData?.data?.limit ?? query.limit,
     total: apiData?.data?.total ?? 0,
     totalPages: apiData?.data?.totalPages ?? 1,
