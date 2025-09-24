@@ -39,7 +39,7 @@ const userLogin = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
     const isDeletedUser = await userModel.findOne({
-      where: { username: req.body.username },
+      where: { username: req.body.username, isDeleted: false },
     });
 
     if (isDeletedUser?.isDeleted === true) {
@@ -57,6 +57,7 @@ const userLogin = async (req, res, next) => {
       return returnData;
     }
     let loginData = await internal.userLoginPassport(req, res, next);
+    console.log(loginData, "loginData");
     if (loginData.err) throw err;
     if (loginData && loginData.user) {
       const activeUserSession = await findSingleUserLog(loginData.user.id);
@@ -106,6 +107,7 @@ const userLogin = async (req, res, next) => {
         data: null,
       };
     }
+    console.log(returnData, "returnData");
     return returnData;
   } catch (err) {
     throw err;
@@ -378,6 +380,7 @@ const getOneUser = async (req, res, next) => {
 const authGetProfile = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
+    console.log(req.user.id, "req.user.id");
     const result = await userModel.findOne({
       where: { id: +req.user.id },
       include: [
@@ -394,6 +397,7 @@ const authGetProfile = async (req, res, next) => {
         },
       ],
     });
+    console.log(result, "result");
     if (result) {
       returnData = {
         ...generalConstant.EN.USERS.USER_FOUND,

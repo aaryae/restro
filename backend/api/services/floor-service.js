@@ -115,12 +115,27 @@ const updateById = async (req) => {
 
 const deleteById = async (req) => {
   try {
-    const result = await floorModel.findByPk(+req.params.id);
+    const floorId = +req.params.id;
+    const result = await floorModel.findByPk(floorId);
     if (!result) {
       return {
         status: 404,
         success: false,
         message: `Floor Not Found`,
+        data: null,
+      };
+    }
+
+    // Check if any tables exist in this floor
+    const tables = await tableModel.count({
+      where: { floorId },
+    });
+
+    if (tables > 0) {
+      return {
+        status: 400,
+        success: false,
+        message: `Cannot delete floor: There are ${tables} table`,
         data: null,
       };
     }

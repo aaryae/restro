@@ -110,12 +110,23 @@ const getById = async (req) => {
 
 const deleteById = async (req) => {
   try {
-    const result = await tableModel.findByPk(+req.params.id);
+    const tableId = +req.params.id;
+    const result = await tableModel.findByPk(tableId);
     if (!result) {
       return {
         status: 404,
         success: false,
         message: `Table Not Found`,
+        data: null,
+      };
+    }
+
+    // Check if table is currently occupied
+    if (result.status === "occupied") {
+      return {
+        status: 400,
+        success: false,
+        message: "The table is currently occupied.",
         data: null,
       };
     }
