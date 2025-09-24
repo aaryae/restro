@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { FaMoneyBillWave, FaPlus, FaQrcode } from "react-icons/fa";
 import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
@@ -13,12 +13,14 @@ import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
-import CheckoutPreview from "./CheckoutPreview";
+// import CheckoutPreview from "./CheckoutPreview";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { OrderSchema } from "../schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import Bill from "@/components/Bill";
+import { useReactToPrint } from "react-to-print";
 
 // Define interfaces
 interface OrderItem {
@@ -101,6 +103,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
+  // Placeholder for Bill ref; print handler defined after data hooks
+  const billRef = useRef<HTMLDivElement>(null);
+
   const customerUrl = buildQueryString("customer-auth/list", {
     page: 1,
     limit: 5,
@@ -123,6 +128,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       skip: orderId === null || orderId === undefined,
     },
   );
+
+  // Printing setup for Bill (react-to-print) — defined after 'order' is declared
+  const printBill = useReactToPrint({
+    contentRef: billRef,
+    documentTitle: `Bill-${order?.data?.orderNumber || "Invoice"}`,
+    pageStyle: `
+      @page { margin: 10mm; }
+      @media print {
+        html, body { margin: 0 !important; padding: 0 !important; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none !important; }
+      }
+    `,
+  });
 
   // Fetch all accounts to populate bank and wallet dropdowns
   const { data: accountsResp } = useGetApiQuery({
@@ -222,39 +241,23 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setShowPreview(false);
   };
 
-  const handlePrint = (targetId?: string) => {
-    if (!targetId) {
-      window.print();
-      return;
+  // Submit and Print: open preview, complete payment, then print only the bill
+  const handleSubmitAndPrint = async () => {
+    try {
+      // Show the preview so bill content is in the DOM
+      setShowPreview(true);
+
+      // Wait a moment for the preview to render
+      await new Promise((res) => setTimeout(res, 300));
+
+      // Complete payment
+      await handlePayment();
+
+      // Trigger print of the bill using react-to-print
+      await printBill();
+    } catch (e) {
+      // handled upstream by handlePayment if needed
     }
-    const content = document.getElementById(targetId)?.innerHTML;
-    if (!content) {
-      window.print();
-      return;
-    }
-    // const printWindow = window.open("", "_blank", "width=800,height=600");
-    // if (!printWindow) return;
-    // printWindow.document.open();
-    // printWindow.document.write(`<!doctype html><html><head><title>Bill</title>
-    //   <style>
-    //     * { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, sans-serif; }
-    //     .text-right{ text-align:right; }
-    //     .text-center{ text-align:center; }
-    //     .grid{ display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
-    //     .col-span-6{ grid-column: span 6 / span 6; }
-    //     .col-span-2{ grid-column: span 2 / span 2; }
-    //     .px-4{ padding-left:1rem; padding-right:1rem; }
-    //     .py-2{ padding-top:0.5rem; padding-bottom:0.5rem; }
-    //     .py-3{ padding-top:0.75rem; padding-bottom:0.75rem; }
-    //     .bg-gray-100{ background:#f3f4f6; }
-    //     .bg-gray-50{ background:#f9fafb; }
-    //     .border{ border:1px solid #e5e7eb; }
-    //   </style>
-    // </head><body>${content}</body></html>`);
-    // printWindow.document.close();
-    // printWindow.focus();
-    // printWindow.print();
-    // printWindow.close();
   };
 
   const previewData = useMemo(() => {
@@ -836,14 +839,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                     )}
 
-                    <div className="mt-6 gap-3 flex justify-center">
+                    <div className="mt-6 gap-3 flex justify-center flex-wrap">
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={handleOpenPreview}
                           disabled={
                             checkoutType === "member" && !selectedMember
                           }
-                          className={`px-12 py-4 rounded-md border text-sm font-medium ${
+                          className={`p-2 border rounded text-[14px] font-medium transition ${
                             checkoutType === "member" && !selectedMember
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:bg-gray-50"
@@ -854,23 +857,23 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         </button>
                         <button
                           onClick={handlePayment}
-                          disabled={
-                            checkoutType === "member" && !selectedMember
-                          }
-                          className={`px-12 py-4 rounded-md text-sm font-medium text-white ${
-                            paymentType === "cash"
-                              ? "bg-primaryColor hover:bg-primaryColor/90"
-                              : "bg-blue-600 hover:bg-blue-700"
-                          } ${checkoutType === "member" && !selectedMember ? "opacity-50 cursor-not-allowed" : ""}`}
+                          className="p-2 bg-primaryColor text-white rounded text-[14px] font-medium hover:bg-opacity-90"
                           title={
                             paymentType === "cash"
-                              ? "Submit cash payment"
+                              ? "Submit"
                               : "Complete QR payment"
                           }
                         >
                           {paymentType === "cash"
                             ? "Submit"
                             : "Complete Payment"}
+                        </button>
+                        <button
+                          onClick={handleSubmitAndPrint}
+                          className="p-2 bg-emerald-600 text-white rounded text-[14px] font-medium hover:bg-emerald-700"
+                          title="Submit and print the bill"
+                        >
+                          Submit & Print
                         </button>
                       </div>
                     </div>
@@ -882,7 +885,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </div>
       </div>
       {/* Preview Modal */}
-      <CheckoutPreview
+      {/* <CheckoutPreview
         isOpen={showPreview}
         onClose={handleClosePreview}
         data={previewData}
@@ -890,7 +893,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           await handlePayment();
           handleClosePreview();
         }}
-        onPrintBill={handlePrint}
+      /> */}
+      <Bill
+        ref={billRef}
+        isOpen={showPreview}
+        onClose={handleClosePreview}
+        data={previewData}
+        onCompletePayment={async () => {
+          await handlePayment();
+          handleClosePreview();
+        }}
+        className="bill-print"
       />
     </>
   );

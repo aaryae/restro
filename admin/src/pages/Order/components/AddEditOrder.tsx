@@ -192,8 +192,26 @@ export default function AddEditOrder({
       0,
     );
     setTotalAmount(total);
-    setValue("orderItems", orderItems);
+
+    const formOrderItems = orderItems.map((item) => ({
+      quantity: item.quantity,
+      departmentId: item.departmentId,
+      productPrice: item.productPrice,
+
+      productId: isNaN(Number(item.productId))
+        ? undefined
+        : Number(item.productId),
+      specialInstructions: item.specialInstructions,
+    }));
+    setValue("orderItems", formOrderItems as any);
   }, [orderItems, setValue]);
+
+  const totalQuantity = useMemo(() => {
+    return orderItems.reduce((sum, item) => {
+      if (item.status === "cancelled") return sum;
+      return sum + Number(item.quantity || 0);
+    }, 0);
+  }, [orderItems]);
 
   // Fetch tables from backend (generic)
   const { data: tableData } = useGetApiQuery({ url: `${TABLE_URL}list` });
@@ -378,9 +396,9 @@ export default function AddEditOrder({
                 </span>
                 <span className="ml-auto relative">
                   <ShoppingBasket className="text-black size-[2.5rem] cursor-pointer" />
-                  {orderItems?.length > 0 && (
+                  {totalQuantity > 0 && (
                     <span className="absolute -top-[0.3rem] -right-[0.5rem] text-[0.9rem] font-medium rounded-full bg-blue-500 text-white w-6 h-6 flex items-center justify-center">
-                      {orderItems?.length}
+                      {totalQuantity}
                     </span>
                   )}
                 </span>
