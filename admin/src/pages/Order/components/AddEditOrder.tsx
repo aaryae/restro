@@ -10,7 +10,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
 import Select from "@/components/Select";
-import Model from "@/components/Model";
 import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
@@ -317,6 +316,7 @@ export default function AddEditOrder({
     try {
       const payload = {
         ...data,
+        orderNote: getValues("orderNote"),
         orderItems: orderItems.map((item: OrderItem) => {
           if (String(item.id).includes("newitem_")) {
             return {
@@ -491,7 +491,7 @@ export default function AddEditOrder({
                         ? `Search Results (${productData?.data?.data?.length})`
                         : "Top Selling Menu Items"}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto">
                       {productData?.data?.data?.map(
                         (product: {
                           id: string;
@@ -586,18 +586,6 @@ export default function AddEditOrder({
                   />
                 </div>
               )}
-            </div>
-
-            {/* Order Note */}
-            <div className="mt-6">
-              <TextArea
-                rows={5}
-                label="Order Note"
-                placeholder="Any special instructions or notes"
-                className="w-full"
-                {...register("orderNote")}
-                error={errors.orderNote?.message}
-              />
             </div>
           </div>
           <div>
@@ -827,6 +815,17 @@ export default function AddEditOrder({
                   </span>
                 </div>
               </div>
+            </div>
+            {/* Order Note */}
+            <div className="p-6">
+              <TextArea
+                rows={5}
+                label="Order Note"
+                placeholder="Any special instructions or notes"
+                className="w-full"
+                {...register("orderNote")}
+                error={errors.orderNote?.message}
+              />
             </div>
             <div className="px-6 py-4 border-t flex justify-end gap-3">
               <button

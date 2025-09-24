@@ -24,7 +24,10 @@ const ExpenseCategorySchema = z.object({
 });
 type ExpenseCategoryFormType = z.infer<typeof ExpenseCategorySchema>;
 
-const AddExpenseCategory: React.FC = () => {
+const AddExpenseCategory: React.FC<{
+  isComponent?: boolean;
+  closeModal?: () => void;
+}> = ({ isComponent = false, closeModal = () => {} }) => {
   const translate = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -71,7 +74,13 @@ const AddExpenseCategory: React.FC = () => {
 
       handleResponse({
         res: response,
-        onSuccess: () => navigate(EXPENSE_CATEGORY_LIST_ROUTE),
+        onSuccess: () => {
+          if (isComponent) {
+            closeModal();
+          } else {
+            navigate(EXPENSE_CATEGORY_LIST_ROUTE);
+          }
+        },
       });
     } catch (error: any) {
       handleError({ error });
@@ -80,10 +89,12 @@ const AddExpenseCategory: React.FC = () => {
 
   return (
     <>
-      <PageTitle
-        title={isEdit ? "Edit Expense Category" : "Add Expense Category"}
-        isBack
-      />
+      {!isComponent && (
+        <PageTitle
+          title={isEdit ? "Edit Expense Category" : "Add Expense Category"}
+          isBack
+        />
+      )}
       <form
         className="grid grid-cols-1 gap-[2rem] mt-[1rem] form-container"
         onSubmit={handleSubmit(onSubmit)}

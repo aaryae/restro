@@ -23,6 +23,7 @@ import Select from "@/components/Select";
 import Input from "@/components/Input";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
+import AddEditExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
 
 export const ExpenseSchema = z.object({
   paymentMethod: z.enum(["cash", "card", "online"], {
@@ -49,7 +50,8 @@ const AddEditExpense: React.FC = () => {
   );
   const [paymentSourceOptions, setPaymentSourceOptions] = useState<any[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<any[]>([]);
-  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [expenseCategoryDialogOpen, setExpenseCategoryDialogOpen] =
+    useState(false);
   const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
@@ -229,13 +231,41 @@ const AddEditExpense: React.FC = () => {
                 name="categoryId"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    required
-                    {...field}
-                    options={expenseCategoryOptions}
-                    label="Category"
-                    error={errors.categoryId?.message}
-                  />
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm text-gray-700 font-semibold">
+                        Category
+                      </label>
+                      <CustomDialog
+                        buttonTitle={
+                          <button
+                            type="button"
+                            className="rounded-full bg-green-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-green-700 whitespace-nowrap"
+                          >
+                            <span>+</span>
+                            Add Category
+                          </button>
+                        }
+                        dialogOpen={expenseCategoryDialogOpen}
+                        setDialogOpen={setExpenseCategoryDialogOpen}
+                        title="Add Expense Category"
+                        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                      >
+                        <AddEditExpenseCategory
+                          isComponent={true}
+                          closeModal={() => {
+                            setExpenseCategoryDialogOpen(false);
+                          }}
+                        />
+                      </CustomDialog>
+                    </div>
+                    <Select
+                      required
+                      {...field}
+                      options={expenseCategoryOptions}
+                      error={errors.categoryId?.message}
+                    />
+                  </div>
                 )}
               />
               <div className="flex flex-col">
@@ -290,14 +320,15 @@ const AddEditExpense: React.FC = () => {
                             + Add New
                           </button>
                         }
-                        dialogOpen={supplierDialogOpen}
-                        setDialogOpen={setSupplierDialogOpen}
+                        dialogOpen={viewSuppliersDialogOpen}
+                        setDialogOpen={setViewSuppliersDialogOpen}
+                        title="Add New Supplier"
                         contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
                       >
                         <AddEditSupplier
                           isComponent={true}
                           closeModal={() => {
-                            setSupplierDialogOpen(false);
+                            setViewSuppliersDialogOpen(false);
                             refetchSuppliers();
                           }}
                         />
