@@ -12,31 +12,44 @@ const supplierPostValidation = async (req, res, next) => {
       "string.empty": "Name cannot be empty",
       "any.required": "Name is required",
     }),
-    supplier_code: joi.string().trim().min(2).pattern(/^[A-Za-z][A-Za-z0-9]*$/).required().messages({
-      "string.base": "Supplier code must be a string",
-      "string.empty": "Supplier code cannot be empty",
-      "string.pattern.base": "Supplier code must start with a letter and contain only alphanumeric characters",
-      "any.required": "Supplier code is required",
-    }),
-    address: joi.string().trim().min(2).optional().messages({
+    supplier_code: joi
+      .string()
+      .trim()
+      .min(2)
+      .pattern(/^[A-Za-z][A-Za-z0-9]*$/)
+      .required()
+      .messages({
+        "string.base": "Supplier code must be a string",
+        "string.empty": "Supplier code cannot be empty",
+        "string.pattern.base":
+          "Supplier code must start with a letter and contain only alphanumeric characters",
+        "any.required": "Supplier code is required",
+      }),
+    address: joi.string().trim().min(2).optional().allow(null).messages({
       "string.base": "Address must be a string",
       "string.empty": "Address cannot be empty",
     }),
-    contact_number: joi.string().trim().min(10).max(20).required().messages({
-      "string.base": "Contact number must be a string",
-      "string.empty": "Contact number cannot be empty",
-      "string.min": "Contact number must be at least 10 characters",
-      "string.max": "Contact number cannot exceed 20 characters",
-      "any.required": "Contact number is required",
-    }),
-    email: joi.string().email().optional().messages({
+    contact_number: joi
+      .string()
+      .trim()
+      .min(10)
+      .max(20)
+      .optional()
+      .allow(null)
+      .messages({
+        "string.base": "Contact number must be a string",
+        "string.empty": "Contact number cannot be empty",
+        "string.min": "Contact number must be at least 10 characters",
+        "string.max": "Contact number cannot exceed 20 characters",
+      }),
+    email: joi.string().email().optional().allow(null).messages({
       "string.base": "Email must be a string",
       "string.email": "Email must be a valid email address",
     }),
-    pan_vat_number: joi.string().trim().optional().messages({
+    pan_vat_number: joi.string().trim().optional().allow(null).messages({
       "string.base": "PAN/VAT number must be a string",
     }),
-    contact_person: joi.string().trim().min(2).required().messages({
+    contact_person: joi.string().trim().min(2).optional().allow(null).messages({
       "string.base": "Contact person must be a string",
       "string.empty": "Contact person cannot be empty",
       "any.required": "Contact person is required",
@@ -61,14 +74,21 @@ const supplierPostValidation = async (req, res, next) => {
 const supplierPutValidation = async (req, res, next) => {
   let joiModel = joi.object({
     name: joi.string().trim().min(2).optional(),
-    supplier_code: joi.string().trim().min(2).pattern(/^[A-Za-z][A-Za-z0-9]*$/).optional().messages({
-      "string.pattern.base": "Supplier code must start with a letter and contain only alphanumeric characters",
-    }),
-    address: joi.string().trim().min(2).optional(),
-    contact_number: joi.string().trim().min(10).max(20).optional(),
-    email: joi.string().email().optional(),
-    pan_vat_number: joi.string().trim().optional(),
-    contact_person: joi.string().trim().min(2).optional(),
+    supplier_code: joi
+      .string()
+      .trim()
+      .min(2)
+      .pattern(/^[A-Za-z][A-Za-z0-9]*$/)
+      .optional()
+      .messages({
+        "string.pattern.base":
+          "Supplier code must start with a letter and contain only alphanumeric characters",
+      }),
+    address: joi.string().trim().min(2).optional().allow(null),
+    contact_number: joi.string().trim().min(10).max(20).optional().allow(null),
+    email: joi.string().email().optional().allow(null),
+    pan_vat_number: joi.string().trim().optional().allow(null),
+    contact_person: joi.string().trim().min(2).optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

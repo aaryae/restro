@@ -38,6 +38,15 @@ export default function Supplier() {
 
   const { control, handleSubmit, reset } = useForm<SupplierFilterType>({
     resolver: zodResolver(SupplierFilterSchema),
+    defaultValues: {
+      name: "",
+      supplier_code: "",
+      address: null,
+      contact_number: "",
+      email: "",
+      pan_vat_number: "",
+      contact_person: "",
+    },
   });
 
   const [queryString, setQueryString] = useState<Record<string, any>>({});

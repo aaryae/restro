@@ -36,11 +36,11 @@ module.exports = {
       },
       contact_person: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       slug: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true,
       },
       createdAt: {

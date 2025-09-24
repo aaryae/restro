@@ -13,8 +13,8 @@ import useTranslation from "@/locale/useTranslation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SUPPLIER_LIST_ROUTE } from "@/routes/routeNames";
 import { useNavigate, useParams } from "react-router-dom";
-import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { convertEmptyStringsToNull } from "@/utils/validationHelper";
 import {
   Building2,
   IdCard,
@@ -29,6 +29,7 @@ import {
   useGetSupplierByIdQuery,
   useUpdateSupplierByIdMutation,
 } from "@/redux/services/supplier";
+import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
 
 type SupplierFormType = z.infer<typeof SupplierSchema>;
 
@@ -76,7 +77,13 @@ export default function AddEditSupplier({
   console.log("data", errors, isValid);
 
   const onSubmit = async (data: SupplierFormType) => {
-    const body = { ...data };
+    // Convert empty strings to null for nullable fields
+    const body = convertEmptyStringsToNull(data, [
+      "address",
+      "email",
+      "pan_vat_number",
+      "contact_person",
+    ]);
 
     try {
       const response = isEditMode
@@ -103,13 +110,13 @@ export default function AddEditSupplier({
   useEffect(() => {
     if (isEditMode && supplierData && supplierData?.data) {
       reset({
-        name: supplierData?.data.name,
-        supplier_code: supplierData?.data.supplier_code,
-        address: supplierData?.data.address,
-        contact_number: supplierData?.data.contact_number,
-        email: supplierData?.data.email,
-        pan_vat_number: supplierData?.data.pan_vat_number,
-        contact_person: supplierData?.data.contact_person,
+        name: supplierData?.data.name || "",
+        supplier_code: supplierData?.data.supplier_code || "",
+        address: supplierData?.data.address || null,
+        contact_number: supplierData?.data.contact_number || null,
+        email: supplierData?.data.email || null,
+        pan_vat_number: supplierData?.data.pan_vat_number || null,
+        contact_person: supplierData?.data.contact_person || null,
       });
     }
   }, [supplierData, isEditMode, reset]);
@@ -153,7 +160,6 @@ export default function AddEditSupplier({
                 className="w-full pl-9"
                 {...register("name")}
                 error={errors.name?.message}
-                required
               />
             </div>
 

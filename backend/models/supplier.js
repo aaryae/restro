@@ -48,11 +48,11 @@ module.exports = (sequelize) => {
       },
       contact_person: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       slug: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true,
       },
     },
