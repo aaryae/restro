@@ -13,7 +13,6 @@ import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
-// import CheckoutPreview from "./CheckoutPreview";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { OrderSchema } from "../schema";
