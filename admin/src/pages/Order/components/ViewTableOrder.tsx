@@ -7,6 +7,8 @@ import CheckoutModal from "./CheckoutModal";
 import Button from "@/components/Button";
 import { LuChefHat } from "react-icons/lu";
 import Checkbox from "@/components/Checkbox";
+import CustomDialog from "@/components/Dialog";
+import ChooseTable from "./TransferModel/ChooseTable";
 interface ViewTableOrderProps {
   id: number | null;
   tableNo: number | null;
@@ -30,6 +32,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
       skip: id === null || id === undefined,
     },
   );
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: table } = useGetApiQuery({ url: `${TABLE_URL}${id}` });
 
@@ -49,13 +52,21 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           <h2 className="text-[20px] font-bold text-primaryColor ">
             {table?.data?.tableNo || id}
           </h2>
-          <Link
-            to={`/admin/${ORDER_URL}${id}`}
-            className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white"
-          >
-            <LuChefHat />
-            <span className="font-[500] text-[15px]">Add Order</span>
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to={`/admin/${ORDER_URL}${id}`}
+              className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white"
+            >
+              <LuChefHat />
+              <span className="font-[500] text-[15px]">Add Order</span>
+            </Link>
+            <Button
+              className="md:w-fit w-fit bg-[#c343dc] text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              handleClick={() => setDialogOpen(true)}
+            >
+              Transfer Table
+            </Button>
+          </div>
         </div>
         <div className="flex flex-col justify-between gap-8">
           {loading ? (
@@ -163,6 +174,14 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           </div>
         </div>
       </div>
+      <CustomDialog
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        title="Choose Table"
+        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+      >
+        <ChooseTable tableId={id} />
+      </CustomDialog>
     </>
   );
 };
