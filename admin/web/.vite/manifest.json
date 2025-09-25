@@ -1,16 +1,26 @@
 {
   "index.html": {
-    "file": "assets/index-D9Yrl16U.js",
+    "file": "assets/index-DkgkAN6R.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "css": [
-      "assets/index-DTXgQ2Z9.css"
+      "assets/index-BYnZc8L4.css"
     ],
     "assets": [
       "assets/qr-code--H2dW1GU.png",
+      "assets/beep-BXCTemS2.mp3",
+      "assets/DeleteBeep-BE9VaOuZ.mp3",
       "assets/oops-image-rFS4jjSf.png"
     ]
+  },
+  "src/assets/audio/DeleteBeep.mp3": {
+    "file": "assets/DeleteBeep-BE9VaOuZ.mp3",
+    "src": "src/assets/audio/DeleteBeep.mp3"
+  },
+  "src/assets/audio/beep.mp3": {
+    "file": "assets/beep-BXCTemS2.mp3",
+    "src": "src/assets/audio/beep.mp3"
   },
   "src/assets/oops-image.png": {
     "file": "assets/oops-image-rFS4jjSf.png",
