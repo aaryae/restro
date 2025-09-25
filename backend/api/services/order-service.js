@@ -712,16 +712,10 @@ const checkoutOrder = async (req) => {
             },
             { transaction },
           );
-          await accountModel.increment("currentBalance", {
-            by: Number(subsetTotal) || 0,
-            where: { id: selectedAccountId },
-            transaction,
-          });
           revenueEntries.push(revenue);
+          updatedOrders.push(orderRecord);
           combinedTotalAmount += subsetTotal;
         }
-
-        updatedOrders.push(orderRecord);
       }
 
       // Free table if no other active orders remain
@@ -997,22 +991,9 @@ const checkoutOrder = async (req) => {
         { transaction },
       );
 
-      // Increment selected account balance by the order amount (as number)
-      const incBy = Number(order.totalAmount) || 0;
-      await accountModel.increment("currentBalance", {
-        by: incBy,
-        where: { id: selectedAccountId },
-        transaction,
-      });
-      console.log(
-        `[checkoutOrder] Incremented account ${selectedAccountId} by ${incBy} for order ${order.id}`,
-      );
-
       updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });
       revenueEntries.push(revenue);
     }
-
-    // After completing checkout for these orders, update their order items and KOTs statuses
     for (const order of orders) {
       // 1) Mark all non-cancelled and non-completed order items as completed
       await orderItemModel.update(
