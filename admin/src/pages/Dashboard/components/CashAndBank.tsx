@@ -57,7 +57,7 @@ function CashAndBank() {
     <>
       <div className="mt-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {totalAndBalancesData?.data?.totalBalance && (
+          {totalAndBalancesData?.success && (
             <SummaryCard
               title="Total Revenue"
               value={`${CurrencySign}${totalAndBalancesData?.data?.totalBalance.toLocaleString()}`}
@@ -66,12 +66,12 @@ function CashAndBank() {
             />
           )}
           {totalAndBalancesData?.data?.accounts?.length > 0 &&
-            totalAndBalancesData?.data?.accounts.map((account) => (
+            totalAndBalancesData?.data?.accounts.map((account, index) => (
               <SummaryCard
                 key={account.id}
                 title={account.name}
                 value={`${CurrencySign}${account.currentBalance.toLocaleString()}`}
-                gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+                gradient="from-emerald-500 via-emerald-600 to-emerald-500"
                 Icon={PiggyBank}
               />
             ))}
