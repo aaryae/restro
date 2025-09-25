@@ -1,7 +1,13 @@
 const { Op } = require("sequelize");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
-const { sequelize, accountPermissionModel } = require("../../models");
+// Import models directly; req.db is not being attached anywhere, causing undefined errors
+const {
+  sequelize,
+  accountPermissionModel,
+  userModel,
+  accountModel,
+} = require("../../models");
 
 const list = async (req) => {
   try {
@@ -12,27 +18,25 @@ const list = async (req) => {
     if (accountId) whereClause.accountId = accountId;
     if (userId) whereClause.userId = userId;
 
-    const { count, rows } = await req.db.accountPermissionModel.findAndCountAll(
-      {
-        where: whereClause,
-        include: [
-          {
-            model: req.db.userModel,
-            as: "user",
-            attributes: ["id", "firstName", "lastName", "email"],
-          },
-          {
-            model: req.db.accountModel,
-            as: "account",
-            attributes: ["id", "name", "code"],
-          },
-        ],
-        offset: parseInt(offset),
-        limit: parseInt(limit),
-        order: [["createdAt", "DESC"]],
-        distinct: true,
-      },
-    );
+    const { count, rows } = await accountPermissionModel.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: userModel,
+          as: "user",
+          attributes: ["id", "firstName", "lastName", "email"],
+        },
+        {
+          model: accountModel,
+          as: "account",
+          attributes: ["id", "name"],
+        },
+      ],
+      offset: parseInt(offset),
+      limit: parseInt(limit),
+      order: [["createdAt", "DESC"]],
+      distinct: true,
+    });
 
     return {
       status: 200,
@@ -54,17 +58,17 @@ const list = async (req) => {
 const getById = async (req) => {
   try {
     const { id } = req.params;
-    const permission = await req.db.accountPermissionModel.findByPk(id, {
+    const permission = await accountPermissionModel.findByPk(id, {
       include: [
         {
-          model: req.db.userModel,
+          model: userModel,
           as: "user",
           attributes: ["id", "firstName", "lastName", "email"],
         },
         {
-          model: req.db.accountModel,
+          model: accountModel,
           as: "account",
-          attributes: ["id", "name", "code"],
+          attributes: ["id", "name"],
         },
       ],
     });
@@ -179,11 +183,11 @@ const update = async (req) => {
 };
 
 const remove = async (req) => {
-  const transaction = await req.db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
 
-    const permission = await req.db.accountPermissionModel.findByPk(id, {
+    const permission = await accountPermissionModel.findByPk(id, {
       transaction,
     });
 
@@ -216,13 +220,13 @@ const getByUserId = async (req) => {
   try {
     const { userId } = req.params;
 
-    const permissions = await req.db.accountPermissionModel.findAll({
+    const permissions = await accountPermissionModel.findAll({
       where: { userId },
       include: [
         {
-          model: req.db.accountModel,
+          model: accountModel,
           as: "account",
-          attributes: ["id", "name", "code"],
+          attributes: ["id", "name"],
         },
       ],
     });

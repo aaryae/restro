@@ -118,6 +118,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <GiExpense />,
         path: "/admin/supplier/list",
       },
+      {
+        key: 3.7,
+        name: "Withdraw",
+        icon: <GiExpense />,
+        path: "/admin/withdraw/list",
+      },
     ],
   },
   {
@@ -210,5 +216,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <MdOutlineMailOutline />,
       },
     ],
+  },
+  {
+    key: 10,
+    name: "Account Permission",
+    label: "Account Permission",
+    icon: <LandmarkIcon />,
+    path: "/admin/account-permission/list",
   },
 ];

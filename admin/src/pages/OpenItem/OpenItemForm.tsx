@@ -149,12 +149,22 @@ export default function OpenItemForm() {
         error={errors.name?.message}
       />
 
-      <RichTextEditor
-        data={watch("description")}
-        onChange={(value) => setValue("description", value)}
-        error={errors.description?.message}
-        className="w-1/2"
-      />
+      <div className="md:w-1/2 w-full">
+        <textarea
+          value={watch("description") || ""}
+          onChange={(e) => setValue("description", e.target.value)}
+          className={`w-full p-2 border rounded bg-white ${
+            errors.description ? "border-red-500" : "border-gray-300"
+          }`}
+          rows={4}
+          placeholder="Enter open item description..."
+        />
+        {errors.description?.message && (
+          <p className="mt-1 text-sm text-red-500">
+            {errors.description.message}
+          </p>
+        )}
+      </div>
 
       <Input
         label={"Quantity"}

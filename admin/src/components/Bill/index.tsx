@@ -105,7 +105,7 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
                 {companyAddress}
               </h3>
             )}
-            <p className="mb-2">PAN no: {panNumber || "123456"} </p>
+            {/* <p className="mb-2">PAN no: {panNumber || "123456"} </p> */}
           </div>
 
           <div className="flex justify-between text-sm my-2">
@@ -113,14 +113,14 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
             <p>Date: {format(new Date(), "Pp")}</p>
           </div>
           <div className="flex flex-col gap-1 justify-center items-center">
-            <h1 className="text-[20px] font-bold">Invoice</h1>
+            <h1 className="text-[20px] font-bold">Proforma Invoice</h1>
           </div>
 
           {/* Customer Name Only */}
           {customerInfo?.name && (
             <div className="my-3">
-              <div className="flex items-center gap-4">
-                <span className="font-medium w-24">Name:</span>
+              <div className="flex items-center">
+                <span className="font-medium w-16">Name:</span>
                 <div className="flex-1 border-b-2 border-dotted border-gray-400 min-h-[22px]">
                   <h3 className="text-left text-sm font-medium">
                     {customerInfo.name}
@@ -130,7 +130,7 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
             </div>
           )}
 
-          {/* Items */}
+          <p className="text-[12px] text-left font-semibold">Order Items</p>
           <div className="border border-black overflow-hidden">
             <table className="w-full text-sm">
               <thead>

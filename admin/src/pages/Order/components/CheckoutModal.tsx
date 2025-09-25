@@ -126,6 +126,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     },
   );
 
+  // When checking out ALL (multiple orderIds), read active orders for the table
+  const { data: activeOrdersResp } = useGetApiQuery(
+    { url: `${ORDER_URL}active-orders/${tableId}` },
+    { skip: !Array.isArray(orderId) || !tableId },
+  );
+
   const { data: table } = useGetApiQuery(
     { url: `table/${tableId}` },
     {
@@ -202,6 +208,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   );
 
   // Prefer media array image when present, otherwise fall back to staticQrUrl fields
+  console.log(selectedBankDetail?.data, "HELLO");
   const bankQrUrl =
     (selectedBankDetail?.data as any)?.mediaArr?.[0]?.imageUrl ||
     (selectedBankDetail?.data as any)?.bankAccount?.staticQrUrl ||
@@ -295,33 +302,76 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [checkoutType, selectedMember]);
 
   const previewData = useMemo(() => {
-    const orderData: any = order?.data || {};
-    const items = Array.isArray(orderData.orderItems)
-      ? orderData.orderItems.map((oi: any) => ({
-          id: oi.id,
-          productName: oi?.product?.name ?? oi.productName ?? "Item",
-          quantity: Number(oi.quantity ?? 0),
-          productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
-          subtotal: Number(
-            oi.subtotal ??
-              Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
-          ),
-        }))
+    // Single-order checkout
+    if (!Array.isArray(orderId)) {
+      const orderData: any = order?.data || {};
+      const items = Array.isArray(orderData.orderItems)
+        ? orderData.orderItems.map((oi: any) => ({
+            id: oi.id,
+            productName: oi?.product?.name ?? oi.productName ?? "Item",
+            quantity: Number(oi.quantity ?? 0),
+            productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
+            subtotal: Number(
+              oi.subtotal ??
+                Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
+            ),
+          }))
+        : [];
+
+      return {
+        orderNumber: orderData.orderNumber,
+        tableNo: orderData?.table?.tableNo ?? table?.data?.tableNo ?? null,
+        orderType: orderData.orderType,
+        deliveryAddress: orderData.deliveryAddress,
+        orderNote: orderData.orderNote,
+        customerInfo: {
+          name: displayCustomerName,
+        },
+        items,
+        totalAmount: Number(orderData.totalAmount ?? 0),
+      };
+    }
+
+    // Checkout ALL: aggregate items and totals across all active orders for the table
+    const orders = Array.isArray(activeOrdersResp?.data?.orders)
+      ? activeOrdersResp?.data?.orders
       : [];
+    const items = orders.flatMap((o: any) =>
+      (o?.orderItems || []).map((oi: any) => ({
+        id: oi.id,
+        productName: oi?.product?.name ?? oi.productName ?? "Item",
+        quantity: Number(oi.quantity ?? 0),
+        productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
+        subtotal: Number(
+          oi.subtotal ??
+            Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
+        ),
+      })),
+    );
+    const totalAmount = orders.reduce(
+      (sum: number, o: any) => sum + Number(o?.totalAmount ?? 0),
+      0,
+    );
 
     return {
-      orderNumber: orderData.orderNumber,
-      tableNo: orderData?.table?.tableNo ?? table?.data?.tableNo ?? null,
-      orderType: orderData.orderType,
-      deliveryAddress: orderData.deliveryAddress,
-      orderNote: orderData.orderNote,
-      customerInfo: {
-        name: displayCustomerName,
-      },
+      orderNumber: undefined,
+      tableNo: table?.data?.tableNo ?? null,
+      orderType: undefined,
+      deliveryAddress: undefined,
+      orderNote: undefined,
+      customerInfo: { name: displayCustomerName },
       items,
-      totalAmount: Number(orderData.totalAmount ?? 0),
+      totalAmount,
     };
-  }, [order, table, displayCustomerName, checkoutType, selectedMember]);
+  }, [
+    orderId,
+    order,
+    table,
+    activeOrdersResp,
+    displayCustomerName,
+    checkoutType,
+    selectedMember,
+  ]);
 
   const items = previewData.items as Array<{
     id: any;
@@ -672,7 +722,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                             : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                         }`}
-                        aria-pressed={paymentType === "cash"}
                       >
                         Cash
                       </button>
@@ -684,7 +733,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             ? "bg-blue-50 border-blue-300 text-blue-700"
                             : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                         }`}
-                        aria-pressed={paymentType === "qr"}
                       >
                         QR / E-Payment
                       </button>

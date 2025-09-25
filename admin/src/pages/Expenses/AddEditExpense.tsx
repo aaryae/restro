@@ -24,20 +24,7 @@ import Input from "@/components/Input";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import AddEditExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-
-export const ExpenseSchema = z.object({
-  paymentMethod: z.enum(["cash", "card", "online"], {
-    required_error: "Payment method is required",
-  }),
-  accountId: z.string().min(1, "Payment source is required"),
-  amount: z.coerce
-    .number({ message: "Amount must be a number" })
-    .positive("Amount must be positive"),
-  // Required in UI
-  categoryId: z.string().min(1, "Category is required"),
-  supplierId: z.string().optional(),
-  remarks: z.string().optional().or(z.literal("")),
-});
+import ExpenseSchema from "./schema";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
 
@@ -53,6 +40,7 @@ const AddEditExpense: React.FC = () => {
   const [expenseCategoryDialogOpen, setExpenseCategoryDialogOpen] =
     useState(false);
   const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
+  const [addSupplierDialogOpen, setAddSupplierDialogOpen] = useState(false);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const {
@@ -316,19 +304,23 @@ const AddEditExpense: React.FC = () => {
                           <button
                             type="button"
                             className="rounded-full bg-green-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition-colors hover:bg-green-700 whitespace-nowrap"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAddSupplierDialogOpen(true);
+                            }}
                           >
                             + Add New
                           </button>
                         }
-                        dialogOpen={viewSuppliersDialogOpen}
-                        setDialogOpen={setViewSuppliersDialogOpen}
+                        dialogOpen={addSupplierDialogOpen}
+                        setDialogOpen={setAddSupplierDialogOpen}
                         title="Add New Supplier"
                         contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
                       >
                         <AddEditSupplier
                           isComponent={true}
                           closeModal={() => {
-                            setViewSuppliersDialogOpen(false);
+                            setAddSupplierDialogOpen(false);
                             refetchSuppliers();
                           }}
                         />

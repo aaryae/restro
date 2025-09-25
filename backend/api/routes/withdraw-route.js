@@ -16,6 +16,7 @@ const {
   list,
   getWithdrawByID,
   updateWithdraw,
+  totalWithdraw,
 } = require("../controllers/withdraw-controller");
 const {
   checkAccountPermission,
@@ -23,6 +24,12 @@ const {
 
 router.post("/", authentication, withdrawPostValidation, create);
 router.get("/list", authentication, authorization, paginationValidation, list);
+router.get(
+  "/total",
+  authentication,
+  authorization,
+  totalWithdraw,
+);
 router.get(
   "/:withdrawId",
   authentication,

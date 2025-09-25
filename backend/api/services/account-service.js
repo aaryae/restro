@@ -264,7 +264,7 @@ const createAccount = async (req) => {
 // };
 const getAccountByID = async (req) => {
   try {
-    const { id } = req.params;
+    const { accountId: id } = req.params;
     const account = await accountModel.findByPk(id, {
       include: [
         { model: bankAccountModel, as: "bankAccount" },

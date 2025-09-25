@@ -52,7 +52,7 @@ export default function ProductForm() {
       departmentId: "",
       hasVariant: false,
       variants: [],
-      quantity: 0,
+      // quantity: 0,
       price: 0,
       mediaArr: [],
     },
@@ -116,22 +116,22 @@ export default function ProductForm() {
       const price = product?.data?.hasVariant
         ? 0
         : Number(product?.data?.price || 0);
-      const quantity = product?.data?.hasVariant
-        ? 0
-        : Number(product?.data?.quantity || 0);
+      // const quantity = product?.data?.hasVariant
+      //   ? 0
+      //   : Number(product?.data?.quantity || 0);
       reset({
         ...product?.data,
         productCategoryId: String(product?.data?.productCategoryId),
         departmentId: String(product?.data?.departmentId),
         variants: product?.data?.variants || [],
-        quantity,
+        // quantity,
         price,
         mediaArr: product?.data?.mediaArr?.map((each) => each.imageUrl) || [],
       });
       setSelectedOption(product?.data?.productCategoryId);
       console.log("Reset form with product data:", {
         price,
-        quantity,
+        // quantity,
         hasVariant: product?.data?.hasVariant,
       });
     } else {
@@ -140,7 +140,7 @@ export default function ProductForm() {
         departmentId: "",
         hasVariant: false,
         variants: [],
-        quantity: 0,
+        // quantity: 0,
         price: 0,
         mediaArr: [],
       });
@@ -190,7 +190,7 @@ export default function ProductForm() {
     const body = {
       ...data,
       price: data.hasVariant ? 0 : Number(data.price || 0),
-      quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
+      // quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
       productCategoryId: Number(data.productCategoryId),
       departmentId: Number(data.departmentId),
       variants: data.hasVariant ? data.variants : [],
@@ -223,7 +223,7 @@ export default function ProductForm() {
       >
         <Input
           label="Name"
-          placeholder="Enter Product"
+          placeholder="Enter Item"
           className="w-1/2"
           {...register("name")}
           error={errors.name?.message}
@@ -238,7 +238,7 @@ export default function ProductForm() {
                 {...field}
                 options={productCategoryOptions}
                 className="w-[50%] md:w-1/4"
-                label="Product Category"
+                label="Item Category"
                 onChange={(event) => handleSelectComponent(event)}
                 error={errors.productCategoryId?.message}
               />
@@ -260,7 +260,7 @@ export default function ProductForm() {
                 }
                 dialogOpen={dialogOpen}
                 setDialogOpen={setDialogOpen}
-                title="Add Product Category"
+                title="Add Item Category"
               >
                 <AddEditProductCategory
                   isComponent={true}
@@ -328,12 +328,22 @@ export default function ProductForm() {
         </div>
 
         {(!id || success) && (
-          <RichTextEditor
-            data={watch("description")}
-            onChange={(value) => setValue("description", value)}
-            error={errors.description?.message}
-            className="w-1/2"
-          />
+          <div className="md:w-1/2 w-full ">
+            <textarea
+              value={watch("description") || ""}
+              onChange={(e) => setValue("description", e.target.value)}
+              className={`w-full p-2 border rounded bg-white ${
+                errors.description ? "border-red-500" : "border-gray-300"
+              }`}
+              rows={4}
+              placeholder="Enter item description..."
+            />
+            {errors.description?.message && (
+              <p className="mt-1 text-sm text-red-500">
+                {errors.description.message}
+              </p>
+            )}
+          </div>
         )}
 
         {/* <div className="flex items-center gap-2">
@@ -353,14 +363,14 @@ export default function ProductForm() {
 
         {!hasVariant && (
           <>
-            <Input
+            {/* <Input
               label="Quantity"
               type="number"
               className="w-1/2"
               placeholder="Enter Quantity"
               {...register("quantity", { valueAsNumber: true })}
               error={errors.quantity?.message}
-            />
+            /> */}
             <Input
               label="Price"
               type="number"

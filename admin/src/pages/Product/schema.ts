@@ -6,10 +6,10 @@ export const VariantSchema = z.object({
   price: z.coerce
     .number({ message: "Price must be a number" })
     .positive("Price must be greater than 0"),
-  quantity: z.coerce
-    .number({ message: "Quantity must be a number" })
-    .int()
-    .min(0, "Quantity cannot be negative"),
+  // quantity: z.coerce
+  //   .number({ message: "Quantity must be a number" })
+  //   .int()
+  //   .min(0, "Quantity cannot be negative"),
 });
 
 export const ProductSchema = z
@@ -20,7 +20,8 @@ export const ProductSchema = z
     productCategoryId: z.coerce.number().min(1, "Product Category is required"),
     mediaArr: z
       .array(z.string().min(1, "Each Image URL must be valid"))
-      .min(1, "At least one image is required"),
+      .optional()
+      .default([]),
     hasVariant: z.boolean().default(false),
     quantity: z.coerce
       .number({ message: "Quantity must be a number" })
@@ -35,13 +36,13 @@ export const ProductSchema = z
   })
   .superRefine((data, ctx) => {
     if (!data.hasVariant) {
-      if (data.quantity === undefined || data.quantity <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Quantity must be greater than 0 when variants are disabled",
-          path: ["quantity"],
-        });
-      }
+      // if (data.quantity === undefined || data.quantity <= 0) {
+      //   ctx.addIssue({
+      //     code: z.ZodIssueCode.custom,
+      //     message: "Quantity must be greater than 0 when variants are disabled",
+      //     path: ["quantity"],
+      //   });
+      // }
       if (data.price === undefined || data.price <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -71,12 +72,12 @@ export const ProductSchema = z
           path: ["price"],
         });
       }
-      if (data.quantity !== 0 && data.quantity !== undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Quantity must be 0 when variants are enabled",
-          path: ["quantity"],
-        });
-      }
+      // if (data.quantity !== 0 && data.quantity !== undefined) {
+      //   ctx.addIssue({
+      //     code: z.ZodIssueCode.custom,
+      //     message: "Quantity must be 0 when variants are enabled",
+      //     path: ["quantity"],
+      //   });
+      // }
     }
   });

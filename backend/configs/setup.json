@@ -1527,6 +1527,52 @@
           "list": "Withdraw"
         }
       ]
+    },
+    {
+      "title": "Account Access",
+      "key": "account-access",
+      "actions": [
+        {
+          "title": "Add Account Access",
+          "key": "add",
+          "clientPath": "/account-access",
+          "serverPath": "/account-access",
+          "requestMethod": "POST",
+          "list": "Account Access"
+        },
+        {
+          "title": "View Account Access",
+          "key": "view",
+          "clientPath": "/account-access/list",
+          "serverPath": "/account-access/list",
+          "requestMethod": "GET",
+          "list": "Account Access"
+        },
+        {
+          "title": "Edit Account Access",
+          "key": "edit",
+          "clientPath": "/account-access/:id",
+          "serverPath": "/account-access/:id",
+          "requestMethod": "PUT",
+          "list": "Account Access"
+        },
+        {
+          "title": "Delete Account Access",
+          "key": "delete",
+          "clientPath": "/account-access/:id",
+          "serverPath": "/account-access/:id",
+          "requestMethod": "DELETE",
+          "list": "Account Access"
+        },
+        {
+          "title": "View One Account Access",
+          "key": "view-one",
+          "clientPath": "/account-access/:id",
+          "serverPath": "/account-access/:id",
+          "requestMethod": "GET",
+          "list": "Account Access"
+        }
+      ]
     }
   ]
 }

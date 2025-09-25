@@ -1,17 +1,40 @@
-import React from "react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function PageFilterWrapper({
   title,
   children,
+  defaultCollapsed = true,
 }: {
   title: string;
   children: React.ReactNode;
+  defaultCollapsed?: boolean;
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const toggleCollapse = () => setIsCollapsed(!isCollapsed);
+
   return (
-    <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+    <div className="mb-6 border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="p-6 pb-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <div
+            className="flex items-center gap-2 cursor-pointer group"
+            onClick={toggleCollapse}
+          >
+            <h3 className="text-lg font-semibold text-gray-800 group-hover:text-gray-900">
+              {title}
+            </h3>
+            <button
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label={isCollapsed ? "Expand filters" : "Collapse filters"}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-5 w-5" />
+              ) : (
+                <ChevronUp className="h-5 w-5" />
+              )}
+            </button>
+          </div>
           {/* <div className="flex items-center gap-3">
             {activeFilters.length > 0 && (
               <Button
@@ -28,11 +51,20 @@ export default function PageFilterWrapper({
             </Button>
           </div> */}
         </div>
+      </div>
 
+      <div
+        className={`transition-all duration-300 ease-in-out ${
+          isCollapsed
+            ? "max-h-0 opacity-0 overflow-hidden"
+            : "max-h-[2000px] opacity-100 pb-6 px-6"
+        }`}
+      >
         {children}
+      </div>
 
-        {/* Active filters */}
-        {/* {activeFilters.length > 0 && (
+      {/* Active filters */}
+      {/* {activeFilters.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
             <span className="text-sm text-gray-600 font-medium py-1">Active filters:</span>
             {activeFilters.includes("name") && (
@@ -61,7 +93,6 @@ export default function PageFilterWrapper({
             )}
           </div>
         )} */}
-      </div>
     </div>
   );
 }
