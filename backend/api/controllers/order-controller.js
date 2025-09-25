@@ -218,6 +218,24 @@ const productTopSales = async (req, res, next) => {
   }
 };
 
+const moveOrderItems = async (req, res, next) => {
+  try {
+    const result = await orderService.moveOrderItems(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   createOrder,
   updateOrderItems,
@@ -231,4 +249,5 @@ module.exports = {
   checkoutOrder,
   categorySalesSummary,
   productTopSales,
+  moveOrderItems,
 };

@@ -35,6 +35,14 @@ const ordersApi = api.injectEndpoints({
       }),
       invalidatesTags: ["table", "order", "revenue", "kot"],
     }),
+    moveOrderItems: builder.mutation({
+      query: ({ body }) => ({
+        url: `${ORDER_URL}move-order-items`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["table", "order", "revenue", "kot"],
+    }),
   }),
   overrideExisting: true,
 });
@@ -44,4 +52,5 @@ export const {
   useCreateOrderMutation,
   useUpdateOrderMutation,
   useUpdateOrderStatusMutation,
+  useMoveOrderItemsMutation,
 } = ordersApi;

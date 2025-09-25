@@ -85,16 +85,9 @@ module.exports = (sequelize) => {
             default:
               return; // Unknown status, skip
           }
-          const OrderItemModel = sequelize.models.OrderItem;
-          console.log(
-            "***\n****\n***",
-            orderItemStatus,
-            kot.id,
-            OrderItemModel,
-            "\n****\n***",
-          );
+
           // Update all OrderItems associated with this KOT
-          await OrderItemModel.update(
+          await sequelize.models.OrderItem.update(
             { status: orderItemStatus },
             {
               where: { kotId: kot.id },

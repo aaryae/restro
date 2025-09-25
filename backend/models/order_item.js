@@ -113,6 +113,16 @@ module.exports = (sequelize) => {
             return;
           }
 
+          // Skip validation if this is a bulk update from order item transfer (only orderId changing)
+          if (
+            options &&
+            options.fields &&
+            options.fields.length === 1 &&
+            options.fields[0] === "orderId"
+          ) {
+            return;
+          }
+
           // Only validate productId/openItemId constraint when creating or when these fields are being modified
           const isCreating = orderItem.isNewRecord;
           const isModifyingProductId = orderItem.changed("productId");

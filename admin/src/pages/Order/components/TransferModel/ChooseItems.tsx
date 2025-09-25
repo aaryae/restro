@@ -10,11 +10,14 @@ import Button from "@/components/Button";
 export default function ChooseItems({
   selectedTable,
   selectedDesiredTable,
+  onComplete,
 }: {
   selectedTable: number | null;
   selectedDesiredTable: number | null;
+  onComplete: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const {
     data: tableOrder,
     isSuccess: success,
@@ -26,6 +29,20 @@ export default function ChooseItems({
   });
 
   const orders = tableOrder?.data?.orders;
+
+  const handleOrderSelect = (orderId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders([...selectedOrders, orderId]);
+    } else {
+      setSelectedOrders(selectedOrders.filter((id) => id !== orderId));
+    }
+  };
+
+  const handleComplete = () => {
+    if (selectedOrders.length > 0) {
+      setDialogOpen(true);
+    }
+  };
 
   return (
     <>
@@ -40,52 +57,53 @@ export default function ChooseItems({
               key={order.id}
               className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
             >
-              <StatusTag status={order.status} orderId={order.id} />
-
-              <div className="space-y-2">
-                {order.orderItems.map((item) => (
-                  <>
-                    <div
-                      key={item.id}
-                      className=" border-b border-gray-200 py-2 gap-6 flex items-center"
-                    >
-                      <Checkbox
-                        key={item.id}
-                        checked={item.selected}
-                        onChange={(e) => {}}
-                      />
-                      <div className="flex justify-between items-center w-full">
-                        <div className="leading-[1.5] text-gray-600 ">
-                          <p className="font-medium text-[14px]">
-                            Item: {item.product.name}
-                          </p>
-                          <p className="flex text-[13px]">
-                            Qty: {item.quantity}
-                          </p>
-                          {item.specialInstructions && (
-                            <p className="text-xs italic">
-                              Note: {item.specialInstructions}
-                            </p>
-                          )}
-                        </div>
-                        <div className="leading-[1.5] text-gray-600 text-right">
-                          <p className="text-[14px]">
-                            Rs. {Number(item.product.price).toFixed(2)} each
-                          </p>
-                          <p className="text-[13px]">
-                            Subtotal: Rs.
-                            {Number(item.subtotal).toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ))}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedOrders.includes(order.id)}
+                    onChange={(e) =>
+                      handleOrderSelect(order.id, e.target.checked)
+                    }
+                  />
+                  <div>
+                    <StatusTag status={order.status} orderId={order.id} />
+                    <p className="text-sm text-gray-600">
+                      Order #{order.orderNumber}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-gray-800">
+                    Total: Rs.{Number(order.totalAmount).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {order.orderItems.length} items
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-between items-center mt-4">
-                <p className="text-lg font-semibold text-gray-800">
-                  Total: Rs.{Number(order.totalAmount).toFixed(2)}
-                </p>
+
+              <div className="space-y-1 ml-7">
+                {order.orderItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex justify-between items-center py-1 text-sm text-gray-600"
+                  >
+                    <div className="flex-1">
+                      <span className="font-medium">{item.product.name}</span>
+                      <span className="text-gray-500 ml-2">
+                        Qty: {item.quantity}
+                      </span>
+                      {item.specialInstructions && (
+                        <p className="text-xs italic text-gray-500">
+                          Note: {item.specialInstructions}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p>Rs. {Number(item.subtotal).toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -93,9 +111,10 @@ export default function ChooseItems({
         <Button
           type="button"
           className="bg-primaryColor text-white px-4 py-2 mt-6"
-          handleClick={() => setDialogOpen(true)}
+          handleClick={handleComplete}
+          disabled={selectedOrders.length === 0}
         >
-          Complete
+          Complete ({selectedOrders.length} orders selected)
         </Button>
       </div>
       <CustomDialog
@@ -104,7 +123,15 @@ export default function ChooseItems({
         title="Confirm Transfer"
         contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-auto p-2 sm:p-4"
       >
-        <ConfirmTransfer />
+        <ConfirmTransfer
+          selectedOrders={selectedOrders}
+          sourceTableId={selectedTable}
+          destinationTableId={selectedDesiredTable}
+          onSuccess={() => {
+            setDialogOpen(false);
+            onComplete();
+          }}
+        />
       </CustomDialog>
     </>
   );

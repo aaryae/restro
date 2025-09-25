@@ -14,6 +14,7 @@ const {
   revenueModel,
   openItemModel,
   kotModel,
+  departmentModel,
   sequelize,
 } = require("../../models");
 
@@ -1190,8 +1191,8 @@ const listOrders = async (req) => {
     // if status is all, remove it from filters
     if (status && status !== "all") {
       // Handle comma-separated multiple status values
-      if (status.includes(',')) {
-        const statusArray = status.split(',').map(s => s.trim());
+      if (status.includes(",")) {
+        const statusArray = status.split(",").map((s) => s.trim());
         filters.status = { [Op.in]: statusArray };
       } else {
         filters.status = { [Op.like]: `%${status}%` };
@@ -1490,24 +1491,270 @@ const getOrderItems = async (req) => {
   }
 };
 
+// Helper function to handle KOT relationships when moving items
+const handleKotRelationships = async (orderItems, newOrderId, transaction) => {
+  const KotModel = sequelize.models.Kot;
+
+  // Group items by their current KOT
+  const itemsByKot = {};
+  orderItems.forEach((item) => {
+    const kotId = item.kotId;
+    if (!itemsByKot[kotId]) {
+      itemsByKot[kotId] = [];
+    }
+    itemsByKot[kotId].push(item);
+  });
+
+  for (const [kotId, kotItems] of Object.entries(itemsByKot)) {
+    if (!kotId) continue; // Skip items without KOT
+
+    const kot = await KotModel.findByPk(kotId, {
+      include: [{ model: orderItemModel, as: "orderItems" }],
+      transaction,
+    });
+
+    if (!kot) continue;
+
+    // Get remaining items in the original KOT
+    const remainingKotItems = kot.orderItems.filter(
+      (item) => !kotItems.some((movedItem) => movedItem.id === item.id),
+    );
+
+    if (remainingKotItems.length === 0) {
+      // All items moved from this KOT - move entire KOT
+      await kot.update({ orderId: newOrderId }, { transaction });
+    } else {
+      // Partial move - create new KOT for moved items
+      const newKot = await KotModel.create(
+        {
+          orderId: newOrderId,
+          departmentId: kot.departmentId,
+          kotNumber: await getNextKotNumber(kot.departmentId, transaction),
+          status: "pending",
+        },
+        { transaction },
+      );
+
+      // Update moved items with new KOT ID
+      await orderItemModel.update(
+        { kotId: newKot.id },
+        {
+          where: { id: kotItems.map((item) => item.id) },
+          transaction,
+          validate: false,
+        },
+      );
+    }
+  }
+};
+
+// Helper function to get next KOT number for a department
+const getNextKotNumber = async (departmentId, transaction) => {
+  const KotModel = sequelize.models.Kot;
+
+  const lastKot = await KotModel.findOne({
+    where: { departmentId },
+    order: [["kotNumber", "DESC"]],
+    transaction,
+  });
+
+  return lastKot ? lastKot.kotNumber + 1 : 1;
+};
+
+const moveOrderItems = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { sourceTableId, destinationTableId, orderIds } = req.body;
+
+    console.log(
+      "Moving orders from table",
+      sourceTableId,
+      "to table",
+      destinationTableId,
+      "orders:",
+      orderIds,
+    );
+
+    // Validate source and destination tables
+    const sourceTable = await tableModel.findByPk(+sourceTableId, {
+      transaction,
+    });
+    const destinationTable = await tableModel.findByPk(+destinationTableId, {
+      transaction,
+    });
+
+    if (!sourceTable || !destinationTable) {
+      return {
+        status: 404,
+        success: false,
+        message: "Source or destination table not found",
+      };
+    }
+
+    // Get orders with complete associations
+    const orders = await orderModel.findAll({
+      where: { id: orderIds },
+      include: [
+        {
+          model: orderItemModel,
+          as: "orderItems",
+          include: [
+            {
+              model: productModel,
+              as: "product",
+            },
+            {
+              model: openItemModel,
+              as: "openItem",
+            },
+            {
+              model: kotModel,
+              as: "kot",
+            },
+          ],
+        },
+        {
+          model: kotModel,
+          as: "kots",
+        },
+      ],
+      transaction,
+    });
+
+    if (orders.length === 0) {
+      return {
+        status: 404,
+        success: false,
+        message: "No orders found",
+      };
+    }
+
+    // Validate that all orders belong to the source table
+    const invalidOrders = orders.filter(
+      (order) => order.tableId !== +sourceTableId,
+    );
+
+    if (invalidOrders.length > 0) {
+      return {
+        status: 400,
+        success: false,
+        message: "Some orders don't belong to the source table",
+      };
+    }
+
+    // Validate that orders are in movable status
+    const nonMovableOrders = orders.filter((order) =>
+      ["completed", "cancelled"].includes(order.status),
+    );
+
+    if (nonMovableOrders.length > 0) {
+      return {
+        status: 400,
+        success: false,
+        message: "Cannot move completed or cancelled orders",
+      };
+    }
+
+    // Determine the sessionId to use based on destination table status
+    let sessionIdToUse;
+    if (destinationTable.status === "available") {
+      // Generate new sessionId for new table session
+      sessionIdToUse = generateUUID();
+    } else if (destinationTable.status === "occupied") {
+      // Use existing sessionId from occupied table
+      sessionIdToUse = destinationTable.sessionId;
+    }
+
+    const movedOrders = [];
+
+    // Move each order to destination table
+    for (const order of orders) {
+      console.log(`Moving order ${order.id} to table ${destinationTableId}`);
+
+      // Update order with new table and determined sessionId
+      await order.update(
+        {
+          tableId: destinationTableId,
+          sessionId: sessionIdToUse,
+        },
+        { transaction },
+      );
+
+      movedOrders.push(order);
+    }
+
+    // Update table statuses
+    const remainingActiveOrders = await orderModel.count({
+      where: {
+        tableId: sourceTableId,
+        status: { [Op.notIn]: ["completed", "cancelled"] },
+      },
+      transaction,
+    });
+
+    if (remainingActiveOrders === 0) {
+      // No active orders left on source table
+      await sourceTable.update(
+        {
+          status: "available",
+          sessionId: null,
+          sessionStartTime: null,
+        },
+        { transaction },
+      );
+    }
+
+    // Ensure destination table is occupied
+    if (destinationTable.status === "available") {
+      await destinationTable.update(
+        {
+          status: "occupied",
+          sessionId: sessionIdToUse,
+          sessionStartTime: new Date(),
+        },
+        { transaction },
+      );
+    } else if (destinationTable.status === "occupied") {
+      // Update destination table's sessionStartTime to current time
+      await destinationTable.update(
+        {
+          sessionStartTime: new Date(),
+        },
+        { transaction },
+      );
+    }
+
+    await transaction.commit();
+
+    return {
+      status: 200,
+      success: true,
+      message: `Successfully moved ${movedOrders.length} order(s) to table ${destinationTable.tableNo}`,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    console.error("MoveOrderItems error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   getTableActiveOrders,
   getOrderById,
   listOrders,
   updateOrderStatus,
-
-  // waiter services
   createOrder,
   updateOrderItems,
   bulkServeOrderItems,
-
-  // cashier services
   checkoutOrder,
-
   getOrderItems,
-
-  //department services
   updateOrderItemsStatus,
   categorySalesSummary,
   productTopSales,
+  moveOrderItems,
 };

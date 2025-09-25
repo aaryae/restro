@@ -93,6 +93,7 @@ function ChooseTable({ tableId }: { tableId: number | null }) {
         <ChooseItems
           selectedTable={selectedTable}
           selectedDesiredTable={selectedDesiredTable}
+          onComplete={() => setDialogOpen(false)}
         />
       </CustomDialog>
     </>

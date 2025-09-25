@@ -13,6 +13,7 @@ const {
   listOrderItems,
   categorySalesSummary,
   productTopSales,
+  moveOrderItems,
 } = require("../controllers/order-controller");
 
 const {
@@ -123,6 +124,15 @@ router.get(
   idValidation,
   getOrderById,
 );
+
+router.post(
+  "/move-order-items",
+  authentication,
+  authorization,
+  // moveOrderItemsValidation, // TODO: Add validation
+  moveOrderItems,
+);
+
 router.patch(
   "/status/:id",
   authentication,
