@@ -296,3 +296,50 @@ module.exports = {
   getById,
   update,
 };
+
+// Calculate total withdrawn amount with optional filters
+const total = async (req) => {
+  try {
+    let { accountId, userId, startDate, endDate, minAmount, maxAmount } =
+      req.query;
+
+    const filters = {};
+
+    if (accountId) filters.accountId = accountId;
+    if (userId) filters.userId = userId;
+    if (minAmount) filters.amount = { [Op.gte]: minAmount };
+    if (maxAmount)
+      filters.amount = { ...filters.amount, [Op.lte]: maxAmount };
+
+    if (startDate && endDate) {
+      const start = startOfDay(parseISO(startDate));
+      const end = endOfDay(parseISO(endDate));
+      filters.withdrawalDate = { [Op.between]: [start, end] };
+    } else if (startDate) {
+      const start = startOfDay(parseISO(startDate));
+      filters.withdrawalDate = { [Op.gte]: start };
+    } else if (endDate) {
+      const end = endOfDay(parseISO(endDate));
+      filters.withdrawalDate = { [Op.lte]: end };
+    }
+
+    const result = await withdrawModel.findAll({
+      where: filters,
+      attributes: [[sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("amount")), 0), "totalAmount" ]],
+      raw: true,
+    });
+
+    const totalAmount = Number(result?.[0]?.totalAmount || 0);
+
+    return {
+      status: 200,
+      success: true,
+      message: "Total withdraw amount calculated successfully",
+      data: { totalAmount },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+module.exports.total = total;

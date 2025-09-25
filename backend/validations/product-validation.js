@@ -14,9 +14,9 @@ const productPostValidation = async (req, res, next) => {
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object()),
     description: joi.string().required(),
-    quantity: joi.number().integer().min(0).required(),
+    // quantity: joi.number().integer().min(0).required(),
     price: joi.number().precision(2).min(0).required(),
-    mediaArr: joi.array().items(joi.string()).optional(),
+    mediaArr: joi.array().items(joi.string()).optional().default([]),
     hasVariant: joi.boolean().default(false),
     variants: joi.when("hasVariant", {
       is: true,
@@ -80,10 +80,10 @@ const productPutValidation = async (req, res, next) => {
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object()),
     description: joi.string().optional(),
-    quantity: joi.number().integer().min(0).optional(),
+    // quantity: joi.number().integer().min(0).optional(),
     price: joi.number().precision(2).min(0).optional(),
     order: joi.number().integer().min(0).optional(),
-    mediaArr: joi.array().items(joi.string()).optional(),
+    mediaArr: joi.array().items(joi.string()).optional().default([]),
     hasVariant: joi.boolean().optional(),
     variants: joi.when("hasVariant", {
       is: true,

@@ -21,6 +21,25 @@ const list = async (req, res, next) => {
   }
 };
 
+const totalWithdraw = async (req, res, next) => {
+  try {
+    const result = await withdrawService.total(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const create = async (req, res, next) => {
   try {
     const result = await withdrawService.create(req);
@@ -83,4 +102,5 @@ module.exports = {
   list,
   getWithdrawByID,
   updateWithdraw,
+  totalWithdraw,
 };

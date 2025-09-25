@@ -46,6 +46,8 @@ import ExpenseCategory from "@/pages/ExpenseCategory";
 import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
 import Withdraw from "@/pages/Withdraw";
 import AddEditWithdraw from "@/pages/Withdraw/AddEditWithdraw";
+import AccountAccess from "@/pages/AccountPermission";
+import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
 
 export const adminLinks = [
   {
@@ -323,5 +325,17 @@ export const adminLinks = [
   {
     path: "/withdraw/:id",
     element: <AddEditWithdraw />,
+  },
+  {
+    path: "/account-permission/list",
+    element: <AccountAccess />,
+  },
+  {
+    path: "/account-permission/",
+    element: <AddEditAccountPermission />,
+  },
+  {
+    path: "/account-permission/:id",
+    element: <AddEditAccountPermission />,
   },
 ];

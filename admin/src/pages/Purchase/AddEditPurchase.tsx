@@ -171,7 +171,7 @@ const AddEditPurchase: React.FC = () => {
     label: string;
   } | null>(null);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
-  // Extra summary discount percentage applied on top of line totals
+  // Extra summary discount amount applied on top of line totals
   const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(0);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
 
@@ -290,31 +290,46 @@ const AddEditPurchase: React.FC = () => {
     const discountPercent = Number(row.discountPercent) || 0;
     const base = qty * rate;
     const discountAmt = (base * discountPercent) / 100;
-    const taxableAmount = base - discountAmt;
+    const taxableAmount = row.isTaxable === false ? 0 : base - discountAmt;
+    const nonTaxableAmount = row.isTaxable === false ? base - discountAmt : 0;
     const taxAmt =
       row.isTaxable === false ? 0 : (taxableAmount * taxPercent) / 100;
-    // Always include the full amount in lineTotal, tax is handled separately
-    const lineTotal = base - discountAmt + taxAmt;
-    return { base, discountAmt, taxAmt, lineTotal };
+    const lineTotal = taxableAmount + nonTaxableAmount + taxAmt;
+    return {
+      base,
+      discountAmt,
+      taxAmt,
+      lineTotal,
+      taxableAmount,
+      nonTaxableAmount,
+    };
   };
 
   const totals = items?.reduce(
     (acc, r) => {
-      const { base, discountAmt, taxAmt, lineTotal } = computeRow(r);
+      const {
+        base,
+        discountAmt,
+        taxAmt,
+        lineTotal,
+        taxableAmount,
+        nonTaxableAmount,
+      } = computeRow(r);
       acc.subtotal += base;
       acc.discount += discountAmt;
+      acc.taxable += taxableAmount;
+      acc.nonTaxable += nonTaxableAmount;
       acc.tax += taxAmt;
       acc.grand += lineTotal;
       return acc;
     },
-    { subtotal: 0, discount: 0, tax: 0, grand: 0 },
+    { subtotal: 0, discount: 0, taxable: 0, nonTaxable: 0, tax: 0, grand: 0 },
   );
 
-  // Derived summary discount (percentage-based)
-  const pct = isNaN(summaryDiscountPct)
+  // Summary discount amount (fixed amount, capped to grand total)
+  const summaryDiscountAmount = isNaN(summaryDiscountPct)
     ? 0
-    : Math.max(0, Math.min(100, summaryDiscountPct));
-  const summaryDiscountAmount = (totals.grand * pct) / 100;
+    : Math.max(0, Math.min(totals.grand, Number(summaryDiscountPct)));
   const grandAfterSummaryDiscount = Math.max(
     0,
     totals.grand - summaryDiscountAmount,
@@ -496,7 +511,7 @@ const AddEditPurchase: React.FC = () => {
                         dialogOpen={viewSuppliersDialogOpen}
                         setDialogOpen={setViewSuppliersDialogOpen}
                         title="All Suppliers"
-                        contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                        // contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
                       >
                         <div className="space-y-4">
                           <div className="relative">
@@ -899,47 +914,88 @@ const AddEditPurchase: React.FC = () => {
                   </div>
 
                   {/* Stats grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="text-xs text-gray-500">Subtotal</div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="text-xs font-medium text-gray-500">
+                        Taxable Amount
+                      </div>
+                      <div className="mt-1 text-lg font-semibold text-blue-600">
+                        {CurrencySign}
+                        {totals.taxable.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="text-xs font-medium text-gray-500">
+                        Non-Taxable
+                      </div>
+                      <div className="mt-1 text-lg font-semibold text-purple-600">
+                        {CurrencySign}
+                        {totals.nonTaxable.toFixed(2)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span className="font-medium">Discount</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-gray-500">
+                            {CurrencySign}
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={totals.grand}
+                            step="0.01"
+                            value={summaryDiscountPct}
+                            onChange={(e) =>
+                              setSummaryDiscountPct(Number(e.target.value) || 0)
+                            }
+                            className="w-20 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-right text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            title="Discount amount"
+                            aria-label="Discount amount"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs text-emerald-700">
+                        -{CurrencySign}
+                        {summaryDiscountAmount.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="text-xs font-medium text-gray-500">
+                        Subtotal
+                      </div>
                       <div className="mt-1 text-lg font-semibold text-gray-900">
                         {CurrencySign}
                         {totals.subtotal.toFixed(2)}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Discount</span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={summaryDiscountPct}
-                            onChange={(e) =>
-                              setSummaryDiscountPct(Number(e.target.value) || 0)
-                            }
-                            className="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            title="Extra discount percentage"
-                            aria-label="Extra discount percentage"
-                          />
-                          <span className="text-[10px]">%</span>
+                  </div>
+                  <div className="w-full sm:w-[48%] lg:w-[30%] xl:w-[20%] rounded-xl border border-amber-100 bg-amber-50 p-3 sm:p-4 shadow-sm mt-4">
+                    <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
+                      <div className="text-xs sm:text-[10px] w-full sm:w-auto">
+                        <div className="font-medium text-amber-700">
+                          Tax (
+                          {watch("items").some((i) => i.isTaxable !== false)
+                            ? watch("items").find((i) => i.isTaxable !== false)
+                                ?.taxPercent || 13
+                            : 0}
+                          %)
+                        </div>
+                        <div className="mt-1 font-semibold text-amber-700">
+                          {CurrencySign}
+                          {totals.tax.toFixed(2)}
                         </div>
                       </div>
-                      <div className="mt-2 text-[11px] text-emerald-700">
-                        Extra Discount: -{CurrencySign}
-                        {summaryDiscountAmount.toFixed(2)}
-                      </div>
-                      {/* <div className="mt-1 text-lg font-semibold text-emerald-600">
-                        {CurrencySign}
-                        {(totals.subtotal - totals.discount).toFixed(2)}
-                      </div> */}
-                    </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                      <div className="text-xs text-gray-500">Tax (13%)</div>
-                      <div className="mt-1 text-lg font-semibold text-amber-600">
-                        {CurrencySign}
-                        {totals.tax.toFixed(2)}
+                      <div className="text-right w-full sm:w-auto mt-2 sm:mt-0">
+                        <div className="text-sm sm:text-xs font-medium text-amber-700">
+                          Grand Total
+                        </div>
+                        <div className="mt-1 text-lg sm:text-xl font-bold text-amber-800">
+                          {CurrencySign}
+                          {grandAfterSummaryDiscount.toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -962,7 +1018,7 @@ const AddEditPurchase: React.FC = () => {
                         {CurrencySign}
                         {grandAfterSummaryDiscount.toFixed(2)}
                       </div>
-                      {pct > 0 && (
+                      {summaryDiscountAmount > 0 && (
                         <div className="text-xs text-gray-500 line-through">
                           {CurrencySign}
                           {totals.grand.toFixed(2)}

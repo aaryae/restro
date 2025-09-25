@@ -59,12 +59,12 @@ export default function ViewOrder({
     <div className="mt-[2rem] ">
       <div className="flex justify-between items-center">
         <PageTitle title="Order Details" />
-        <button
+        {/* <button
           onClick={() => {}}
           className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700"
         >
           <span className="font-[500] text-[15px]">Print Order</span>
-        </button>
+        </button> */}
       </div>
       {success && (
         <div>

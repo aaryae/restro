@@ -35,8 +35,8 @@ router.get(
 router.get(
   "/:accountId",
   authentication,
-  checkAccountPermission("view"),
-  idValidation,
+  // checkAccountPermission("view"),
+  // idValidation,
   getAccountByID,
 );
 router.put(

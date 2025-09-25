@@ -18,6 +18,10 @@ const create = async (req) => {
     req.body.hasVariant =
       req.body.hasVariant ||
       (req.body.variants && req.body.variants.length > 0);
+    // Ensure product-level quantity is set even if not provided by client
+    if (typeof req.body.quantity === "undefined" || req.body.quantity === null) {
+      req.body.quantity = 0;
+    }
 
     const product = await productModel.create(req.body, { transaction });
 

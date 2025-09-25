@@ -105,7 +105,7 @@ export default function Product() {
   };
 
   const tableHeaders = [
-    "Product",
+    "Items",
     "Price",
     // "Order",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
@@ -115,9 +115,9 @@ export default function Product() {
     success && allProduct?.data?.data
       ? allProduct?.data?.data.map(({ id, name, price, mediaArr }) => [
           id,
-          <div className="flex items-center gap-[1rem]">
+          <div className="flex items-center gap-[1rem] md:w-[8rem] w-[20rem]">
             <img
-              src={`${IMAGE_BASE_URL}${mediaArr[0].imageUrl}`}
+              src={`${IMAGE_BASE_URL}${mediaArr[0]?.imageUrl}`}
               alt="Product Image"
               className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
               // crossOrigin="anonymous"
@@ -159,7 +159,7 @@ export default function Product() {
             onChange={(e) => {
               setProductSearchTerm(e.target.value);
               // optional: reset to first page when searching
-              handlePagination({ page: 1, limit: query.limit });
+              // handlePagination({ page: 1, limit: query.limit });
             }}
           />
           {/* <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto"> */}
@@ -183,12 +183,12 @@ export default function Product() {
         <div className="w-full ">
           <PageHeader
             hasAddButton={accessList.includes("add")}
-            newButtonText={translate("Add New Product")}
+            newButtonText={translate("Add New Items")}
             handleNewButton={() => handleNewUser(null)}
             handleReloadButton={handleReload}
             hasSubText
             subText={translate(
-              "Add Comprehensive Product Information in Each Section",
+              "Add Comprehensive Item Information in Each Section",
             )}
           />
         </div>
