@@ -5,9 +5,13 @@ import KotList from "./components/KotList";
 import Button from "@/components/Button";
 import { useNavigate } from "react-router-dom";
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
+import CustomDialog from "@/components/Dialog";
+import ChooseTable from "./components/TransferModel/ChooseTable";
+import { useState } from "react";
 
 export default function Order() {
   const navigate = useNavigate();
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const headerOptions = [
     { label: "Tables", value: "table" },
     { label: "Orders", value: "order" },
@@ -18,6 +22,8 @@ export default function Order() {
     defaultValues: { accountType: "table" },
   });
   const selectedView = watch("accountType");
+
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <>
@@ -44,13 +50,21 @@ export default function Order() {
             </div>
           )}
         />
-        <div className="flex items-center w-full sm:w-auto">
+        <div className="flex md:justify-end items-center gap-3 grow">
           {["table", "order", "kot"].includes(selectedView) && (
             <Button
-              className="md:w-full w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              className="md:w-fit w-auto bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
               handleClick={() => navigate(ORDER_ADD_ROUTE)}
             >
               Create Order
+            </Button>
+          )}
+          {selectedView === "table" && (
+            <Button
+              className="md:w-fit w-fit bg-primaryColor text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              handleClick={() => setDialogOpen(true)}
+            >
+              Transfer Table
             </Button>
           )}
         </div>
@@ -59,6 +73,14 @@ export default function Order() {
       {selectedView === "table" && <TableList />}
       {selectedView === "order" && <OrderList />}
       {selectedView === "kot" && <KotList />}
+      <CustomDialog
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        title="Choose Table"
+        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+      >
+        <ChooseTable tableId={selectedTable} />
+      </CustomDialog>
     </>
   );
 }

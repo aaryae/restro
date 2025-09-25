@@ -9,7 +9,7 @@ import {
 } from "../ui/dialog";
 
 interface DialogProps {
-  buttonTitle: string | React.ReactNode;
+  buttonTitle?: string | React.ReactNode;
   title: string;
   titleDescription?: string;
   children: React.ReactNode;

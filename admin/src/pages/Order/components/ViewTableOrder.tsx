@@ -169,7 +169,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
 export default ViewTableOrder;
 
-function StatusTag({
+export function StatusTag({
   status,
   orderId,
 }: {
