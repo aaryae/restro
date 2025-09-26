@@ -25,7 +25,7 @@ export default function SummaryCard({
       />
       <div className="relative p-5 flex items-center justify-between text-white">
         <div>
-          <div className="text-sm/5 opacity-90">{title}</div>
+          <div className="text-sm/5 opacity-90 flex">{title}</div>
           <div className="text-2xl font-semibold mt-1 drop-shadow-sm text-left">
             {value}
           </div>

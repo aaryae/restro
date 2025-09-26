@@ -16,7 +16,7 @@ export default function PageFilterWrapper({
   return (
     <div className="mb-6 border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="p-6 pb-0">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <div
             className="flex items-center gap-2 cursor-pointer group"
             onClick={toggleCollapse}
