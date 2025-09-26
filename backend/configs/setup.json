@@ -1491,40 +1491,40 @@
       ]
     },
     {
-      "title": "Withdraw",
-      "key": "withdraw",
+      "title": "Transaction",
+      "key": "transaction",
       "actions": [
         {
-          "title": "Add Withdraw",
+          "title": "Add Transaction",
           "key": "add",
-          "clientPath": "/withdraw",
-          "serverPath": "/withdraw",
+          "clientPath": "/transaction",
+          "serverPath": "/transaction",
           "requestMethod": "POST",
-          "list": "Withdraw"
+          "list": "Transaction"
         },
         {
-          "title": "View Withdraw",
+          "title": "View Transaction",
           "key": "view",
-          "clientPath": "/withdraw/list",
-          "serverPath": "/withdraw/list",
+          "clientPath": "/transaction/list",
+          "serverPath": "/transaction/list",
           "requestMethod": "GET",
-          "list": "Withdraw"
+          "list": "Transaction"
         },
         {
-          "title": "View One Withdraw",
+          "title": "View Total Transaction",
+          "key": "view-total",
+          "clientPath": "/transaction/total",
+          "serverPath": "/transaction/total",
+          "requestMethod": "GET",
+          "list": "Transaction"
+        },
+        {
+          "title": "View One Transaction",
           "key": "view-one",
-          "clientPath": "/withdraw/:withdrawId",
-          "serverPath": "/withdraw/:withdrawId",
+          "clientPath": "/transaction/:id",
+          "serverPath": "/transaction/:id",
           "requestMethod": "GET",
-          "list": "Withdraw"
-        },
-        {
-          "title": "Edit Withdraw",
-          "key": "edit",
-          "clientPath": "/withdraw/:id",
-          "serverPath": "/withdraw/:id",
-          "requestMethod": "PUT",
-          "list": "Withdraw"
+          "list": "Transaction"
         }
       ]
     },

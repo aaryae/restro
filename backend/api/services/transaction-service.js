@@ -220,17 +220,16 @@ const getById = async (req) => {
   }
 };
 
-// Calculate total transaction amount with optional filters
+// Calculate total transaction amounts with optional filters
 const total = async (req) => {
   try {
-    let { accountId, userId, type, startDate, endDate, minAmount, maxAmount } =
+    let { accountId, userId, startDate, endDate, minAmount, maxAmount } =
       req.query;
 
     const filters = {};
 
     if (accountId) filters.accountId = accountId;
     if (userId) filters.userId = userId;
-    if (type) filters.type = type;
     if (minAmount) filters.amount = { [Op.gte]: minAmount };
     if (maxAmount)
       filters.amount = { ...filters.amount, [Op.lte]: maxAmount };
@@ -247,19 +246,32 @@ const total = async (req) => {
       filters.transactionDate = { [Op.lte]: end };
     }
 
-    const result = await transactionModel.findAll({
-      where: filters,
-      attributes: [[sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("amount")), 0), "totalAmount" ]],
+    // Get total deposits
+    const depositResult = await transactionModel.findAll({
+      where: { ...filters, type: "deposit" },
+      attributes: [[sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("amount")), 0), "totalDeposit" ]],
       raw: true,
     });
 
-    const totalAmount = Number(result?.[0]?.totalAmount || 0);
+    // Get total withdrawals
+    const withdrawResult = await transactionModel.findAll({
+      where: { ...filters, type: "withdraw" },
+      attributes: [[sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("amount")), 0), "totalWithdraw" ]],
+      raw: true,
+    });
+
+    const totalDeposit = Number(depositResult?.[0]?.totalDeposit || 0);
+    const totalWithdraw = Number(withdrawResult?.[0]?.totalWithdraw || 0);
 
     return {
       status: 200,
       success: true,
-      message: "Total transaction amount calculated successfully",
-      data: { totalAmount },
+      message: "Total transaction amounts calculated successfully",
+      data: {
+        totalDeposit,
+        totalWithdraw,
+        netTotal: totalDeposit - totalWithdraw
+      },
     };
   } catch (error) {
     throw error;
