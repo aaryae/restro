@@ -1,16 +1,25 @@
+import cn from "clsx";
+
 export default function SummaryCard({
   title,
   value,
   gradient,
   Icon,
+  className,
 }: {
   title: string;
   value: string;
   gradient: string;
   Icon: React.ComponentType<{ className?: string }>;
+  className?: string;
 }) {
   return (
-    <div className="relative rounded-xl overflow-hidden shadow-sm border border-gray-200">
+    <div
+      className={cn(
+        "relative rounded-xl overflow-hidden shadow-sm border border-gray-200",
+        className,
+      )}
+    >
       <div
         className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-90`}
       />

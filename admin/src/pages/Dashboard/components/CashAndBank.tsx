@@ -56,24 +56,30 @@ function CashAndBank() {
   return (
     <>
       <div className="mt-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {totalAndBalancesData?.success && (
-            <SummaryCard
-              title="Total Revenue"
-              value={`${CurrencySign}${totalAndBalancesData?.data?.totalBalance.toLocaleString()}`}
-              gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-              Icon={PiggyBank}
-            />
+            <div className="md:col-span-2">
+              <div className="h-40 p-6 bg-gradient-to-r from-purple-500 via-fuchsia-600 to-purple-500 rounded-xl shadow-sm text-white flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Total Balance</h3>
+                  <PiggyBank className="w-6 h-6" />
+                </div>
+                <p className="text-3xl font-bold">
+                  {`${CurrencySign}${totalAndBalancesData?.data?.totalBalance.toLocaleString()}`}
+                </p>
+              </div>
+            </div>
           )}
           {totalAndBalancesData?.data?.accounts?.length > 0 &&
             totalAndBalancesData?.data?.accounts.map((account, index) => (
-              <SummaryCard
-                key={account.id}
-                title={account.name}
-                value={`${CurrencySign}${account.currentBalance.toLocaleString()}`}
-                gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-                Icon={PiggyBank}
-              />
+              <div key={account.id}>
+                <SummaryCard
+                  title={account.name}
+                  value={`${CurrencySign}${account.currentBalance.toLocaleString()}`}
+                  gradient="from-emerald-500 via-emerald-600 to-emerald-500"
+                  Icon={PiggyBank}
+                />
+              </div>
             ))}
         </div>
       </div>

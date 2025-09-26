@@ -15,4 +15,4 @@ export const PURCHASE_CATEGORY_URL = "purchase-category/";
 export const EXPENSE_CATEGORY_URL = "expense-category/";
 export const EXPENSE_URL = "expense/";
 export const KOT_URL = "kot/";
-export const WITHDRAW_URL = "withdraw/";
+export const TRANSACTION_URL = "transaction/";

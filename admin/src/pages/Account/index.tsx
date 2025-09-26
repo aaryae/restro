@@ -10,12 +10,16 @@ import { useNavigate } from "react-router-dom";
 import { BANK_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign } from "@/constants";
 import { MdEditSquare } from "react-icons/md";
-// import DeleteModal from "@/components/DeleteModal";
+import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
 import { buildQueryString } from "@/utils/generalHelper";
-import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
+import {
+  useGetApiQuery,
+  usePatchApiMutation,
+  useDeleteApiMutation,
+} from "@/redux/services/crudApi";
 import Spinner from "@/components/Spinner";
 import { Button } from "react-aria-components";
 import { BiTransfer } from "react-icons/bi";
@@ -29,9 +33,9 @@ const Account: React.FC = () => {
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [queryString, setQueryString] = useState<Record<string, any>>({});
   const [patchApi] = usePatchApiMutation();
-  // const [deleteAccount] = useDeleteApiMutation();
-  // const [open, setOpen] = React.useState<boolean>(false);
-  // const [deleteId, setDeleteId] = React.useState<number | null>(null);
+  const [deleteAccount] = useDeleteApiMutation();
+  const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
+  const [deleteId, setDeleteId] = React.useState<number | null>(null);
 
   const handleNewBank = (id: number | null) => {
     id === null ? navigate(BANK_ADD_ROUTE) : navigate(`${BANK_ADD_ROUTE}${id}`);
@@ -58,6 +62,22 @@ const Account: React.FC = () => {
       handleResponse({ res, onSuccess: () => refetch() });
     } catch (error) {
       handleError({ error });
+    }
+  };
+
+  const handleDeleteTrigger = (id: number) => {
+    setDeleteId(id);
+    setDeleteModelOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const res = await deleteAccount(`${ACCOUNT_URL}${deleteId}`).unwrap();
+      handleResponse({ res, onSuccess: () => refetch() });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setDeleteModelOpen(false);
     }
   };
 
@@ -197,12 +217,12 @@ const Account: React.FC = () => {
               >
                 Delete
               </button> */}
-              {/* <DeleteModal
-                open={open}
-                setOpen={setOpen}
+              <DeleteModal
+                open={deleteModelOpen}
+                setOpen={setDeleteModelOpen}
                 handleDeleteTrigger={() => handleDeleteTrigger(row?.id || idx)}
                 handleConfirmDelete={handleDelete}
-              /> */}
+              />
             </div>,
           ];
         })

@@ -7,6 +7,8 @@ import Button from "@/components/Button";
 import { z } from "zod";
 import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReactToPrint } from "react-to-print";
+import Kot, { type KotData } from "@/components/Kot";
 import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
 import Select from "@/components/Select";
@@ -105,6 +107,8 @@ export default function AddEditOrder({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const kotRef = useRef<HTMLDivElement>(null);
+  const [kotPreviewData, setKotPreviewData] = useState<KotData | null>(null);
 
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
   const beepRef = useRef<HTMLAudioElement | null>(null);
@@ -143,6 +147,35 @@ export default function AddEditOrder({
       }
     } catch {}
   };
+
+  // React-to-print for KOT (80mm ticket style)
+  const printKot = useReactToPrint({
+    contentRef: kotRef,
+    documentTitle: `KOT`,
+    pageStyle: `
+      @page { size: 80mm auto; margin: 4mm; }
+      @media print {
+        html, body { margin: 0 !important; padding: 0 !important; }
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .kot-print { width: 80mm !important; font-size: 10px !important; line-height: 1.25 !important; }
+        .kot-print * { font-size: 10px !important; line-height: 1.25 !important; }
+        .kot-print .kot-title { font-size: 14px !important; font-weight: 800 !important; }
+        .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
+        .kot-print .section-gap { margin: 6px 0 !important; }
+        .kot-print .border-dashed { border-color: #000 !important; }
+        .kot-print .border-t { border-top-width: .5008px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
+        .kot-print .divider-dashed {
+          border: 0 !important;
+          height: 1px !important;
+          background-image: repeating-linear-gradient(to right, #000 0, #000 8px, transparent 8px, transparent 12px) !important;
+          background-repeat: repeat-x !important;
+          background-size: 100% 1px !important;
+          background-position: 0 .5008px !important;
+        }
+        .no-print { display: none !important; }
+      }
+    `,
+  });
 
   const playDeleteAudio = () => {
     const a = deleteBeepRef.current;
@@ -370,6 +403,85 @@ export default function AddEditOrder({
     await submitOrder(pendingData);
     setIsConfirming(false);
     setIsConfirmOpen(false);
+  };
+
+  // Confirm and print KOT
+  const handleConfirmCreateAndPrint = async () => {
+    if (!pendingData) return;
+    try {
+      setIsConfirming(true);
+      const payload: any = {
+        ...pendingData,
+        orderNote: getValues("orderNote"),
+        orderItems: orderItems.map((item: OrderItem) => {
+          if (String(item.id).includes("newitem_")) {
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              departmentId: item.departmentId,
+            };
+          }
+          return {
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            departmentId: item.departmentId,
+          };
+        }),
+      };
+      if (getValues("orderType") !== "dineIn") {
+        delete payload.tableId;
+      }
+
+      const response = isEditMode
+        ? await updateOrderApi({ id: orderId, body: payload }).unwrap()
+        : await createApi({ body: payload }).unwrap();
+
+      // Build KOT data from current state + response
+      const kotItems = orderItems
+        .filter((it) => it.status !== "cancelled")
+        .map((it) => ({
+          id: it.id,
+          productName: it.productName,
+          quantity: it.quantity,
+        }));
+
+      const kotData: any = {
+        kotNumber: response?.data?.orderNumber || response?.data?.id || "",
+        order: {
+          orderType: pendingData.orderType,
+          orderStartTime: new Date().toISOString(),
+          table:
+            pendingData.orderType === "dineIn"
+              ? {
+                  tableNo: tableOptions.find(
+                    (t: any) =>
+                      t.value ===
+                      String(
+                        (pendingData as any)?.tableId ?? watchedTableId ?? "",
+                      ),
+                  )?.label,
+                }
+              : null,
+          createdBy: null,
+          takeAwayName: (pendingData as any)?.takeAwayName || null,
+        },
+        orderItems: kotItems,
+      };
+
+      // Prepare KOT preview data, ensure render, then print
+      setKotPreviewData(kotData);
+      await new Promise((res) => setTimeout(res, 50));
+      await printKot();
+      setKotPreviewData(null);
+
+      handleResponse({ res: response, onSuccess: handleSuccess });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setIsConfirming(false);
+      setIsConfirmOpen(false);
+    }
   };
 
   return (
@@ -741,15 +853,15 @@ export default function AddEditOrder({
       </div>
 
       {isConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white w-full max-w-2xl rounded-lg shadow-lg">
-            <div className="px-6 py-4 border-b relative">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50">
+          <div className="bg-white w-[95%] max-w-md sm:max-w-2xl rounded-lg shadow-lg">
+            <div className="px-3 py-3 sm:px-6 sm:py-4 border-b relative">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Confirm {isEditMode ? "Update" : "Order"}
               </h3>
             </div>
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <div className="flex justify-between mb-4 text-sm text-gray-700">
+            <div className="p-4 sm:p-6 max-h-[75vh] overflow-y-auto">
+              <div className="flex justify-between mb-3 sm:mb-4 text-sm text-gray-700">
                 <p className="mb-1">
                   <span className="font-medium">Order Type:</span>{" "}
                   {watchedOrderType}
@@ -845,7 +957,7 @@ export default function AddEditOrder({
               </button>
               <button
                 type="button"
-                onClick={handleConfirmCreate}
+                onClick={handleConfirmCreateAndPrint}
                 disabled={isConfirming}
                 className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
               >
@@ -855,6 +967,10 @@ export default function AddEditOrder({
           </div>
         </div>
       )}
+      {/* Hidden Kot printable content */}
+      <div className="hidden">
+        {kotPreviewData && <Kot ref={kotRef} data={kotPreviewData} />}
+      </div>
     </>
   );
 }

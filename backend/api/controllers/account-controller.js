@@ -73,23 +73,23 @@ const updateAccount = async (req, res, next) => {
   }
 };
 
-// const deleteAccount = async (req, res, next) => {
-//   try {
-//     const result = await accountService.deleteAccount(req);
-//     return responseHelper.sendResponse(
-//       res,
-//       result.status,
-//       result.success,
-//       result.data,
-//       result.errors,
-//       result.message,
-//       result.token,
-//     );
-//   } catch (err) {
-//     logger.error(err);
-//     next(err);
-//   }
-// };
+const deleteAccount = async (req, res, next) => {
+  try {
+    const result = await accountService.deleteAccount(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
 const changeStatus = async (req, res, next) => {
   try {
     const result = await accountService.changeStatus(req);
@@ -154,4 +154,5 @@ module.exports = {
   changeStatus,
   changeDefaultAccount,
   totalAndBalances,
+  deleteAccount,
 };

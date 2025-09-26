@@ -217,51 +217,51 @@ const createAccount = async (req) => {
   }
 };
 
-// const deleteAccount = async (req) => {
-//   const transaction = await sequelize.transaction();
-//   try {
-//     const { id } = req.params;
-//     const account = await accountModel.findByPk(id, {
-//       include: [
-//         { model: bankAccountModel, as: "bankAccount" },
-//         { model: walletAccountModel, as: "walletAccount" },
-//         { model: cashAccountModel, as: "cashAccount" },
-//       ],
-//       transaction,
-//     });
-//     if (!account) {
-//       await transaction.rollback();
-//       return { status: 404, success: false, message: "Account not found" };
-//     }
-//     if (account.isDefault) {
-//       await transaction.rollback();
-//       return {
-//         status: 401,
-//         success: false,
-//         message: "Default Account cannot be deleted",
-//       };
-//     }
+const deleteAccount = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const account = await accountModel.findByPk(id, {
+      include: [
+        { model: bankAccountModel, as: "bankAccount" },
+        { model: walletAccountModel, as: "walletAccount" },
+        { model: cashAccountModel, as: "cashAccount" },
+      ],
+      transaction,
+    });
+    if (!account) {
+      await transaction.rollback();
+      return { status: 404, success: false, message: "Account not found" };
+    }
+    if (account.isDefault) {
+      await transaction.rollback();
+      return {
+        status: 401,
+        success: false,
+        message: "Default Account cannot be deleted",
+      };
+    }
 
-//     // Delete type-specific records first
-//     if (account.bankAccount) await account.bankAccount.destroy({ transaction });
-//     if (account.walletAccount)
-//       await account.walletAccount.destroy({ transaction });
-//     if (account.cashAccount) await account.cashAccount.destroy({ transaction });
+    // Delete type-specific records first
+    if (account.bankAccount) await account.bankAccount.destroy({ transaction });
+    if (account.walletAccount)
+      await account.walletAccount.destroy({ transaction });
+    if (account.cashAccount) await account.cashAccount.destroy({ transaction });
 
-//     await account.destroy({ transaction });
+    await account.destroy({ transaction });
 
-//     await transaction.commit();
-//     return {
-//       status: 200,
-//       success: true,
-//       message: "Account deleted successfully",
-//       data: { id: Number(id) },
-//     };
-//   } catch (error) {
-//     await transaction.rollback();
-//     throw error;
-//   }
-// };
+    await transaction.commit();
+    return {
+      status: 200,
+      success: true,
+      message: "Account deleted successfully",
+      data: { id: Number(id) },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
 const getAccountByID = async (req) => {
   try {
     const { accountId: id } = req.params;
@@ -575,6 +575,7 @@ module.exports = {
   createAccount,
   updateAccount,
   getAccountByID,
+  deleteAccount,
   changeStatus,
   changeDefaultAccount,
   totalAndBalances,
