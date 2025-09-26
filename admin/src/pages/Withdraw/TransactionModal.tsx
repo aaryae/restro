@@ -6,7 +6,8 @@ import Select from "@/components/Select";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
 import { useCreateTransactionMutation } from "@/redux/services/transaction";
-import { handleResponse } from "@/utils/responseHandler";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import Spinner from "@/components/Spinner";
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -55,6 +56,11 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     },
   });
 
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
   const handleFormSubmit = async (data: TransactionFormData) => {
     try {
       const payload = {
@@ -66,15 +72,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
 
       const response = await createTransaction(payload).unwrap();
 
-      handleResponse({ res: response });
+      handleResponse({ res: response, onSuccess: handleClose });
     } catch (error) {
-      console.error("Error creating transaction:", error);
+      handleError({ error: error });
     }
-  };
-
-  const handleClose = () => {
-    reset();
-    onClose();
   };
 
   return (
@@ -92,7 +93,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               <Select
                 label="Account"
                 options={accountOptions}
-                className="w-full md:w-1/2"
+                className="w-full"
                 error={errors?.accountId?.message}
                 {...field}
                 value={field.value?.toString() || ""}
@@ -108,7 +109,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             type="number"
             step={0.01}
             placeholder="Enter withdrawal amount"
-            className="w-full md:w-1/2"
+            className="w-full"
             {...register("amount", { valueAsNumber: true })}
             error={errors?.amount?.message as string}
             isRequired
@@ -119,7 +120,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           <TextArea
             label="Remarks"
             placeholder="Reason for withdrawal (optional)"
-            className="w-full md:w-1/2"
+            className="w-full"
             rows={4}
             {...register("remarks")}
             error={errors?.remarks?.message as string}

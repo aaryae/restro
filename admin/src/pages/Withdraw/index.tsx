@@ -13,7 +13,6 @@ import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import Spinner from "@/components/Spinner";
 import Button from "@/components/Button";
 import TransactionModal from "./TransactionModal";
 
@@ -93,11 +92,12 @@ const Transaction: React.FC = () => {
     refetch();
   }, [queryString]);
 
-  const headers = ["Account", "Type", "Amount", "User", "Date", "Remarks"];
+  const headers = ["Date", "Account", "Type", "Amount", "User", "Remarks"];
 
   const data =
     success && allTransactions?.data?.data
       ? (allTransactions?.data?.data as any[]).map((row: any) => [
+          new Date(row?.transactionDate).toLocaleDateString(),
           row?.account?.name,
           <span
             className={`px-2 py-1 rounded text-xs font-medium ${
@@ -110,7 +110,6 @@ const Transaction: React.FC = () => {
           </span>,
           `${CurrencySign}${Number(row?.amount || 0).toFixed(2)}`,
           row?.user?.username,
-          new Date(row?.transactionDate).toLocaleDateString(),
           row?.remarks,
         ])
       : [];
@@ -120,7 +119,7 @@ const Transaction: React.FC = () => {
       <PageTitle title="Transactions" />
       <div className="flex justify-end items-center gap-[1rem]">
         <Button
-          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          className="flex gap-2 bg-red-600 text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
           handleClick={() => handleNewTransaction("withdraw")}
         >
           New Withdrawal
