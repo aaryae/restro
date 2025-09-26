@@ -120,9 +120,9 @@ export const SideMenuList: SideListMenuType[] = [
       },
       {
         key: 3.7,
-        name: "Withdraw",
+        name: "Transaction",
         icon: <GiExpense />,
-        path: "/admin/withdraw/list",
+        path: "/admin/transaction/list",
       },
     ],
   },
