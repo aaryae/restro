@@ -62,12 +62,12 @@ router.patch(
   changeDefaultAccount,
 );
 
-// router.delete(
-//   "/:id",
-//   authentication,
-//   // authorization,
-//   idValidation,
-//   require("../controllers/account-controller").deleteAccount,
-// );
+router.delete(
+  "/:id",
+  authentication,
+  // authorization,
+  idValidation,
+  require("../controllers/account-controller").deleteAccount,
+);
 
 module.exports = router;

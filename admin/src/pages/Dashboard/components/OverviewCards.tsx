@@ -95,7 +95,7 @@ function OverviewCards() {
   return (
     <>
       <div className="mt-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {totalRevenueData && (
             <SummaryCard
               title="Total Revenue"
@@ -139,31 +139,39 @@ function OverviewCards() {
               Icon={Wallet}
             />
           )}
-          {totalRevenueData && totalPurchaseData && totalExpenseData && totalWithdrawData && (
-            <SummaryCard
-              title="Remaining Balance"
-              value={`${CurrencySign}${(
-                (totalRevenueData.data.total - 
-                (totalPurchaseData.data.total + totalExpenseData.data.total)) - 
-                (totalWithdrawData?.data?.totalAmount || 0)
-              ).toLocaleString()}`}
-              gradient="from-teal-500 via-teal-600 to-teal-500"
-              Icon={PiggyBank}
-            />
-          )}
-          {settings?.data?.openingBalance !== undefined && totalRevenueData && totalPurchaseData && totalExpenseData && totalWithdrawData && (
-            <SummaryCard
-              title="Total Collection Till Date"
-              value={`${CurrencySign}${(
-                Number(settings.data.openingBalance) + 
-                (totalRevenueData.data.total - 
-                (totalPurchaseData.data.total + totalExpenseData.data.total)) - 
-                (totalWithdrawData?.data?.totalAmount || 0)
-              ).toLocaleString()}`}
-              gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-              Icon={Landmark}
-            />
-          )}
+          {totalRevenueData &&
+            totalPurchaseData &&
+            totalExpenseData &&
+            totalWithdrawData && (
+              <SummaryCard
+                title="Remaining Balance"
+                value={`${CurrencySign}${(
+                  totalRevenueData.data.total -
+                  (totalPurchaseData.data.total + totalExpenseData.data.total) -
+                  (totalWithdrawData?.data?.totalAmount || 0)
+                ).toLocaleString()}`}
+                gradient="from-teal-500 via-teal-600 to-teal-500"
+                Icon={PiggyBank}
+              />
+            )}
+          {settings?.data?.openingBalance !== undefined &&
+            totalRevenueData &&
+            totalPurchaseData &&
+            totalExpenseData &&
+            totalWithdrawData && (
+              <SummaryCard
+                title="Total Collection Till Date"
+                value={`${CurrencySign}${(
+                  Number(settings.data.openingBalance) +
+                  (totalRevenueData.data.total -
+                    (totalPurchaseData.data.total +
+                      totalExpenseData.data.total)) -
+                  (totalWithdrawData?.data?.totalAmount || 0)
+                ).toLocaleString()}`}
+                gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+                Icon={Landmark}
+              />
+            )}
           {/* <SummaryCard
             title="Total Balance (All)"
             value={`${CurrencySign}${totals.all.toLocaleString()}`}

@@ -651,37 +651,41 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         {customerDataLoading ? (
                           <p className="text-gray-500">Loading members...</p>
                         ) : customerSuccess &&
-                          allCustomers?.data?.data?.length > 0 &&
                           customerSearchTerm.trim().length > 0 ? (
-                          <>
-                            {allCustomers?.data?.data.map((customer: any) => (
+                          <div className="mt-2 max-h-60 overflow-y-auto">
+                            {allCustomers?.data?.data?.map((customer: any) => (
                               <p
-                                className={`mt-4 py-2 cursor-pointer ${customer.id == selectedMember?.id ? "bg-gray-100 hover:bg-gray-200 font-normal rounded-sm" : "border-[0.9px] border-gray-300 text-black font-normal rounded-sm"}`}
                                 key={customer.id}
-                                onClick={() => setSelectedMember(customer)}
+                                className={`mt-1 py-2 px-3 cursor-pointer rounded-sm ${
+                                  customer.id === selectedMember?.id
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "hover:bg-gray-100"
+                                }`}
+                                onClick={() => {
+                                  setSelectedMember(customer);
+                                  setCustomerSearchTerm(""); // Clear search term to hide the list
+                                }}
                               >
-                                {`${customer.firstName || ""} ${customer.lastName || ""} ${customer.firstName || customer.lastName ? `(${customer.mobileNo || ""})` : ""}`.trim() ||
+                                {`${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
                                   `Member ${customer.id}`}
+                                <br />
+                                <span className="text-sm text-gray-500">
+                                  {customer.mobileNo || "No phone"}
+                                </span>
                               </p>
                             ))}
-                          </>
-                        ) : (
-                          <>
-                            {customerSearchTerm.trim().length > 0 && (
-                              <div>
-                                <p className="text-red-500">
-                                  Failed to load members
-                                </p>
-                                <button
-                                  onClick={customerRefetch}
-                                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                >
-                                  Retry
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )}
+                          </div>
+                        ) : customerSearchTerm.trim().length > 0 ? (
+                          <div>
+                            <p className="text-red-500">No members found</p>
+                            <button
+                              onClick={customerRefetch}
+                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     )}
                     {selectedMember && (

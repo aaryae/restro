@@ -150,6 +150,7 @@ export default function OpenItemForm() {
       />
 
       <div className="md:w-1/2 w-full">
+        <label className="input-label flex mb-[2px]">Description</label>
         <textarea
           value={watch("description") || ""}
           onChange={(e) => setValue("description", e.target.value)}
