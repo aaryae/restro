@@ -97,8 +97,8 @@ function OverviewCards() {
     );
 
   const profit =
-    totalRevenueData.data.total -
-    (totalPurchaseData.data.total + totalExpenseData.data.total);
+    totalRevenueData?.data?.total -
+    (totalPurchaseData?.data?.total + totalExpenseData?.data?.total);
 
   return (
     <>
