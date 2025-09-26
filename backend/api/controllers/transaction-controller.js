@@ -1,10 +1,10 @@
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
-const withdrawService = require("../services/withdraw-service");
+const transactionService = require("../services/transaction-service");
 
 const list = async (req, res, next) => {
   try {
-    const result = await withdrawService.list(req);
+    const result = await transactionService.list(req);
 
     return responseHelper.sendResponse(
       res,
@@ -21,9 +21,9 @@ const list = async (req, res, next) => {
   }
 };
 
-const totalWithdraw = async (req, res, next) => {
+const totalTransaction = async (req, res, next) => {
   try {
-    const result = await withdrawService.total(req);
+    const result = await transactionService.total(req);
 
     return responseHelper.sendResponse(
       res,
@@ -42,7 +42,7 @@ const totalWithdraw = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const result = await withdrawService.create(req);
+    const result = await transactionService.create(req);
 
     return responseHelper.sendResponse(
       res,
@@ -59,28 +59,9 @@ const create = async (req, res, next) => {
   }
 };
 
-const getWithdrawByID = async (req, res, next) => {
+const getTransactionByID = async (req, res, next) => {
   try {
-    const result = await withdrawService.getById(req);
-
-    return responseHelper.sendResponse(
-      res,
-      result.status,
-      result.success,
-      result.data,
-      result.errors,
-      result.message,
-      result.token,
-    );
-  } catch (err) {
-    logger.error(err);
-    next(err);
-  }
-};
-
-const updateWithdraw = async (req, res, next) => {
-  try {
-    const result = await withdrawService.update(req);
+    const result = await transactionService.getById(req);
 
     return responseHelper.sendResponse(
       res,
@@ -100,7 +81,6 @@ const updateWithdraw = async (req, res, next) => {
 module.exports = {
   create,
   list,
-  getWithdrawByID,
-  updateWithdraw,
-  totalWithdraw,
+  getTransactionByID,
+  totalTransaction,
 };

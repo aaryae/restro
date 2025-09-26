@@ -4,8 +4,8 @@ const {
   authorization,
 } = require("../../middlewares/auth-middleware");
 const {
-  withdrawPostValidation,
-} = require("../../validations/withdraw_validation");
+  transactionPostValidation,
+} = require("../../validations/transaction_validation");
 const {
   paginationValidation,
   idValidation,
@@ -14,33 +14,26 @@ const {
 const {
   create,
   list,
-  getWithdrawByID,
-  updateWithdraw,
-  totalWithdraw,
-} = require("../controllers/withdraw-controller");
+  getTransactionByID,
+  totalTransaction,
+} = require("../controllers/transaction-controller");
 const {
   checkAccountPermission,
 } = require("../../middlewares/accountPermission");
 
-router.post("/", authentication, withdrawPostValidation, create);
+router.post("/", authentication, transactionPostValidation, create);
 router.get("/list", authentication, authorization, paginationValidation, list);
 router.get(
   "/total",
   authentication,
   authorization,
-  totalWithdraw,
+  totalTransaction,
 );
 router.get(
-  "/:withdrawId",
+  "/:transactionId",
   authentication,
   idValidation,
-  getWithdrawByID,
-);
-router.put(
-  "/:id",
-  authentication,
-  idValidation,
-  updateWithdraw,
+  getTransactionByID,
 );
 
 module.exports = router;

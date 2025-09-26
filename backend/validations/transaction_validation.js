@@ -5,13 +5,18 @@ const responseHelper = require("../helpers/response-helper");
 const messageConstant = require("../constants/message-constant");
 const { validateRequestBody } = require("../helpers/validator-helper");
 
-const withdrawPostValidation = async (req, res, next) => {
+const transactionPostValidation = async (req, res, next) => {
   const joiModel = joi.object({
     accountId: joi.number().integer().positive().required().messages({
       "number.base": "Account ID must be a number",
       "number.integer": "Account ID must be an integer",
       "number.positive": "Account ID must be positive",
       "any.required": "Account ID is required",
+    }),
+    type: joi.string().valid("deposit", "withdraw").required().messages({
+      "string.base": "Type must be a string",
+      "any.only": "Type must be either 'deposit' or 'withdraw'",
+      "any.required": "Transaction type is required",
     }),
     amount: joi.number().precision(2).positive().required().messages({
       "number.base": "Amount must be a number",
@@ -40,5 +45,5 @@ const withdrawPostValidation = async (req, res, next) => {
 };
 
 module.exports = {
-  withdrawPostValidation,
+  transactionPostValidation,
 };

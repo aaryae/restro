@@ -2,7 +2,7 @@ const { Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 
 const {
-  withdrawModel,
+  transactionModel,
   accountModel,
   userModel,
   sequelize,
@@ -13,8 +13,18 @@ const paginate = require("../../utils/paginate");
 const create = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const { accountId, amount, remarks } = req.body;
+    const { accountId, amount, remarks, type } = req.body;
     const { id: userId } = req.user;
+
+    // Validate transaction type
+    if (!type || !["deposit", "withdraw"].includes(type)) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Transaction type must be either 'deposit' or 'withdraw'",
+      };
+    }
 
     // Verify account exists and is active
     const account = await accountModel.findByPk(accountId, { transaction });
@@ -32,26 +42,29 @@ const create = async (req) => {
       return {
         status: 400,
         success: false,
-        message: "Cannot withdraw from inactive account",
+        message: "Cannot perform transaction on inactive account",
       };
     }
 
-    // Check if sufficient balance
-    const currentBalance = Number(account.currentBalance) || 0;
-    if (currentBalance < amount) {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: "Insufficient account balance for withdrawal",
-      };
+    // Check balance for withdrawals
+    if (type === "withdraw") {
+      const currentBalance = Number(account.currentBalance) || 0;
+      if (currentBalance < amount) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Insufficient account balance for withdrawal",
+        };
+      }
     }
 
-    // Create withdrawal record
-    const withdrawal = await withdrawModel.create(
+    // Create transaction record
+    const transactionRecord = await transactionModel.create(
       {
         accountId,
         userId,
+        type,
         amount,
         remarks,
       },
@@ -59,7 +72,11 @@ const create = async (req) => {
     );
 
     // Update account balance
-    const newBalance = currentBalance - amount;
+    const currentBalance = Number(account.currentBalance) || 0;
+    const newBalance = type === "deposit"
+      ? currentBalance + amount
+      : currentBalance - amount;
+
     await account.update(
       {
         currentBalance: newBalance,
@@ -72,9 +89,9 @@ const create = async (req) => {
     return {
       status: 201,
       success: true,
-      message: "Withdrawal created successfully",
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully`,
       data: {
-        withdrawal,
+        transaction: transactionRecord,
         account: {
           id: account.id,
           name: account.name,
@@ -97,6 +114,7 @@ const list = async (req) => {
       page,
       accountId,
       userId,
+      type,
       startDate,
       endDate,
       minAmount,
@@ -120,6 +138,7 @@ const list = async (req) => {
     // Apply filters
     if (accountId) filters.accountId = accountId;
     if (userId) filters.userId = userId;
+    if (type) filters.type = type;
     if (minAmount) filters.amount = { [Op.gte]: minAmount };
     if (maxAmount) filters.amount = { ...filters.amount, [Op.lte]: maxAmount };
 
@@ -127,35 +146,35 @@ const list = async (req) => {
     if (startDate && endDate) {
       const start = startOfDay(parseISO(startDate));
       const end = endOfDay(parseISO(endDate));
-      filters.withdrawalDate = { [Op.between]: [start, end] };
+      filters.transactionDate = { [Op.between]: [start, end] };
     } else if (startDate) {
       const start = startOfDay(parseISO(startDate));
-      filters.withdrawalDate = { [Op.gte]: start };
+      filters.transactionDate = { [Op.gte]: start };
     } else if (endDate) {
       const end = endOfDay(parseISO(endDate));
-      filters.withdrawalDate = { [Op.lte]: end };
+      filters.transactionDate = { [Op.lte]: end };
     }
 
-    const result = await paginate(withdrawModel, {
+    const result = await paginate(transactionModel, {
       limit,
       page,
       filters,
       include,
-      order: [["withdrawalDate", "DESC"]],
+      order: [["transactionDate", "DESC"]],
     });
 
     if (!result) {
       return {
         status: 500,
         success: false,
-        message: "Withdrawal list failed",
+        message: "Transaction list failed",
       };
     }
 
     return {
       status: 200,
       success: true,
-      message: "Withdrawals retrieved successfully",
+      message: "Transactions retrieved successfully",
       data: result,
     };
   } catch (error) {
@@ -167,7 +186,7 @@ const getById = async (req) => {
   try {
     const { id } = req.params;
 
-    const withdrawal = await withdrawModel.findByPk(id, {
+    const transaction = await transactionModel.findByPk(id, {
       include: [
         {
           model: accountModel,
@@ -182,131 +201,36 @@ const getById = async (req) => {
       ],
     });
 
-    if (!withdrawal) {
+    if (!transaction) {
       return {
         status: 404,
         success: false,
-        message: "Withdrawal not found",
+        message: "Transaction not found",
       };
     }
 
     return {
       status: 200,
       success: true,
-      message: "Withdrawal retrieved successfully",
-      data: withdrawal,
+      message: "Transaction retrieved successfully",
+      data: transaction,
     };
   } catch (error) {
     throw error;
   }
 };
 
-const update = async (req) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const { id } = req.params;
-    const { amount, remarks } = req.body;
-
-    const withdrawal = await withdrawModel.findByPk(id, {
-      include: [
-        {
-          model: accountModel,
-          as: "account",
-        },
-      ],
-      transaction,
-    });
-
-    if (!withdrawal) {
-      await transaction.rollback();
-      return {
-        status: 404,
-        success: false,
-        message: "Withdrawal not found",
-      };
-    }
-
-    // Check if withdrawal can be updated (not too old, etc.)
-    const withdrawalDate = new Date(withdrawal.withdrawalDate);
-    const now = new Date();
-    const hoursDiff = (now - withdrawalDate) / (1000 * 60 * 60);
-
-    // Allow updates within 24 hours
-    if (hoursDiff > 24) {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message: "Cannot update withdrawal older than 24 hours",
-      };
-    }
-
-    // Calculate balance adjustment
-    const oldAmount = Number(withdrawal.amount);
-    const newAmount = Number(amount);
-    const difference = newAmount - oldAmount;
-
-    if (difference !== 0) {
-      const account = withdrawal.account;
-      const currentBalance = Number(account.currentBalance);
-
-      // Check if new amount would cause negative balance
-      if (currentBalance + oldAmount - newAmount < 0) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: "Insufficient account balance for updated withdrawal amount",
-        };
-      }
-
-      // Update account balance
-      await account.update(
-        {
-          currentBalance: currentBalance + oldAmount - newAmount,
-        },
-        { transaction },
-      );
-    }
-
-    // Update withdrawal record
-    const updates = {};
-    if (amount !== undefined) updates.amount = amount;
-    if (remarks !== undefined) updates.remarks = remarks;
-
-    await withdrawal.update(updates, { transaction });
-
-    await transaction.commit();
-
-    return {
-      status: 200,
-      success: true,
-      message: "Withdrawal updated successfully",
-      data: withdrawal,
-    };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-
-module.exports = {
-  create,
-  list,
-  getById,
-  update,
-};
-
-// Calculate total withdrawn amount with optional filters
+// Calculate total transaction amount with optional filters
 const total = async (req) => {
   try {
-    let { accountId, userId, startDate, endDate, minAmount, maxAmount } =
+    let { accountId, userId, type, startDate, endDate, minAmount, maxAmount } =
       req.query;
 
     const filters = {};
 
     if (accountId) filters.accountId = accountId;
     if (userId) filters.userId = userId;
+    if (type) filters.type = type;
     if (minAmount) filters.amount = { [Op.gte]: minAmount };
     if (maxAmount)
       filters.amount = { ...filters.amount, [Op.lte]: maxAmount };
@@ -314,16 +238,16 @@ const total = async (req) => {
     if (startDate && endDate) {
       const start = startOfDay(parseISO(startDate));
       const end = endOfDay(parseISO(endDate));
-      filters.withdrawalDate = { [Op.between]: [start, end] };
+      filters.transactionDate = { [Op.between]: [start, end] };
     } else if (startDate) {
       const start = startOfDay(parseISO(startDate));
-      filters.withdrawalDate = { [Op.gte]: start };
+      filters.transactionDate = { [Op.gte]: start };
     } else if (endDate) {
       const end = endOfDay(parseISO(endDate));
-      filters.withdrawalDate = { [Op.lte]: end };
+      filters.transactionDate = { [Op.lte]: end };
     }
 
-    const result = await withdrawModel.findAll({
+    const result = await transactionModel.findAll({
       where: filters,
       attributes: [[sequelize.fn("COALESCE", sequelize.fn("SUM", sequelize.col("amount")), 0), "totalAmount" ]],
       raw: true,
@@ -334,7 +258,7 @@ const total = async (req) => {
     return {
       status: 200,
       success: true,
-      message: "Total withdraw amount calculated successfully",
+      message: "Total transaction amount calculated successfully",
       data: { totalAmount },
     };
   } catch (error) {
@@ -342,4 +266,9 @@ const total = async (req) => {
   }
 };
 
-module.exports.total = total;
+module.exports = {
+  create,
+  list,
+  getById,
+  total,
+};

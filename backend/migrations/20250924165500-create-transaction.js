@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("withdraws", {
+    await queryInterface.createTable("transactions", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -17,7 +17,7 @@ module.exports = {
           key: "id",
         },
         onDelete: "RESTRICT",
-        comment: "The account from which withdrawal is made",
+        comment: "The account for the transaction",
       },
       userId: {
         type: Sequelize.INTEGER,
@@ -27,23 +27,28 @@ module.exports = {
           key: "id",
         },
         onDelete: "RESTRICT",
-        comment: "The user who performed the withdrawal",
+        comment: "The user who performed the transaction",
+      },
+      type: {
+        type: Sequelize.ENUM("deposit", "withdraw"),
+        allowNull: false,
+        comment: "Transaction type: deposit or withdraw",
       },
       amount: {
         type: Sequelize.DECIMAL(12, 2),
         allowNull: false,
-        comment: "Withdrawal amount",
+        comment: "Transaction amount",
       },
-      withdrawalDate: {
+      transactionDate: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.NOW,
-        comment: "Date and time of withdrawal",
+        comment: "Date and time of transaction",
       },
       remarks: {
         type: Sequelize.TEXT,
         allowNull: true,
-        comment: "Additional notes or reason for withdrawal",
+        comment: "Additional notes or reason for transaction",
       },
       createdAt: {
         allowNull: false,
@@ -56,18 +61,21 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex("withdraws", ["accountId"], {
-      name: "withdraws_accountId_index",
+    await queryInterface.addIndex("transactions", ["accountId"], {
+      name: "transactions_accountId_index",
     });
-    await queryInterface.addIndex("withdraws", ["userId"], {
-      name: "withdraws_userId_index",
+    await queryInterface.addIndex("transactions", ["userId"], {
+      name: "transactions_userId_index",
     });
-    await queryInterface.addIndex("withdraws", ["withdrawalDate"], {
-      name: "withdraws_withdrawalDate_index",
+    await queryInterface.addIndex("transactions", ["type"], {
+      name: "transactions_type_index",
+    });
+    await queryInterface.addIndex("transactions", ["transactionDate"], {
+      name: "transactions_transactionDate_index",
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("withdraws");
+    await queryInterface.dropTable("transactions");
   },
 };
