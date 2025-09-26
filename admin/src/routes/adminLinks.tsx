@@ -44,8 +44,7 @@ import OpenItem from "@/pages/OpenItem";
 import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
 import ExpenseCategory from "@/pages/ExpenseCategory";
 import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-import Withdraw from "@/pages/Withdraw";
-import AddEditWithdraw from "@/pages/Withdraw/AddEditWithdraw";
+import Transaction from "@/pages/Transaction";
 import AccountAccess from "@/pages/AccountPermission";
 import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
 
@@ -315,16 +314,8 @@ export const adminLinks = [
     element: <AddEditExpense />,
   },
   {
-    path: "/withdraw/list",
-    element: <Withdraw />,
-  },
-  {
-    path: "/withdraw/",
-    element: <AddEditWithdraw />,
-  },
-  {
-    path: "/withdraw/:id",
-    element: <AddEditWithdraw />,
+    path: "/transaction/list",
+    element: <Transaction />,
   },
   {
     path: "/account-permission/list",

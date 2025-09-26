@@ -14,6 +14,7 @@ import {
 import BarChartComponent from "../BarChartComponent";
 import PieChartComponent from "../PieChartComponent";
 import {
+  ACCOUNT_URL,
   EXPENSE_URL,
   PURCHASE_URL,
   REVENUE_URL,
@@ -40,7 +41,7 @@ function OverviewCards() {
     url: `${EXPENSE_URL}total-expense`,
     skip: !expenseAccessList.includes("view-total"),
   });
-  const { data: totalWithdrawData } = useGetApiQuery({
+  const { data: totalTransactionData } = useGetApiQuery({
     url: `${TRANSACTION_URL}total`,
     skip: !withdrawAccessList.includes("view"),
   });
@@ -48,6 +49,9 @@ function OverviewCards() {
 
   const url = buildQueryString("account/list", { page: 1, limit: 1000 });
   const { data, isLoading } = useGetApiQuery({ url });
+  const { data: totalAndBalancesData } = useGetApiQuery({
+    url: `${ACCOUNT_URL}total-and-balances`,
+  });
 
   const totals = useMemo(() => {
     const rows: any[] = data?.data?.data || [];
@@ -92,6 +96,10 @@ function OverviewCards() {
       </div>
     );
 
+  const profit =
+    totalRevenueData.data.total -
+    (totalPurchaseData.data.total + totalExpenseData.data.total);
+
   return (
     <>
       <div className="mt-6 space-y-6">
@@ -123,18 +131,15 @@ function OverviewCards() {
           {totalRevenueData && totalPurchaseData && totalExpenseData && (
             <SummaryCard
               title="Profit"
-              value={`${CurrencySign}${(
-                totalRevenueData.data.total -
-                (totalPurchaseData.data.total + totalExpenseData.data.total)
-              ).toLocaleString()}`}
+              value={`${CurrencySign}${profit.toLocaleString()}`}
               gradient="from-amber-500 via-amber-600 to-amber-500"
               Icon={TrendingUp}
             />
           )}
-          {totalWithdrawData && (
+          {totalTransactionData && (
             <SummaryCard
               title="Total Withdrawn"
-              value={`${CurrencySign}${totalWithdrawData?.data?.totalWithdraw?.toLocaleString()}`}
+              value={`${CurrencySign}${totalTransactionData?.data?.totalWithdraw?.toLocaleString()}`}
               gradient="from-rose-500 via-rose-600 to-rose-500"
               Icon={Wallet}
             />
@@ -142,36 +147,22 @@ function OverviewCards() {
           {totalRevenueData &&
             totalPurchaseData &&
             totalExpenseData &&
-            totalWithdrawData && (
+            totalTransactionData?.success && (
               <SummaryCard
                 title="Remaining Balance"
-                value={`${CurrencySign}${(
-                  totalRevenueData.data.total -
-                  (totalPurchaseData.data.total + totalExpenseData.data.total) -
-                  (totalWithdrawData?.data?.totalWithdraw || 0)
-                ).toLocaleString()}`}
+                value={`${CurrencySign}${(profit + totalTransactionData?.data?.totalDeposit - (totalTransactionData?.data?.totalWithdraw || 0)).toLocaleString()}`}
                 gradient="from-teal-500 via-teal-600 to-teal-500"
                 Icon={PiggyBank}
               />
             )}
-          {settings?.data?.openingBalance !== undefined &&
-            totalRevenueData &&
-            totalPurchaseData &&
-            totalExpenseData &&
-            totalWithdrawData && (
-              <SummaryCard
-                title="Total Collection Till Date"
-                value={`${CurrencySign}${(
-                  Number(settings.data.openingBalance) +
-                  (totalRevenueData.data.total -
-                    (totalPurchaseData.data.total +
-                      totalExpenseData.data.total)) -
-                  (totalWithdrawData?.data?.totalWithdraw || 0)
-                ).toLocaleString()}`}
-                gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-                Icon={Landmark}
-              />
-            )}
+          {totalAndBalancesData?.success && (
+            <SummaryCard
+              title="Total Collection Till Date"
+              value={`${CurrencySign}${Number(totalAndBalancesData?.data?.totalBalance).toLocaleString()}`}
+              gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+              Icon={Landmark}
+            />
+          )}
           {/* <SummaryCard
             title="Total Balance (All)"
             value={`${CurrencySign}${totals.all.toLocaleString()}`}

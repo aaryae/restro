@@ -76,9 +76,9 @@ export const EXPENSE_CATEGORY_LIST_ROUTE = "/admin/expense-category/list";
 export const EXPENSE_CATEGORY_ADD_ROUTE = "/admin/expense-category/";
 export const EXPENSE_CATEGORY_EDIT_ROUTE = "/admin/expense-category/:id";
 
-export const WITHDRAW_LIST_ROUTE = "/admin/withdraw/list";
-export const WITHDRAW_ADD_ROUTE = "/admin/withdraw/";
-export const WITHDRAW_EDIT_ROUTE = "/admin/withdraw/:id";
+export const WITHDRAW_LIST_ROUTE = "/admin/transaction/list";
+export const WITHDRAW_ADD_ROUTE = "/admin/transaction/";
+export const WITHDRAW_EDIT_ROUTE = "/admin/transaction/:id";
 
 export const ACCOUNT_ACCESS_LIST_ROUTE = "/admin/account-permission/list";
 export const ACCOUNT_ACCESS_ADD_ROUTE = "/admin/account-permission/";
