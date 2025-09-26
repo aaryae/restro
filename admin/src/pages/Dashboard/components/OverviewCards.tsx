@@ -144,6 +144,14 @@ function OverviewCards() {
               Icon={Wallet}
             />
           )}
+          {totalTransactionData && (
+            <SummaryCard
+              title="Total Deposits"
+              value={`${CurrencySign}${totalTransactionData?.data?.totalDeposit?.toLocaleString()}`}
+              gradient="from-green-500 via-green-600 to-green-500"
+              Icon={PiggyBank}
+            />
+          )}
           {totalRevenueData &&
             totalPurchaseData &&
             totalExpenseData &&
