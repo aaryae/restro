@@ -50,6 +50,7 @@ export const api = createApi({
     "purchase",
     "purchase-category",
     "kot",
+    "transaction",
   ],
   endpoints: () => ({}),
 });

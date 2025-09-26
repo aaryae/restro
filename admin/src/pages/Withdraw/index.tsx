@@ -8,23 +8,31 @@ import usePagination from "@/hooks/usePagination";
 import PageHeader from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { CurrencySign } from "@/constants";
-import { MdEditSquare } from "react-icons/md";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import Spinner from "@/components/Spinner";
-import { WITHDRAW_ADD_ROUTE } from "@/routes/routeNames";
+import Button from "@/components/Button";
+import TransactionModal from "./TransactionModal";
 
-const Withdraw: React.FC = () => {
+const Transaction: React.FC = () => {
   const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [queryString, setQueryString] = useState<Record<string, any>>({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transactionType, setTransactionType] = useState<
+    "deposit" | "withdraw"
+  >("deposit");
 
-  const handleNewWithdraw = () => {
-    // For now, we'll handle this inline or navigate to a modal
-    navigate(WITHDRAW_ADD_ROUTE); // Add this route when available
+  const handleNewTransaction = (type: "deposit" | "withdraw") => {
+    setTransactionType(type);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   const { control, handleSubmit, reset } = useForm<{
@@ -61,85 +69,91 @@ const Withdraw: React.FC = () => {
     },
   );
 
-  const url = buildQueryString("withdraw/list", {
+  const url = buildQueryString("transaction/list", {
     page: query.page,
     limit: query.limit,
     search: queryString,
   });
 
   const {
-    data: allWithdrawals,
+    data: allTransactions,
     isSuccess: success,
     refetch,
     isFetching,
   } = useGetApiQuery({ url });
 
   const pagination: PaginationType = {
-    page: allWithdrawals?.data?.page ?? 1,
-    limit: allWithdrawals?.data?.limit ?? 10,
-    total: allWithdrawals?.data?.total ?? 0,
-    totalPages: allWithdrawals?.data?.totalPages ?? 0,
+    page: allTransactions?.data?.page ?? 1,
+    limit: allTransactions?.data?.limit ?? 10,
+    total: allTransactions?.data?.total ?? 0,
+    totalPages: allTransactions?.data?.totalPages ?? 0,
   };
 
   useEffect(() => {
     refetch();
   }, [queryString]);
 
-  const headers = ["Account", "Amount", "User", "Date", "Remarks", "Actions"];
+  const headers = ["Account", "Type", "Amount", "User", "Date", "Remarks"];
 
   const data =
-    success && allWithdrawals?.data?.data
-      ? (allWithdrawals?.data?.data as any[]).map((row: any, idx: number) => [
+    success && allTransactions?.data?.data
+      ? (allTransactions?.data?.data as any[]).map((row: any) => [
           row?.account?.name,
+          <span
+            className={`px-2 py-1 rounded text-xs font-medium ${
+              row?.type === "deposit"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {row?.type?.charAt(0).toUpperCase() + row?.type?.slice(1)}
+          </span>,
           `${CurrencySign}${Number(row?.amount || 0).toFixed(2)}`,
           row?.user?.username,
-          new Date(row?.withdrawalDate).toLocaleDateString(),
+          new Date(row?.transactionDate).toLocaleDateString(),
           row?.remarks,
-          <div
-            className="flex items-center justify-center gap-3"
-            key={`actions-${row?.id || idx}`}
-          >
-            <MdEditSquare
-              size={18}
-              className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-              onClick={() => handleEditWithdraw(row?.id)}
-              title="Edit"
-            />
-          </div>,
         ])
       : [];
 
-  const handleEditWithdraw = (id: number) => {
-    navigate(`${WITHDRAW_ADD_ROUTE}${id}`);
-  };
-
   return (
     <>
-      <PageTitle title="Withdrawals" />
+      <PageTitle title="Transactions" />
       <div className="flex justify-end items-center gap-[1rem]">
-        <PageHeader
-          hasAddButton={true}
-          newButtonText="New Withdrawal"
-          handleNewButton={handleNewWithdraw}
-          handleReloadButton={() => refetch()}
-        />
+        <Button
+          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          handleClick={() => handleNewTransaction("withdraw")}
+        >
+          New Withdrawal
+        </Button>
+        <Button
+          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          handleClick={() => handleNewTransaction("deposit")}
+        >
+          New Deposit
+        </Button>
+        <PageHeader hasAddButton={false} handleReloadButton={() => refetch()} />
       </div>
-      <PageFilterWrapper title="Withdrawal Filters">
+      <PageFilterWrapper title="Transaction Filters">
         {Component}
       </PageFilterWrapper>
-      {isFetching ? (
-        <Spinner className="flex justify-center items-center h-full" />
-      ) : (
-        <Table
-          isSN
-          headers={headers}
-          data={data}
-          pagination={pagination}
-          handlePagination={handlePagination}
-        />
-      )}
+      <Table
+        headers={headers}
+        data={data}
+        pagination={pagination}
+        handlePagination={handlePagination}
+        isLoading={isFetching}
+      />
+      <TransactionModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        type={transactionType}
+        onSuccess={() => {
+          refetch();
+          handleCloseModal();
+        }}
+      />
     </>
   );
 };
 
-export default Withdraw;
+export default Transaction;
