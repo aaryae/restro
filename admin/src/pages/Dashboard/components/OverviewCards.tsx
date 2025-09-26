@@ -21,7 +21,7 @@ import {
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import SummaryCard from "@/components/SummaryCard";
-import { WITHDRAW_URL } from "@/constants/apiUrlConstants";
+import { TRANSACTION_URL } from "@/constants/apiUrlConstants";
 
 function OverviewCards() {
   const revenueAccessList = checkAccess("Revenue");
@@ -41,7 +41,7 @@ function OverviewCards() {
     skip: !expenseAccessList.includes("view-total"),
   });
   const { data: totalWithdrawData } = useGetApiQuery({
-    url: `${WITHDRAW_URL}total`,
+    url: `${TRANSACTION_URL}total`,
     skip: !withdrawAccessList.includes("view"),
   });
   const { data: settings } = useGetSettingQuery("");
@@ -134,7 +134,7 @@ function OverviewCards() {
           {totalWithdrawData && (
             <SummaryCard
               title="Total Withdrawn"
-              value={`${CurrencySign}${totalWithdrawData?.data?.totalAmount?.toLocaleString()}`}
+              value={`${CurrencySign}${totalWithdrawData?.data?.totalWithdraw?.toLocaleString()}`}
               gradient="from-rose-500 via-rose-600 to-rose-500"
               Icon={Wallet}
             />
@@ -148,7 +148,7 @@ function OverviewCards() {
                 value={`${CurrencySign}${(
                   totalRevenueData.data.total -
                   (totalPurchaseData.data.total + totalExpenseData.data.total) -
-                  (totalWithdrawData?.data?.totalAmount || 0)
+                  (totalWithdrawData?.data?.totalWithdraw || 0)
                 ).toLocaleString()}`}
                 gradient="from-teal-500 via-teal-600 to-teal-500"
                 Icon={PiggyBank}
@@ -166,7 +166,7 @@ function OverviewCards() {
                   (totalRevenueData.data.total -
                     (totalPurchaseData.data.total +
                       totalExpenseData.data.total)) -
-                  (totalWithdrawData?.data?.totalAmount || 0)
+                  (totalWithdrawData?.data?.totalWithdraw || 0)
                 ).toLocaleString()}`}
                 gradient="from-purple-500 via-fuchsia-600 to-purple-500"
                 Icon={Landmark}
