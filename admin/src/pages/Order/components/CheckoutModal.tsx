@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import styles from "./CheckoutModal.module.css";
 import QR_IMAGE from "@/assets/qr-code.png";
-import { useCreateApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
+import { useGetApiQuery } from "@/redux/services/crudApi";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -14,10 +14,6 @@ import Input from "@/components/Input";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
 import { X } from "lucide-react";
-import { z } from "zod";
-import { OrderSchema } from "../schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import Bill from "@/components/Bill";
 import { useReactToPrint } from "react-to-print";
 
@@ -117,7 +113,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   });
 
   const { data: order } = useGetApiQuery(
-    { url: `order/${orderId}` },
+    { url: `order/${orderId}?itemStatus=active` },
     {
       skip:
         orderId === null ||
@@ -240,30 +236,32 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePayment = async () => {
     try {
-      const payload =
-        checkoutType === "member" && selectedMember
-          ? {
-              paymentMethod: paymentType,
-              customerId: selectedMember.id,
-              orderId: orderId,
-              checkoutAll: typeof orderId === "object",
-            }
-          : {
-              paymentMethod: paymentType,
-              orderId: orderId,
-              checkoutAll: typeof orderId === "object",
-            };
+      const basePayload = {
+        paymentMethod: paymentType,
+        orderId: orderId,
+        checkoutAll: typeof orderId === "object" && selectedIds.length === 0, // Only checkout all if no specific items are selected
+        orderItemIds: selectedIds.length > 0 ? selectedIds.map(Number) : undefined, // Include selected item IDs if any
+      };
+
+      const payload = checkoutType === "member" && selectedMember
+        ? {
+            ...basePayload,
+            customerId: selectedMember.id,
+          }
+        : basePayload;
 
       if (paymentType === "cash") {
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,
         }).unwrap();
+        
         if (response?.success) {
           handleResponse({ res: response });
           setIsPaymentSuccess(true);
         }
       }
+      
       setTimeout(() => {
         setIsPaymentSuccess(false);
         onClose();

@@ -447,6 +447,9 @@ const getTableActiveOrders = async (req) => {
         {
           model: orderItemModel,
           as: "orderItems",
+          where:{
+            status:{[Op.notIn]: ["completed", "cancelled"] }
+          },
           include: [
             {
               model: productModel,
@@ -514,7 +517,7 @@ const checkoutOrder = async (req) => {
       ...updateData
     } = req.body;
 
-    console.log(`******************\n${accountId}\n****************`);
+    console.log(`******************\n${orderItemIds}\n****************`);
 
     // For dine-in flow, tableId is used; for takeaway, tableId may be missing/ignored
     const hasTable =
@@ -1100,31 +1103,41 @@ const checkoutOrder = async (req) => {
 
 const getOrderById = async (req) => {
   const { id } = req.params;
+  const { itemStatus } = req.query;
 
   try {
-    const order = await orderModel.findByPk(id, {
-      include: [
-        {
-          model: orderItemModel,
-          as: "orderItems",
-          include: [
-            {
-              model: productModel,
-              as: "product",
-              include: [{ model: productMediaModel, as: "mediaArr" }],
-            },
-          ],
-        },
-        {
-          model: customerModel,
-          as: "customer",
-        },
-        {
-          model: tableModel,
-          as: "table",
-        },
-      ],
-    });
+    const include = [
+      {
+        model: orderItemModel,
+        as: "orderItems",
+        include: [
+          {
+            model: productModel,
+            as: "product",
+            include: [{ model: productMediaModel, as: "mediaArr" }],
+          },
+        ],
+        ...(itemStatus && {
+          where: {
+            status: itemStatus.includes(',') 
+              ? { [Op.in]: itemStatus.split(',').map(s => s.trim()) }
+              : itemStatus === 'active'
+                ? { [Op.notIn]: ["completed", "cancelled"] }
+                : { [Op.eq]: itemStatus }
+          }
+        })
+      },
+      {
+        model: customerModel,
+        as: "customer",
+      },
+      {
+        model: tableModel,
+        as: "table",
+      }
+    ];
+
+    const order = await orderModel.findByPk(id, { include });
 
     if (!order) {
       return { status: 404, success: false, message: "Order not found" };

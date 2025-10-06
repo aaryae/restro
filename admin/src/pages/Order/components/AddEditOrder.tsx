@@ -191,7 +191,7 @@ export default function AddEditOrder({
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
-      { url: `${ORDER_URL}${orderId}` },
+      { url: `${ORDER_URL}${orderId}?itemStatus=pending,preparing,ready,served,cancelled`, },
       {
         skip: !orderId,
       },

@@ -41,9 +41,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   const orders = tableOrder?.data?.orders;
   const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
 
-  const handleCheckboxChange = (orderId: number, checked: boolean) => {
-    console.log(orderId, checked);
-  };
 
   return (
     <>
@@ -92,13 +89,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                             key={item.id}
                             className=" border-b border-gray-200 py-2 gap-6 flex items-center"
                           >
-                            <Checkbox
-                              key={item.id}
-                              checked={item.selected}
-                              onChange={(e) =>
-                                handleCheckboxChange(item.id, e.target.checked)
-                              }
-                            />
                             <div className="flex justify-between items-center w-full">
                               <div className="leading-[1.5] text-gray-600 ">
                                 <p className="font-medium text-[14px]">
