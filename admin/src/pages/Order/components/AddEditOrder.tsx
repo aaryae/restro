@@ -220,7 +220,7 @@ export default function AddEditOrder({
   useEffect(() => {
     const total = orderItems.reduce(
       (sum, item) =>
-        item.status === "cancelled" ? 0 : sum + Number(item.subtotal),
+        item.status === "cancelled" ? sum + 0 : sum + Number(item.subtotal),
       0,
     );
     setTotalAmount(total);
@@ -903,7 +903,7 @@ export default function AddEditOrder({
                   {orderItems.map((item) => (
                     <div
                       key={item.id}
-                      className="grid grid-cols-12 px-4 py-2 text-sm"
+                      className={`grid grid-cols-12 px-4 py-2 text-sm ${item.status === "cancelled" ? "line-through" : ""}`}
                     >
                       <div className="col-span-6 truncate">
                         {item.productName}
