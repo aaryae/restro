@@ -41,7 +41,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   const orders = tableOrder?.data?.orders;
   const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
 
-
   return (
     <>
       <div className="p-4 ">
@@ -124,18 +123,18 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           <>
                             <button
                               onClick={() => handleCheckout(id!, order.id)}
-                              className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700"
+                              className="flex items-center gap-[6px] px-[10px] py-[4px] md:px-[20px] md:py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700 "
                             >
-                              <span className="font-[500] text-[15px]">
+                              <span className="font-[500] text-[13px] md:text-[15px]">
                                 Checkout
                               </span>
                             </button>
                             {order.status !== "prepared" && (
                               <Link
                                 to={`/admin/${ORDER_URL}${id}/${order.id}`}
-                                className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
+                                className="flex items-center gap-[6px] px-[10px] py-[4px] md:px-[20px] md:py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
                               >
-                                <span className="font-[500] text-[15px]">
+                                <span className="font-[500] text-[13px] md:text-[15px]">
                                   Update
                                 </span>
                               </Link>
