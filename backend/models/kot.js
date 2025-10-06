@@ -1,4 +1,5 @@
 const { Model, DataTypes, Sequelize } = require("sequelize");
+const { Op } = Sequelize;
 
 module.exports = (sequelize) => {
   class Kot extends Model {
@@ -90,7 +91,7 @@ module.exports = (sequelize) => {
           await sequelize.models.OrderItem.update(
             { status: orderItemStatus },
             {
-              where: { kotId: kot.id },
+              where: { kotId: kot.id, status: { [Op.notIn]: ["completed", "cancelled"] } },
               validate: false, // Skip validation for this update
               transaction: options.transaction,
             },
@@ -98,7 +99,6 @@ module.exports = (sequelize) => {
 
           // If any KOT moves to 'preparing', mark the parent Order as 'preparing'
           if (kot.status === "preparing") {
-            const { Op } = Sequelize;
             const OrderModel = sequelize.models.Order;
             await OrderModel.update(
               { status: "preparing" },
@@ -115,7 +115,6 @@ module.exports = (sequelize) => {
           // If this KOT moved to 'ready', and all KOTs for the order are ready (no pending/preparing remain),
           // then mark the parent Order as 'prepared'.
           if (kot.status === "ready") {
-            const { Op } = Sequelize;
             const OrderModel = sequelize.models.Order;
             const KotModel = sequelize.models.Kot;
 
