@@ -9,7 +9,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order"],
+      invalidatesTags: ["table", "order","kot"],
     }),
     updateOrder: builder.mutation({
       query: ({ body, id }) => ({
@@ -17,7 +17,7 @@ const ordersApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["table", "order"],
+      invalidatesTags: ["table", "order","kot"],
     }),
     updateOrderStatus: builder.mutation({
       query: ({ body, id }) => ({

@@ -395,12 +395,12 @@ function KotCard({ kot }) {
             </Button>
           )}
         </div>
-        <CheckoutModal
+        {openCheckout && <CheckoutModal
           isOpen={openCheckout}
           onClose={() => setOpenCheckout(false)}
           tableId={Number(kot?.order?.table?.id || 0)}
           orderId={kot.id}
-        />
+        />}
       </div>
     </>
   );
