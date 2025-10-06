@@ -13,7 +13,7 @@ const productPostValidation = async (req, res, next) => {
     alias: joi
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object()),
-    description: joi.string().required(),
+    description: joi.string().allow(null),
     // quantity: joi.number().integer().min(0).required(),
     price: joi.number().precision(2).min(0).required(),
     mediaArr: joi.array().items(joi.string()).optional().default([]),
@@ -79,7 +79,7 @@ const productPutValidation = async (req, res, next) => {
     alias: joi
       .alternatives()
       .try(joi.array().items(joi.string()), joi.object()),
-    description: joi.string().optional(),
+    description: joi.string().allow(null),
     // quantity: joi.number().integer().min(0).optional(),
     price: joi.number().precision(2).min(0).optional(),
     order: joi.number().integer().min(0).optional(),

@@ -15,7 +15,7 @@ export const VariantSchema = z.object({
 export const ProductSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
-    description: z.string().min(1, "Description is required"),
+    description: z.string().nullable(),
     departmentId: z.coerce.number().min(1, "Department is required"),
     productCategoryId: z.coerce.number().min(1, "Product Category is required"),
     mediaArr: z
@@ -23,11 +23,11 @@ export const ProductSchema = z
       .optional()
       .default([]),
     hasVariant: z.boolean().default(false),
-    quantity: z.coerce
-      .number({ message: "Quantity must be a number" })
-      .int()
-      .min(0, "Quantity cannot be negative")
-      .optional(),
+    // quantity: z.coerce
+    //   .number({ message: "Quantity must be a number" })
+    //   .int()
+    //   .min(0, "Quantity cannot be negative")
+    //   .optional(),
     price: z.coerce
       .number({ message: "Price must be a number" })
       .min(0, "Price cannot be negative")
