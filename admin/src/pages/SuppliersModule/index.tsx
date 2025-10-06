@@ -215,11 +215,16 @@ export default function Supplier() {
                 className="text-[#0090DD] cursor-pointer"
                 onClick={() => handleViewSupplier(id)}
               /> */}
-              <MdEditSquare
-                size={18}
-                className="text-[#0090DD]"
-                onClick={() => handleNewButton(id)}
-              />
+              <div className="relative group">
+                <MdEditSquare
+                  size={18}
+                  className="text-[#0090DD]"
+                  onClick={() => handleNewButton(id)}
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Edit Supplier
+                </span>
+              </div>
               <DeleteModal
                 open={deleteModelOpen}
                 setOpen={setDeleteModelOpen}

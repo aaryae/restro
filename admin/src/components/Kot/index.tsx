@@ -36,23 +36,33 @@ const Kot = forwardRef<HTMLDivElement, KotProps>(({ data, className }, ref) => {
   const totalQty = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
 
   return (
-    <div ref={ref} id="kot-print" className={`p-5 h-fit kot-print ${className ?? ""}`}>
+    <div
+      ref={ref}
+      id="kot-print"
+      className={`p-5 h-fit kot-print ${className ?? ""}`}
+    >
       <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
         KOT {data?.kotNumber ?? "-"}
       </div>
       <div className="flex justify-between text-[12px] text-gray-800">
         <div className="flex flex-col gap-[2px]">
           <div className="flex">
-            <span className="font-semibold">Type:</span>&nbsp;{formatOrderType(data?.order?.orderType)}
+            <span className="font-semibold">Type:</span>&nbsp;
+            {formatOrderType(data?.order?.orderType)}
           </div>
           <div className="flex">
             <span className="font-semibold">Order By:</span>&nbsp;
-            {data?.order?.createdBy?.table?.name || data?.order?.table?.tableNo || "-"}
+            {data?.order?.createdBy?.table?.name ||
+              data?.order?.table?.tableNo ||
+              "-"}
           </div>
           <div>
             <span className="font-semibold">Order At:</span>&nbsp;
             {data?.order?.orderStartTime
-              ? format(new Date(data?.order?.orderStartTime), "dd LLL yyyy hh:mm a")
+              ? format(
+                  new Date(data?.order?.orderStartTime),
+                  "dd LLL yyyy hh:mm a",
+                )
               : "-"}
           </div>
         </div>
@@ -116,4 +126,3 @@ function formatOrderType(v?: string) {
 }
 
 export default Kot;
-

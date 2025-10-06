@@ -123,10 +123,10 @@ const Account: React.FC = () => {
   } = useGetApiQuery({ url });
 
   const pagination: PaginationType = {
-    page: allAccount?.data?.page ?? 1,
-    limit: allAccount?.data?.limit ?? 10,
-    total: allAccount?.data?.total ?? 0,
-    totalPages: allAccount?.data?.totalPages ?? 0,
+    page: allAccount?.data?.page,
+    limit: allAccount?.data?.limit,
+    total: allAccount?.data?.total,
+    totalPages: allAccount?.data?.totalPages,
   };
 
   useEffect(() => {
@@ -185,12 +185,17 @@ const Account: React.FC = () => {
               className="flex items-center justify-center gap-3"
               key={`actions-${row?.id || idx}`}
             >
-              <MdEditSquare
-                size={18}
-                className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-                onClick={() => handleNewBank(row?.id || idx)}
-                title="Edit"
-              />
+              <div className="relative group">
+                <MdEditSquare
+                  size={18}
+                  className="text-[#0090DD] hover:text-blue-800 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => handleNewBank(row?.id || idx)}
+                  title="Edit"
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Edit Account
+                </span>
+              </div>
               <button
                 type="button"
                 className={`px-2 py-1 text-xs rounded border ${row?.isDefault ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}

@@ -101,11 +101,18 @@ const AccountPermission = () => {
               key={row.id}
               className="flex items-center justify-center gap-3"
             >
-              <MdEditSquare
-                size={18}
-                className="text-[#0090DD] hover:text-blue-800"
-                onClick={() => navigate(`/admin/account-permission/${row.id}`)}
-              />
+              <div className="relative group">
+                <MdEditSquare
+                  size={18}
+                  className="text-[#0090DD] hover:text-blue-800 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() =>
+                    navigate(`/admin/account-permission/${row.id}`)
+                  }
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Edit Permission
+                </span>
+              </div>
               <DeleteModal
                 open={open}
                 setOpen={setOpen}

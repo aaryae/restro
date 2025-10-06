@@ -129,11 +129,16 @@ const Revenue: React.FC = () => {
               cash_or_credit,
               user?.username ?? "",
               <div className="flex items-center justify-center gap-3">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD] hover:text-blue-800"
-                  onClick={() => handleNewUser(id)}
-                />
+                <div className="relative group">
+                  <MdEditSquare
+                    size={18}
+                    className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
+                    onClick={() => handleNewUser(id)}
+                  />
+                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                    Edit Revenue
+                  </span>
+                </div>
 
                 <DeleteModal
                   open={open}

@@ -52,13 +52,13 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           <div className="flex gap-2">
             <Link
               to={`/admin/${ORDER_URL}${id}`}
-              className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white"
+              className="flex items-center gap-1 px-3 py-1.5 sm:px-5 sm:py-2 rounded-[0.25rem] bg-primaryColor text-white text-sm sm:text-[15px]"
             >
-              <LuChefHat />
-              <span className="font-[500] text-[15px]">Add Order</span>
+              <LuChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="font-medium">Add Order</span>
             </Link>
             <Button
-              className="md:w-fit w-fit bg-[#c343dc] text-white px-6 sm:px-8 rounded-lg py-[12px] sm:py-[10px]"
+              className="w-fit bg-[#c343dc] text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base"
               handleClick={() => setDialogOpen(true)}
             >
               Transfer Table
@@ -69,7 +69,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           {loading ? (
             <div className="text-gray-600">Loading...</div>
           ) : (
-            <div className="flex flex-col gap-2 h-[74vh] overflow-y-auto pr-2 ">
+            <div className="flex flex-col gap-2 md:h-[74vh] h-[68vh] overflow-y-auto pr-2 ">
               {orders?.length === 0 ? (
                 <div className="text-gray-600 text-center">
                   No orders for this table

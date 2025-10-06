@@ -1,7 +1,7 @@
 import PageTitle from "@/components/PageTitle";
 import { IMAGE_BASE_URL } from "@/constants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { SetStateAction } from "react";
+import { SetStateAction, useState } from "react";
 import userImage from "@/assets/user_image.jpeg";
 import moment from "moment";
 import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
@@ -19,6 +19,7 @@ export default function ViewCustomer({
   isOpen,
   setIsOpen,
 }: ViewCustomerProps) {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const {
     data: customerData,
     isLoading: loading,
@@ -34,7 +35,14 @@ export default function ViewCustomer({
     (success &&
       customerData.data.orders &&
       customerData.data.orders.length > 0 &&
-      customerData.data.orders.map((order: any) => {
+      (
+        (statusFilter === "all"
+          ? customerData.data.orders
+          : customerData.data.orders.filter(
+              (o: any) =>
+                (o?.paymentStatus || "").toLowerCase() === statusFilter,
+            )) as any[]
+      ).map((order: any) => {
         const {
           id,
           trackingNo,
@@ -166,12 +174,31 @@ export default function ViewCustomer({
           {/* Order Summary */}
           <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem] rounded-[4px]">
             <h3 className="font-[700] text-[1.25rem] ">Order Summary</h3>
+            <div className="w-full mt-[0.75rem] flex flex-wrap items-center gap-3">
+              <label
+                htmlFor="payment-status-filter"
+                className="text-sm text-gray-700"
+              >
+                Payment Status:
+              </label>
+              <select
+                id="payment-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primaryColor"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
             <div className="w-full mt-[1rem]">
               <Table
                 isSN
                 headers={tableHeader}
                 data={orderDetails}
-                pagination={{ limit: 10, page: 1, total: 0 }}
+                pagination={{ limit: 10, page: 1, total: 0, totalPages: 1 }}
                 handlePagination={() => {}}
               />
             </div>

@@ -289,11 +289,17 @@ const Purchase: React.FC = () => {
       statusDisplay,
       paymentSourceName,
       <div className="flex items-center justify-center gap-3" key={`act-${id}`}>
-        <FaEye
-          size={18}
-          className="text-[#0090DD] cursor-pointer"
-          onClick={() => handleViewPurchase(id)}
-        />
+        <div className="relative group">
+          <FaEye
+            size={18}
+            className="text-[#0090DD] cursor-pointer"
+            onClick={() => handleViewPurchase(id)}
+          />
+          <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+            View Purchase
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={() => !isCompleted && handleNewUser(id)}
@@ -302,8 +308,14 @@ const Purchase: React.FC = () => {
           className={`${isCompleted ? "opacity-50 cursor-not-allowed" : "hover:text-blue-800"}`}
           aria-disabled={isCompleted}
         >
-          <MdEditSquare size={18} className="text-[#0090DD]" />
+          <div className="relative group">
+            <MdEditSquare size={18} className="text-[#0090DD]" />
+            <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+              Edit Purchase
+            </span>
+          </div>
         </button>
+
         <DeleteModal
           open={open}
           setOpen={setOpen}
