@@ -1413,8 +1413,21 @@ const updateOrderItemsStatus = async (req) => {
   const transaction = await sequelize.transaction();
 
   try {
+    // First get the order item with its order and table details
     const orderItem = await orderItemModel.findOne({
       where: { id: orderItemIds },
+      include: [
+        {
+          model: orderModel,
+          as: 'order',
+          include: [
+            {
+              model: tableModel,
+              as: 'table',
+            }
+          ]
+        }
+      ],
       transaction,
     });
 
@@ -1432,26 +1445,140 @@ const updateOrderItemsStatus = async (req) => {
       (status === "preparing" && orderItem.status !== "pending") ||
       (status === "ready" && orderItem.status !== "preparing")
     ) {
-      transaction.rollback();
+      await transaction.rollback();
       return {
         status: 400,
         success: false,
-        message:
-          "Some order items could not be updated due to invalid transitions",
+        message: "Some order items could not be updated due to invalid transitions",
       };
     }
+
+    // Update the order item status
     await orderItemModel.update(
+      { status },
       {
-        status,
-      },
-      {
-        where: {
-          id: orderItem.id,
-        },
+        where: { id: orderItem.id },
         validate: false, // Skip validation for status-only updates
         transaction,
       },
     );
+
+    // If the item is being cancelled, check related KOTs
+    if (status === "cancelled") {
+      // Find all KOTs that include this order item
+      const kots = await kotModel.findAll({
+        include: [{
+          model: orderItemModel,
+          as: 'orderItems',
+          where: { id: orderItem.id },
+          attributes: [], // We don't need the order item data
+          required: true
+        }],
+        transaction,
+      });
+
+      // For each KOT, check if all its items are now cancelled
+      for (const kot of kots) {
+        // Get all items for this KOT
+        const kotItems = await orderItemModel.findAll({
+          where: { kotId: kot.id },
+          transaction,
+        });
+
+        // Check if all items in this KOT are cancelled
+        const allItemsCancelled = kotItems.every(item => 
+          item.status === 'cancelled' || item.id === orderItem.id
+        );
+
+        // Only update KOT status if all its items are cancelled
+        if (allItemsCancelled && kot.status !== 'cancelled') {
+          await kotModel.update(
+            { status: "cancelled" },
+            {
+              where: { id: kot.id },
+              transaction,
+              validate: false,
+            }
+          );
+        }
+      }
+    }
+
+    // If the item is being cancelled or completed, check order status
+    if (["cancelled", "completed"].includes(status)) {
+      // Count remaining active items in this order
+      const activeItemsCount = await orderItemModel.count({
+        where: {
+          orderId: orderItem.orderId,
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+          id: { [Op.ne]: orderItem.id } // Exclude the current item being updated
+        },
+        transaction,
+      });
+
+      // If no active items remain, update the order status
+      if (activeItemsCount === 0) {
+        const newOrderStatus = status === "cancelled" ? "cancelled" : "completed";
+        
+        await orderModel.update(
+          { status: newOrderStatus },
+          {
+            where: { id: orderItem.orderId },
+            transaction,
+          }
+        );
+
+        // If it's a dine-in order with a table, and we're marking the order as completed/cancelled
+        if ((status === "cancelled" || status === "completed") && 
+            orderItem.order?.orderType === "dineIn" && 
+            orderItem.order?.tableId) {
+          
+          try {
+            // Get the current order to verify its status
+            const currentOrder = await orderModel.findByPk(orderItem.orderId, { 
+              transaction 
+            });
+
+            // Only proceed if the order is actually being marked as completed/cancelled
+            if (currentOrder && 
+                (currentOrder.status === "completed" || currentOrder.status === "cancelled")) {
+              
+              // Count active orders for this table, excluding the current order
+              const activeOrdersCount = await orderModel.count({
+                where: {
+                  tableId: orderItem.order.tableId,
+                  status: { [Op.notIn]: ["completed", "cancelled"] },
+                  id: { [Op.ne]: orderItem.orderId }
+                },
+                transaction,
+              });
+
+              // If no active orders remain, update the table status
+              if (activeOrdersCount === 0) {
+                await tableModel.update(
+                  { 
+                    status: "available",
+                    currentSessionId: null,  // Clear any session data
+                    sessionStartTime: null
+                  },
+                  {
+                    where: { 
+                      id: orderItem.order.tableId,
+                      status: { [Op.ne]: "available" } // Only update if not already available
+                    },
+                    transaction,
+                  }
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Error updating table status:", error);
+            // Don't fail the entire operation if table status update fails
+            // The main order item update is more important
+          }
+        }
+      }
+    }
 
     await transaction.commit();
     return {
@@ -1462,7 +1589,13 @@ const updateOrderItemsStatus = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
-    throw error;
+    console.error("Error updating order item status:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Error updating order item status",
+      error: error.message,
+    };
   }
 };
 
