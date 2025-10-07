@@ -111,11 +111,40 @@ const deleteProduct = async (req, res, next) => {
   }
 };
 
+const importFromExcel = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return responseHelper.sendResponse(
+        res,
+        400,
+        false,
+        null,
+        { file: 'No file uploaded' },
+        'Please upload a file',
+      );
+    }
+
+    const result = await productService.importFromExcel(req.file);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      null,
+      result.message,
+    );
+  } catch (err) {
+    logger.error('Error importing products:', err);
+    next(err);
+  }
+}
+
 module.exports = {
   create,
   getById,
   list,
   deleteProduct,
+  importFromExcel,
   update,
   updateByOrder,
 };

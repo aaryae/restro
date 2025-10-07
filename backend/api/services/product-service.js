@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const generalConstant = require("../../constants/general-constant");
+const { parseExcel } = require("../../utils/excelParser");
 const {
   productModel,
   productMediaModel,
@@ -288,6 +289,31 @@ const updateByOrder = async (req) => {
   }
 };
 
+const importFromExcel = async (file) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const products = parseExcel(file.path);
+    
+    // Create products in database
+    const createdProducts = await productModel.bulkCreate(products, {
+      transaction,
+      returning: true,
+      validate: true,
+    });
+
+    await transaction.commit();
+    return {
+      status: 201,
+      success: true,
+      data: { count: createdProducts.length },
+      message: 'Products imported successfully',
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+}
+
 module.exports = {
   create,
   list,
@@ -295,4 +321,5 @@ module.exports = {
   updateById,
   deleteById,
   updateByOrder,
+  importFromExcel
 };

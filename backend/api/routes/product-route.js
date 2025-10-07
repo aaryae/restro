@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const uploaderHelper = require("../../utils/multer");
 const {
   authentication,
   authorization,
@@ -13,6 +14,9 @@ const {
   orderPutValidation,
 } = require("../../validations/product-validation");
 
+// Configure multer for Excel file uploads
+const uploadExcel = uploaderHelper.uploadFiles('excel', 'single', 'file');
+
 const {
   create,
   list,
@@ -20,6 +24,7 @@ const {
   update,
   deleteProduct,
   updateByOrder,
+  importFromExcel,
 } = require("../controllers/product-controller");
 
 router.post("/", authentication, authorization, productPostValidation, create);
@@ -47,6 +52,15 @@ router.delete(
   authorization,
   idValidation,
   deleteProduct,
+);
+
+// Import products from Excel
+router.post(
+  "/import",
+  authentication,
+  authorization,
+  uploadExcel,
+  importFromExcel
 );
 
 module.exports = router;

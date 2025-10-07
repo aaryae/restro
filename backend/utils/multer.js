@@ -1,9 +1,10 @@
 require("dotenv").config();
 const multer = require("multer");
-const maxFileSize = 45;
+let maxFileSize = 45;
 const uploaderHelper = {};
 
 let mimeType = {
+  // Images
   "image/png": "png",
   "image/jpeg": "jpeg",
   "image/jpg": "jpg",
@@ -12,6 +13,9 @@ let mimeType = {
   "image/svg+xml": "svg+xml",
   "image/gif": "gif",
   "image/webp": "webp",
+  // Excel files
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-excel": "xls",
 };
 
 uploaderHelper.uploadFiles = (
@@ -20,11 +24,20 @@ uploaderHelper.uploadFiles = (
   fieldData,
   is_Video,
 ) => {
+  // Set file type specific configurations
   if (is_Video) {
-    mimeType["video/mp4"] = "mp4";
-    mimeType["video/mpeg"] = "mpeg";
-    mimeType["video/quicktime"] = "mov";
-    maxFileSize = 100;
+    mimeType = {
+      "video/mp4": "mp4",
+      "video/mpeg": "mpeg",
+      "video/quicktime": "mov",
+    };
+    maxFileSize = 100; // 100MB for videos
+  } else if (destinationPath === 'excel') {
+    mimeType = {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+      "application/vnd.ms-excel": "xls",
+    };
+    maxFileSize = 10; // 10MB for Excel files
   }
 
   var storage = multer.diskStorage({

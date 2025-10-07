@@ -69,7 +69,8 @@
     "tedious": "^18.1.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "prettier": "3.3.3"
