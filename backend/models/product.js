@@ -20,6 +20,14 @@ module.exports = (sequelize) => {
         foreignKey: "productId",
         as: "variants",
       });
+
+      // Many-to-many relationship with Addon
+      Product.belongsToMany(models.addonModel, {
+        through: 'products_addons',
+        foreignKey: 'productId',
+        otherKey: 'addonId',
+        as: 'addons',
+      });
     }
   }
 
