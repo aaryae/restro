@@ -1732,5 +1732,62 @@ module.exports = {
         message: "Expense category retrieved successfully",
       },
     },
+    ADDON: {
+      CREATE_ADDON_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Addon created successfully",
+      },
+      CREATE_ADDON_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to create addon",
+      },
+      LIST_ADDON_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Addons retrieved successfully",
+      },
+      LIST_ADDON_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to retrieve addons",
+      },
+      GET_ADDON_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Addon retrieved successfully",
+      },
+      ADDON_NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Addon not found",
+      },
+      UPDATE_ADDON_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Addon updated successfully",
+      },
+      UPDATE_ADDON_FAILURE: {
+        status: 400,
+        success: false,
+        message: "Failed to update addon",
+      },
+      DELETE_ADDON_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Addon deleted successfully",
+      },
+      ADDON_IN_USE: {
+        status: 400,
+        success: false,
+        message: "Cannot delete addon as it is being used by products",
+      },
+      LIST_UNUSED_ADDON_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Unused addons retrieved successfully",
+      },
+    },
   },
 };
