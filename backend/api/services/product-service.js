@@ -26,9 +26,9 @@ const create = async (req) => {
     }
 
     const product = await productModel.create(req.body, { transaction });
-
     await product.update({ order: product?.id }, { transaction });
 
+    // Handle media uploads
     const mediaArr = req.body.mediaArr;
     if (mediaArr?.length > 0) {
       const bulkMedia = mediaArr.map((each) => ({
@@ -38,6 +38,7 @@ const create = async (req) => {
       await productMediaModel.bulkCreate(bulkMedia, { transaction });
     }
 
+    // Handle variants if any
     const variants = req.body.variants;
     if (req.body.hasVariant && variants?.length > 0) {
       const bulkVariants = variants.map((variant) => ({
@@ -45,6 +46,15 @@ const create = async (req) => {
         productId: product.id,
       }));
       await productVariantModel.bulkCreate(bulkVariants, { transaction });
+    }
+
+    // Handle addons if any
+    if (Array.isArray(req.body.addons) && req.body.addons.length > 0) {
+      const validAddons = await addonModel.findAll({
+        where: { id: req.body.addons },
+        transaction,
+      });
+      await product.addAddons(validAddons, { transaction });
     }
 
     if (!product) {
@@ -55,10 +65,20 @@ const create = async (req) => {
       };
     }
 
+    // Fetch the created product with all associations
+    const createdProduct = await productModel.findByPk(product.id, {
+      include: [
+        { model: productMediaModel, as: 'mediaArr' },
+        { model: productVariantModel, as: 'variants' },
+        { model: addonModel, as: 'addons' },
+      ],
+      transaction,
+    });
+
     await transaction.commit();
     return {
       ...generalConstant.EN.PRODUCT.CREATE_PRODUCT_SUCCESS,
-      data: product,
+      data: createdProduct,
     };
   } catch (error) {
     await transaction.rollback();
@@ -70,7 +90,10 @@ const list = async (req) => {
   try {
     let { limit, page, slug, category, name } = req.query;
     const filters = category ? { productCategoryId: category } : {};
-    const include = [{ model: productMediaModel, as: "mediaArr" }];
+    const include = [
+      { model: productMediaModel, as: "mediaArr" },
+      { model: addonModel, as: 'addons' },
+    ];
 
     if (slug) {
       filters.slug = {
@@ -90,6 +113,7 @@ const list = async (req) => {
       filters,
       include,
       order,
+      distinct: true, // Important for correct count when using includes with many-to-many
     });
 
     if (!result) {
