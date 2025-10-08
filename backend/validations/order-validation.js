@@ -18,18 +18,31 @@ const createOrderValidation = async (req, res, next) => {
     customerName: joi.string().min(2).max(255).optional(),
     customerPhone: joi.string().min(10).max(20).optional(),
     customerEmail: joi.string().email().optional(),
-    orderItems: joi
-      .array()
-      .items(
+    orderItems: joi.array().items(
+      joi.alternatives().try(
+        // Regular order item
         joi.object({
           productId: joi.number().integer().required(),
           quantity: joi.number().integer().min(1).required(),
           specialInstructions: joi.string().allow("").max(500).optional(),
           departmentId: joi.number().integer().optional(),
+          isAddon: joi.boolean().valid(false).default(false),
+          tempId: joi.string().optional(),
         }),
+        // Addon item
+        joi.object({
+          addonId: joi.number().integer().required(),
+          parentOrderItemId: joi.alternatives().try(joi.string(), joi.number()).required(),
+          quantity: joi.number().integer().min(1).required(),
+          isAddon: joi.boolean().valid(true).required(),
+          specialInstructions: joi.string().allow("").max(500).optional(),
+          // Addon items should not have productId or departmentId as they inherit from parent
+          productId: joi.forbidden(),
+          departmentId: joi.forbidden(),
+          tempId: joi.forbidden(),
+        })
       )
-      .min(1)
-      .required(),
+    ).min(1).required(),
     orderNote: joi.string().allow("").max(1000).optional(),
     estimatedTime: joi.number().integer().min(1).max(300).optional(),
     deliveryAddress: joi.string().max(500).when("orderType", {

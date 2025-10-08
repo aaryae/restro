@@ -3,18 +3,19 @@ const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
 const {
+  accountModel,
+  addonModel,
   customerModel,
+  departmentModel,
   orderModel,
   orderItemModel,
   productModel,
   productCategoryModel,
   tableModel,
   productMediaModel,
-  accountModel,
   revenueModel,
   openItemModel,
   kotModel,
-  departmentModel,
   sequelize,
 } = require("../../models");
 
@@ -178,8 +179,12 @@ const createOrder = async (req) => {
       }
     }
 
-    // Group order items by department
-    const itemsByDepartment = orderItems.reduce((acc, item) => {
+    // Separate main items and addons
+    const mainItems = orderItems.filter((item) => !item.isAddon);
+    const addonItems = orderItems.filter((item) => item.isAddon);
+
+    // Group main items by department
+    const itemsByDepartment = mainItems.reduce((acc, item) => {
       const departmentId = item.departmentId;
       if (!acc[departmentId]) {
         acc[departmentId] = [];
@@ -193,7 +198,6 @@ const createOrder = async (req) => {
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
 
-    // Get the count of KOTs created today to generate the next base KOT number
     const todayKotsCount = await kotModel.count({
       where: {
         createdAt: {
@@ -217,30 +221,22 @@ const createOrder = async (req) => {
 
     let totalAmount = 0;
     const kotRecords = [];
+    const createdItems = new Map(); // Store created items by tempId or id
 
-    // Create KOTs for each department
-    for (const departmentId of Object.keys(itemsByDepartment)) {
-      const items = itemsByDepartment[departmentId];
-
-      // Use the incremented base KOT number for this department
-      const kotNumber = baseKotNo;
-
-      // Create KOT record
+    // Create KOTs and process main items
+    for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
       const kot = await kotModel.create(
         {
           orderId: order.id,
           departmentId,
-          kotNumber,
+          kotNumber: baseKotNo++,
           status: "pending",
         },
         { transaction },
       );
 
-      // Store KOT for associating with order items
       kotRecords.push(kot);
-      baseKotNo++; // Increment for the next department
 
-      // Process order items for this department
       for (const item of items) {
         const product = item.productId
           ? await productModel.findByPk(item.productId, { transaction })
@@ -255,26 +251,124 @@ const createOrder = async (req) => {
           };
         }
 
-        const price = product.price || item.price; // Use item.price for open items if needed
+        // Remove price from item to prevent client-side price manipulation
+        const { price: _, ...itemWithoutPrice } = item;
+        const price = product.price;
         const subtotal = price * item.quantity - (item.discount || 0);
         totalAmount += subtotal;
 
-        await orderItemModel.create(
+        const orderItem = await orderItemModel.create(
           {
-            ...item,
+            ...itemWithoutPrice,
             orderId: order.id,
-            price,
+            price, // Use price from database
             subtotal,
             departmentId,
-            kotId: kot.id, // Associate with the KOT
+            kotId: kot.id,
+            isAddon: false,
           },
           { transaction },
         );
+
+        // Store created item with its tempId (if any) for addon reference
+        if (item.tempId) {
+          createdItems.set(item.tempId, orderItem);
+        }
+        createdItems.set(orderItem.id, orderItem);
       }
+    }
+
+    // Process addons after all main items are created
+    for (const addonItem of addonItems) {
+      const parentItem = createdItems.get(addonItem.parentOrderItemId);
+      if (!parentItem) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `Parent item not found for addon: ${addonItem.addonId}`,
+        };
+      }
+
+      const addon = await addonModel.findByPk(addonItem.addonId, {
+        transaction,
+      });
+      if (!addon) {
+        await transaction.rollback();
+        return {
+          status: 404,
+          success: false,
+          message: `Addon not found: ${addonItem.addonId}`,
+        };
+      }
+
+      // Find the KOT for this addon's department
+      const kot = kotRecords.find(
+        (k) => k.departmentId === parentItem.departmentId,
+      );
+      if (!kot) {
+        await transaction.rollback();
+        return {
+          status: 500,
+          success: false,
+          message: "Failed to find KOT for addon",
+        };
+      }
+
+      // Remove price from addonItem to prevent client-side price manipulation
+      const { price: _, ...addonItemWithoutPrice } = addonItem;
+      const price = addon.price;
+      const subtotal = price * addonItem.quantity;
+      totalAmount += subtotal;
+
+      await orderItemModel.create(
+        {
+          ...addonItemWithoutPrice,
+          orderId: order.id,
+          kotId: kot.id,
+          departmentId: parentItem.departmentId,
+          parentOrderItemId: parentItem.id,
+          price, // Use price from database
+          subtotal,
+          isAddon: true,
+          addonId: addon.id,
+        },
+        { transaction },
+      );
     }
 
     // Update order total amount
     await order.update({ totalAmount }, { transaction });
+
+    // Fetch the complete order with all items and addons
+    const completeOrder = await orderModel.findByPk(order.id, {
+      include: [
+        {
+          model: orderItemModel,
+          as: "orderItems",
+          where: { isAddon: false }, // Only get main items
+          include: [
+            {
+              model: orderItemModel,
+              as: "addons",
+              where: { isAddon: true },
+              required: false,
+              include: [
+                {
+                  model: addonModel,
+                  as: "addon",
+                },
+              ],
+            },
+            {
+              model: productModel,
+              as: "product",
+            },
+          ],
+        },
+      ],
+      transaction,
+    });
 
     await transaction.commit();
 
@@ -283,13 +377,19 @@ const createOrder = async (req) => {
       success: true,
       message: "Order created successfully",
       data: {
-        order,
+        order: completeOrder,
         kots: kotRecords,
       },
     };
   } catch (error) {
     await transaction.rollback();
-    throw error;
+    console.error("Error creating order:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to create order",
+      error: error.message,
+    };
   }
 };
 
@@ -447,14 +547,32 @@ const getTableActiveOrders = async (req) => {
         {
           model: orderItemModel,
           as: "orderItems",
-          where:{
-            status:{[Op.notIn]: ["completed", "cancelled"] }
+          where: {
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+            isAddon: false, // Only get main items
           },
+          required: false,
           include: [
             {
               model: productModel,
               as: "product",
               include: [{ model: productMediaModel, as: "mediaArr" }],
+              required: false,
+            },
+            {
+              model: orderItemModel,
+              as: "addons",
+              where: {
+                status: { [Op.notIn]: ["completed", "cancelled"] },
+              },
+              required: false,
+              include: [
+                {
+                  model: addonModel,
+                  as: "addon",
+                  required: false,
+                },
+              ],
             },
           ],
         },
@@ -467,10 +585,42 @@ const getTableActiveOrders = async (req) => {
       order: [["createdAt", "ASC"]],
     });
 
-    const sessionTotal = orders.reduce(
-      (sum, order) => sum + parseFloat(order.totalAmount),
-      0,
-    );
+    // Transform orders and calculate totals
+    let sessionTotal = 0;
+    const transformedOrders = orders.map((order) => {
+      const plainOrder = order.get({ plain: true });
+      let orderTotal = 0;
+
+      if (plainOrder.orderItems) {
+        plainOrder.orderItems = plainOrder.orderItems.map((item) => {
+          // Calculate addons total for this item
+          const addonsTotal = (item.addons || []).reduce((sum, addon) => {
+            return sum + (parseFloat(addon.subtotal) || 0);
+          }, 0);
+
+          // Calculate item total (item subtotal + addons total)
+          const itemTotal = (parseFloat(item.subtotal) || 0) + addonsTotal;
+
+          // Update order total
+          orderTotal += itemTotal;
+
+          return {
+            ...item,
+            addonsTotal,
+            itemTotal,
+            originalSubtotal: item.subtotal,
+          };
+        });
+      }
+
+      // Update session total
+      sessionTotal += orderTotal;
+
+      return {
+        ...plainOrder,
+        calculatedTotal: orderTotal,
+      };
+    });
 
     return {
       status: 200,
@@ -484,7 +634,7 @@ const getTableActiveOrders = async (req) => {
           sessionId: table.sessionId,
           sessionStartTime: table.sessionStartTime,
         },
-        orders,
+        orders: transformedOrders,
         sessionTotal,
       },
     };
@@ -1119,13 +1269,13 @@ const getOrderById = async (req) => {
         ],
         ...(itemStatus && {
           where: {
-            status: itemStatus.includes(',') 
-              ? { [Op.in]: itemStatus.split(',').map(s => s.trim()) }
-              : itemStatus === 'active'
+            status: itemStatus.includes(",")
+              ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
+              : itemStatus === "active"
                 ? { [Op.notIn]: ["completed", "cancelled"] }
-                : { [Op.eq]: itemStatus }
-          }
-        })
+                : { [Op.eq]: itemStatus },
+          },
+        }),
       },
       {
         model: customerModel,
@@ -1134,7 +1284,7 @@ const getOrderById = async (req) => {
       {
         model: tableModel,
         as: "table",
-      }
+      },
     ];
 
     const order = await orderModel.findByPk(id, { include });
@@ -1419,14 +1569,14 @@ const updateOrderItemsStatus = async (req) => {
       include: [
         {
           model: orderModel,
-          as: 'order',
+          as: "order",
           include: [
             {
               model: tableModel,
-              as: 'table',
-            }
-          ]
-        }
+              as: "table",
+            },
+          ],
+        },
       ],
       transaction,
     });
@@ -1449,7 +1599,8 @@ const updateOrderItemsStatus = async (req) => {
       return {
         status: 400,
         success: false,
-        message: "Some order items could not be updated due to invalid transitions",
+        message:
+          "Some order items could not be updated due to invalid transitions",
       };
     }
 
@@ -1467,13 +1618,15 @@ const updateOrderItemsStatus = async (req) => {
     if (status === "cancelled") {
       // Find all KOTs that include this order item
       const kots = await kotModel.findAll({
-        include: [{
-          model: orderItemModel,
-          as: 'orderItems',
-          where: { id: orderItem.id },
-          attributes: [], // We don't need the order item data
-          required: true
-        }],
+        include: [
+          {
+            model: orderItemModel,
+            as: "orderItems",
+            where: { id: orderItem.id },
+            attributes: [], // We don't need the order item data
+            required: true,
+          },
+        ],
         transaction,
       });
 
@@ -1486,19 +1639,19 @@ const updateOrderItemsStatus = async (req) => {
         });
 
         // Check if all items in this KOT are cancelled
-        const allItemsCancelled = kotItems.every(item => 
-          item.status === 'cancelled' || item.id === orderItem.id
+        const allItemsCancelled = kotItems.every(
+          (item) => item.status === "cancelled" || item.id === orderItem.id,
         );
 
         // Only update KOT status if all its items are cancelled
-        if (allItemsCancelled && kot.status !== 'cancelled') {
+        if (allItemsCancelled && kot.status !== "cancelled") {
           await kotModel.update(
             { status: "cancelled" },
             {
               where: { id: kot.id },
               transaction,
               validate: false,
-            }
+            },
           );
         }
       }
@@ -1511,44 +1664,48 @@ const updateOrderItemsStatus = async (req) => {
         where: {
           orderId: orderItem.orderId,
           status: { [Op.notIn]: ["completed", "cancelled"] },
-          id: { [Op.ne]: orderItem.id } // Exclude the current item being updated
+          id: { [Op.ne]: orderItem.id }, // Exclude the current item being updated
         },
         transaction,
       });
 
       // If no active items remain, update the order status
       if (activeItemsCount === 0) {
-        const newOrderStatus = status === "cancelled" ? "cancelled" : "completed";
-        
+        const newOrderStatus =
+          status === "cancelled" ? "cancelled" : "completed";
+
         await orderModel.update(
           { status: newOrderStatus },
           {
             where: { id: orderItem.orderId },
             transaction,
-          }
+          },
         );
 
         // If it's a dine-in order with a table, and we're marking the order as completed/cancelled
-        if ((status === "cancelled" || status === "completed") && 
-            orderItem.order?.orderType === "dineIn" && 
-            orderItem.order?.tableId) {
-          
+        if (
+          (status === "cancelled" || status === "completed") &&
+          orderItem.order?.orderType === "dineIn" &&
+          orderItem.order?.tableId
+        ) {
           try {
             // Get the current order to verify its status
-            const currentOrder = await orderModel.findByPk(orderItem.orderId, { 
-              transaction 
+            const currentOrder = await orderModel.findByPk(orderItem.orderId, {
+              transaction,
             });
 
             // Only proceed if the order is actually being marked as completed/cancelled
-            if (currentOrder && 
-                (currentOrder.status === "completed" || currentOrder.status === "cancelled")) {
-              
+            if (
+              currentOrder &&
+              (currentOrder.status === "completed" ||
+                currentOrder.status === "cancelled")
+            ) {
               // Count active orders for this table, excluding the current order
               const activeOrdersCount = await orderModel.count({
                 where: {
                   tableId: orderItem.order.tableId,
                   status: { [Op.notIn]: ["completed", "cancelled"] },
-                  id: { [Op.ne]: orderItem.orderId }
+                  id: { [Op.ne]: orderItem.orderId },
                 },
                 transaction,
               });
@@ -1556,18 +1713,18 @@ const updateOrderItemsStatus = async (req) => {
               // If no active orders remain, update the table status
               if (activeOrdersCount === 0) {
                 await tableModel.update(
-                  { 
+                  {
                     status: "available",
-                    currentSessionId: null,  // Clear any session data
-                    sessionStartTime: null
+                    currentSessionId: null, // Clear any session data
+                    sessionStartTime: null,
                   },
                   {
-                    where: { 
+                    where: {
                       id: orderItem.order.tableId,
-                      status: { [Op.ne]: "available" } // Only update if not already available
+                      status: { [Op.ne]: "available" }, // Only update if not already available
                     },
                     transaction,
-                  }
+                  },
                 );
               }
             }

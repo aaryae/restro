@@ -32,6 +32,24 @@ module.exports = (sequelize) => {
         as: "kot",
         onDelete: "SET NULL",
       });
+
+      // Add new associations for addons
+      OrderItem.hasMany(models.orderItemModel, {
+        foreignKey: "parentOrderItemId",
+        as: "addons",
+        onDelete: "CASCADE",
+      });
+
+      OrderItem.belongsTo(models.orderItemModel, {
+        foreignKey: "parentOrderItemId",
+        as: "parentItem",
+      });
+
+      OrderItem.belongsTo(models.addonModel, {
+        foreignKey: "addonId",
+        as: "addon",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -62,6 +80,27 @@ module.exports = (sequelize) => {
       kotId: {
         type: DataTypes.INTEGER,
         allowNull: true,
+      },
+      // New fields for addons
+      parentOrderItemId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: "order_items",
+          key: "id",
+        },
+      },
+      addonId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: "addons",
+          key: "id",
+        },
+      },
+      isAddon: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
       },
       quantity: {
         type: DataTypes.INTEGER,
@@ -113,7 +152,7 @@ module.exports = (sequelize) => {
             return;
           }
 
-          // Skip validation if this is a bulk update from order item transfer (only orderId changing)
+          // Skip validation if this is a bulk update from order item transfer
           if (
             options &&
             options.fields &&
@@ -123,18 +162,22 @@ module.exports = (sequelize) => {
             return;
           }
 
-          // Only validate productId/openItemId constraint when creating or when these fields are being modified
-          const isCreating = orderItem.isNewRecord;
-          const isModifyingProductId = orderItem.changed("productId");
-          const isModifyingOpenItemId = orderItem.changed("openItemId");
-
-          if (isCreating || isModifyingProductId || isModifyingOpenItemId) {
+          // For addons
+          if (orderItem.isAddon) {
+            if (!orderItem.addonId) {
+              throw new Error("Addon ID is required for addon items");
+            }
+            if (!orderItem.parentOrderItemId) {
+              throw new Error("Parent order item ID is required for addons");
+            }
+          } else {
+            // For regular items
             if (
               (orderItem.productId && orderItem.openItemId) ||
               (!orderItem.productId && !orderItem.openItemId)
             ) {
               throw new Error(
-                "OrderItem must reference exactly one of productId or openItemId.",
+                "OrderItem must reference exactly one of productId or openItemId",
               );
             }
           }
@@ -144,11 +187,17 @@ module.exports = (sequelize) => {
             orderItem.price * orderItem.quantity - (orderItem.discount || 0);
         },
         beforeUpdate: (orderItem) => {
-          orderItem.subtotal =
-            orderItem.price * orderItem.quantity - (orderItem.discount || 0);
+          if (
+            orderItem.changed("quantity") ||
+            orderItem.changed("price") ||
+            orderItem.changed("discount")
+          ) {
+            orderItem.subtotal =
+              orderItem.price * orderItem.quantity - (orderItem.discount || 0);
+          }
         },
         afterCreate: async (orderItem, options) => {
-          if (orderItem.openItemId) {
+          if (orderItem.openItemId && !orderItem.isAddon) {
             const openItem = await sequelize.models.openItemModel.findByPk(
               orderItem.openItemId,
               { transaction: options.transaction },
@@ -165,7 +214,7 @@ module.exports = (sequelize) => {
                         ? "low_stock"
                         : "in_stock",
                 },
-                { transaction: options.transaction }, // Fixed typo
+                { transaction: options.transaction },
               );
             }
           }
@@ -179,6 +228,9 @@ module.exports = (sequelize) => {
         { fields: ["orderId", "productId"] },
         { fields: ["orderId", "openItemId"] },
         { fields: ["kotId"] },
+        { fields: ["parentOrderItemId"] },
+        { fields: ["addonId"] },
+        { fields: ["isAddon"] },
       ],
     },
   );
