@@ -77,20 +77,25 @@ const getById = async (req) => {
 
 const updateById = async (req) => {
   try {
-    const { id } = req.params;
-    const [updated] = await addonModel.update(req.body, {
-      where: { id },
-      returning: true,
-    });
-
-    if (!updated) {
+    const result = await addonModel.findByPk(+req.params.id);
+    if (!result) {
       return {
-        ...generalConstant.EN.ADDON.UPDATE_ADDON_FAILURE,
+        status: 404,
+        success: false,
+        message: `Addon Not Found`,
         data: null,
       };
     }
 
-    const updatedAddon = await addonModel.findByPk(id);
+    const updatedAddon = await result.update(req.body);
+    if (!updatedAddon) {
+      return {
+        status: 500,
+        success: false,
+        message: `Addon updated Failed`,
+        data: null,
+      };
+    }
     return {
       ...generalConstant.EN.ADDON.UPDATE_ADDON_SUCCESS,
       data: updatedAddon,
@@ -103,7 +108,14 @@ const updateById = async (req) => {
 const deleteById = async (req) => {
   try {
     const { id } = req.params;
-    const addon = await addonModel.findByPk(id);
+    const addon = await addonModel.findByPk(id, {
+      include: [{
+        model: productModel,
+        as: 'products',
+        required: false,
+        attributes: []
+      }]
+    });
 
     if (!addon) {
       return {
