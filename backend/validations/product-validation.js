@@ -18,6 +18,12 @@ const productPostValidation = async (req, res, next) => {
     price: joi.number().precision(2).min(0).required(),
     mediaArr: joi.array().items(joi.string()).optional().default([]),
     hasVariant: joi.boolean().default(false),
+    addons: joi.array().items(joi.number().integer().positive()).optional().allow(null).default([]).messages({
+      'array.base': 'Addons must be an array',
+      'number.base': 'Each addon ID must be a number',
+      'number.integer': 'Each addon ID must be an integer',
+      'number.positive': 'Each addon ID must be a positive number'
+    }),
     variants: joi.when("hasVariant", {
       is: true,
       then: joi
@@ -85,6 +91,12 @@ const productPutValidation = async (req, res, next) => {
     order: joi.number().integer().min(0).optional(),
     mediaArr: joi.array().items(joi.string()).optional().default([]),
     hasVariant: joi.boolean().optional(),
+    addons: joi.array().items(joi.number().integer().positive()).optional().allow(null).default([]).messages({
+      'array.base': 'Addons must be an array',
+      'number.base': 'Each addon ID must be a number',
+      'number.integer': 'Each addon ID must be an integer',
+      'number.positive': 'Each addon ID must be a positive number'
+    }),
     variants: joi.when("hasVariant", {
       is: true,
       then: joi

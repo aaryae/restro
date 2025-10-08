@@ -5,6 +5,7 @@ const {
   productModel,
   productMediaModel,
   productVariantModel,
+  addonModel,
   sequelize,
 } = require("../../models");
 const paginate = require("../../utils/paginate");
@@ -140,6 +141,11 @@ const updateById = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const product = await productModel.findByPk(+req.params.id, {
+      include: [
+        { model: addonModel, as: 'addons' },
+        { model: productMediaModel, as: 'mediaArr' },
+        { model: productVariantModel, as: 'variants' }
+      ],
       transaction,
     });
     if (!product) {
@@ -150,7 +156,7 @@ const updateById = async (req) => {
       };
     }
 
-    const { mediaArr, variants, ...productData } = req.body;
+    const { mediaArr, variants, addons, ...productData } = req.body;
 
     // Update product data
     const updated = await product.update(productData, { transaction });
@@ -201,11 +207,27 @@ const updateById = async (req) => {
       });
     }
 
-    // Fetch updated product with media and variants
+    // Handle addons association
+    if (Array.isArray(addons)) {
+      // First, remove all existing addon associations
+      await product.removeAddons(await product.getAddons({ transaction }), { transaction });
+      
+      // Then add the new addons
+      if (addons.length > 0) {
+        const validAddons = await addonModel.findAll({
+          where: { id: addons },
+          transaction,
+        });
+        await product.addAddons(validAddons, { transaction });
+      }
+    }
+
+    // Fetch updated product with all associations
     const updatedProduct = await productModel.findByPk(+req.params.id, {
       include: [
-        { model: productMediaModel, as: "mediaArr" },
-        { model: productVariantModel, as: "variants" },
+        { model: productMediaModel, as: 'mediaArr' },
+        { model: productVariantModel, as: 'variants' },
+        { model: addonModel, as: 'addons' },
       ],
       transaction,
     });
