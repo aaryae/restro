@@ -486,23 +486,24 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
           where: { slug: generateSlug(productName) },
           raw: true,
         });
-        if (!product) {
-          product = await productModel.create({
-            productCategoryId: categoryId,
-            departmentId: departmentId,
-            name: productName,
-            slug: generateSlug(productName),
-            quantity: 10, // Default value
-            order: orderCounter,
-            price: 125.0, // Default value
-            stockStatus: "in_stock",
-            reservedQuantity: 0,
-          });
-          orderCounter += 1;
-          console.log(`Created product: ${productName}`);
-        } else {
-          console.log(`Product already exists: ${productName}`);
-        }
+        // CHANGED: NO PRODUCT CREATION
+        // if (!product) {
+        //   product = await productModel.create({
+        //     productCategoryId: categoryId,
+        //     departmentId: departmentId,
+        //     name: productName,
+        //     slug: generateSlug(productName),
+        //     quantity: 10, // Default value
+        //     order: orderCounter,
+        //     price: 125.0, // Default value
+        //     stockStatus: "in_stock",
+        //     reservedQuantity: 0,
+        //   });
+        //   orderCounter += 1;
+        //   console.log(`Created product: ${productName}`);
+        // } else {
+        //   console.log(`Product already exists: ${productName}`);
+        // }
 
         // Create media entry
         const mediaEntry = {
@@ -528,25 +529,26 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
           console.log(`Media entry already exists: ${mediaEntry.path}`);
         }
 
+        // CHANGED: NO PRODUCT MEDIA CREATION
         // Create product media entry
-        const productMedia = await productMediaModel.findOne({
-          where: { productId: product.id, imageUrl: dbPath },
-          raw: true,
-        });
+        // const productMedia = await productMediaModel.findOne({
+        //   where: { productId: product.id, imageUrl: dbPath },
+        //   raw: true,
+        // });
 
-        if (!productMedia) {
-          await productMediaModel.create({
-            productId: product.id,
-            imageUrl: dbPath,
-          });
-          console.log(
-            `Created product media entry for product: ${productName}`,
-          );
-        } else {
-          console.log(
-            `Product media entry already exists for product: ${productName}`,
-          );
-        }
+        // if (!productMedia) {
+        //   await productMediaModel.create({
+        //     productId: product.id,
+        //     imageUrl: dbPath,
+        //   });
+        //   console.log(
+        //     `Created product media entry for product: ${productName}`,
+        //   );
+        // } else {
+        //   console.log(
+        //     `Product media entry already exists for product: ${productName}`,
+        //   );
+        // }
       }
 
       console.log(

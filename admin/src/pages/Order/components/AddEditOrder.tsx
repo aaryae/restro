@@ -33,6 +33,7 @@ import {
 } from "@/redux/services/orders";
 import { buildQueryString } from "@/utils/generalHelper";
 import usePagination from "@/hooks/usePagination";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg"
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -627,18 +628,12 @@ export default function AddEditOrder({
                               {product.name}
                             </h4>
                             <div className="flex items-center gap-2 justify-center">
-                              {product?.mediaArr?.[0]?.imageUrl ? (
                                 <img
-                                  src={`${IMAGE_BASE_URL}${product.mediaArr[0].imageUrl}`}
+                                  src={`${product?.mediaArr?.[0]?.imageUrl?IMAGE_BASE_URL+product.mediaArr[0].imageUrl:DishPlaceHolder}`}
                                   alt={product.name}
                                   className="w-[80px] h-[80px] object-cover rounded mb-3"
                                   loading="lazy"
                                 />
-                              ) : (
-                                <div className="w-full h-32 bg-gray-100 text-gray-400 flex items-center justify-center rounded mb-3 text-xs">
-                                  No image
-                                </div>
-                              )}
                             </div>
                             {/* <p
                               dangerouslySetInnerHTML={{

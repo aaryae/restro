@@ -51,6 +51,56 @@
       "folderPath": "../seeders/non-caffeinated-cold/",
       "captionPrefix": "Non-Caffeinated Cold - ",
       "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "smoke",
+      "categorySlug": "smoke",
+      "categoryId": 1005,
+      "folderPath": "../seeders/smoke/",
+      "captionPrefix": "Smoke - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "food",
+      "categorySlug": "food",
+      "categoryId": 1006,
+      "folderPath": "../seeders/food/",
+      "captionPrefix": "Food - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "drinks",
+      "categorySlug": "drinks",
+      "categoryId": 1007,
+      "folderPath": "../seeders/drinks/",
+      "captionPrefix": "Drinks - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "confectionery",
+      "categorySlug": "confectionery",
+      "categoryId": 1008,
+      "folderPath": "../seeders/confectionery/",
+      "captionPrefix": "Confectionery - ",
+      "descriptionPrefix": "Photo of "
+    },
+    {
+      "departmentName": "Beverages",
+      "departmentId": 1,
+      "categoryName": "bakery",
+      "categorySlug": "bakery",
+      "categoryId": 1009,
+      "folderPath": "../seeders/bakery/",
+      "captionPrefix": "Bakery - ",
+      "descriptionPrefix": "Photo of "
     }
   ],
   "floorConfigs": [

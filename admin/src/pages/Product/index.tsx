@@ -18,6 +18,7 @@ import Loader from "@/components/Loader";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg"
 export default function Product() {
   const translate = useTranslation();
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ export default function Product() {
           id,
           <div className="flex items-center gap-[1rem] md:w-[8rem] w-[20rem]">
             <img
-              src={`${IMAGE_BASE_URL}${mediaArr[0]?.imageUrl}`}
+             src={`${mediaArr?.[0]?.imageUrl?IMAGE_BASE_URL+mediaArr[0].imageUrl:DishPlaceHolder}`}
               alt="Product Image"
               className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
               // crossOrigin="anonymous"
