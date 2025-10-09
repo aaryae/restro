@@ -1089,8 +1089,8 @@ const checkoutOrder = async (req) => {
       customerDetails,
       sessionId,
       isGuestOrder = false,
-      accountId, // New optional field to allow specifying accountId
-      orderItemIds, // Optional: selective checkout of specific order items across orders
+      accountId,
+      orderItemIds,
       ...updateData
     } = req.body;
 
@@ -1115,9 +1115,12 @@ const checkoutOrder = async (req) => {
 
     // If selective checkout by order items is requested, handle that path
     if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
-      // Validate and fetch target items belonging to active orders on this table
+      // Fetch target items and their addons for active orders on this table
       const targetItems = await orderItemModel.findAll({
-        where: { id: { [Op.in]: orderItemIds } },
+        where: {
+          id: { [Op.in]: orderItemIds },
+          isAddon: false, // Only main items in orderItemIds
+        },
         include: [
           {
             model: orderModel,
@@ -1126,6 +1129,12 @@ const checkoutOrder = async (req) => {
               tableId,
               status: { [Op.notIn]: ["completed", "cancelled"] },
             },
+          },
+          {
+            model: orderItemModel,
+            as: "addons",
+            where: { status: { [Op.ne]: "cancelled" } },
+            required: false,
           },
         ],
         transaction,
@@ -1140,15 +1149,16 @@ const checkoutOrder = async (req) => {
         };
       }
 
-      // Group items by order
+      // Group items by order and collect addon IDs
       const itemsByOrder = targetItems.reduce((acc, item) => {
         const oid = item.orderId;
-        if (!acc[oid]) acc[oid] = [];
-        acc[oid].push(item);
+        if (!acc[oid]) acc[oid] = { mainItems: [], addons: [] };
+        acc[oid].mainItems.push(item);
+        if (item.addons) acc[oid].addons.push(...item.addons);
         return acc;
       }, {});
 
-      // Determine account to credit (reuse logic below)
+      // Determine account to credit
       let selectedAccountId = accountId;
       if (!selectedAccountId) {
         let account = await accountModel.findOne({
@@ -1202,23 +1212,26 @@ const checkoutOrder = async (req) => {
       const revenueEntries = [];
       let combinedTotalAmount = 0;
 
-      // For each order, compute subset total and mark those items completed
-      for (const [oid, items] of Object.entries(itemsByOrder)) {
-        // Compute subset amount for these items (use subtotal if available, else price*qty - discount)
-        const subsetTotal = items.reduce((sum, it) => {
+      // Process each order
+      for (const [oid, { mainItems, addons }] of Object.entries(itemsByOrder)) {
+        // Compute subset total including addons
+        const subsetTotal = [...mainItems, ...addons].reduce((sum, it) => {
           const line =
             Number(it.subtotal) ||
             Number(it.price) * Number(it.quantity) - Number(it.discount || 0);
           return sum + (isNaN(line) ? 0 : line);
         }, 0);
 
-        // Mark these specific items as completed
-        const ids = items.map((it) => it.id);
+        // Mark main items and their addons as completed
+        const allItemIds = [
+          ...mainItems.map((it) => it.id),
+          ...addons.map((it) => it.id),
+        ];
         await orderItemModel.update(
           { status: "completed" },
           {
             where: {
-              id: { [Op.in]: ids },
+              id: { [Op.in]: allItemIds },
               status: { [Op.notIn]: ["completed", "cancelled"] },
             },
             validate: false,
@@ -1228,7 +1241,9 @@ const checkoutOrder = async (req) => {
 
         // Update KOTs that are now fully completed/cancelled
         const touchedKotIds = Array.from(
-          new Set(items.map((it) => it.kotId).filter(Boolean)),
+          new Set(
+            [...mainItems, ...addons].map((it) => it.kotId).filter(Boolean),
+          ),
         );
         if (touchedKotIds.length > 0) {
           const rows = await orderItemModel.findAll({
@@ -1257,25 +1272,47 @@ const checkoutOrder = async (req) => {
           }
         }
 
-        // If all items of the order are now completed or cancelled, mark order completed
-        const remaining = await orderItemModel.count({
+        // Recalculate order totalAmount for remaining items
+        const remainingItems = await orderItemModel.findAll({
           where: {
             orderId: oid,
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
+          include: [
+            {
+              model: orderItemModel,
+              as: "addons",
+              where: { status: { [Op.ne]: "cancelled" } },
+              required: false,
+            },
+          ],
           transaction,
         });
+
+        const newTotalAmount = remainingItems.reduce((sum, item) => {
+          const itemTotal =
+            Number(item.subtotal) ||
+            Number(item.price) * Number(item.quantity) -
+              Number(item.discount || 0);
+          const addonTotal = (item.addons || []).reduce((addonSum, addon) => {
+            const addonLine =
+              Number(addon.subtotal) ||
+              Number(addon.price) * Number(addon.quantity) -
+                Number(addon.discount || 0);
+            return addonSum + (isNaN(addonLine) ? 0 : addonLine);
+          }, 0);
+          return sum + itemTotal + addonTotal;
+        }, 0);
+
+        // Update order: mark as completed if no remaining items, update totalAmount
         const orderRecord = await orderModel.findByPk(oid, { transaction });
-        if (remaining === 0) {
-          await orderRecord.update(
-            {
-              status: "completed",
-              paymentStatus: "paid",
-              orderFinishTime: new Date(),
-            },
-            { transaction },
-          );
+        const updateFields = { totalAmount: newTotalAmount };
+        if (remainingItems.length === 0) {
+          updateFields.status = "completed";
+          updateFields.paymentStatus = "paid";
+          updateFields.orderFinishTime = new Date();
         }
+        await orderRecord.update(updateFields, { transaction });
 
         // Create revenue entry for this subset
         if (subsetTotal > 0) {
@@ -1299,7 +1336,7 @@ const checkoutOrder = async (req) => {
         }
       }
 
-      // Free table if no other active orders remain
+      // Free table if no active orders remain
       if (hasTable) {
         const stillOrderInTable = await orderModel.findOne({
           where: {
@@ -1341,7 +1378,20 @@ const checkoutOrder = async (req) => {
           ...(hasTable ? { tableId } : {}),
           status: { [Op.notIn]: ["completed", "cancelled"] },
         },
-        include: [{ model: orderItemModel, as: "orderItems" }],
+        include: [
+          {
+            model: orderItemModel,
+            as: "orderItems",
+            include: [
+              {
+                model: orderItemModel,
+                as: "addons",
+                where: { status: { [Op.ne]: "cancelled" } },
+                required: false,
+              },
+            ],
+          },
+        ],
         transaction,
       });
       if (!order) {
@@ -1362,7 +1412,20 @@ const checkoutOrder = async (req) => {
             ...(sessionId ? { sessionId } : {}),
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
-          include: [{ model: orderItemModel, as: "orderItems" }],
+          include: [
+            {
+              model: orderItemModel,
+              as: "orderItems",
+              include: [
+                {
+                  model: orderItemModel,
+                  as: "addons",
+                  where: { status: { [Op.ne]: "cancelled" } },
+                  required: false,
+                },
+              ],
+            },
+          ],
           transaction,
         });
         if (!orders || orders.length === 0) {
@@ -1380,7 +1443,20 @@ const checkoutOrder = async (req) => {
             orderType: { [Op.like]: "%takeaway%" },
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
-          include: [{ model: orderItemModel, as: "orderItems" }],
+          include: [
+            {
+              model: orderItemModel,
+              as: "orderItems",
+              include: [
+                {
+                  model: orderItemModel,
+                  as: "addons",
+                  where: { status: { [Op.ne]: "cancelled" } },
+                  required: false,
+                },
+              ],
+            },
+          ],
           transaction,
         });
         if (!orders || orders.length === 0) {
@@ -1417,7 +1493,14 @@ const checkoutOrder = async (req) => {
           Number(item.subtotal) ||
           Number(item.price) * Number(item.quantity) -
             Number(item.discount || 0);
-        return total + itemTotal;
+        const addonTotal = (item.addons || []).reduce((sum, addon) => {
+          const addonLine =
+            Number(addon.subtotal) ||
+            Number(addon.price) * Number(addon.quantity) -
+              Number(addon.discount || 0);
+          return sum + (isNaN(addonLine) ? 0 : addonLine);
+        }, 0);
+        return total + itemTotal + addonTotal;
       }, 0);
 
       if (isNaN(orderTotal) || orderTotal < 0) {
@@ -1479,15 +1562,13 @@ const checkoutOrder = async (req) => {
       }
     }
 
-    // Determine the account for revenue (prioritize globally default active account)
+    // Determine the account for revenue
     let selectedAccountId = accountId;
     if (!selectedAccountId) {
-      // 1) Use a globally default active account if available
       let account = await accountModel.findOne({
         where: { isDefault: true, status: "active" },
         transaction,
       });
-      // 2) Otherwise map paymentMethod to accountType and pick a default or any active of that type
       if (!account) {
         const paymentMethod = updateData.paymentMethod || "cash";
         const accountTypeMap = {
@@ -1522,7 +1603,6 @@ const checkoutOrder = async (req) => {
       );
       selectedAccountId = account.id;
     } else {
-      // Validate provided accountId is active
       const account = await accountModel.findByPk(selectedAccountId, {
         transaction,
       });
@@ -1565,8 +1645,8 @@ const checkoutOrder = async (req) => {
           paymentMethod: updateData.paymentMethod || "cash",
           cash_or_credit: updateData.cashOrCredit || "cash",
           customerId: finalCustomerId,
-          userId: req.user.id, // Assuming user ID is available in req.user
-          accountId: selectedAccountId, // Credit the selected account
+          userId: req.user.id,
+          accountId: selectedAccountId,
           remarks: updateData.remarks || `Revenue from order ${order.id}`,
         },
         { transaction },
@@ -1575,8 +1655,9 @@ const checkoutOrder = async (req) => {
       updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });
       revenueEntries.push(revenue);
     }
+
     for (const order of orders) {
-      // 1) Mark all non-cancelled and non-completed order items as completed
+      // Mark all non-cancelled and non-completed order items and addons as completed
       await orderItemModel.update(
         { status: "completed" },
         {
@@ -1589,7 +1670,7 @@ const checkoutOrder = async (req) => {
         },
       );
 
-      // 2) Complete KOTs that have all their items completed or cancelled
+      // Complete KOTs that have all their items/addons completed or cancelled
       const kots = await kotModel.findAll({
         where: { orderId: order.id },
         attributes: ["id"],
@@ -1597,7 +1678,6 @@ const checkoutOrder = async (req) => {
       });
       const kotIds = kots.map((k) => k.id);
       if (kotIds.length > 0) {
-        // Find kotIds that still have any non-completed and non-cancelled items
         const rows = await orderItemModel.findAll({
           attributes: ["kotId"],
           where: {
@@ -1659,7 +1739,7 @@ const checkoutOrder = async (req) => {
       message: `Checked out ${orders.length} order(s) successfully`,
       data: {
         orders: updatedOrders,
-        revenueEntries, // Include revenue entries in response
+        revenueEntries,
         combinedTotalAmount,
         loyaltyPointsAdded:
           !isGuestOrder && finalCustomerId
