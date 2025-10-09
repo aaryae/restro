@@ -15,11 +15,16 @@ import TakeAwayOrders from "./TakeAwayOrders";
 import ViewTableOrder from "./ViewTableOrder";
 import CheckoutModal from "./CheckoutModal";
 import { Plus } from "lucide-react";
+import "./TableListCss.css";
 
 export default function TableList() {
   const [checkoutTableId, setCheckoutTableId] = useState<number | null>(null);
-  const [checkoutSelectedItemIds, setCheckoutSelectedItemIds] = useState<number[] | null>(null);
-  const [paidItemsByOrder, setPaidItemsByOrder] = useState<Record<number, number[]>>({});
+  const [checkoutSelectedItemIds, setCheckoutSelectedItemIds] = useState<
+    number[] | null
+  >(null);
+  const [paidItemsByOrder, setPaidItemsByOrder] = useState<
+    Record<number, number[]>
+  >({});
   const [ordersRefresh, setOrdersRefresh] = useState<number>(0);
   const [selectedStatus, setSelectedStatus] = useState<string | null>("all");
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
@@ -121,7 +126,10 @@ export default function TableList() {
   // Persist paid items map to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem("paidItemsByOrder", JSON.stringify(paidItemsByOrder));
+      localStorage.setItem(
+        "paidItemsByOrder",
+        JSON.stringify(paidItemsByOrder),
+      );
     } catch {}
   }, [paidItemsByOrder]);
 
@@ -197,7 +205,8 @@ export default function TableList() {
         <Drawer
           isOpen={openDrawer}
           setIsOpen={setOpenDrawer}
-          width="w-full lg:w-[30%]"
+          width="w-full"
+          className="drawer-container"
         >
           <ViewTableOrder
             id={restroTableId}

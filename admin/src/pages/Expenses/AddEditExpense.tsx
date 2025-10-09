@@ -212,8 +212,9 @@ const AddEditExpense: React.FC = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"
       >
-        <div className="flex gap-2 w-full max-w-[900px]">
-          <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px]">
+        <div className="flex gap-2 w-full mt-[1rem]">
+          {/* max-w-[900px] */}
+          <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px] bg-white">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Controller
                 name="categoryId"
@@ -237,7 +238,7 @@ const AddEditExpense: React.FC = () => {
                         dialogOpen={expenseCategoryDialogOpen}
                         setDialogOpen={setExpenseCategoryDialogOpen}
                         title="Add Expense Category"
-                        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                        contentClassName="max-w-[95vw] w-[400px] max-h-[80vh] overflow-auto p-4"
                       >
                         <AddEditExpenseCategory
                           isComponent={true}
@@ -256,7 +257,7 @@ const AddEditExpense: React.FC = () => {
                   </div>
                 )}
               />
-              <div className="flex flex-col">
+              <div className="flex flex-col justify-center mt-[10.5px]">
                 <Controller
                   name="paymentMethod"
                   control={control}
@@ -276,7 +277,9 @@ const AddEditExpense: React.FC = () => {
                 />
               </div>
 
-              <div className={`flex flex-col ${isEdit ? "hidden" : ""}`}>
+              <div
+                className={`flex flex-col justify-center mt-[10.5px] ${isEdit ? "hidden" : ""}`}
+              >
                 <Controller
                   name="accountId"
                   control={control}
@@ -347,13 +350,34 @@ const AddEditExpense: React.FC = () => {
                     render={({ field }) => (
                       <Select
                         {...field}
-                        options={[
-                          { label: "Select Supplier", value: "" },
-                          ...supplierOptions,
-                        ]}
+                        options={[...supplierOptions]}
                         className="w-full mt-2"
                         error={errors.supplierId?.message}
                       />
+                      // <div className="w-full mt-2">
+                      //   <select
+                      //     id="supplierId"
+                      //     aria-label="Supplier"
+                      //     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-inputBg focus:border-inputBg"
+                      //     value={field.value ?? ""}
+                      //     onChange={(e) => field.onChange(e.target.value)}
+                      //     onBlur={field.onBlur}
+                      //     name={field.name}
+                      //     ref={field.ref}
+                      //   >
+                      //     <option value="">Select Supplier</option>
+                      //     {supplierOptions.map((opt) => (
+                      //       <option key={opt.value} value={opt.value}>
+                      //         {opt.label}
+                      //       </option>
+                      //     ))}
+                      //   </select>
+                      //   {errors.supplierId?.message && (
+                      //     <p className="mt-1 text-sm text-red-600">
+                      //       {errors.supplierId?.message}
+                      //     </p>
+                      //   )}
+                      // </div>
                     )}
                   />
                 </div>

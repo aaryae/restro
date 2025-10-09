@@ -14,7 +14,7 @@
 .modalContent {
   background-color: #fff;
   border-radius: 8px;
-  padding: 24px;
+  padding: 0px 24px 24px 24px;
   width: 95%;
   height: auto;
   max-height: 90vh;

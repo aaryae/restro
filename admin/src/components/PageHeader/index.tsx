@@ -49,7 +49,7 @@ export default function PageHeader({
   };
 
   return (
-    <div className="w-full flex flex-col sm:items-end gap-[1rem] sm:gap-[1.25rem] mt-[1.5rem] mb-[1.25rem]">
+    <div className="flex flex-col sm:items-end gap-[1rem] sm:gap-[1.25rem] mt-[1.5rem] mb-[1.25rem]">
       {/* List or Grid View */}
       {hasViewType && (
         <div className="flex gap-[1rem]">

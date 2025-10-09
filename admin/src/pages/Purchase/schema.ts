@@ -49,5 +49,13 @@ export const PurchaseSchema = z.object({
   paidByUserId: z.string().optional().or(z.literal("")),
 });
 
+export const PurchaseFilterSchema = z.object({
+  purchaseId: z.string().optional().or(z.literal("")),
+  dateAD: z.string().optional().or(z.literal("")),
+  particulars: z.string().optional().or(z.literal("")),
+  vendorId: z.string().optional().or(z.literal("")),
+  paidOrCredit: z.string().optional().or(z.literal("")),
+});
 export type PurchaseItemInput = z.infer<typeof PurchaseItemSchema>;
 export type PurchaseFormInput = z.infer<typeof PurchaseSchema>;
+export type PurchaseFilterInput = z.infer<typeof PurchaseFilterSchema>;

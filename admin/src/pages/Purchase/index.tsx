@@ -22,6 +22,8 @@ import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 import { FaEye } from "react-icons/fa";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ADToBS } from "bikram-sambat-js";
+import { PurchaseFilterSchema } from "./schema";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +34,16 @@ const Purchase: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Filters (client-side for now)
-  const { control, handleSubmit, reset, setValue, getValues } = useForm({});
+  const { control, handleSubmit, reset, setValue, getValues } = useForm({
+    resolver: zodResolver(PurchaseFilterSchema),
+    defaultValues: {
+      purchaseId: "",
+      dateAD: "",
+      particulars: "",
+      vendorId: "",
+      paidOrCredit: "",
+    },
+  });
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   const handleDateChange = (value: Date) => {

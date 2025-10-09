@@ -41,7 +41,7 @@ export default function Supplier() {
     defaultValues: {
       name: "",
       supplier_code: "",
-      address: null,
+      address: "",
       contact_number: "",
       email: "",
       pan_vat_number: "",

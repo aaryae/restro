@@ -1,0 +1,12 @@
+/* Drawer width adjustments */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .drawer-container {
+    width: 40% !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .drawer-container {
+    width: 30% !important;
+  }
+}

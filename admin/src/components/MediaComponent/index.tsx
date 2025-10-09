@@ -296,7 +296,7 @@ export default function MediaComponent({
                 </button>
               )}
             </div>
-            <div className="mt-[1rem] grid grid-cols-3 md:flex md:flex-wrap gap-4 w-full">
+            <div className="mt-[1rem] grid grid-cols-3 md:flex md:flex-wrap gap-4 w-full ">
               {currentFolder === null && (
                 <>
                   {mediaCategory?.map(

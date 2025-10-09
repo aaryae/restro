@@ -96,31 +96,32 @@ const AddExpenseCategory: React.FC<{
         />
       )}
       <form
-        className="grid grid-cols-1 gap-[2rem] mt-[1rem] form-container"
+        className="flex flex-col gap-4 mt-2 form-container w-full"
         onSubmit={handleSubmit(onSubmit)}
       >
         <Input
           label={translate("Expense Category Title")}
-          placeholder="Enter expense category title"
-          className="w-full md:w-1/2"
+          placeholder="Enter title"
+          className="w-full"
           {...register("title")}
           error={errors.title?.message}
         />
         <TextArea
           label={translate("Expense Category Description")}
-          placeholder="Enter expense category description"
-          className="w-full md:w-1/2"
+          placeholder="Enter description (optional)"
+          className="w-full"
+          rows={3}
           {...register("description")}
           error={errors.description?.message}
         />
-        <div className="flex justify-start">
+        <div className="flex justify-end pt-2">
           <Button
             type="submit"
-            className="submit-button w-[5rem]"
+            className="submit-button min-w-[100px]"
             disabled={isSubmitting || creating || updating}
           >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white">
-              {translate(isEdit ? "Update" : "Submit")}
+            <div className="flex justify-center items-center gap-2 text-white">
+              {translate(isEdit ? "Update" : "Add")}
             </div>
           </Button>
         </div>

@@ -466,16 +466,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           ) : (
             <>
-              <div className="flex justify-between items-center ">
-                <h2 className={styles.modalTitle}>
-                  Checkout - Table{" "}
-                  {order?.data?.table?.tableNo || table?.data?.tableNo}
-                </h2>
-                <button onClick={onClose} className="">
-                  <X size={18} />
-                </button>
+              <div className="sticky top-0 z-10 bg-white pb-2 pt-[24px]">
+                <div className="flex justify-between items-center">
+                  <h2 className={styles.modalTitle}>
+                    Checkout - Table{" "}
+                    {order?.data?.table?.tableNo || table?.data?.tableNo}
+                  </h2>
+                  <button onClick={onClose} className="p-1 -mr-1">
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
                 {/* Left column: Order details and member section */}
                 <div className="flex flex-col gap-4 lg:col-span-2">
                   <div className="mt-4 border border-1 rounded p-3 sm:p-4">

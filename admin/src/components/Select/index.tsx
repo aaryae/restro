@@ -36,8 +36,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             className={`select-field ${error ? "select-error-field" : ""}`}
             {...rest}
           >
-            <option value="" selected>
-              Select an option
+            <option value="" disabled selected>
+              Select an Option
             </option>
             {options.map((option, index) => {
               if (option.options && option.options.length > 0) {

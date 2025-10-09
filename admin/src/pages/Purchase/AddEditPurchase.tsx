@@ -520,9 +520,11 @@ const AddEditPurchase: React.FC = () => {
                               placeholder="Search suppliers..."
                               className="w-full p-2 border rounded bg-white"
                               value={supplierSearchTerm}
-                              onChange={(e) =>
-                                setSupplierSearchTerm(e.target.value)
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setSupplierSearchTerm(value);
+                                setShowAllSuppliers(value.trim().length === 0);
+                              }}
                             />
                             <button
                               type="button"
@@ -916,7 +918,7 @@ const AddEditPurchase: React.FC = () => {
                   {/* Stats grid */}
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-xs font-medium text-gray-500">
+                      <div className="text-[11px] font-medium text-gray-500">
                         Taxable Amount
                       </div>
                       <div className="mt-1 text-lg font-semibold text-blue-600">
@@ -926,7 +928,7 @@ const AddEditPurchase: React.FC = () => {
                     </div>
 
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-xs font-medium text-gray-500">
+                      <div className="text-[11px] font-medium text-gray-500">
                         Non-Taxable
                       </div>
                       <div className="mt-1 text-lg font-semibold text-purple-600">
@@ -936,7 +938,7 @@ const AddEditPurchase: React.FC = () => {
                     </div>
 
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-[11px] text-gray-500">
                         <span className="font-medium">Discount</span>
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-gray-500">
@@ -957,13 +959,13 @@ const AddEditPurchase: React.FC = () => {
                           />
                         </div>
                       </div>
-                      <div className="mt-1 text-xs text-emerald-700">
+                      <div className="mt-1 text-lg text-emerald-700">
                         -{CurrencySign}
                         {summaryDiscountAmount.toFixed(2)}
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-xs font-medium text-gray-500">
+                      <div className="text-[11px] font-medium text-gray-500">
                         Subtotal
                       </div>
                       <div className="mt-1 text-lg font-semibold text-gray-900">
@@ -974,8 +976,8 @@ const AddEditPurchase: React.FC = () => {
                   </div>
                   <div className="w-full sm:w-[48%] lg:w-[30%] xl:w-[20%] rounded-xl border border-amber-100 bg-amber-50 p-3 sm:p-4 shadow-sm mt-4">
                     <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
-                      <div className="text-xs sm:text-[10px] w-full sm:w-auto">
-                        <div className="font-medium text-amber-700">
+                      <div className="w-full sm:w-auto">
+                        <div className="text-[12px] sm:text-[10px] font-medium text-amber-700">
                           Tax (
                           {watch("items").some((i) => i.isTaxable !== false)
                             ? watch("items").find((i) => i.isTaxable !== false)
@@ -983,13 +985,13 @@ const AddEditPurchase: React.FC = () => {
                             : 0}
                           %)
                         </div>
-                        <div className="mt-1 font-semibold text-amber-700">
+                        <div className="mt-1 font-semibold text-amber-700 text-lg">
                           {CurrencySign}
                           {totals.tax.toFixed(2)}
                         </div>
                       </div>
                       <div className="text-right w-full sm:w-auto mt-2 sm:mt-0">
-                        <div className="text-sm sm:text-xs font-medium text-amber-700">
+                        <div className="text-[12px] font-medium text-amber-700">
                           Grand Total
                         </div>
                         <div className="mt-1 text-lg sm:text-xl font-bold text-amber-800">
@@ -1006,12 +1008,12 @@ const AddEditPurchase: React.FC = () => {
                   {/* Grand total row */}
                   <div className="flex items-start justify-between gap-3 ">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
                         Entry By: {username || "-"}
                       </span>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-600">
+                      <div className="text-[14px] font-bold text-gray-600">
                         Grand Total
                       </div>
                       <div className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">

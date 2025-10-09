@@ -14,6 +14,7 @@ import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
+import { FilterSelect } from "@/components/Select/FilterSelect";
 import { buildQueryString } from "@/utils/generalHelper";
 import {
   useGetApiQuery,
@@ -26,6 +27,8 @@ import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import TransferModel from "./TransferModel";
+import { AccountFilterSchema } from "./schema";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
@@ -81,39 +84,73 @@ const Account: React.FC = () => {
     }
   };
 
-  const { control, handleSubmit, reset } = useForm<{
-    bankName?: string;
-    accountNumber?: string;
-  }>();
+  const { control, handleSubmit, reset } = useForm({
+    resolver: zodResolver(AccountFilterSchema),
+    defaultValues: {
+      name: "",
+      accountType: "",
+    },
+  });
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  // Adapter to bridge react-hook-form's onChange to FilterSelect's handleChange
+  const AccountTypeFilter: React.FC<any> = ({ value, onChange }) => (
+    <FilterSelect
+      label="Account Type"
+      value={value}
+      handleChange={onChange}
+      options={[
+        { label: "Cash", value: "cash" },
+        { label: "Bank", value: "bank" },
+        { label: "Wallet", value: "wallet" },
+      ]}
+    />
+  );
 
   const filterField = useMemo(
     () => [
       {
-        name: "bankName",
-        label: "Bank Name",
+        name: "name",
+        label: "Account Name",
         Component: FilterInput,
         control,
       },
+      // Place Account Type as the last field so it appears at the far right on large screens
       {
-        name: "accountNumber",
-        label: "Account Number",
-        Component: FilterInput,
+        name: "accountType",
+        label: "Account Type",
+        Component: AccountTypeFilter,
         control,
+        className: "lg:col-start-4",
       },
     ],
     [control],
   );
 
+  // const handleReset = () => {
+  //   reset({ accountName: "", accountType: "" });
+  //   setFilters({});
+  // };
+
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    (qs: Record<string, any>) => setQueryString(qs),
+    (qs: Record<string, any>) =>
+      setFilters(
+        Object.fromEntries(
+          Object.entries(qs).filter(
+            ([_, v]) => v !== undefined && v !== null && v !== "",
+          ),
+        ),
+      ),
+
     reset,
   );
 
   const url = buildQueryString("account/list", {
     page: query.page,
     limit: query.limit,
+    search: filters,
   });
 
   const {

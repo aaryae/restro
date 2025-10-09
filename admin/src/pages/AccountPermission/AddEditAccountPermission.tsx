@@ -61,7 +61,6 @@ const AddEditAccountPermission: React.FC = () => {
     const raw: any = (usersResp as any)?.data ?? usersResp;
     const items: any[] = raw?.data ?? raw?.items ?? [];
     return [
-      { value: "", label: "Select User" },
       ...items.map((u: any) => ({
         value: String(u.id),
         label:
@@ -76,7 +75,6 @@ const AddEditAccountPermission: React.FC = () => {
     const raw: any = (accountsResp as any)?.data ?? accountsResp;
     const items: any[] = raw?.data ?? raw?.items ?? [];
     return [
-      { value: "", label: "Select Account" },
       ...items.map((a: any) => ({
         value: String(a.id),
         label: a.name ?? a.code ?? a.id,
@@ -141,8 +139,9 @@ const AddEditAccountPermission: React.FC = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"
       >
-        <div className="flex gap-2 w-full max-w-[900px]">
-          <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px]">
+        <div className="flex gap-2 w-full mt-4">
+          {/*  max-w-[900px] */}
+          <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px] bg-white">
             {!isEdit ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Controller
