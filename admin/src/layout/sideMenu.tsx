@@ -201,121 +201,106 @@ export default function SideMenu({
           const subMenuList = each.menu
             ? each.menu.map((each) => each.name)
             : [each.name];
+          const hasAccess = subMenuList.some((item) => viewAccess.includes(item));
+          if (!hasAccess) return null; // Completely remove unauthorized menu groups/items
+
+          const visibleSubItems = (each.menu as SideListMenuType[] | undefined)?.filter(
+            (item) => viewAccess.includes(item.name),
+          ) || [];
+
           return (
             <div key={index}>
               {each.menu ? (
-                subMenuList.some((item) => viewAccess.includes(item)) && (
-                  <div
-                    className="group flex justify-between items-center rounded-[0.5rem] py-[1rem] px-[1rem] cursor-pointer hover:bg-primaryColor hover:text-white transition-all duration-300"
-                    onClick={() => {
-                      if (isSettingsView && each.name === "Settings") {
-                        handleClick(each.key);
-                      } else if (each.path) {
-                        handleNavigate(each.name, each.path);
-                      } else {
-                        handleClick(each.key);
-                      }
-                    }}
-                  >
-                    {/* Primary menu */}
-                    <div className="flex items-center gap-[0.5rem]">
-                      <div
-                        className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
-                      >
-                        {each.icon}
-                      </div>
-                      {sideMenuOpen && (
-                        <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
-                          {translate(each.label || each.name)}
-                        </p>
-                      )}
-                    </div>
-                    {sideMenuOpen &&
-                      (!each.path ||
-                        (isSettingsView && each.name === "Settings")) && (
-                        <div>
-                          <MdKeyboardArrowRight
-                            className={`${
-                              isVisible.includes(each.key)
-                                ? "rotate-[90deg]"
-                                : ""
-                            }`}
-                          />
-                        </div>
-                      )}
-                  </div>
-                )
-              ) : (
-                <>
-                  {viewAccess.includes(each.name) && (
+                <div
+                  className="group flex justify-between items-center rounded-[0.5rem] py-[1rem] px-[1rem] cursor-pointer hover:bg-primaryColor hover:text-white transition-all duration-300"
+                  onClick={() => {
+                    if (isSettingsView && each.name === "Settings") {
+                      handleClick(each.key);
+                    } else if (each.path) {
+                      handleNavigate(each.name, each.path);
+                    } else {
+                      handleClick(each.key);
+                    }
+                  }}
+                >
+                  {/* Primary menu */}
+                  <div className="flex items-center gap-[0.5rem]">
                     <div
-                      className={`group flex justify-between items-center rounded-[0.5rem] py-[1rem] px-[1rem] hover:text-white hover:bg-primaryColor cursor-pointer transition-all duration-300 ${
-                        currentPath.includes(each.name.toLowerCase()) ||
-                        currentPath.includes(
-                          each.name.toLowerCase() + "-category",
-                        )
-                          ? "bg-primaryColor text-white"
-                          : ""
-                      }`}
-                      onClick={() => {
-                        if (each.path) {
-                          handleNavigate(each.name, each.path);
-                        } else {
-                          handleClick(each.key);
-                        }
-                      }}
+                      className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
                     >
-                      {/* Primary menu */}
-                      <div className="flex items-center gap-[0.5rem]">
-                        <div
-                          className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
-                        >
-                          {each.icon}
-                        </div>
-                        {sideMenuOpen && (
-                          <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
-                            {translate(each.label || each.name)}
-                          </p>
-                        )}
-                      </div>
+                      {each.icon}
+                    </div>
+                    {sideMenuOpen && (
+                      <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
+                        {translate(each.label || each.name)}
+                      </p>
+                    )}
+                  </div>
+                  {sideMenuOpen && (!each.path || (isSettingsView && each.name === "Settings")) && (
+                    <div>
+                      <MdKeyboardArrowRight
+                        className={`${isVisible.includes(each.key) ? "rotate-[90deg]" : ""}`}
+                      />
                     </div>
                   )}
-                </>
+                </div>
+              ) : (
+                <div
+                  className={`group flex justify-between items-center rounded-[0.5rem] py-[1rem] px-[1rem] hover:text-white hover:bg-primaryColor cursor-pointer transition-all duration-300 ${
+                    currentPath.includes(each.name.toLowerCase()) ||
+                    currentPath.includes(each.name.toLowerCase() + "-category")
+                      ? "bg-primaryColor text-white"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    if (each.path) {
+                      handleNavigate(each.name, each.path);
+                    } else {
+                      handleClick(each.key);
+                    }
+                  }}
+                >
+                  {/* Primary menu */}
+                  <div className="flex items-center gap-[0.5rem]">
+                    <div
+                      className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
+                    >
+                      {each.icon}
+                    </div>
+                    {sideMenuOpen && (
+                      <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
+                        {translate(each.label || each.name)}
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* sub menu */}
               {sideMenuOpen &&
-                !(each.name === "Settings" && !isSettingsView) && (
+                !(each.name === "Settings" && !isSettingsView) &&
+                isVisible.includes(each.key) &&
+                visibleSubItems.length > 0 && (
                   <div className="space-y-[0.25rem] mt-[0.25rem]">
-                    {each.menu &&
-                      isVisible.includes(each.key) &&
-                      (each.menu as SideListMenuType[]).map(
-                        (item, idx) =>
-                          viewAccess.includes(item.name) && (
-                            <div
-                              key={`${each.key}-${idx}`}
-                              className={`group flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.75rem] rounded-[0.5rem] cursor-pointer transition-all duration-300 ${
-                                isActive === item.name ||
-                                (item.path &&
-                                  location.pathname.startsWith(item.path))
-                                  ? "text-white bg-primaryColor "
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                handleNavigate(item.name, item.path)
-                              }
-                            >
-                              <div className="h-[22px] w-[22px] flex items-center">
-                                {item.icon}
-                              </div>
-                              {sideMenuOpen && (
-                                <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
-                                  {translate(item.label || item.name)}
-                                </p>
-                              )}
-                            </div>
-                          ),
-                      )}
+                    {visibleSubItems.map((item, idx) => (
+                      <div
+                        key={`${each.key}-${idx}`}
+                        className={`group flex items-center gap-[0.5rem] hover:text-white hover:bg-primaryColor px-[1rem] ml-[1rem] py-[0.75rem] rounded-[0.5rem] cursor-pointer transition-all duration-300 ${
+                          isActive === item.name ||
+                          (item.path && location.pathname.startsWith(item.path))
+                            ? "text-white bg-primaryColor "
+                            : ""
+                        }`}
+                        onClick={() => handleNavigate(item.name, item.path)}
+                      >
+                        <div className="h-[22px] w-[22px] flex items-center">{item.icon}</div>
+                        {sideMenuOpen && (
+                          <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
+                            {translate(item.label || item.name)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
             </div>

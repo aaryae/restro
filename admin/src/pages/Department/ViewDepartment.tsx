@@ -58,6 +58,7 @@ export default function ViewDepartment({ id }: { id: number | null }) {
               type="color"
               value={departmentData?.data?.color || "#000000"}
               disabled
+              className="w-[30%]"
             />
           </form>
         </div>

@@ -49,7 +49,7 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex flex-col items-end gap-[1.5rem] mt-[2rem] mb-[1.5rem]">
+    <div className="w-full flex flex-col sm:items-end gap-[1rem] sm:gap-[1.25rem] mt-[1.5rem] mb-[1.25rem]">
       {/* List or Grid View */}
       {hasViewType && (
         <div className="flex gap-[1rem]">
@@ -69,39 +69,43 @@ export default function PageHeader({
           />
         </div>
       )}
-      <div className=" flex justify-end gap-[1rem]">
+      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full">
         {children}
         {hasAddButton && (
           <Button
-            className="bg-primaryColor text-white rounded-[0.25rem]"
+            className="bg-primaryColor text-white rounded-[0.25rem] shrink-0"
             handleClick={handleNewButton}
           >
-            <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] ">
-              <p className="font-[500] text-[0.9375rem]">{newButtonText}</p>
+            <div className="flex items-center gap-[0.5rem] px-3 py-2 sm:px-5 sm:py-2.5 ">
+              <p className="font-[500] text-sm sm:text-[0.9375rem]">
+                {newButtonText}
+              </p>
             </div>
           </Button>
         )}
         <Button
-          className="bg-[#E5E6EC] text-white rounded-[0.25rem]"
+          className="bg-[#E5E6EC] text-white rounded-[0.25rem] shrink-0"
           handleClick={handleClick}
         >
-          <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] text-[#A4ADBB]">
+          <div className="flex items-center gap-[0.5rem] px-3 py-2 sm:px-5 sm:py-2.5 text-[#A4ADBB]">
             <div className={isRotating ? "rotate-animation" : ""}>
               <IoReload size={18} />
             </div>
-            <p className="font-[500] text-[0.9375rem]">{translate("Reload")}</p>
+            <p className="font-[500] text-sm sm:text-[0.9375rem]">
+              {translate("Reload")}
+            </p>
           </div>
         </Button>
         {hasDeleteButton && (
           <Button
-            className="bg-red-500 text-white rounded-[0.25rem]"
+            className="bg-red-500 text-white rounded-[0.25rem] shrink-0"
             handleClick={handleDeleteButton}
           >
-            <div className="flex items-center gap-[0.5rem] px-[1.25rem] py-[0.5rem] text-white">
+            <div className="flex items-center gap-[0.5rem] px-3 py-2 sm:px-5 sm:py-2.5 text-white">
               <div>
                 <FaTrash size={20} />
               </div>
-              <p className="font-[500] text-[0.9375rem]">
+              <p className="font-[500] text-sm sm:text-[0.9375rem]">
                 {translate("Delete")}
               </p>
             </div>

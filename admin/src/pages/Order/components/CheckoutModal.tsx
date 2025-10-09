@@ -240,28 +240,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         paymentMethod: paymentType,
         orderId: orderId,
         checkoutAll: typeof orderId === "object" && selectedIds.length === 0, // Only checkout all if no specific items are selected
-        orderItemIds: selectedIds.length > 0 ? selectedIds.map(Number) : undefined, // Include selected item IDs if any
+        orderItemIds:
+          selectedIds.length > 0 ? selectedIds.map(Number) : undefined, // Include selected item IDs if any
       };
 
-      const payload = checkoutType === "member" && selectedMember
-        ? {
-            ...basePayload,
-            customerId: selectedMember.id,
-          }
-        : basePayload;
+      const payload =
+        checkoutType === "member" && selectedMember
+          ? {
+              ...basePayload,
+              customerId: selectedMember.id,
+            }
+          : basePayload;
 
       if (paymentType === "cash") {
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,
         }).unwrap();
-        
+
         if (response?.success) {
           handleResponse({ res: response });
           setIsPaymentSuccess(true);
         }
       }
-      
+
       setTimeout(() => {
         setIsPaymentSuccess(false);
         onClose();
@@ -470,7 +472,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {order?.data?.table?.tableNo || table?.data?.tableNo}
                 </h2>
                 <button onClick={onClose} className="">
-                  <X />
+                  <X size={18} />
                 </button>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
@@ -478,7 +480,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex flex-col gap-4 lg:col-span-2">
                   <div className="mt-4 border border-1 rounded p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 ">
-                      <h2 className="font-semibold">Order Details</h2>
+                      <h2 className="font-semibold text-[17px]">
+                        Order Details
+                      </h2>
                       <label className="flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"
@@ -561,7 +565,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       Selected: {selectedIds.length} / {items?.length || 0}
                     </div>
                   </div>
-                  <div className="flex flex-col border border-1 rounded p-4 sm:p-6 gap-4 sm:gap-6 font-bold ">
+                  <div className="flex flex-col border border-1 rounded p-4 sm:p-6 gap-4 sm:gap-6 font-semibold">
                     <div className="flex justify-between">
                       <h3 className="text-[17px]">Sub Total</h3>
                       <h3 className="text-[17px]">
@@ -577,7 +581,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                   <div className="flex flex-col border border-1 rounded p-4 gap-4 sm:gap-6 font-bold ">
                     <div className="flex justify-between">
-                      <h2>Checkout As:</h2>
+                      <h2 className="text-[17px]">Checkout As:</h2>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <label className="flex items-center">
@@ -714,7 +718,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {/* Right column: Payment Method panel */}
                 <div className="mt-4 lg:mt-4">
                   <div className="border border-1 rounded px-4 py-6 sm:py-8 md:sticky md:top-4">
-                    <h2 className="font-semibold mb-4">Payment Method</h2>
+                    <h2 className="font-semibold mb-4 text-[17px]">
+                      Payment Method
+                    </h2>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"

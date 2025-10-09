@@ -192,7 +192,9 @@ export default function AddEditOrder({
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
-      { url: `${ORDER_URL}${orderId}?itemStatus=pending,preparing,ready,served,cancelled`, },
+      {
+        url: `${ORDER_URL}${orderId}?itemStatus=pending,preparing,ready,served,cancelled`,
+      },
       {
         skip: !orderId,
       },
@@ -915,11 +917,15 @@ export default function AddEditOrder({
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between items-center px-4 py-3 bg-gray-50">
-                  <span className="text-base font-semibold">Total</span>
-                  <span className="text-base font-bold text-green-600">
+                <div className="grid grid-cols-12 px-4 py-3 bg-gray-50 items-center">
+                  <div className="col-span-6 text-base font-semibold">
+                    Total
+                  </div>
+                  <div className="col-span-2"></div>
+                  <div className="col-span-2"></div>
+                  <div className="col-span-2 text-right text-base font-bold text-green-600">
                     {CurrencySign} {Number(totalAmount).toFixed(2)}
-                  </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -927,7 +933,6 @@ export default function AddEditOrder({
             <div className="p-6">
               <TextArea
                 rows={5}
-                label="Order Note"
                 placeholder="Any special instructions or notes"
                 className="w-full"
                 {...register("orderNote")}

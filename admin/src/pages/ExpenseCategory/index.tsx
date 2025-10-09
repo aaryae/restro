@@ -63,10 +63,10 @@ const ExpenseCategory: React.FC = () => {
   const rows: any[] = success ? (apiData?.data?.data ?? []) : [];
 
   const pagination: PaginationType = {
-    page: apiData?.data?.page ?? query.page,
-    limit: apiData?.data?.limit ?? query.limit,
-    total: apiData?.data?.total ?? 0,
-    totalPages: apiData?.data?.totalPages ?? 1,
+    page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
+    limit: apiData?.data?.limit,
+    total: apiData?.data?.total,
+    totalPages: apiData?.data?.totalPages,
   };
 
   const headers = [
@@ -98,12 +98,17 @@ const ExpenseCategory: React.FC = () => {
           Edit Expense Category
         </span>
       </div>
-      <DeleteModal
-        open={deleteModelOpen}
-        setOpen={setDeleteModelOpen}
-        handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
-        handleConfirmDelete={handleDelete}
-      />
+      <div className="relative group">
+        <DeleteModal
+          open={deleteModelOpen}
+          setOpen={setDeleteModelOpen}
+          handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
+          handleConfirmDelete={handleDelete}
+        />
+        <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+          Delete Expense Category
+        </span>
+      </div>
     </div>,
   ]);
 

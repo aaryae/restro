@@ -13,7 +13,6 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EMAIL_TEMPLATE_LIST_ROUTE } from "@/routes/routeNames";
 import Input from "@/components/Input";
-import RichTextEditor from "@/components/RichTextEditor";
 import Button from "@/components/Button";
 import Loader from "@/components/Loader";
 import Select from "@/components/Select";
@@ -111,7 +110,7 @@ export default function AddEditEmailTemplate() {
             name="templateKey"
             control={control}
             render={({ field }) => (
-              <div>
+              <div className="md:w-[30%]">
                 <Select
                   {...field}
                   options={EMAIL_TEMPLATE_OPTIONS}
@@ -159,13 +158,23 @@ export default function AddEditEmailTemplate() {
           />
 
           {(!id || success) && (
-            <RichTextEditor
-              data={watch("body")}
-              // onChange={(value) => setValue("body", value)}
-              onChange={(value: string) => setValue("body", value)}
-              error={errors.body?.message}
-              className="w-1/2"
-            />
+            <div className="w-full">
+              <label className="flex text-sm font-medium text-gray-700 mb-1">
+                Body <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                {...register("body")}
+                className={`w-full p-2 border rounded-md min-h-[200px] bg-white ${
+                  errors.body ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter email body..."
+              />
+              {errors.body && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.body.message}
+                </p>
+              )}
+            </div>
           )}
           <div className="flex justify-end">
             <Button type="submit" className="submit-button w-[5rem]">

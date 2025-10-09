@@ -48,10 +48,10 @@ const Revenue: React.FC = () => {
   const [deleteRevenue] = useDeleteApiMutation();
 
   const pagination: PaginationType = {
-    page: allRevenue?.data?.page ?? 1,
-    limit: allRevenue?.data?.limit ?? 10,
-    total: allRevenue?.data?.total ?? 0,
-    totalPages: allRevenue?.data?.totalPages ?? 0,
+    page: allRevenue?.data?.total === 0 ? 0 : allRevenue?.data?.page,
+    limit: allRevenue?.data?.limit,
+    total: allRevenue?.data?.total,
+    totalPages: allRevenue?.data?.totalPages,
   };
 
   const headers = [
@@ -139,13 +139,17 @@ const Revenue: React.FC = () => {
                     Edit Revenue
                   </span>
                 </div>
-
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
+                <div className="relative group">
+                  <DeleteModal
+                    open={open}
+                    setOpen={setOpen}
+                    handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                    handleConfirmDelete={handleDelete}
+                  />
+                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                    Delete Revenue
+                  </span>
+                </div>
               </div>,
             ];
           },

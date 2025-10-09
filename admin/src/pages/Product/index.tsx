@@ -99,7 +99,7 @@ export default function Product() {
   };
 
   const pagination = {
-    page: allProduct?.data?.page,
+    page: allProduct?.data?.total === 0 ? 0 : allProduct?.data?.page,
     limit: allProduct?.data?.limit,
     total: allProduct?.data?.total,
     totalPages: allProduct?.data?.totalPages,
@@ -144,12 +144,17 @@ export default function Product() {
               </div>
             )}
             {accessList.includes("delete") && (
-              <DeleteModal
-                open={open}
-                setOpen={setOpen}
-                handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                handleConfirmDelete={handleDelete}
-              />
+              <div className="relative group">
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Delete Product
+                </span>
+              </div>
             )}
           </div>,
         ])
@@ -160,7 +165,7 @@ export default function Product() {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
           <Input
             placeholder="Search items"
-            className="w-full md:w-[30rem]"
+            className="w-full md:w-[25rem]"
             value={productSearchTerm}
             onChange={(e) => {
               setProductSearchTerm(e.target.value);
@@ -171,7 +176,7 @@ export default function Product() {
           {/* <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto"> */}
           <select
             value={selectedCategory}
-            className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
+            className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full min-w-[120px] max-w-[180px]"
             onChange={(e) => {
               setSelectedCategory(e.target.value);
               // reset to first page when category changes
@@ -192,10 +197,6 @@ export default function Product() {
             newButtonText={translate("Add New Items")}
             handleNewButton={() => handleNewUser(null)}
             handleReloadButton={handleReload}
-            hasSubText
-            subText={translate(
-              "Add Comprehensive Item Information in Each Section",
-            )}
           />
         </div>
       </div>

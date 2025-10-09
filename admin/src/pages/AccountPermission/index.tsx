@@ -113,12 +113,17 @@ const AccountPermission = () => {
                   Edit Permission
                 </span>
               </div>
-              <DeleteModal
-                open={open}
-                setOpen={setOpen}
-                handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
-                handleConfirmDelete={handleDelete}
-              />
+              <div className="relative group">
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
+                  handleConfirmDelete={handleDelete}
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Delete Permission
+                </span>
+              </div>
             </div>,
           ];
         })

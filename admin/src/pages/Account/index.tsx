@@ -81,7 +81,7 @@ const Account: React.FC = () => {
     }
   };
 
-  const { control, handleSubmit } = useForm<{
+  const { control, handleSubmit, reset } = useForm<{
     bankName?: string;
     accountNumber?: string;
   }>();
@@ -108,6 +108,7 @@ const Account: React.FC = () => {
     filterField,
     handleSubmit,
     (qs: Record<string, any>) => setQueryString(qs),
+    reset,
   );
 
   const url = buildQueryString("account/list", {
@@ -222,12 +223,19 @@ const Account: React.FC = () => {
               >
                 Delete
               </button> */}
-              <DeleteModal
-                open={deleteModelOpen}
-                setOpen={setDeleteModelOpen}
-                handleDeleteTrigger={() => handleDeleteTrigger(row?.id || idx)}
-                handleConfirmDelete={handleDelete}
-              />
+              <div className="relative group">
+                <DeleteModal
+                  open={deleteModelOpen}
+                  setOpen={setDeleteModelOpen}
+                  handleDeleteTrigger={() =>
+                    handleDeleteTrigger(row?.id || idx)
+                  }
+                  handleConfirmDelete={handleDelete}
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Delete Account
+                </span>
+              </div>
             </div>,
           ];
         })

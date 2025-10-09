@@ -154,10 +154,10 @@ const Purchase: React.FC = () => {
   }, [apiData, rows.length]);
 
   const pagination: PaginationType = {
-    page: query.page,
-    limit: query.limit,
-    total: total,
-    totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
+    limit: apiData?.data?.limit,
+    total: apiData?.data?.total,
+    totalPages: apiData?.data?.totalPages,
   };
 
   const headers = [
@@ -315,13 +315,17 @@ const Purchase: React.FC = () => {
             </span>
           </div>
         </button>
-
-        <DeleteModal
-          open={open}
-          setOpen={setOpen}
-          handleDeleteTrigger={() => handleDeleteTrigger(id)}
-          handleConfirmDelete={handleDelete}
-        />
+        <div className="relative group">
+          <DeleteModal
+            open={open}
+            setOpen={setOpen}
+            handleDeleteTrigger={() => handleDeleteTrigger(id)}
+            handleConfirmDelete={handleDelete}
+          />
+          <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+            Delete Purchase
+          </span>
+        </div>
       </div>,
     ];
   });

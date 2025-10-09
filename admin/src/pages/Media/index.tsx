@@ -143,7 +143,7 @@ export default function Media() {
       </div>
       {/* folder section */}
       <div className="mt-[5rem] flex justify-start  w-full">
-        <div className="flex flex-wrap justify-center lg:gap-[3rem] gap-[2rem] w-fit max-w-full place-items-center">
+        <div className="flex flex-wrap justify-left lg:gap-[3rem] gap-[2rem] w-fit max-w-full place-items-center">
           {mediaCategory?.map(
             (each: { id: number; name: string }, index: number) => (
               <button
@@ -192,7 +192,7 @@ export default function Media() {
       </div>
       {/* Pagination Section */}
       {mediaCategorySuccess && (
-        <div className="sticky bottom-0  border-t border-gray-200 px-4 py-3 mt-6">
+        <div className="bottom-0  border-t border-gray-200 px-4 py-3 mt-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-gray-700">
               Show:

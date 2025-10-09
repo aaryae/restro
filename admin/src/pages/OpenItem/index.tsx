@@ -124,12 +124,17 @@ export default function OpenItem() {
               </div>
             )}
             {accessList.includes("delete") && (
-              <DeleteModal
-                open={open}
-                setOpen={setOpen}
-                handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                handleConfirmDelete={handleDelete}
-              />
+              <div className="relative group">
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
+                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
+                  Delete Open Item
+                </span>
+              </div>
             )}
           </div>,
         ])
