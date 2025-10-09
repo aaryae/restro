@@ -531,8 +531,20 @@ const updateOrderItems = async (req) => {
     const { orderId } = req.params;
     const { orderItems = [] } = req.body;
 
+    // Fetch order with items and addons
     const order = await orderModel.findByPk(orderId, {
-      include: [{ model: orderItemModel, as: "orderItems" }],
+      include: [
+        {
+          model: orderItemModel,
+          as: "orderItems",
+          include: [
+            {
+              model: orderItemModel,
+              as: "addons",
+            },
+          ],
+        },
+      ],
       transaction,
     });
 
@@ -540,8 +552,12 @@ const updateOrderItems = async (req) => {
       await transaction.rollback();
       return { status: 404, success: false, message: "Order not found" };
     }
+
+    // Separate new and existing items
     const newItems = orderItems.filter((i) => !i.id);
     const oldItems = orderItems.filter((i) => i.id);
+
+    // Process updates to existing items
     for (const incoming of oldItems) {
       const existing = order.orderItems.find((oi) => oi.id === incoming.id);
       if (!existing) {
@@ -553,79 +569,297 @@ const updateOrderItems = async (req) => {
         };
       }
 
-      // Check for status change
-      if (incoming.status && incoming.status !== existing.status) {
-        if (incoming.status === "cancelled") {
-          if (existing.status === "preparing") {
-            await transaction.rollback();
-            return {
-              status: 400,
-              success: false,
-              message: `Cannot cancel item ${existing.id}, already in preparing`,
-            };
-          }
-          await existing.update(
-            { status: "cancelled", subtotal: 0 },
-            { transaction },
-          );
-          continue; // skip quantity check since it's cancelled
-        }
+      // Prevent updates to cancelled or preparing items
+      if (existing.status === "cancelled") {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `Cannot update cancelled item ${existing.id}`,
+        };
       }
-
-      // Check for quantity change
       if (
         incoming.quantity !== undefined &&
-        incoming.quantity !== existing.quantity
+        incoming.quantity < existing.quantity &&
+        existing.status === "preparing"
       ) {
-        if (
-          incoming.quantity < existing.quantity &&
-          existing.status === "preparing"
-        ) {
-          await transaction.rollback();
-          return {
-            status: 400,
-            success: false,
-            message: `Cannot decrease quantity for item ${existing.id}, already in preparing`,
-          };
-        }
-
-        const newSubtotal = existing.price * incoming.quantity;
-        await existing.update(
-          { quantity: incoming.quantity, subtotal: newSubtotal },
-          { transaction },
-        );
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `Cannot decrease quantity for item ${existing.id}, already in preparing`,
+        };
       }
-    }
-    if (newItems.length > 0) {
-      for (const item of newItems) {
-        const product = await productModel.findByPk(item.productId, {
-          transaction,
-        });
-        if (!product) {
-          await transaction.rollback();
-          return {
-            status: 404,
-            success: false,
-            message: `Product with ID ${item.productId} not found`,
-          };
-        }
-        const subtotal = product.price * item.quantity;
-        await orderItemModel.create(
+
+      // Update quantity, specialInstructions, and discount
+      if (
+        incoming.quantity !== undefined ||
+        incoming.specialInstructions !== undefined ||
+        incoming.discount !== undefined ||
+        incoming.discountPercentage !== undefined
+      ) {
+        const discountAmount = incoming.discount || existing.discount || 0;
+        const discountPercentage = incoming.discountPercentage || 0;
+        const price = existing.price;
+        const quantity =
+          incoming.quantity !== undefined
+            ? incoming.quantity
+            : existing.quantity;
+        const percentageDiscount =
+          price * quantity * (discountPercentage / 100);
+        const flatDiscount = discountAmount + percentageDiscount;
+
+        await existing.update(
           {
-            ...item,
-            orderId: order.id,
-            price: product.price,
-            departmentId: product.departmentId,
-            subtotal,
+            quantity,
+            specialInstructions:
+              incoming.specialInstructions !== undefined
+                ? incoming.specialInstructions
+                : existing.specialInstructions,
+            discount: flatDiscount,
           },
           { transaction },
         );
       }
+
+      // Handle addons for existing item
+      if (incoming.addons && Array.isArray(incoming.addons)) {
+        const existingAddons = existing.addons || [];
+        const incomingAddonIds = incoming.addons
+          .map((a) => a.addonId)
+          .filter(Boolean);
+
+        // Delete addons not in incoming list (if not cancelled)
+        await orderItemModel.destroy({
+          where: {
+            parentOrderItemId: existing.id,
+            addonId: { [Op.notIn]: incomingAddonIds },
+            status: { [Op.ne]: "cancelled" },
+          },
+          transaction,
+        });
+
+        // Process incoming addons
+        for (const addon of incoming.addons) {
+          if (!addon.addonId) continue;
+          const addonProduct = await addonModel.findByPk(addon.addonId, {
+            transaction,
+          });
+          if (!addonProduct) {
+            await transaction.rollback();
+            return {
+              status: 404,
+              success: false,
+              message: `Addon with ID ${addon.addonId} not found`,
+            };
+          }
+
+          const existingAddon = existingAddons.find(
+            (ea) => ea.addonId === addon.addonId,
+          );
+          if (existingAddon) {
+            // Update existing addon
+            if (
+              addon.quantity !== undefined ||
+              addon.specialInstructions !== undefined
+            ) {
+              await existingAddon.update(
+                {
+                  quantity:
+                    addon.quantity !== undefined
+                      ? addon.quantity
+                      : existingAddon.quantity,
+                  specialInstructions:
+                    addon.specialInstructions !== undefined
+                      ? addon.specialInstructions
+                      : existingAddon.specialInstructions,
+                },
+                { transaction },
+              );
+            }
+          } else {
+            // Create new addon
+            await orderItemModel.create(
+              {
+                orderId,
+                kotId: existing.kotId, // Inherit from parent
+                addonId: addon.addonId,
+                parentOrderItemId: existing.id,
+                quantity: addon.quantity || 1,
+                specialInstructions: addon.specialInstructions || "",
+                departmentId: existing.departmentId,
+                isAddon: true,
+                price: addonProduct.price,
+                discount: 0, // No discounts for addons
+                status: "pending",
+              },
+              { transaction },
+            );
+          }
+        }
+      }
     }
 
-    // Recalculate order total (exclude cancelled)
+    // Process new items (with addons)
+    if (newItems.length > 0) {
+      const createdItems = new Map(); // Track tempId to created item
+
+      // Generate KOT numbers for new items if needed
+      const today = new Date();
+      const startOfToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+      const endOfToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 1,
+      );
+      const todayKotsCount = await kotModel.count({
+        where: {
+          createdAt: { [Op.between]: [startOfToday, endOfToday] },
+        },
+        transaction,
+      });
+      let baseKotNo = todayKotsCount + 1;
+
+      // Group new items by department for KOT assignment
+      const itemsByDepartment = newItems.reduce((acc, item) => {
+        const departmentId = item.departmentId;
+        if (!acc[departmentId]) acc[departmentId] = [];
+        acc[departmentId].push(item);
+        return acc;
+      }, {});
+
+      // Create KOTs and main items
+      for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
+        // Find or create KOT for this department
+        let kot = await kotModel.findOne({
+          where: { orderId, departmentId, status: { [Op.ne]: "cancelled" } },
+          transaction,
+        });
+        if (!kot) {
+          kot = await kotModel.create(
+            {
+              orderId,
+              departmentId,
+              kotNumber: baseKotNo++,
+              status: "pending",
+            },
+            { transaction },
+          );
+        }
+
+        // Create main items
+        for (const item of items) {
+          item.tempId = item.tempId || `temp_${uuidv4()}`; // Generate if not provided
+          const isProduct = !!item.productId;
+          const itemModel = isProduct ? productModel : openItemModel;
+          const itemId = isProduct ? item.productId : item.openItemId;
+
+          const product = await itemModel.findByPk(itemId, { transaction });
+          if (!product) {
+            await transaction.rollback();
+            return {
+              status: 404,
+              success: false,
+              message: `Item with ID ${itemId} not found`,
+            };
+          }
+
+          // Verify departmentId
+          if (product.departmentId !== item.departmentId) {
+            await transaction.rollback();
+            return {
+              status: 400,
+              success: false,
+              message: `Department ID mismatch for item ${itemId}`,
+            };
+          }
+
+          // Compute discount
+          const discountAmount = item.discount || 0;
+          const discountPercentage = item.discountPercentage || 0;
+          const percentageDiscount =
+            product.price * item.quantity * (discountPercentage / 100);
+          const flatDiscount = discountAmount + percentageDiscount;
+
+          // Create main item
+          const createdItem = await orderItemModel.create(
+            {
+              orderId,
+              productId: item.productId,
+              openItemId: item.openItemId,
+              quantity: item.quantity,
+              specialInstructions: item.specialInstructions || "",
+              departmentId: item.departmentId,
+              isAddon: false,
+              price: product.price,
+              discount: flatDiscount,
+              status: "pending",
+              kotId: kot.id,
+            },
+            { transaction },
+          );
+          createdItems.set(item.tempId, createdItem);
+        }
+      }
+
+      // Create addons for new items
+      for (const item of newItems) {
+        if (item.addons && Array.isArray(item.addons)) {
+          const parentItem = createdItems.get(item.tempId);
+          if (!parentItem) {
+            await transaction.rollback();
+            return {
+              status: 400,
+              success: false,
+              message: `Parent item for addons not found for tempId ${item.tempId}`,
+            };
+          }
+
+          for (const addon of item.addons) {
+            if (!addon.addonId) continue;
+            const addonProduct = await addonModel.findByPk(addon.addonId, {
+              transaction,
+            });
+            if (!addonProduct) {
+              await transaction.rollback();
+              return {
+                status: 404,
+                success: false,
+                message: `Addon with ID ${addon.addonId} not found`,
+              };
+            }
+
+            await orderItemModel.create(
+              {
+                orderId,
+                kotId: parentItem.kotId,
+                addonId: addon.addonId,
+                parentOrderItemId: parentItem.id,
+                quantity: addon.quantity || 1,
+                specialInstructions: addon.specialInstructions || "",
+                departmentId: parentItem.departmentId,
+                isAddon: true,
+                price: addonProduct.price,
+                discount: 0,
+                status: "pending",
+              },
+              { transaction },
+            );
+          }
+        }
+      }
+    }
+
+    // Recalculate order total (exclude cancelled items and addons)
     const validItems = await orderItemModel.findAll({
-      where: { orderId, status: { [Op.ne]: "cancelled" } },
+      where: {
+        orderId,
+        status: { [Op.ne]: "cancelled" },
+      },
       transaction,
     });
 
@@ -636,17 +870,62 @@ const updateOrderItems = async (req) => {
 
     await order.update({ totalAmount }, { transaction });
 
+    // Refetch order for response
+    const updatedOrder = await orderModel.findByPk(orderId, {
+      include: [
+        {
+          model: orderItemModel,
+          as: "orderItems",
+          include: [
+            {
+              model: productModel,
+              as: "product",
+              include: [{ model: productMediaModel, as: "mediaArr" }],
+            },
+            {
+              model: openItemModel,
+              as: "openItem",
+            },
+            {
+              model: addonModel,
+              as: "addon",
+            },
+            {
+              model: orderItemModel,
+              as: "addons",
+              include: [{ model: addonModel, as: "addon" }],
+            },
+          ],
+        },
+        {
+          model: customerModel,
+          as: "customer",
+        },
+        {
+          model: tableModel,
+          as: "table",
+        },
+      ],
+      transaction,
+    });
+
     await transaction.commit();
 
     return {
       status: 200,
       success: true,
       message: "Order items updated successfully",
-      data: order,
+      data: updatedOrder,
     };
   } catch (error) {
     await transaction.rollback();
-    throw error;
+    console.error("Update order items error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to update order items",
+      error: error.message,
+    };
   }
 };
 
@@ -1552,10 +1831,32 @@ const listOrders = async (req) => {
       {
         model: orderItemModel,
         as: "orderItems",
+        where: { status: { [Op.ne]: "cancelled" } },
+        required: false, // Allow orders with no active items
         include: [
           {
             model: productModel,
             as: "product",
+          },
+          {
+            model: openItemModel,
+            as: "openItem",
+          },
+          {
+            model: addonModel,
+            as: "addon",
+          },
+          {
+            model: orderItemModel,
+            as: "addons",
+            where: { status: { [Op.ne]: "cancelled" } },
+            required: false,
+            include: [
+              {
+                model: addonModel,
+                as: "addon",
+              },
+            ],
           },
         ],
       },
@@ -1778,15 +2079,23 @@ const bulkServeOrderItems = async (req) => {
 
 // this is for departments to update order item status
 const updateOrderItemsStatus = async (req) => {
-  let { orderItemIds } = req.body;
-  const { status } = req.body;
+  let { orderItemIds, status } = req.body;
+  orderItemIds = Array.isArray(orderItemIds) ? orderItemIds : [orderItemIds]; // Normalize to array
+
+  if (orderItemIds.length === 0) {
+    return {
+      status: 400,
+      success: false,
+      message: "No order item IDs provided",
+    };
+  }
 
   const transaction = await sequelize.transaction();
 
   try {
-    // First get the order item with its order and table details
-    const orderItem = await orderItemModel.findOne({
-      where: { id: orderItemIds },
+    // Fetch all order items with includes
+    const orderItems = await orderItemModel.findAll({
+      where: { id: { [Op.in]: orderItemIds } },
       include: [
         {
           model: orderModel,
@@ -1798,161 +2107,178 @@ const updateOrderItemsStatus = async (req) => {
             },
           ],
         },
+        {
+          model: orderItemModel,
+          as: "addons", // Include addons to handle cancellation
+        },
       ],
       transaction,
     });
 
-    if (!orderItem) {
+    if (orderItems.length !== orderItemIds.length) {
       await transaction.rollback();
       return {
         status: 404,
         success: false,
-        message: "Order item(s) not found",
+        message: "One or more order items not found",
       };
     }
 
-    // enforce transitions: pending->preparing, preparing->ready
-    if (
-      (status === "preparing" && orderItem.status !== "pending") ||
-      (status === "ready" && orderItem.status !== "preparing")
-    ) {
-      await transaction.rollback();
-      return {
-        status: 400,
-        success: false,
-        message:
-          "Some order items could not be updated due to invalid transitions",
-      };
+    // Validate transitions for each item
+    for (const orderItem of orderItems) {
+      if (
+        (status === "preparing" && orderItem.status !== "pending") ||
+        (status === "ready" && orderItem.status !== "preparing")
+      ) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Invalid status transition for one or more order items",
+        };
+      }
     }
 
-    // Update the order item status
+    // Batch update all items
     await orderItemModel.update(
       { status },
       {
-        where: { id: orderItem.id },
-        validate: false, // Skip validation for status-only updates
+        where: { id: { [Op.in]: orderItemIds } },
+        validate: false,
         transaction,
       },
     );
 
-    // If the item is being cancelled, check related KOTs
+    // If cancelled, handle KOTs and addons per item
     if (status === "cancelled") {
-      // Find all KOTs that include this order item
-      const kots = await kotModel.findAll({
-        include: [
-          {
-            model: orderItemModel,
-            as: "orderItems",
-            where: { id: orderItem.id },
-            attributes: [], // We don't need the order item data
-            required: true,
-          },
-        ],
-        transaction,
-      });
+      for (const orderItem of orderItems) {
+        // Cancel associated addons
+        if (!orderItem.isAddon) {
+          // Only main items have addons
+          await orderItemModel.update(
+            { status: "cancelled" },
+            {
+              where: { parentOrderItemId: orderItem.id },
+              validate: false,
+              transaction,
+            },
+          );
+        }
 
-      // For each KOT, check if all its items are now cancelled
-      for (const kot of kots) {
-        // Get all items for this KOT
-        const kotItems = await orderItemModel.findAll({
-          where: { kotId: kot.id },
+        // Handle KOTs
+        const kots = await kotModel.findAll({
+          include: [
+            {
+              model: orderItemModel,
+              as: "orderItems",
+              where: { id: orderItem.id },
+              attributes: [],
+              required: true,
+            },
+          ],
           transaction,
         });
 
-        // Check if all items in this KOT are cancelled
-        const allItemsCancelled = kotItems.every(
-          (item) => item.status === "cancelled" || item.id === orderItem.id,
-        );
+        for (const kot of kots) {
+          const kotItems = await orderItemModel.findAll({
+            where: { kotId: kot.id },
+            transaction,
+          });
 
-        // Only update KOT status if all its items are cancelled
-        if (allItemsCancelled && kot.status !== "cancelled") {
-          await kotModel.update(
-            { status: "cancelled" },
-            {
-              where: { id: kot.id },
-              transaction,
-              validate: false,
-            },
+          const allItemsCancelled = kotItems.every(
+            (item) => item.status === "cancelled",
           );
+
+          if (allItemsCancelled && kot.status !== "cancelled") {
+            await kotModel.update(
+              { status: "cancelled" },
+              {
+                where: { id: kot.id },
+                transaction,
+                validate: false,
+              },
+            );
+          }
         }
       }
     }
 
-    // If the item is being cancelled or completed, check order status
+    // If cancelled or completed, handle orders and tables
     if (["cancelled", "completed"].includes(status)) {
-      // Count remaining active items in this order
-      const activeItemsCount = await orderItemModel.count({
-        where: {
-          orderId: orderItem.orderId,
-          status: { [Op.notIn]: ["completed", "cancelled"] },
-          id: { [Op.ne]: orderItem.id }, // Exclude the current item being updated
-        },
-        transaction,
-      });
+      // Get unique orderIds
+      const uniqueOrderIds = [
+        ...new Set(orderItems.map((item) => item.orderId)),
+      ];
 
-      // If no active items remain, update the order status
-      if (activeItemsCount === 0) {
-        const newOrderStatus =
-          status === "cancelled" ? "cancelled" : "completed";
-
-        await orderModel.update(
-          { status: newOrderStatus },
-          {
-            where: { id: orderItem.orderId },
-            transaction,
+      for (const orderId of uniqueOrderIds) {
+        // Recalculate totalAmount for the order
+        const activeItems = await orderItemModel.findAll({
+          where: {
+            orderId,
+            status: { [Op.notIn]: ["cancelled"] }, // Exclude cancelled items
           },
+          attributes: ["subtotal"],
+          transaction,
+        });
+
+        const newTotalAmount = activeItems.reduce(
+          (sum, item) => sum + parseFloat(item.subtotal || 0),
+          0,
         );
 
-        // If it's a dine-in order with a table, and we're marking the order as completed/cancelled
-        if (
-          (status === "cancelled" || status === "completed") &&
-          orderItem.order?.orderType === "dineIn" &&
-          orderItem.order?.tableId
-        ) {
-          try {
-            // Get the current order to verify its status
-            const currentOrder = await orderModel.findByPk(orderItem.orderId, {
-              transaction,
-            });
+        // Count active items (non-cancelled, non-completed)
+        const activeItemsCount = await orderItemModel.count({
+          where: {
+            orderId,
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          transaction,
+        });
 
-            // Only proceed if the order is actually being marked as completed/cancelled
-            if (
-              currentOrder &&
-              (currentOrder.status === "completed" ||
-                currentOrder.status === "cancelled")
-            ) {
-              // Count active orders for this table, excluding the current order
-              const activeOrdersCount = await orderModel.count({
+        // Update order status and totalAmount
+        const newOrderStatus =
+          activeItemsCount === 0
+            ? status === "cancelled"
+              ? "cancelled"
+              : "completed"
+            : undefined;
+
+        const orderUpdateData = { totalAmount: newTotalAmount };
+        if (newOrderStatus) {
+          orderUpdateData.status = newOrderStatus;
+        }
+
+        await orderModel.update(orderUpdateData, {
+          where: { id: orderId },
+          transaction,
+        });
+
+        // Handle table if dineIn
+        const order = orderItems.find((item) => item.orderId === orderId).order;
+        if (order.orderType === "dineIn" && order.tableId && newOrderStatus) {
+          const activeOrdersCount = await orderModel.count({
+            where: {
+              tableId: order.tableId,
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
+            transaction,
+          });
+
+          if (activeOrdersCount === 0) {
+            await tableModel.update(
+              {
+                status: "available",
+                sessionId: null,
+                sessionStartTime: null,
+              },
+              {
                 where: {
-                  tableId: orderItem.order.tableId,
-                  status: { [Op.notIn]: ["completed", "cancelled"] },
-                  id: { [Op.ne]: orderItem.orderId },
+                  id: order.tableId,
+                  status: { [Op.ne]: "available" },
                 },
                 transaction,
-              });
-
-              // If no active orders remain, update the table status
-              if (activeOrdersCount === 0) {
-                await tableModel.update(
-                  {
-                    status: "available",
-                    currentSessionId: null, // Clear any session data
-                    sessionStartTime: null,
-                  },
-                  {
-                    where: {
-                      id: orderItem.order.tableId,
-                      status: { [Op.ne]: "available" }, // Only update if not already available
-                    },
-                    transaction,
-                  },
-                );
-              }
-            }
-          } catch (error) {
-            console.error("Error updating table status:", error);
-            // Don't fail the entire operation if table status update fails
-            // The main order item update is more important
+              },
+            );
           }
         }
       }
@@ -1963,7 +2289,7 @@ const updateOrderItemsStatus = async (req) => {
       status: 200,
       success: true,
       message: `Order item(s) updated to ${status} successfully`,
-      data: orderItem,
+      data: orderItems,
     };
   } catch (error) {
     await transaction.rollback();
