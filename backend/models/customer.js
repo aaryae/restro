@@ -4,10 +4,6 @@ const { GENDER } = require("../constants/value-constants");
 module.exports = (sequelize, DataTypes) => {
   class Customer extends Model {
     static associate(models) {
-      // Customer.hasMany(models.orderModel, {
-      //   foreignKey: "customerId",
-      //   as: "orders",
-      // });
       Customer.hasMany(models.orderModel, {
         foreignKey: "customerId",
         as: "orders",

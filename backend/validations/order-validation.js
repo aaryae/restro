@@ -8,53 +8,81 @@ const { validateRequestBody } = require("../helpers/validator-helper");
 
 const createOrderValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    orderType: joi.string().valid("dineIn", "takeaway", "delivery").required(),
-    tableId: joi.number().integer().when("orderType", {
-      is: "dineIn",
-      then: joi.required(),
-      otherwise: joi.optional(),
+    orderType: joi.string().valid("dineIn", "takeaway").required().messages({
+      "any.required": "Order type is required",
+      "string.base": "Order type must be a string",
+      "any.only": "Order type must be one of: dineIn, takeaway",
     }),
-    customerId: joi.number().integer().optional(),
-    customerName: joi.string().min(2).max(255).optional(),
-    customerPhone: joi.string().min(10).max(20).optional(),
-    customerEmail: joi.string().email().optional(),
-    orderItems: joi.array().items(
-      joi.alternatives().try(
-        // Regular order item
-        joi.object({
-          productId: joi.number().integer().required(),
-          quantity: joi.number().integer().min(1).required(),
-          specialInstructions: joi.string().allow("").max(500).optional(),
-          departmentId: joi.number().integer().optional(),
-          isAddon: joi.boolean().valid(false).default(false),
-          tempId: joi.string().optional(),
+    tableId: joi
+      .number()
+      .integer()
+      .when("orderType", {
+        is: "dineIn",
+        then: joi.required().messages({
+          "any.required": "Table ID is required for dine-in orders",
+          "number.base": "Table ID must be a number",
         }),
-        // Addon item
-        joi.object({
-          addonId: joi.number().integer().required(),
-          parentOrderItemId: joi.alternatives().try(joi.string(), joi.number()).required(),
-          quantity: joi.number().integer().min(1).required(),
-          isAddon: joi.boolean().valid(true).required(),
-          specialInstructions: joi.string().allow("").max(500).optional(),
-          // Addon items should not have productId or departmentId as they inherit from parent
-          productId: joi.forbidden(),
-          departmentId: joi.forbidden(),
-          tempId: joi.forbidden(),
-        })
+        otherwise: joi.forbidden(),
+      }),
+    customerDetails: joi
+      .object({
+        firstName: joi.string().min(2).max(255).optional(),
+        lastName: joi.string().min(2).max(255).optional(),
+        name: joi.string().min(2).max(255).optional(), // Alias for flexibility based on samples
+        email: joi.string().email().optional(),
+        mobileNo: joi.string().min(10).max(20).optional(),
+        phone: joi.string().min(10).max(20).optional(), // Alias for flexibility
+      })
+      .optional(),
+    orderItems: joi
+      .array()
+      .items(
+        joi
+          .object({
+            quantity: joi.number().integer().min(1).required(),
+            specialInstructions: joi.string().allow("").max(500).optional(),
+            departmentId: joi.number().integer().required(),
+            discount: joi.number().min(0).optional(),
+            discountPercentage: joi.number().min(0).max(100).optional(),
+            addons: joi
+              .array()
+              .items(
+                joi.object({
+                  addonId: joi.number().integer().required(),
+                  quantity: joi.number().integer().min(1).required(),
+                  specialInstructions: joi
+                    .string()
+                    .allow("")
+                    .max(500)
+                    .optional(),
+                }),
+              )
+              .optional(),
+            productId: joi.number().integer(),
+            openItemId: joi.number().integer(),
+          })
+          .xor("productId", "openItemId"), // Ensure exactly one of productId or openItemId
       )
-    ).min(1).required(),
-    orderNote: joi.string().allow("").max(1000).optional(),
-    estimatedTime: joi.number().integer().min(1).max(300).optional(),
-    deliveryAddress: joi.string().max(500).when("orderType", {
-      is: "delivery",
-      then: joi.required(),
-      otherwise: joi.optional(),
-    }),
-    takeAwayName: joi.string().max(255).when("orderType", {
-      is: "takeaway",
-      then: joi.required(),
-      otherwise: joi.optional(),
-    }),
+      .min(1)
+      .required()
+      .messages({
+        "array.min": "Order must contain at least one item",
+        "object.xor":
+          "Each order item must specify exactly one of productId or openItemId",
+      }),
+    takeAwayName: joi
+      .string()
+      .max(255)
+      .when("orderType", {
+        is: "takeaway",
+        then: joi.required().messages({
+          "any.required": "Takeaway name is required for takeaway orders",
+          "string.empty": "Takeaway name cannot be empty",
+          "string.base": "Takeaway name must be a string",
+          "string.max": "Takeaway name cannot be longer than 255 characters",
+        }),
+        otherwise: joi.forbidden(),
+      }),
     paymentMethod: joi.string().valid("cash", "card", "online").optional(),
   });
 

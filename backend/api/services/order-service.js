@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { v4: uuidv4 } = require("uuid");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
 const {
@@ -152,7 +153,13 @@ const productTopSales = async (req) => {
 const createOrder = async (req) => {
   const transaction = await sequelize.transaction();
   try {
-    const { orderType, tableId, orderItems = [] } = req.body;
+    const {
+      orderType,
+      tableId,
+      orderItems = [],
+      customerDetails,
+      takeAwayName,
+    } = req.body;
     let table = null;
     let sessionId = null;
 
@@ -161,7 +168,11 @@ const createOrder = async (req) => {
       table = await tableModel.findByPk(tableId, { transaction });
       if (!table) {
         await transaction.rollback();
-        return { status: 404, success: false, message: "Table not found" };
+        return {
+          status: 404,
+          success: false,
+          message: "Table not found",
+        };
       }
 
       if (table.status === "available") {
@@ -179,11 +190,119 @@ const createOrder = async (req) => {
       }
     }
 
-    // Separate main items and addons
-    const mainItems = orderItems.filter((item) => !item.isAddon);
-    const addonItems = orderItems.filter((item) => item.isAddon);
+    // Verify all departments exist before processing
+    const departmentIds = [
+      ...new Set(orderItems.map((item) => item.departmentId).filter(Boolean)),
+    ];
+    if (departmentIds.length > 0) {
+      const existingDepartments = await departmentModel.findAll({
+        where: { id: departmentIds },
+        attributes: ["id"],
+        raw: true,
+        transaction,
+      });
 
-    // Group main items by department
+      const existingDepartmentIds = new Set(
+        existingDepartments.map((d) => d.id),
+      );
+      const missingDepartmentIds = departmentIds.filter(
+        (id) => !existingDepartmentIds.has(id),
+      );
+
+      if (missingDepartmentIds.length > 0) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: `The following department IDs do not exist: ${missingDepartmentIds.join(", ")}`,
+        };
+      }
+    }
+
+    // Process items and extract addons
+    const mainItems = [];
+    const addonItems = [];
+
+    // First pass: process all items and generate tempIds
+    for (const item of orderItems) {
+      // Skip if it's an addon (shouldn't happen with proper validation)
+      if (item.isAddon) continue;
+
+      const mainItem = { ...item };
+
+      // Generate a secure tempId for the main item using UUID v4
+      mainItem.tempId = `temp_${uuidv4()}`;
+
+      // Process addons if they exist
+      if (mainItem.addons && mainItem.addons.length > 0) {
+        // Create a copy of addons and clear the original
+        const itemAddons = [...(mainItem.addons || [])];
+
+        // Process each addon
+        for (const addon of itemAddons) {
+          if (!addon.addonId) continue; // Skip invalid addons
+
+          addonItems.push({
+            ...addon,
+            parentTempId: mainItem.tempId, // Link to parent's tempId
+            isAddon: true,
+            departmentId: mainItem.departmentId, // Inherit department from parent
+          });
+        }
+
+        // Remove addons from the main item
+        delete mainItem.addons;
+      }
+
+      mainItems.push(mainItem);
+    }
+
+    // Create a map of tempId to main items for O(1) lookup
+    const mainItemsMap = new Map(mainItems.map((item) => [item.tempId, item]));
+
+    // Process addons and verify their parent items exist
+    const processedAddonItems = [];
+    const invalidAddons = [];
+
+    for (const addon of addonItems) {
+      const parentItem = mainItemsMap.get(addon.parentTempId);
+
+      if (!parentItem) {
+        invalidAddons.push(addon.addonId);
+        continue;
+      }
+
+      // Ensure addon has all required fields
+      processedAddonItems.push({
+        addonId: addon.addonId,
+        quantity: addon.quantity || 1,
+        specialInstructions: addon.specialInstructions || "",
+        isAddon: true,
+        parentTempId: addon.parentTempId,
+        departmentId: parentItem.departmentId, // Ensure department is inherited
+      });
+    }
+
+    // If any addons had invalid parents, return an error
+    if (invalidAddons.length > 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Parent items not found for the following addons: ${invalidAddons.join(", ")}. Make sure parent items are created before their addons.`,
+      };
+    }
+
+    if (mainItems.length === 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Order must contain at least one main item",
+      };
+    }
+
+    // Group main items by department for KOT generation
     const itemsByDepartment = mainItems.reduce((acc, item) => {
       const departmentId = item.departmentId;
       if (!acc[departmentId]) {
@@ -193,10 +312,18 @@ const createOrder = async (req) => {
       return acc;
     }, {});
 
-    // Generate daily base KOT number
+    // Generate KOT numbers for the day
     const today = new Date();
-    const startOfToday = startOfDay(today);
-    const endOfToday = endOfDay(today);
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1,
+    );
 
     const todayKotsCount = await kotModel.count({
       where: {
@@ -209,19 +336,30 @@ const createOrder = async (req) => {
 
     let baseKotNo = todayKotsCount + 1;
 
+    // Prepare order data
+    const orderData = {
+      ...req.body,
+      orderStartTime: new Date(),
+      status: "pending",
+      paymentStatus: "pending",
+      orderNumber: `ORD-${Date.now()}`,
+      customerDetails: customerDetails || null,
+    };
+
+    // Add order type specific data
+    if (orderType === "dineIn") {
+      orderData.sessionId = sessionId;
+      orderData.tableId = tableId;
+    } else if (orderType === "takeaway") {
+      orderData.takeAwayName = takeAwayName;
+    }
+
     // Create the order
-    const order = await orderModel.create(
-      {
-        ...req.body,
-        sessionId,
-        orderStartTime: new Date(),
-      },
-      { transaction },
-    );
+    const order = await orderModel.create(orderData, { transaction });
 
     let totalAmount = 0;
     const kotRecords = [];
-    const createdItems = new Map(); // Store created items by tempId or id
+    const createdItems = new Map(); // Store created items by tempId
 
     // Create KOTs and process main items
     for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
@@ -237,6 +375,7 @@ const createOrder = async (req) => {
 
       kotRecords.push(kot);
 
+      // Process main items
       for (const item of items) {
         const product = item.productId
           ? await productModel.findByPk(item.productId, { transaction })
@@ -251,108 +390,103 @@ const createOrder = async (req) => {
           };
         }
 
-        // Remove price from item to prevent client-side price manipulation
-        const { price: _, ...itemWithoutPrice } = item;
-        const price = product.price;
-        const subtotal = price * item.quantity - (item.discount || 0);
-        totalAmount += subtotal;
+        // Fetch price from DB to prevent manipulation, and apply discounts if provided
+        const unitPrice = product.price;
+        const quantity = item.quantity;
+        let subtotal = unitPrice * quantity;
+        const discountAmount = item.discount || 0;
+        const discountPercentage = item.discountPercentage || 0;
+        subtotal -= discountAmount;
+        subtotal *= 1 - discountPercentage / 100;
 
-        const orderItem = await orderItemModel.create(
-          {
-            ...itemWithoutPrice,
-            orderId: order.id,
-            price, // Use price from database
-            subtotal,
-            departmentId,
-            kotId: kot.id,
-            isAddon: false,
-          },
-          { transaction },
-        );
-
-        // Store created item with its tempId (if any) for addon reference
-        if (item.tempId) {
-          createdItems.set(item.tempId, orderItem);
-        }
-        createdItems.set(orderItem.id, orderItem);
-      }
-    }
-
-    // Process addons after all main items are created
-    for (const addonItem of addonItems) {
-      const parentItem = createdItems.get(addonItem.parentOrderItemId);
-      if (!parentItem) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `Parent item not found for addon: ${addonItem.addonId}`,
-        };
-      }
-
-      const addon = await addonModel.findByPk(addonItem.addonId, {
-        transaction,
-      });
-      if (!addon) {
-        await transaction.rollback();
-        return {
-          status: 404,
-          success: false,
-          message: `Addon not found: ${addonItem.addonId}`,
-        };
-      }
-
-      // Find the KOT for this addon's department
-      const kot = kotRecords.find(
-        (k) => k.departmentId === parentItem.departmentId,
-      );
-      if (!kot) {
-        await transaction.rollback();
-        return {
-          status: 500,
-          success: false,
-          message: "Failed to find KOT for addon",
-        };
-      }
-
-      // Remove price from addonItem to prevent client-side price manipulation
-      const { price: _, ...addonItemWithoutPrice } = addonItem;
-      const price = addon.price;
-      const subtotal = price * addonItem.quantity;
-      totalAmount += subtotal;
-
-      await orderItemModel.create(
-        {
-          ...addonItemWithoutPrice,
+        // Create the main order item
+        const orderItemData = {
           orderId: order.id,
           kotId: kot.id,
-          departmentId: parentItem.departmentId,
-          parentOrderItemId: parentItem.id,
-          price, // Use price from database
+          productId: item.productId,
+          openItemId: item.openItemId,
+          quantity,
+          specialInstructions: item.specialInstructions || "",
+          departmentId: item.departmentId,
+          isAddon: false,
+          price: unitPrice,
           subtotal,
-          isAddon: true,
-          addonId: addon.id,
-        },
-        { transaction },
-      );
+          status: "pending",
+        };
+
+        const createdItem = await orderItemModel.create(orderItemData, {
+          transaction,
+        });
+        if (item.tempId) {
+          createdItems.set(item.tempId, createdItem);
+        }
+        totalAmount += subtotal;
+
+        // Process addons for this main item
+        const itemAddons = processedAddonItems.filter(
+          (addon) => addon.parentTempId === item.tempId,
+        );
+        for (const addon of itemAddons) {
+          const addonProduct = await addonModel.findByPk(addon.addonId, {
+            transaction,
+          });
+          if (!addonProduct) {
+            await transaction.rollback();
+            return {
+              status: 404,
+              success: false,
+              message: `Addon with ID ${addon.addonId} not found`,
+            };
+          }
+
+          const addonSubtotal = addonProduct.price * (addon.quantity || 1);
+          const addonOrderItem = await orderItemModel.create(
+            {
+              orderId: order.id,
+              kotId: kot.id,
+              addonId: addon.addonId,
+              parentOrderItemId: createdItem.id,
+              quantity: addon.quantity || 1,
+              specialInstructions: addon.specialInstructions,
+              departmentId: addon.departmentId,
+              isAddon: true,
+              price: addonProduct.price,
+              subtotal: addonSubtotal,
+              status: "pending",
+            },
+            { transaction },
+          );
+
+          totalAmount += addonSubtotal;
+        }
+      }
     }
 
-    // Update order total amount
+    // Update order with final total amount
     await order.update({ totalAmount }, { transaction });
 
-    // Fetch the complete order with all items and addons
-    const completeOrder = await orderModel.findByPk(order.id, {
+    // Commit the transaction
+    await transaction.commit();
+
+    // Return the created order with all its items
+    const createdOrder = await orderModel.findByPk(order.id, {
       include: [
         {
           model: orderItemModel,
           as: "orderItems",
-          where: { isAddon: false }, // Only get main items
           include: [
+            {
+              model: productModel,
+              as: "product",
+              include: [{ model: productMediaModel, as: "mediaArr" }],
+            },
+            {
+              model: addonModel,
+              as: "addon",
+            },
             {
               model: orderItemModel,
               as: "addons",
-              where: { isAddon: true },
-              required: false,
               include: [
                 {
                   model: addonModel,
@@ -360,30 +494,28 @@ const createOrder = async (req) => {
                 },
               ],
             },
-            {
-              model: productModel,
-              as: "product",
-            },
           ],
         },
+        {
+          model: customerModel,
+          as: "customer",
+        },
+        {
+          model: tableModel,
+          as: "table",
+        },
       ],
-      transaction,
     });
-
-    await transaction.commit();
 
     return {
       status: 201,
       success: true,
       message: "Order created successfully",
-      data: {
-        order: completeOrder,
-        kots: kotRecords,
-      },
+      data: createdOrder,
     };
   } catch (error) {
     await transaction.rollback();
-    console.error("Error creating order:", error);
+    console.error("Create order error:", error);
     return {
       status: 500,
       success: false,
@@ -522,21 +654,38 @@ const getTableActiveOrders = async (req) => {
   const { id: tableId } = req.params;
 
   try {
+    // Find the table with the given ID
     const table = await tableModel.findByPk(tableId);
 
     if (!table) {
-      return { status: 404, success: false, message: "Table not found" };
+      return {
+        status: 404,
+        success: false,
+        message: "Table not found",
+      };
     }
 
+    // Check if table has an active session
     if (!table.sessionId) {
       return {
         status: 200,
         success: true,
         message: "No active session for this table",
-        data: null,
+        data: {
+          table: {
+            id: table.id,
+            tableNo: table.tableNo,
+            status: table.status,
+            sessionId: null,
+            sessionStartTime: null,
+          },
+          orders: [],
+          sessionTotal: 0,
+        },
       };
     }
 
+    // Find all active orders for this table's session
     const orders = await orderModel.findAll({
       where: {
         tableId: tableId,
@@ -551,21 +700,27 @@ const getTableActiveOrders = async (req) => {
             status: { [Op.notIn]: ["completed", "cancelled"] },
             isAddon: false, // Only get main items
           },
-          required: false,
+          required: false, // LEFT JOIN to include orders even without items
           include: [
             {
               model: productModel,
               as: "product",
-              include: [{ model: productMediaModel, as: "mediaArr" }],
+              include: [
+                {
+                  model: productMediaModel,
+                  as: "mediaArr",
+                },
+              ],
               required: false,
             },
+            // Include addons for each order item
             {
               model: orderItemModel,
               as: "addons",
               where: {
                 status: { [Op.notIn]: ["completed", "cancelled"] },
               },
-              required: false,
+              required: false, // LEFT JOIN to include items even without addons
               include: [
                 {
                   model: addonModel,
@@ -576,22 +731,17 @@ const getTableActiveOrders = async (req) => {
             },
           ],
         },
-        {
-          model: customerModel,
-          as: "customer",
-          attributes: ["id", "email"],
-        },
       ],
       order: [["createdAt", "ASC"]],
     });
 
-    // Transform orders and calculate totals
+    // Transform the orders to include calculated totals
     let sessionTotal = 0;
     const transformedOrders = orders.map((order) => {
       const plainOrder = order.get({ plain: true });
       let orderTotal = 0;
 
-      if (plainOrder.orderItems) {
+      if (plainOrder.orderItems && plainOrder.orderItems.length > 0) {
         plainOrder.orderItems = plainOrder.orderItems.map((item) => {
           // Calculate addons total for this item
           const addonsTotal = (item.addons || []).reduce((sum, addon) => {
@@ -611,10 +761,10 @@ const getTableActiveOrders = async (req) => {
             originalSubtotal: item.subtotal,
           };
         });
-      }
 
-      // Update session total
-      sessionTotal += orderTotal;
+        // Update session total
+        sessionTotal += orderTotal;
+      }
 
       return {
         ...plainOrder,
@@ -648,8 +798,6 @@ const getTableActiveOrders = async (req) => {
     };
   }
 };
-
-// const { Op } = require("sequelize");
 
 const checkoutOrder = async (req) => {
   const transaction = await sequelize.transaction();
@@ -1256,26 +1404,58 @@ const getOrderById = async (req) => {
   const { itemStatus } = req.query;
 
   try {
+    // Build the include options based on itemStatus
     const include = [
       {
         model: orderItemModel,
         as: "orderItems",
-        include: [
-          {
-            model: productModel,
-            as: "product",
-            include: [{ model: productMediaModel, as: "mediaArr" }],
-          },
-        ],
-        ...(itemStatus && {
-          where: {
+        where: {
+          isAddon: false, // Only get main items
+          ...(itemStatus && {
             status: itemStatus.includes(",")
               ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
               : itemStatus === "active"
                 ? { [Op.notIn]: ["completed", "cancelled"] }
                 : { [Op.eq]: itemStatus },
+          }),
+        },
+        required: false,
+        include: [
+          {
+            model: productModel,
+            as: "product",
+            include: [
+              {
+                model: productMediaModel,
+                as: "mediaArr",
+              },
+            ],
+            required: false,
           },
-        }),
+          // Include addons for each order item
+          {
+            model: orderItemModel,
+            as: "addons",
+            where:
+              itemStatus && itemStatus !== "active"
+                ? {
+                    status: itemStatus.includes(",")
+                      ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
+                      : { [Op.eq]: itemStatus },
+                  }
+                : {
+                    status: { [Op.notIn]: ["completed", "cancelled"] },
+                  },
+            required: false,
+            include: [
+              {
+                model: addonModel,
+                as: "addon",
+                required: false,
+              },
+            ],
+          },
+        ],
       },
       {
         model: customerModel,
@@ -1287,17 +1467,58 @@ const getOrderById = async (req) => {
       },
     ];
 
+    // Find the order with the given ID
     const order = await orderModel.findByPk(id, { include });
 
     if (!order) {
-      return { status: 404, success: false, message: "Order not found" };
+      return {
+        status: 404,
+        success: false,
+        message: "Order not found",
+      };
+    }
+
+    // Transform the order to include calculated totals
+    const plainOrder = order.get({ plain: true });
+    let orderTotal = 0;
+
+    if (plainOrder.orderItems && plainOrder.orderItems.length > 0) {
+      plainOrder.orderItems = plainOrder.orderItems.map((item) => {
+        // Calculate addons total for this item (excluding cancelled addons)
+        const addonsTotal = (item.addons || []).reduce((sum, addon) => {
+          return addon.status === "cancelled"
+            ? sum
+            : sum + (parseFloat(addon.subtotal) || 0);
+        }, 0);
+
+        // Calculate item total (0 if item is cancelled, otherwise subtotal + addons)
+        const itemTotal =
+          item.status === "cancelled"
+            ? 0
+            : (parseFloat(item.subtotal) || 0) + addonsTotal;
+
+        // Update order total (only include non-cancelled items)
+        if (item.status !== "cancelled") {
+          orderTotal += itemTotal;
+        }
+
+        return {
+          ...item,
+          addonsTotal,
+          itemTotal,
+          originalSubtotal: item.subtotal,
+        };
+      });
+
+      // Add the calculated total to the order
+      plainOrder.calculatedTotal = orderTotal;
     }
 
     return {
       status: 200,
       success: true,
       message: "Order retrieved successfully",
-      data: order,
+      data: plainOrder,
     };
   } catch (error) {
     console.error("Get order by ID error:", error);
