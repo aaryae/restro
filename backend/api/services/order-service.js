@@ -611,6 +611,7 @@ const updateOrderItems = async (req) => {
         const percentageDiscount =
           price * quantity * (discountPercentage / 100);
         const flatDiscount = discountAmount + percentageDiscount;
+        const subtotal = price * quantity - flatDiscount;
 
         await existing.update(
           {
@@ -620,6 +621,7 @@ const updateOrderItems = async (req) => {
                 ? incoming.specialInstructions
                 : existing.specialInstructions,
             discount: flatDiscount,
+            subtotal,
           },
           { transaction },
         );
@@ -666,6 +668,11 @@ const updateOrderItems = async (req) => {
               addon.quantity !== undefined ||
               addon.specialInstructions !== undefined
             ) {
+              const addonSubtotal =
+                addonProduct.price *
+                (addon.quantity !== undefined
+                  ? addon.quantity
+                  : existingAddon.quantity);
               await existingAddon.update(
                 {
                   quantity:
@@ -676,12 +683,14 @@ const updateOrderItems = async (req) => {
                     addon.specialInstructions !== undefined
                       ? addon.specialInstructions
                       : existingAddon.specialInstructions,
+                  subtotal: addonSubtotal,
                 },
                 { transaction },
               );
             }
           } else {
             // Create new addon
+            const addonSubtotal = addonProduct.price * (addon.quantity || 1);
             await orderItemModel.create(
               {
                 orderId,
@@ -694,6 +703,7 @@ const updateOrderItems = async (req) => {
                 isAddon: true,
                 price: addonProduct.price,
                 discount: 0, // No discounts for addons
+                subtotal: addonSubtotal,
                 status: "pending",
               },
               { transaction },
@@ -781,12 +791,13 @@ const updateOrderItems = async (req) => {
             };
           }
 
-          // Compute discount
+          // Compute discount and subtotal
           const discountAmount = item.discount || 0;
           const discountPercentage = item.discountPercentage || 0;
           const percentageDiscount =
             product.price * item.quantity * (discountPercentage / 100);
           const flatDiscount = discountAmount + percentageDiscount;
+          const subtotal = product.price * item.quantity - flatDiscount;
 
           // Create main item
           const createdItem = await orderItemModel.create(
@@ -800,6 +811,7 @@ const updateOrderItems = async (req) => {
               isAddon: false,
               price: product.price,
               discount: flatDiscount,
+              subtotal,
               status: "pending",
               kotId: kot.id,
             },
@@ -836,6 +848,7 @@ const updateOrderItems = async (req) => {
               };
             }
 
+            const addonSubtotal = addonProduct.price * (addon.quantity || 1);
             await orderItemModel.create(
               {
                 orderId,
@@ -848,6 +861,7 @@ const updateOrderItems = async (req) => {
                 isAddon: true,
                 price: addonProduct.price,
                 discount: 0,
+                subtotal: addonSubtotal,
                 status: "pending",
               },
               { transaction },
@@ -857,21 +871,67 @@ const updateOrderItems = async (req) => {
       }
     }
 
-    // Recalculate order total (exclude cancelled items and addons)
+    // Recalculate order totalAmount and payableAmount
     const validItems = await orderItemModel.findAll({
       where: {
         orderId,
-        status: { [Op.ne]: "cancelled" },
+        isAddon: false,
       },
+      include: [
+        {
+          model: orderItemModel,
+          as: "addons",
+          required: false,
+        },
+      ],
       transaction,
     });
 
-    const totalAmount = validItems.reduce(
-      (sum, item) => sum + Number(item.subtotal),
-      0,
+    // Calculate totalAmount (all non-cancelled items, including addons)
+    const totalAmount = validItems.reduce((sum, item) => {
+      if (item.status === "cancelled") return sum;
+      const itemTotal =
+        Number(item.subtotal) ||
+        Number(item.price) * Number(item.quantity) - Number(item.discount || 0);
+      const addonTotal = (item.addons || []).reduce((asum, addon) => {
+        if (addon.status === "cancelled") return asum;
+        return (
+          asum +
+          (Number(addon.subtotal) ||
+            Number(addon.price) * Number(addon.quantity) -
+              Number(addon.discount || 0))
+        );
+      }, 0);
+      return sum + itemTotal + addonTotal;
+    }, 0);
+
+    // Calculate payableAmount (non-cancelled, non-completed items, including addons)
+    const payableAmount = validItems.reduce((sum, item) => {
+      if (item.status === "cancelled" || item.status === "completed")
+        return sum;
+      const itemTotal =
+        Number(item.subtotal) ||
+        Number(item.price) * Number(item.quantity) - Number(item.discount || 0);
+      const addonTotal = (item.addons || []).reduce((asum, addon) => {
+        if (addon.status === "cancelled" || addon.status === "completed")
+          return asum;
+        return (
+          asum +
+          (Number(addon.subtotal) ||
+            Number(addon.price) * Number(addon.quantity) -
+              Number(addon.discount || 0))
+        );
+      }, 0);
+      return sum + itemTotal + addonTotal;
+    }, 0);
+
+    // Log calculations for debugging
+    console.log(
+      `Order ${orderId}: totalAmount=${totalAmount}, payableAmount=${payableAmount}`,
     );
 
-    await order.update({ totalAmount }, { transaction });
+    // Update order with totalAmount and payableAmount
+    await order.update({ totalAmount, payableAmount }, { transaction });
 
     // Refetch order for response
     const updatedOrder = await orderModel.findByPk(orderId, {
