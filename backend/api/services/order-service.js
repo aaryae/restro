@@ -2359,23 +2359,22 @@ const bulkServeOrderItems = async (req) => {
 
 // this is for departments to update order item status
 const updateOrderItemsStatus = async (req) => {
-  let { orderItemIds, status } = req.body;
-  orderItemIds = Array.isArray(orderItemIds) ? orderItemIds : [orderItemIds]; // Normalize to array
+  const { orderItemIds, status } = req.body;
 
-  if (orderItemIds.length === 0) {
+  if (!orderItemIds || !Number.isInteger(orderItemIds)) {
     return {
       status: 400,
       success: false,
-      message: "No order item IDs provided",
+      message: "A single valid order item ID must be provided",
     };
   }
 
   const transaction = await sequelize.transaction();
 
   try {
-    // Fetch all order items with includes
-    const orderItems = await orderItemModel.findAll({
-      where: { id: { [Op.in]: orderItemIds } },
+    // Fetch the order item with includes
+    const orderItem = await orderItemModel.findOne({
+      where: { id: orderItemIds },
       include: [
         {
           model: orderModel,
@@ -2390,176 +2389,209 @@ const updateOrderItemsStatus = async (req) => {
         {
           model: orderItemModel,
           as: "addons", // Include addons to handle cancellation
+          where: { status: { [Op.ne]: "cancelled" } }, // Only fetch non-cancelled addons
+          required: false,
         },
       ],
       transaction,
     });
 
-    if (orderItems.length !== orderItemIds.length) {
+    if (!orderItem) {
       await transaction.rollback();
       return {
         status: 404,
         success: false,
-        message: "One or more order items not found",
+        message: "Order item not found",
       };
     }
 
-    // Validate transitions for each item
-    for (const orderItem of orderItems) {
-      if (
-        (status === "preparing" && orderItem.status !== "pending") ||
-        (status === "ready" && orderItem.status !== "preparing")
-      ) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: "Invalid status transition for one or more order items",
-        };
-      }
+    // Validate status transition
+    if (
+      (status === "preparing" && orderItem.status !== "pending") ||
+      (status === "ready" && orderItem.status !== "preparing")
+    ) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Invalid status transition for the order item",
+      };
     }
 
-    // Batch update all items
+    // Update the order item
     await orderItemModel.update(
       { status },
       {
-        where: { id: { [Op.in]: orderItemIds } },
+        where: { id: orderItemIds },
         validate: false,
         transaction,
       },
     );
 
-    // If cancelled, handle KOTs and addons per item
+    // If cancelled, handle addons and KOT
     if (status === "cancelled") {
-      for (const orderItem of orderItems) {
-        // Cancel associated addons
-        if (!orderItem.isAddon) {
-          // Only main items have addons
-          await orderItemModel.update(
-            { status: "cancelled" },
-            {
-              where: { parentOrderItemId: orderItem.id },
-              validate: false,
-              transaction,
-            },
-          );
-        }
+      // Cancel associated addons
+      if (!orderItem.isAddon) {
+        await orderItemModel.update(
+          { status: "cancelled" },
+          {
+            where: { parentOrderItemId: orderItem.id },
+            validate: false,
+            transaction,
+          },
+        );
+      }
 
-        // Handle KOTs
-        const kots = await kotModel.findAll({
-          include: [
-            {
-              model: orderItemModel,
-              as: "orderItems",
-              where: { id: orderItem.id },
-              attributes: [],
-              required: true,
-            },
-          ],
+      // Handle KOT
+      if (orderItem.kotId) {
+        const kotItems = await orderItemModel.findAll({
+          where: { kotId: orderItem.kotId },
           transaction,
         });
 
-        for (const kot of kots) {
-          const kotItems = await orderItemModel.findAll({
-            where: { kotId: kot.id },
-            transaction,
-          });
+        const allItemsCancelled = kotItems.every(
+          (item) => item.status === "cancelled",
+        );
 
-          const allItemsCancelled = kotItems.every(
-            (item) => item.status === "cancelled",
+        if (allItemsCancelled) {
+          await kotModel.update(
+            { status: "cancelled" },
+            {
+              where: { id: orderItem.kotId },
+              transaction,
+              validate: false,
+            },
           );
-
-          if (allItemsCancelled && kot.status !== "cancelled") {
-            await kotModel.update(
-              { status: "cancelled" },
-              {
-                where: { id: kot.id },
-                transaction,
-                validate: false,
-              },
-            );
-          }
         }
       }
     }
 
-    // If cancelled or completed, handle orders and tables
+    // If cancelled or completed, update order and table
     if (["cancelled", "completed"].includes(status)) {
-      // Get unique orderIds
-      const uniqueOrderIds = [
-        ...new Set(orderItems.map((item) => item.orderId)),
-      ];
+      const orderId = orderItem.orderId;
 
-      for (const orderId of uniqueOrderIds) {
-        // Recalculate totalAmount for the order
-        const activeItems = await orderItemModel.findAll({
-          where: {
-            orderId,
-            status: { [Op.notIn]: ["cancelled"] }, // Exclude cancelled items
+      // Recalculate totalAmount and payableAmount
+      const mainItems = await orderItemModel.findAll({
+        where: {
+          orderId,
+          isAddon: false,
+        },
+        include: [
+          {
+            model: orderItemModel,
+            as: "addons",
+            required: false,
           },
-          attributes: ["subtotal"],
-          transaction,
-        });
+        ],
+        transaction,
+      });
 
-        const newTotalAmount = activeItems.reduce(
-          (sum, item) => sum + parseFloat(item.subtotal || 0),
-          0,
+      // Calculate totalAmount (all non-cancelled items, including addons)
+      const totalAmount = mainItems.reduce((sum, item) => {
+        if (item.status === "cancelled") return sum;
+        const itemTotal =
+          Number(item.subtotal) ||
+          Number(item.price) * Number(item.quantity) -
+            Number(item.discount || 0);
+        const addonTotal = (item.addons || []).reduce((asum, addon) => {
+          if (addon.status === "cancelled") return asum;
+          return (
+            asum +
+            (Number(addon.subtotal) ||
+              Number(addon.price) * Number(addon.quantity) -
+                Number(addon.discount || 0))
+          );
+        }, 0);
+        return sum + itemTotal + addonTotal;
+      }, 0);
+
+      // Calculate payableAmount (non-cancelled, non-completed items, including addons)
+      const payableAmount = mainItems.reduce((sum, item) => {
+        if (item.status === "cancelled" || item.status === "completed")
+          return sum;
+        const itemTotal =
+          Number(item.subtotal) ||
+          Number(item.price) * Number(item.quantity) -
+            Number(item.discount || 0);
+        const addonTotal = (item.addons || []).reduce((asum, addon) => {
+          if (addon.status === "cancelled" || addon.status === "completed")
+            return asum;
+          return (
+            asum +
+            (Number(addon.subtotal) ||
+              Number(addon.price) * Number(addon.quantity) -
+                Number(addon.discount || 0))
+          );
+        }, 0);
+        return sum + itemTotal + addonTotal;
+      }, 0);
+
+      // Log calculations for debugging
+      console.log(
+        `Order ${orderId}: totalAmount=${totalAmount}, payableAmount=${payableAmount}`,
+      );
+
+      // Count active items (non-cancelled, non-completed)
+      const activeItemsCount = mainItems.reduce((count, item) => {
+        if (item.status === "cancelled" || item.status === "completed")
+          return count;
+        return (
+          count +
+          1 +
+          (item.addons || []).filter(
+            (addon) =>
+              addon.status !== "cancelled" && addon.status !== "completed",
+          ).length
         );
+      }, 0);
 
-        // Count active items (non-cancelled, non-completed)
-        const activeItemsCount = await orderItemModel.count({
+      // Update order status, totalAmount, and payableAmount
+      const newOrderStatus =
+        activeItemsCount === 0
+          ? status === "cancelled"
+            ? "cancelled"
+            : "completed"
+          : undefined;
+
+      const orderUpdateData = { totalAmount, payableAmount };
+      if (newOrderStatus) {
+        orderUpdateData.status = newOrderStatus;
+        if (newOrderStatus === "completed") {
+          orderUpdateData.paymentStatus = "pending";
+        }
+      }
+
+      await orderModel.update(orderUpdateData, {
+        where: { id: orderId },
+        transaction,
+      });
+
+      // Handle table if dineIn
+      const order = orderItem.order;
+      if (order.orderType === "dineIn" && order.tableId && newOrderStatus) {
+        const activeOrdersCount = await orderModel.count({
           where: {
-            orderId,
+            tableId: order.tableId,
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
           transaction,
         });
 
-        // Update order status and totalAmount
-        const newOrderStatus =
-          activeItemsCount === 0
-            ? status === "cancelled"
-              ? "cancelled"
-              : "completed"
-            : undefined;
-
-        const orderUpdateData = { totalAmount: newTotalAmount };
-        if (newOrderStatus) {
-          orderUpdateData.status = newOrderStatus;
-        }
-
-        await orderModel.update(orderUpdateData, {
-          where: { id: orderId },
-          transaction,
-        });
-
-        // Handle table if dineIn
-        const order = orderItems.find((item) => item.orderId === orderId).order;
-        if (order.orderType === "dineIn" && order.tableId && newOrderStatus) {
-          const activeOrdersCount = await orderModel.count({
-            where: {
-              tableId: order.tableId,
-              status: { [Op.notIn]: ["completed", "cancelled"] },
+        if (activeOrdersCount === 0) {
+          await tableModel.update(
+            {
+              status: "available",
+              sessionId: null,
+              sessionStartTime: null,
             },
-            transaction,
-          });
-
-          if (activeOrdersCount === 0) {
-            await tableModel.update(
-              {
-                status: "available",
-                sessionId: null,
-                sessionStartTime: null,
+            {
+              where: {
+                id: order.tableId,
+                status: { [Op.ne]: "available" },
               },
-              {
-                where: {
-                  id: order.tableId,
-                  status: { [Op.ne]: "available" },
-                },
-                transaction,
-              },
-            );
-          }
+              transaction,
+            },
+          );
         }
       }
     }
@@ -2568,8 +2600,8 @@ const updateOrderItemsStatus = async (req) => {
     return {
       status: 200,
       success: true,
-      message: `Order item(s) updated to ${status} successfully`,
-      data: orderItems,
+      message: `Order item updated to ${status} successfully`,
+      data: [orderItem],
     };
   } catch (error) {
     await transaction.rollback();
