@@ -462,8 +462,11 @@ const createOrder = async (req) => {
       }
     }
 
-    // Update order with final total amount
-    await order.update({ totalAmount }, { transaction });
+    // Update order with final total amount and payable amount
+    await order.update(
+      { totalAmount, payableAmount: totalAmount },
+      { transaction },
+    );
 
     // Commit the transaction
     await transaction.commit();
@@ -1091,10 +1094,9 @@ const checkoutOrder = async (req) => {
       isGuestOrder = false,
       accountId,
       orderItemIds,
+      payments,
       ...updateData
     } = req.body;
-
-    console.log(`******************\n${orderItemIds}\n****************`);
 
     // For dine-in flow, tableId is used; for takeaway, tableId may be missing/ignored
     const hasTable =
@@ -1103,7 +1105,7 @@ const checkoutOrder = async (req) => {
       tableId !== "null" &&
       tableId !== "undefined";
 
-    // Validate paymentMethod if provided
+    // Validate paymentMethod if provided (for single payment)
     const validPaymentMethods = ["cash", "card", "online", "cheque"];
     if (
       updateData.paymentMethod &&
@@ -1112,6 +1114,65 @@ const checkoutOrder = async (req) => {
       await transaction.rollback();
       return { status: 400, success: false, message: "Invalid payment method" };
     }
+
+    // Helper function to calculate order amounts
+    const calculateOrderAmounts = async (orderId, transaction) => {
+      const mainItems = await orderItemModel.findAll({
+        where: {
+          orderId,
+          isAddon: false,
+          status: { [Op.ne]: "cancelled" },
+        },
+        include: [
+          {
+            model: orderItemModel,
+            as: "addons",
+            where: { status: { [Op.ne]: "cancelled" } },
+            required: false,
+          },
+        ],
+        transaction,
+      });
+
+      const totalAmount = mainItems.reduce((sum, item) => {
+        const itemTotal =
+          Number(item.subtotal) ||
+          Number(item.price) * Number(item.quantity) -
+            Number(item.discount || 0);
+        const addonTotal = item.addons.reduce(
+          (asum, addon) =>
+            asum +
+            (Number(addon.subtotal) ||
+              Number(addon.price) * Number(addon.quantity) -
+                Number(addon.discount || 0)),
+          0,
+        );
+        return sum + itemTotal + addonTotal;
+      }, 0);
+
+      const remainingMainItems = mainItems.filter(
+        (item) => item.status !== "completed",
+      );
+      const payableAmount = remainingMainItems.reduce((sum, item) => {
+        const itemTotal =
+          Number(item.subtotal) ||
+          Number(item.price) * Number(item.quantity) -
+            Number(item.discount || 0);
+        const addonTotal = item.addons
+          .filter((a) => a.status !== "completed")
+          .reduce(
+            (asum, addon) =>
+              asum +
+              (Number(addon.subtotal) ||
+                Number(addon.price) * Number(addon.quantity) -
+                  Number(addon.discount || 0)),
+            0,
+          );
+        return sum + itemTotal + addonTotal;
+      }, 0);
+
+      return { totalAmount, payableAmount };
+    };
 
     // If selective checkout by order items is requested, handle that path
     if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
@@ -1208,9 +1269,81 @@ const checkoutOrder = async (req) => {
         }
       }
 
+      // Prepare payments
+      let paymentList = [];
+      if (Array.isArray(payments) && payments.length > 0) {
+        const totalPaid = payments.reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0,
+        );
+        const subsetTotal = Object.values(itemsByOrder).reduce(
+          (sum, { mainItems, addons }) => {
+            return (
+              sum +
+              [...mainItems, ...addons].reduce((s, it) => {
+                const line =
+                  Number(it.subtotal) ||
+                  Number(it.price) * Number(it.quantity) -
+                    Number(it.discount || 0);
+                return s + (isNaN(line) ? 0 : line);
+              }, 0)
+            );
+          },
+          0,
+        );
+        if (totalPaid !== subsetTotal) {
+          await transaction.rollback();
+          return {
+            status: 400,
+            success: false,
+            message:
+              "Payments must cover exactly the selected items' total amount",
+          };
+        }
+        for (const p of payments) {
+          if (!validPaymentMethods.includes(p.paymentMethod)) {
+            await transaction.rollback();
+            return {
+              status: 400,
+              success: false,
+              message: "Invalid payment method in split",
+            };
+          }
+        }
+        paymentList = payments;
+      } else {
+        const subsetTotal = Object.values(itemsByOrder).reduce(
+          (sum, { mainItems, addons }) => {
+            return (
+              sum +
+              [...mainItems, ...addons].reduce((s, it) => {
+                const line =
+                  Number(it.subtotal) ||
+                  Number(it.price) * Number(it.quantity) -
+                    Number(it.discount || 0);
+                return s + (isNaN(line) ? 0 : line);
+              }, 0)
+            );
+          },
+          0,
+        );
+        paymentList = [
+          {
+            paymentMethod: updateData.paymentMethod || "cash",
+            amount: subsetTotal,
+            cashOrCredit: updateData.cashOrCredit || "cash",
+            remarks: updateData.remarks,
+            accountId: selectedAccountId,
+          },
+        ];
+      }
+
       const updatedOrders = [];
       const revenueEntries = [];
-      let combinedTotalAmount = 0;
+      let combinedPaidAmount = paymentList.reduce(
+        (sum, p) => sum + Number(p.amount),
+        0,
+      );
 
       // Process each order
       for (const [oid, { mainItems, addons }] of Object.entries(itemsByOrder)) {
@@ -1221,6 +1354,10 @@ const checkoutOrder = async (req) => {
             Number(it.price) * Number(it.quantity) - Number(it.discount || 0);
           return sum + (isNaN(line) ? 0 : line);
         }, 0);
+
+        // Recalculate original amounts before marking
+        const { totalAmount: originalTotal, payableAmount: originalPayable } =
+          await calculateOrderAmounts(oid, transaction);
 
         // Mark main items and their addons as completed
         const allItemIds = [
@@ -1272,68 +1409,69 @@ const checkoutOrder = async (req) => {
           }
         }
 
-        // Recalculate order totalAmount for remaining items
-        const remainingItems = await orderItemModel.findAll({
-          where: {
-            orderId: oid,
-            status: { [Op.notIn]: ["completed", "cancelled"] },
-          },
-          include: [
-            {
-              model: orderItemModel,
-              as: "addons",
-              where: { status: { [Op.ne]: "cancelled" } },
-              required: false,
-            },
-          ],
-          transaction,
-        });
+        // Recalculate order amounts after marking
+        const { totalAmount, payableAmount: calculatedNewPayable } =
+          await calculateOrderAmounts(oid, transaction);
 
-        const newTotalAmount = remainingItems.reduce((sum, item) => {
-          const itemTotal =
-            Number(item.subtotal) ||
-            Number(item.price) * Number(item.quantity) -
-              Number(item.discount || 0);
-          const addonTotal = (item.addons || []).reduce((addonSum, addon) => {
-            const addonLine =
-              Number(addon.subtotal) ||
-              Number(addon.price) * Number(addon.quantity) -
-                Number(addon.discount || 0);
-            return addonSum + (isNaN(addonLine) ? 0 : addonLine);
-          }, 0);
-          return sum + itemTotal + addonTotal;
-        }, 0);
+        // Distribute payment across the order
+        const amountPaidForOrder = subsetTotal;
+        const newPayableAmount = originalPayable - amountPaidForOrder;
 
-        // Update order: mark as completed if no remaining items, update totalAmount
-        const orderRecord = await orderModel.findByPk(oid, { transaction });
-        const updateFields = { totalAmount: newTotalAmount };
-        if (remainingItems.length === 0) {
+        if (newPayableAmount !== calculatedNewPayable) {
+          await transaction.rollback();
+          return {
+            status: 500,
+            success: false,
+            message: `Inconsistent payable amount calculation for order ${oid}`,
+          };
+        }
+
+        // Update order
+        const updateFields = {
+          totalAmount,
+          payableAmount: newPayableAmount,
+        };
+        if (newPayableAmount <= 0) {
           updateFields.status = "completed";
           updateFields.paymentStatus = "paid";
           updateFields.orderFinishTime = new Date();
+        } else {
+          updateFields.paymentStatus = "partially_paid";
         }
+        const orderRecord = await orderModel.findByPk(oid, { transaction });
         await orderRecord.update(updateFields, { transaction });
 
-        // Create revenue entry for this subset
-        if (subsetTotal > 0) {
-          const revenue = await revenueModel.create(
-            {
-              amount: subsetTotal,
-              paymentMethod: updateData.paymentMethod || "cash",
-              cash_or_credit: updateData.cashOrCredit || "cash",
-              customerId: orderRecord.customerId || null,
-              userId: req.user.id,
-              accountId: selectedAccountId,
-              remarks:
-                updateData.remarks ||
-                `Revenue from partial checkout of order ${oid}`,
-            },
-            { transaction },
+        // Create revenue entries for this subset
+        let remainingAmount = amountPaidForOrder;
+        for (const payment of paymentList) {
+          if (remainingAmount <= 0) break;
+          const paymentAmount = Math.min(
+            Number(payment.amount),
+            remainingAmount,
           );
-          revenueEntries.push(revenue);
-          updatedOrders.push(orderRecord);
-          combinedTotalAmount += subsetTotal;
+          if (paymentAmount > 0) {
+            const revenue = await revenueModel.create(
+              {
+                amount: paymentAmount,
+                paymentMethod: payment.paymentMethod,
+                cash_or_credit: payment.cashOrCredit || "cash",
+                customerId: orderRecord.customerId || null,
+                userId: req.user.id,
+                accountId: payment.accountId || selectedAccountId,
+                remarks:
+                  payment.remarks ||
+                  `Revenue from partial checkout of order ${oid}`,
+                orderId: oid,
+              },
+              { transaction },
+            );
+            revenueEntries.push(revenue);
+            remainingAmount -= paymentAmount;
+            payment.amount = Number(payment.amount) - paymentAmount;
+          }
         }
+
+        updatedOrders.push(orderRecord);
       }
 
       // Free table if no active orders remain
@@ -1362,7 +1500,7 @@ const checkoutOrder = async (req) => {
         data: {
           orders: updatedOrders,
           revenueEntries,
-          combinedTotalAmount,
+          combinedPaidAmount,
         },
       };
     }
@@ -1485,36 +1623,35 @@ const checkoutOrder = async (req) => {
       };
     }
 
-    // Calculate totalAmount for each order and combined total
-    let combinedTotalAmount = 0;
+    // Recalculate totalAmount and payableAmount for each order
     for (const order of orders) {
-      const orderTotal = order.orderItems.reduce((total, item) => {
-        const itemTotal =
-          Number(item.subtotal) ||
-          Number(item.price) * Number(item.quantity) -
-            Number(item.discount || 0);
-        const addonTotal = (item.addons || []).reduce((sum, addon) => {
-          const addonLine =
-            Number(addon.subtotal) ||
-            Number(addon.price) * Number(addon.quantity) -
-              Number(addon.discount || 0);
-          return sum + (isNaN(addonLine) ? 0 : addonLine);
-        }, 0);
-        return total + itemTotal + addonTotal;
-      }, 0);
+      const { totalAmount, payableAmount } = await calculateOrderAmounts(
+        order.id,
+        transaction,
+      );
 
-      if (isNaN(orderTotal) || orderTotal < 0) {
+      if (
+        isNaN(totalAmount) ||
+        totalAmount < 0 ||
+        isNaN(payableAmount) ||
+        payableAmount < 0
+      ) {
         await transaction.rollback();
         return {
           status: 500,
           success: false,
-          message: `Invalid total amount for order ${order.id}`,
+          message: `Invalid amounts for order ${order.id}`,
         };
       }
 
-      combinedTotalAmount += orderTotal;
-      await order.update({ totalAmount: orderTotal }, { transaction });
+      await order.update({ totalAmount, payableAmount }, { transaction });
     }
+
+    // Calculate combined payable amount
+    const combinedPayableAmount = orders.reduce(
+      (sum, order) => sum + Number(order.payableAmount),
+      0,
+    );
 
     let finalCustomerId = null;
     let customer = null;
@@ -1546,13 +1683,221 @@ const checkoutOrder = async (req) => {
       finalCustomerId = customer.id;
     }
 
+    // Prepare payments
+    let paymentList = [];
+    let usedMethods = [];
+    if (checkoutAll && Array.isArray(payments) && payments.length > 0) {
+      // Split payment
+      const totalPaid = payments.reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0,
+      );
+      if (totalPaid > combinedPayableAmount) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message:
+            "Total payment amount cannot exceed the remaining payable amount",
+        };
+      }
+      for (const p of payments) {
+        if (!validPaymentMethods.includes(p.paymentMethod)) {
+          await transaction.rollback();
+          return {
+            status: 400,
+            success: false,
+            message: "Invalid payment method in split",
+          };
+        }
+      }
+      paymentList = payments;
+      usedMethods = [...new Set(payments.map((p) => p.paymentMethod))];
+    } else {
+      // Single payment
+      paymentList = [
+        {
+          paymentMethod: updateData.paymentMethod || "cash",
+          amount: combinedPayableAmount,
+          cashOrCredit: updateData.cashOrCredit || "cash",
+          remarks: updateData.remarks,
+          accountId: accountId,
+        },
+      ];
+      usedMethods = [paymentList[0].paymentMethod];
+    }
+
+    // Distribute payments across orders
+    let remainingTotalPaid = paymentList.reduce(
+      (sum, p) => sum + Number(p.amount),
+      0,
+    );
+    const updatedOrders = [];
+    const revenueEntries = [];
+
+    for (const order of orders) {
+      const amountPaidForOrder = Math.min(
+        Number(order.payableAmount),
+        remainingTotalPaid,
+      );
+      const newPayableAmount = Number(order.payableAmount) - amountPaidForOrder;
+
+      // Create revenue entries for this order
+      let orderRemainingAmount = amountPaidForOrder;
+      for (const payment of paymentList) {
+        if (orderRemainingAmount <= 0) break;
+        const paymentAmount = Math.min(
+          Number(payment.amount),
+          orderRemainingAmount,
+        );
+        if (paymentAmount <= 0) continue;
+
+        let selectedAccountId = payment.accountId;
+        if (!selectedAccountId) {
+          let account = await accountModel.findOne({
+            where: { isDefault: true, status: "active" },
+            transaction,
+          });
+          if (!account) {
+            const accountTypeMap = {
+              cash: "cash",
+              card: "bank",
+              cheque: "bank",
+              online: "wallet",
+            };
+            const accountType = accountTypeMap[payment.paymentMethod] || "cash";
+            account = await accountModel.findOne({
+              where: { accountType, isDefault: true, status: "active" },
+              transaction,
+            });
+            if (!account) {
+              account = await accountModel.findOne({
+                where: { accountType, status: "active" },
+                transaction,
+              });
+            }
+          }
+          if (!account) {
+            await transaction.rollback();
+            return {
+              status: 400,
+              success: false,
+              message: "No active account available for checkout",
+            };
+          }
+          selectedAccountId = account.id;
+        } else {
+          const account = await accountModel.findByPk(selectedAccountId, {
+            transaction,
+          });
+          if (!account || account.status !== "active") {
+            await transaction.rollback();
+            return {
+              status: 400,
+              success: false,
+              message: `Invalid or inactive account ID: ${selectedAccountId}`,
+            };
+          }
+        }
+
+        const revenue = await revenueModel.create(
+          {
+            amount: paymentAmount,
+            paymentMethod: payment.paymentMethod,
+            cash_or_credit: payment.cashOrCredit || "cash",
+            customerId: finalCustomerId,
+            userId: req.user.id,
+            accountId: selectedAccountId,
+            remarks:
+              payment.remarks || `Revenue from checkout of order ${order.id}`,
+            orderId: order.id,
+          },
+          { transaction },
+        );
+        revenueEntries.push(revenue);
+        orderRemainingAmount -= paymentAmount;
+        payment.amount = Number(payment.amount) - paymentAmount;
+      }
+
+      // Update order
+      const updateFields = {
+        ...updateData,
+        paymentMethods: usedMethods,
+        customerId: finalCustomerId,
+        isGuestOrder,
+        payableAmount: newPayableAmount,
+      };
+      if (newPayableAmount <= 0) {
+        updateFields.status = "completed";
+        updateFields.paymentStatus = "paid";
+        updateFields.orderFinishTime = new Date();
+      } else {
+        updateFields.paymentStatus = "partially_paid";
+      }
+      await order.update(updateFields, { transaction });
+
+      // Mark items and KOTs as completed if fully paid
+      if (newPayableAmount <= 0) {
+        await orderItemModel.update(
+          { status: "completed" },
+          {
+            where: {
+              orderId: order.id,
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
+            validate: false,
+            transaction,
+          },
+        );
+
+        const kots = await kotModel.findAll({
+          where: { orderId: order.id },
+          attributes: ["id"],
+          transaction,
+        });
+        const kotIds = kots.map((k) => k.id);
+        if (kotIds.length > 0) {
+          const rows = await orderItemModel.findAll({
+            attributes: ["kotId"],
+            where: {
+              kotId: { [Op.in]: kotIds },
+              status: { [Op.notIn]: ["completed", "cancelled"] },
+            },
+            group: ["kotId"],
+            transaction,
+            raw: true,
+          });
+          const incompleteKotIds = new Set(rows.map((r) => r.kotId));
+          const completeKotIds = kotIds.filter(
+            (id) => !incompleteKotIds.has(id),
+          );
+          if (completeKotIds.length > 0) {
+            await kotModel.update(
+              { status: "completed" },
+              {
+                where: { id: { [Op.in]: completeKotIds } },
+                validate: false,
+                transaction,
+              },
+            );
+          }
+        }
+      }
+
+      updatedOrders.push({ ...order.toJSON() });
+      remainingTotalPaid -= amountPaidForOrder;
+    }
+
     // Calculate and update loyalty points
-    if (!isGuestOrder && finalCustomerId && combinedTotalAmount > 0) {
-      const pointsToAdd = Math.floor(combinedTotalAmount / 100);
-      if (pointsToAdd > 0) {
+    let loyaltyPointsAdded = 0;
+    if (!isGuestOrder && finalCustomerId && remainingTotalPaid >= 0) {
+      loyaltyPointsAdded = Math.floor(combinedPayableAmount / 100);
+      if (loyaltyPointsAdded > 0) {
         await customerModel.update(
           {
-            loyaltyPoints: customer.loyaltyPoints + pointsToAdd,
+            loyaltyPoints: Sequelize.literal(
+              `loyaltyPoints + ${loyaltyPointsAdded}`,
+            ),
           },
           {
             where: { id: finalCustomerId },
@@ -1562,148 +1907,7 @@ const checkoutOrder = async (req) => {
       }
     }
 
-    // Determine the account for revenue
-    let selectedAccountId = accountId;
-    if (!selectedAccountId) {
-      let account = await accountModel.findOne({
-        where: { isDefault: true, status: "active" },
-        transaction,
-      });
-      if (!account) {
-        const paymentMethod = updateData.paymentMethod || "cash";
-        const accountTypeMap = {
-          cash: "cash",
-          card: "bank",
-          cheque: "bank",
-          online: "wallet",
-        };
-        const accountType = accountTypeMap[paymentMethod] || "cash";
-        account = await accountModel.findOne({
-          where: { accountType, isDefault: true, status: "active" },
-          transaction,
-        });
-        if (!account) {
-          account = await accountModel.findOne({
-            where: { accountType, status: "active" },
-            transaction,
-          });
-        }
-      }
-
-      if (!account) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `No active account available for checkout`,
-        };
-      }
-      console.log(
-        `[checkoutOrder] Using account ${account.id} (isDefault=${account.isDefault})`,
-      );
-      selectedAccountId = account.id;
-    } else {
-      const account = await accountModel.findByPk(selectedAccountId, {
-        transaction,
-      });
-      if (!account || account.status !== "active") {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `Invalid or inactive account ID: ${selectedAccountId}`,
-        };
-      }
-      console.log(
-        `[checkoutOrder] Using provided account ${selectedAccountId}`,
-      );
-    }
-
-    // Update all orders and create revenue entries
-    const updatedOrders = [];
-    const revenueEntries = [];
-    for (const order of orders) {
-      await order.update(
-        {
-          ...updateData,
-          status: "completed",
-          paymentStatus: "paid",
-          orderFinishTime: new Date(),
-          customerId: finalCustomerId,
-          isGuestOrder,
-          totalAmount: order.totalAmount,
-        },
-        { transaction },
-      );
-
-      console.log(`******************\n ID ${req.user.id}\n ***************`);
-
-      // Create revenue entry for each order
-      const revenue = await revenueModel.create(
-        {
-          amount: order.totalAmount,
-          paymentMethod: updateData.paymentMethod || "cash",
-          cash_or_credit: updateData.cashOrCredit || "cash",
-          customerId: finalCustomerId,
-          userId: req.user.id,
-          accountId: selectedAccountId,
-          remarks: updateData.remarks || `Revenue from order ${order.id}`,
-        },
-        { transaction },
-      );
-
-      updatedOrders.push({ ...order.toJSON(), totalAmount: order.totalAmount });
-      revenueEntries.push(revenue);
-    }
-
-    for (const order of orders) {
-      // Mark all non-cancelled and non-completed order items and addons as completed
-      await orderItemModel.update(
-        { status: "completed" },
-        {
-          where: {
-            orderId: order.id,
-            status: { [Op.notIn]: ["completed", "cancelled"] },
-          },
-          validate: false,
-          transaction,
-        },
-      );
-
-      // Complete KOTs that have all their items/addons completed or cancelled
-      const kots = await kotModel.findAll({
-        where: { orderId: order.id },
-        attributes: ["id"],
-        transaction,
-      });
-      const kotIds = kots.map((k) => k.id);
-      if (kotIds.length > 0) {
-        const rows = await orderItemModel.findAll({
-          attributes: ["kotId"],
-          where: {
-            kotId: { [Op.in]: kotIds },
-            status: { [Op.notIn]: ["completed", "cancelled"] },
-          },
-          group: ["kotId"],
-          transaction,
-          raw: true,
-        });
-        const incompleteKotIds = new Set(rows.map((r) => r.kotId));
-        const completeKotIds = kotIds.filter((id) => !incompleteKotIds.has(id));
-        if (completeKotIds.length > 0) {
-          await kotModel.update(
-            { status: "completed" },
-            {
-              where: { id: { [Op.in]: completeKotIds } },
-              validate: false,
-              transaction,
-            },
-          );
-        }
-      }
-    }
-
-    // Check for other active orders
+    // Check for other active orders and free table if necessary
     if (hasTable) {
       const stillOrderInTable = await orderModel.findOne({
         where: {
@@ -1715,7 +1919,6 @@ const checkoutOrder = async (req) => {
         transaction,
       });
 
-      // Free table if no other active orders
       if (!stillOrderInTable) {
         await tableModel.update(
           {
@@ -1736,15 +1939,12 @@ const checkoutOrder = async (req) => {
     return {
       status: 200,
       success: true,
-      message: `Checked out ${orders.length} order(s) successfully`,
+      message: `Checked out ${updatedOrders.length} order(s) successfully`,
       data: {
         orders: updatedOrders,
         revenueEntries,
-        combinedTotalAmount,
-        loyaltyPointsAdded:
-          !isGuestOrder && finalCustomerId
-            ? Math.floor(combinedTotalAmount / 100)
-            : 0,
+        combinedPayableAmount,
+        loyaltyPointsAdded,
       },
     };
   } catch (error) {

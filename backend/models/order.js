@@ -20,9 +20,16 @@ module.exports = (sequelize) => {
         as: "table",
         onDelete: "SET NULL",
       });
+
       Order.hasMany(models.kotModel, {
         foreignKey: "orderId",
         as: "kots",
+        onDelete: "CASCADE",
+      });
+
+      Order.hasMany(models.revenueModel, {
+        foreignKey: "orderId",
+        as: "revenues",
         onDelete: "CASCADE",
       });
     }
@@ -55,12 +62,12 @@ module.exports = (sequelize) => {
         defaultValue: "pending",
       },
       paymentStatus: {
-        type: DataTypes.ENUM("pending", "paid", "failed"),
+        type: DataTypes.ENUM("pending", "paid", "failed", "partially_paid"),
         defaultValue: "pending",
       },
-      paymentMethod: {
-        type: DataTypes.ENUM("cash", "card", "online"),
-        defaultValue: "cash",
+      paymentMethods: {
+        type: DataTypes.JSON,
+        allowNull: true, // Null for unpaid orders, e.g., ["cash", "online"] after checkout
       },
       orderType: {
         type: DataTypes.ENUM("dineIn", "takeaway"),
@@ -76,6 +83,11 @@ module.exports = (sequelize) => {
         defaultValue: Sequelize.UUIDV4,
       },
       totalAmount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      payableAmount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0.0,

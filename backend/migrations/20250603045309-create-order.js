@@ -45,12 +45,12 @@ module.exports = {
           defaultValue: "pending",
         },
         paymentStatus: {
-          type: Sequelize.ENUM("pending", "paid", "failed"),
+          type: Sequelize.ENUM("pending", "paid", "failed", "partially_paid"),
           defaultValue: "pending",
         },
-        paymentMethod: {
-          type: Sequelize.ENUM("cash", "card", "online"),
-          defaultValue: "cash",
+        paymentMethods: {
+          type: Sequelize.JSON,
+          allowNull: true,
         },
         orderType: {
           type: Sequelize.ENUM("dineIn", "takeaway"),
@@ -66,6 +66,11 @@ module.exports = {
           defaultValue: Sequelize.UUIDV4,
         },
         totalAmount: {
+          type: Sequelize.DECIMAL(10, 2),
+          allowNull: false,
+          defaultValue: 0.0,
+        },
+        payableAmount: {
           type: Sequelize.DECIMAL(10, 2),
           allowNull: false,
           defaultValue: 0.0,

@@ -9,6 +9,15 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
+      orderId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: "orders",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
       accountId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -33,7 +42,7 @@ module.exports = {
         defaultValue: "cash",
       },
       paymentMethod: {
-        type: Sequelize.ENUM("cash", "card", "online"),
+        type: Sequelize.ENUM("cash", "card", "online", "cheque"),
         allowNull: false,
         defaultValue: "cash",
       },
@@ -69,6 +78,7 @@ module.exports = {
 
     await queryInterface.addIndex("revenues", ["accountId"]);
     await queryInterface.addIndex("revenues", ["customerId"]);
+    await queryInterface.addIndex("revenues", ["orderId"]);
   },
 
   async down(queryInterface, Sequelize) {
