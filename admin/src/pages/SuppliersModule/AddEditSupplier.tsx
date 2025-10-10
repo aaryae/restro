@@ -129,11 +129,8 @@ export default function AddEditSupplier({
           isBack
         />
       )}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="max-w-5xl mx-auto mt-4"
-      >
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
+        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8 space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <Building2 className="text-blue-600" />

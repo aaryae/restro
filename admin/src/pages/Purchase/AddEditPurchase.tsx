@@ -175,6 +175,10 @@ const AddEditPurchase: React.FC = () => {
   const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(0);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
 
+  const closeDialog = () => {
+    setSupplierDialogOpen(false);
+  };
+
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
     limit: 100,
@@ -479,17 +483,15 @@ const AddEditPurchase: React.FC = () => {
                           }
                           dialogOpen={supplierDialogOpen}
                           setDialogOpen={setSupplierDialogOpen}
-                          contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+                          title="Add Supplier"
+                          contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
                         >
-                          <AddEditSupplier
-                            isComponent={true}
-                            closeModal={() => {
-                              setSupplierDialogOpen(false);
-                              if (supplierSearchTerm.trim().length >= 2) {
-                                refetchSuppliers();
-                              }
-                            }}
-                          />
+                          <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
+                            <AddEditSupplier
+                              isComponent={true}
+                              closeModal={closeDialog}
+                            />
+                          </div>
                         </CustomDialog>
                         <button
                           type="button"
@@ -511,7 +513,7 @@ const AddEditPurchase: React.FC = () => {
                         dialogOpen={viewSuppliersDialogOpen}
                         setDialogOpen={setViewSuppliersDialogOpen}
                         title="All Suppliers"
-                        // contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                        contentClassName="w-[95vw] max-w-[95vw] sm:max-w-4xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
                       >
                         <div className="space-y-4">
                           <div className="relative">
@@ -1108,8 +1110,16 @@ const AddEditPurchase: React.FC = () => {
               >
                 Complete Payment
               </button>
-              <button type="reset" className="px-4 py-2 border rounded">
-                Reset
+              <button
+                type="button"
+                onClick={() => {
+                  reset();
+                  setSelectedSupplier(null);
+                  setSupplierSearchTerm("");
+                }}
+                className="px-4 py-2 border rounded hover:bg-gray-50 transition-colors"
+              >
+                Clear
               </button>
             </>
           )}

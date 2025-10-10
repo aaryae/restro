@@ -287,9 +287,7 @@ export default function ProductForm() {
         />
 
         <div className="flex flex-col items-start w-[20rem]">
-          <label className="input-label text-start mb-[2px]">
-            Image <span className="text-red-500">*</span>
-          </label>
+          <label className="input-label text-start mb-[2px]">Image</label>
           <MediaComponent
             title={
               <MultipleImageInputUI

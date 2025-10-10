@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
+import { UserRound, Building2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import PageTitle from "@/components/PageTitle";
 import Select from "@/components/Select";
@@ -141,7 +142,7 @@ const AddEditAccountPermission: React.FC = () => {
       >
         <div className="flex gap-2 w-full mt-4">
           {/*  max-w-[900px] */}
-          <div className="flex-1 flex flex-col gap-[1.5rem] border-[#ebe9f1] border p-8 rounded-[6px] bg-white">
+          <div className="flex-1 flex flex-col border-[#ebe9f1] border p-8 rounded-[6px] bg-white">
             {!isEdit ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Controller
@@ -173,23 +174,30 @@ const AddEditAccountPermission: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="space-y-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    User
-                  </label>
-                  <div className="text-sm text-gray-900 p-2 bg-gray-50 rounded border">
-                    {userOptions.find((u) => u.value === watch("userId"))
-                      ?.label || "N/A"}
+              <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <label className="block text-[15px] font-medium text-gray-700 ">
+                        User
+                      </label>
+                    </div>
+                    <div className="text-[13px] font-semibold text-gray-900 px-4 py-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      {userOptions.find((u) => u.value === watch("userId"))
+                        ?.label || "N/A"}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Account
-                  </label>
-                  <div className="text-sm text-gray-900 p-2 bg-gray-50 rounded border">
-                    {accountOptions.find((a) => a.value === watch("accountId"))
-                      ?.label || "N/A"}
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <label className="block text-[15px] font-medium text-gray-700">
+                        Account
+                      </label>
+                    </div>
+                    <div className="text-[13px] font-semibold text-gray-900 px-4 py-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      {accountOptions.find(
+                        (a) => a.value === watch("accountId"),
+                      )?.label || "N/A"}
+                    </div>
                   </div>
                 </div>
               </div>
