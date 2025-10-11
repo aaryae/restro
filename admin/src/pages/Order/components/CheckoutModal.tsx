@@ -83,7 +83,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   orderId,
   selectedItemIds,
 }) => {
-  const [paymentType, setPaymentType] = useState<"cash" | "qr">("cash");
+  const [paymentType, setPaymentType] = useState<"cash" | "qr" | "bank">(
+    "cash",
+  );
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
   const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
@@ -253,6 +255,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           : basePayload;
 
       if (paymentType === "cash") {
+        const response = await checkoutOrderApi({
+          id: tableId,
+          body: payload,
+        }).unwrap();
+
+        if (response?.success) {
+          handleResponse({ res: response });
+          setIsPaymentSuccess(true);
+        }
+      }
+
+      if (paymentType === "qr") {
+        payload.accountId = selectedBankDetail?.data?.id;
+        payload.paymentMethod = "online";
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,

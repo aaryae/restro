@@ -447,8 +447,8 @@ const getTableActiveOrders = async (req) => {
         {
           model: orderItemModel,
           as: "orderItems",
-          where:{
-            status:{[Op.notIn]: ["completed", "cancelled"] }
+          where: {
+            status: { [Op.notIn]: ["completed", "cancelled"] },
           },
           include: [
             {
@@ -1119,13 +1119,13 @@ const getOrderById = async (req) => {
         ],
         ...(itemStatus && {
           where: {
-            status: itemStatus.includes(',') 
-              ? { [Op.in]: itemStatus.split(',').map(s => s.trim()) }
-              : itemStatus === 'active'
+            status: itemStatus.includes(",")
+              ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
+              : itemStatus === "active"
                 ? { [Op.notIn]: ["completed", "cancelled"] }
-                : { [Op.eq]: itemStatus }
-          }
-        })
+                : { [Op.eq]: itemStatus },
+          },
+        }),
       },
       {
         model: customerModel,
@@ -1134,7 +1134,7 @@ const getOrderById = async (req) => {
       {
         model: tableModel,
         as: "table",
-      }
+      },
     ];
 
     const order = await orderModel.findByPk(id, { include });
@@ -1419,14 +1419,14 @@ const updateOrderItemsStatus = async (req) => {
       include: [
         {
           model: orderModel,
-          as: 'order',
+          as: "order",
           include: [
             {
               model: tableModel,
-              as: 'table',
-            }
-          ]
-        }
+              as: "table",
+            },
+          ],
+        },
       ],
       transaction,
     });
@@ -1449,7 +1449,8 @@ const updateOrderItemsStatus = async (req) => {
       return {
         status: 400,
         success: false,
-        message: "Some order items could not be updated due to invalid transitions",
+        message:
+          "Some order items could not be updated due to invalid transitions",
       };
     }
 
@@ -1467,13 +1468,15 @@ const updateOrderItemsStatus = async (req) => {
     if (status === "cancelled") {
       // Find all KOTs that include this order item
       const kots = await kotModel.findAll({
-        include: [{
-          model: orderItemModel,
-          as: 'orderItems',
-          where: { id: orderItem.id },
-          attributes: [], // We don't need the order item data
-          required: true
-        }],
+        include: [
+          {
+            model: orderItemModel,
+            as: "orderItems",
+            where: { id: orderItem.id },
+            attributes: [], // We don't need the order item data
+            required: true,
+          },
+        ],
         transaction,
       });
 
@@ -1486,19 +1489,19 @@ const updateOrderItemsStatus = async (req) => {
         });
 
         // Check if all items in this KOT are cancelled
-        const allItemsCancelled = kotItems.every(item => 
-          item.status === 'cancelled' || item.id === orderItem.id
+        const allItemsCancelled = kotItems.every(
+          (item) => item.status === "cancelled" || item.id === orderItem.id,
         );
 
         // Only update KOT status if all its items are cancelled
-        if (allItemsCancelled && kot.status !== 'cancelled') {
+        if (allItemsCancelled && kot.status !== "cancelled") {
           await kotModel.update(
             { status: "cancelled" },
             {
               where: { id: kot.id },
               transaction,
               validate: false,
-            }
+            },
           );
         }
       }
@@ -1511,44 +1514,48 @@ const updateOrderItemsStatus = async (req) => {
         where: {
           orderId: orderItem.orderId,
           status: { [Op.notIn]: ["completed", "cancelled"] },
-          id: { [Op.ne]: orderItem.id } // Exclude the current item being updated
+          id: { [Op.ne]: orderItem.id }, // Exclude the current item being updated
         },
         transaction,
       });
 
       // If no active items remain, update the order status
       if (activeItemsCount === 0) {
-        const newOrderStatus = status === "cancelled" ? "cancelled" : "completed";
-        
+        const newOrderStatus =
+          status === "cancelled" ? "cancelled" : "completed";
+
         await orderModel.update(
           { status: newOrderStatus },
           {
             where: { id: orderItem.orderId },
             transaction,
-          }
+          },
         );
 
         // If it's a dine-in order with a table, and we're marking the order as completed/cancelled
-        if ((status === "cancelled" || status === "completed") && 
-            orderItem.order?.orderType === "dineIn" && 
-            orderItem.order?.tableId) {
-          
+        if (
+          (status === "cancelled" || status === "completed") &&
+          orderItem.order?.orderType === "dineIn" &&
+          orderItem.order?.tableId
+        ) {
           try {
             // Get the current order to verify its status
-            const currentOrder = await orderModel.findByPk(orderItem.orderId, { 
-              transaction 
+            const currentOrder = await orderModel.findByPk(orderItem.orderId, {
+              transaction,
             });
 
             // Only proceed if the order is actually being marked as completed/cancelled
-            if (currentOrder && 
-                (currentOrder.status === "completed" || currentOrder.status === "cancelled")) {
-              
+            if (
+              currentOrder &&
+              (currentOrder.status === "completed" ||
+                currentOrder.status === "cancelled")
+            ) {
               // Count active orders for this table, excluding the current order
               const activeOrdersCount = await orderModel.count({
                 where: {
                   tableId: orderItem.order.tableId,
                   status: { [Op.notIn]: ["completed", "cancelled"] },
-                  id: { [Op.ne]: orderItem.orderId }
+                  id: { [Op.ne]: orderItem.orderId },
                 },
                 transaction,
               });
@@ -1556,18 +1563,18 @@ const updateOrderItemsStatus = async (req) => {
               // If no active orders remain, update the table status
               if (activeOrdersCount === 0) {
                 await tableModel.update(
-                  { 
+                  {
                     status: "available",
-                    currentSessionId: null,  // Clear any session data
-                    sessionStartTime: null
+                    currentSessionId: null, // Clear any session data
+                    sessionStartTime: null,
                   },
                   {
-                    where: { 
+                    where: {
                       id: orderItem.order.tableId,
-                      status: { [Op.ne]: "available" } // Only update if not already available
+                      status: { [Op.ne]: "available" }, // Only update if not already available
                     },
                     transaction,
-                  }
+                  },
                 );
               }
             }
