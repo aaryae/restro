@@ -4,6 +4,7 @@ package-lock.json
 .DS_Store
 
 resources
+excel
 
 logs
 

@@ -15,7 +15,7 @@ const {
 } = require("../../validations/product-validation");
 
 // Configure multer for Excel file uploads
-const uploadExcel = uploaderHelper.uploadFiles('excel', 'single', 'file');
+const uploadExcel = uploaderHelper.uploadXlsxDoc("excel", "single", "file");
 
 const {
   create,
@@ -60,7 +60,7 @@ router.post(
   authentication,
   authorization,
   uploadExcel,
-  importFromExcel
+  importFromExcel,
 );
 
 module.exports = router;
