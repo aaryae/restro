@@ -85,6 +85,7 @@ const createOrderValidation = async (req, res, next) => {
         otherwise: joi.forbidden(),
       }),
     paymentMethod: joi.string().valid("cash", "card", "online").optional(),
+    orderNote: joi.string().allow("", null).optional(),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

@@ -59,14 +59,13 @@ router.post(
   "/create",
   authentication,
   authorization,
-  // createOrderValidation,
+  createOrderValidation,
   createOrder,
 );
 router.put(
   "/items/:orderId",
   authentication,
   authorization,
-  // authenticateUser,
   // updateOrderItemsValidation,
   updateOrderItems,
 );
