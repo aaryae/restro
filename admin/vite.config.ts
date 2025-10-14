@@ -40,6 +40,7 @@ export default function config(mode: string) {
         "@/constants": path.resolve("src/constants"),
         "@/locale": path.resolve("src/locale"),
         "@/routes": path.resolve("src/routes"),
+        "@/lib": path.resolve("src/lib"),
       } as AliasConfig,
     },
   });
