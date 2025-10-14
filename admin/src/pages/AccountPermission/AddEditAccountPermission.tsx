@@ -123,7 +123,7 @@ const AddEditAccountPermission: React.FC = () => {
           }).unwrap();
       handleResponse({
         res: response,
-        onSuccess: () => navigate(ACCOUNT_ACCESS_LIST_ROUTE),
+        onSuccess: () => navigate(ACCOUNT_PERMISSION_LIST_ROUTE),
       });
     } catch (error) {
       handleError({ error });
