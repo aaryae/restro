@@ -104,8 +104,8 @@ router.get("/active-orders/:id", getTableActiveOrders);
 // add route in json
 router.get(
   "/active-orders/:tableId",
-  // authenticateUser,
-  // authorization,
+  authentication,
+  authorization,
   getTableActiveOrders,
 );
 router.get(
@@ -116,13 +116,7 @@ router.get(
   listOrderItems,
 );
 
-router.get(
-  "/:id",
-  authentication,
-  //  authorization,
-  idValidation,
-  getOrderById,
-);
+router.get("/:id", authentication, authorization, idValidation, getOrderById);
 
 router.post(
   "/move-order-items",
@@ -135,7 +129,7 @@ router.post(
 router.patch(
   "/status/:id",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   updateOrderStatusValidation,
   updateOrderStatus,

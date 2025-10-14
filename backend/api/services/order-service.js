@@ -925,11 +925,6 @@ const updateOrderItems = async (req) => {
       return sum + itemTotal + addonTotal;
     }, 0);
 
-    // Log calculations for debugging
-    console.log(
-      `Order ${orderId}: totalAmount=${totalAmount}, payableAmount=${payableAmount}`,
-    );
-
     // Update order with totalAmount and payableAmount
     await order.update({ totalAmount, payableAmount }, { transaction });
 
