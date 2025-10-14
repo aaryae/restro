@@ -273,9 +273,6 @@ const AddEditAccountPermission: React.FC = () => {
           >
             Cancel
           </button>
-          <button type="reset" className="px-4 py-2 border rounded">
-            Reset
-          </button>
           <button
             type="submit"
             disabled={isSubmitting}

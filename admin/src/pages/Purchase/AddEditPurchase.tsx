@@ -116,7 +116,7 @@ const AddEditPurchase: React.FC = () => {
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitted },
   } = useForm<FormValues>({
     resolver: zodResolver(PurchaseSchema),
     defaultValues: {
@@ -513,7 +513,7 @@ const AddEditPurchase: React.FC = () => {
                         dialogOpen={viewSuppliersDialogOpen}
                         setDialogOpen={setViewSuppliersDialogOpen}
                         title="All Suppliers"
-                        contentClassName="w-[95vw] max-w-[95vw] sm:max-w-4xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
+                        contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
                       >
                         <div className="space-y-4">
                           <div className="relative">
@@ -744,18 +744,21 @@ const AddEditPurchase: React.FC = () => {
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start ">
+                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Account
                   </label>
                   <AccountDropdown
                     onChange={(val) =>
-                      setValue("accountId", val, { shouldDirty: true })
+                      setValue("accountId", val, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
                     }
                     value={watch("accountId") || ""}
                   />
-                  {(!watch("accountId") || watch("accountId") === "") && (
+                  {errors.accountId && isSubmitted && (
                     <span className="text-xs text-red-600 mt-1">
-                      Account is required
+                      {errors.accountId.message}
                     </span>
                   )}
                 </div>

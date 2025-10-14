@@ -89,6 +89,7 @@ const paginationValidation = async (req, res, next) => {
     // Revenue list specific filters
     start: joi.string().optional().label("start"),
     end: joi.string().optional().label("end"),
+    supplierName: joi.string().optional().label("supplierName"),
     cash_or_credit: joi
       .string()
       .optional()

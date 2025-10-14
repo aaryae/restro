@@ -96,7 +96,7 @@ const AddExpenseCategory: React.FC<{
         />
       )}
       <form
-        className="flex flex-col gap-4 mt-2 form-container w-full"
+        className="flex flex-col gap-4 mt-2 bg-white p-4 w-full"
         onSubmit={handleSubmit(onSubmit)}
       >
         <Input

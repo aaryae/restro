@@ -15,14 +15,14 @@ import { FilterInput } from "@/components/Input/filterInput";
 import { FilterSelect } from "@/components/Select/FilterSelect";
 import DateInput from "@/components/DateInput";
 import { useForm } from "react-hook-form";
-import { FileText, IdCard, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { buildQueryString } from "@/utils/generalHelper";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 import { FaEye } from "react-icons/fa";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ADToBS } from "bikram-sambat-js";
-import { PurchaseFilterSchema } from "./schema";
+import { PurchaseFilterSchema, type PurchaseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const Purchase: React.FC = () => {
@@ -34,20 +34,19 @@ const Purchase: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // Filters (client-side for now)
-  const { control, handleSubmit, reset, setValue, getValues } = useForm({
-    resolver: zodResolver(PurchaseFilterSchema),
-    defaultValues: {
-      purchaseId: "",
-      dateAD: "",
-      particulars: "",
-      vendorId: "",
-      paidOrCredit: "",
-    },
-  });
+  const { control, handleSubmit, reset, setValue, getValues } =
+    useForm<PurchaseFilterInput>({
+      resolver: zodResolver(PurchaseFilterSchema),
+      defaultValues: {
+        date: undefined as any,
+        supplierName: "",
+        status: "",
+      },
+    });
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   const handleDateChange = (value: Date) => {
-    setValue("dateAD", value);
+    setValue("date", value);
   };
 
   const handleViewPurchase = (id: number) => {
@@ -58,43 +57,31 @@ const Purchase: React.FC = () => {
   const filterFields = useMemo(
     () => [
       {
-        name: "purchaseId",
-        label: "Purchase ID",
-        Component: FilterInput,
-        control,
-        icon: <IdCard className="w-4 h-4" />,
-      },
-      {
-        name: "dateAD",
-        label: "Date (AD)",
+        name: "date",
+        label: "Date",
         Component: DateInput,
         control,
         handleChange: handleDateChange,
-        value: getValues("dateAD"),
+        value: getValues("date"),
       },
       {
-        name: "particulars",
-        label: "Particulars",
-        Component: FilterInput,
-        control,
-        icon: <FileText className="w-4 h-4" />,
-      },
-      {
-        name: "vendorId",
-        label: "Vendor ID",
+        name: "supplierName",
+        label: "Supplier Name",
         Component: FilterInput,
         control,
         icon: <UserRound className="w-4 h-4" />,
       },
       {
-        name: "paidOrCredit",
-        label: "Paid or Credit",
+        name: "status",
+        label: "Status",
         Component: FilterSelect,
         className: "w-full",
+        handleChange: (v: string) => setValue("status", v as any),
         options: [
           { label: "Any", value: "" },
-          { label: "Paid", value: "Paid" },
-          { label: "Credit", value: "Credit" },
+          { label: "Draft", value: "draft" },
+          { label: "Completed", value: "completed" },
+          { label: "Cancelled", value: "cancelled" },
         ],
         control,
       },
@@ -114,12 +101,14 @@ const Purchase: React.FC = () => {
   // Build server-side query with filters
   const serverUrl = useMemo(() => {
     const search: Record<string, any> = {};
-    if (filters?.purchaseId) search.id = filters.purchaseId;
-    if (filters?.dateAD)
-      search.date = new Date(filters.dateAD).toISOString().slice(0, 10);
-    if (filters?.particulars) search.particulars = filters.particulars;
-    if (filters?.vendorId) search.vendorId = filters.vendorId;
-    if (filters?.paidOrCredit) search.paymentStatus = filters.paidOrCredit;
+    if (filters?.date) {
+      const iso = new Date(filters.date).toISOString().slice(0, 10);
+      search.date = iso;
+    }
+    if (filters?.status) {
+      const s = String(filters.status).toLowerCase();
+      search.status = s;
+    }
     return buildQueryString("purchase/list", {
       page: query.page,
       limit: query.limit,
@@ -158,11 +147,34 @@ const Purchase: React.FC = () => {
     return [];
   }, [apiData]);
 
+  const supplierFilteredRows: any[] = useMemo(() => {
+    const term = String(filters?.supplierName || "")
+      .trim()
+      .toLowerCase();
+    if (!term) return rows;
+    return rows.filter((r: any) => {
+      const sup = r?.supplier || r?.vendor || {};
+      const name = sup?.name || r?.supplierName || r?.vendorName || null;
+      if (name) return String(name).toLowerCase().includes(term);
+      const id = r?.supplierId ?? r?.vendorId;
+      return id != null && String(id).toLowerCase().includes(term);
+    });
+  }, [rows, filters?.supplierName]);
+
   const total: number = useMemo(() => {
     const d = (apiData as any)?.data;
+    const hasSupplierFilter = Boolean(
+      String(filters?.supplierName || "").trim().length > 0,
+    );
+    if (hasSupplierFilter) return supplierFilteredRows.length;
     if (typeof d?.total === "number") return d.total;
     return rows.length;
-  }, [apiData, rows.length]);
+  }, [
+    apiData,
+    rows.length,
+    supplierFilteredRows.length,
+    filters?.supplierName,
+  ]);
 
   const pagination: PaginationType = {
     page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
@@ -214,7 +226,7 @@ const Purchase: React.FC = () => {
     }
   };
 
-  const data = rows.map((r: any, index: number) => {
+  const data = supplierFilteredRows.map((r: any, index: number) => {
     const id = r?.id ?? r?.purchaseId ?? r?.purchase_id;
     const dateAD = (r?.invoiceDate || r?.date || r?.createdAt || "")
       .toString()

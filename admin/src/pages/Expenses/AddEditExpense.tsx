@@ -53,12 +53,12 @@ const AddEditExpense: React.FC = () => {
   } = useForm<ExpenseFormInput>({
     resolver: zodResolver(ExpenseSchema),
     defaultValues: {
-      paymentMethod: "cash",
-      categoryId: undefined,
-      accountId: undefined,
+      paymentMethod: "",
+      categoryId: "",
+      accountId: "",
       amount: 0,
       remarks: "",
-      supplierId: undefined,
+      supplierId: "",
     },
   });
   const { data: expenseData, isSuccess: expenseFetched } = useGetApiQuery(
@@ -238,7 +238,7 @@ const AddEditExpense: React.FC = () => {
                         dialogOpen={expenseCategoryDialogOpen}
                         setDialogOpen={setExpenseCategoryDialogOpen}
                         title="Add Expense Category"
-                        contentClassName="max-w-[95vw] w-[400px] max-h-[80vh] overflow-auto p-4"
+                        contentClassName="max-w-[95vw] md:w-[600px] w-[300px] max-h-[90vh] overflow-auto p-4"
                       >
                         <AddEditExpenseCategory
                           isComponent={true}
@@ -525,7 +525,11 @@ const AddEditExpense: React.FC = () => {
           >
             Cancel
           </button>
-          <button type="reset" className="px-4 py-2 border rounded">
+          <button
+            type="reset"
+            className="px-4 py-2 border rounded"
+            onClick={() => reset()}
+          >
             Reset
           </button>
           <button

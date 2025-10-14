@@ -50,11 +50,10 @@ export const PurchaseSchema = z.object({
 });
 
 export const PurchaseFilterSchema = z.object({
-  purchaseId: z.string().optional().or(z.literal("")),
-  dateAD: z.string().optional().or(z.literal("")),
-  particulars: z.string().optional().or(z.literal("")),
-  vendorId: z.string().optional().or(z.literal("")),
-  paidOrCredit: z.string().optional().or(z.literal("")),
+  // Accept Date object from DateInput or empty string
+  date: z.union([z.date(), z.string()]).optional().or(z.literal("")),
+  supplierName: z.string().optional().or(z.literal("")),
+  status: z.string().optional().or(z.literal("")),
 });
 export type PurchaseItemInput = z.infer<typeof PurchaseItemSchema>;
 export type PurchaseFormInput = z.infer<typeof PurchaseSchema>;
