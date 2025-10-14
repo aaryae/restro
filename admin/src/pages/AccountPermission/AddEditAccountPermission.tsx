@@ -13,7 +13,7 @@ import {
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { ACCOUNT_ACCESS_LIST_ROUTE } from "@/routes/routeNames";
+import { ACCOUNT_PERMISSION_LIST_ROUTE } from "@/routes/routeNames";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import AccountPermissionSchema from "./schema";

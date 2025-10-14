@@ -45,8 +45,10 @@ import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
 import ExpenseCategory from "@/pages/ExpenseCategory";
 import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
 import Transaction from "@/pages/Transaction";
-import AccountAccess from "@/pages/AccountPermission";
 import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
+// import Addons from "@/pages/Addons";
+// import AddEditAddons from "@/pages/Addons/AddEditAddons";
+import AccountPermission from "@/pages/AccountPermission";
 
 export const adminLinks = [
   {
@@ -319,7 +321,7 @@ export const adminLinks = [
   },
   {
     path: "/account-permission/list",
-    element: <AccountAccess />,
+    element: <AccountPermission />,
   },
   {
     path: "/account-permission/",
@@ -329,4 +331,16 @@ export const adminLinks = [
     path: "/account-permission/:id",
     element: <AddEditAccountPermission />,
   },
+  // {
+  //   path: "/addons/list",
+  //   element: <Addons />,
+  // },
+  // {
+  //   path: "/addons/",
+  //   element: <AddEditAddons />,
+  // },
+  // {
+  //   path: "/addons/:id",
+  //   element: <AddEditAddons />,
+  // },
 ];

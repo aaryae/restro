@@ -10,7 +10,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { ACCOUNT_ACCESS_ADD_ROUTE } from "@/routes/routeNames";
+import { ACCOUNT_PERMISSION_ADD_ROUTE } from "@/routes/routeNames";
 
 const AccountPermission = () => {
   const tableHeaders = [
@@ -56,7 +56,7 @@ const AccountPermission = () => {
     return [];
   }, [allData]);
 
-  const handleNew = () => navigate(ACCOUNT_ACCESS_ADD_ROUTE);
+  const handleNew = () => navigate(ACCOUNT_PERMISSION_ADD_ROUTE);
 
   const handleDeleteTrigger = (id: number) => {
     setDeleteId(id);

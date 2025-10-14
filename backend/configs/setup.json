@@ -1579,48 +1579,94 @@
       ]
     },
     {
-      "title": "Account Access",
-      "key": "account-access",
+      "title": "Account Permission",
+      "key": "account-permission",
       "actions": [
         {
-          "title": "Add Account Access",
+          "title": "Add Account Permission",
           "key": "add",
-          "clientPath": "/account-access",
-          "serverPath": "/account-access",
+          "clientPath": "/account-permission",
+          "serverPath": "/account-permission",
           "requestMethod": "POST",
-          "list": "Account Access"
+          "list": "Account Permission"
         },
         {
-          "title": "View Account Access",
+          "title": "View Account Permission",
           "key": "view",
-          "clientPath": "/account-access/list",
-          "serverPath": "/account-access/list",
+          "clientPath": "/account-permission/list",
+          "serverPath": "/account-permission/list",
           "requestMethod": "GET",
-          "list": "Account Access"
+          "list": "Account Permission"
         },
         {
-          "title": "Edit Account Access",
+          "title": "Edit Account Permission",
           "key": "edit",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
           "requestMethod": "PUT",
-          "list": "Account Access"
+          "list": "Account Permission"
         },
         {
-          "title": "Delete Account Access",
+          "title": "Delete Account Permission",
           "key": "delete",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
           "requestMethod": "DELETE",
-          "list": "Account Access"
+          "list": "Account Permission"
         },
         {
-          "title": "View One Account Access",
+          "title": "View One Account Permission",
           "key": "view-one",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
+          "clientPath": "/account-permission/:id",
+          "serverPath": "/account-permission/:id",
           "requestMethod": "GET",
-          "list": "Account Access"
+          "list": "Account Permission"
+        }
+      ]
+    },
+    {
+      "title": "Addons",
+      "key": "addons",
+      "actions": [
+        {
+          "title": "Add Addons",
+          "key": "add",
+          "clientPath": "/addons",
+          "serverPath": "/addons",
+          "requestMethod": "POST",
+          "list": "Addons"
+        },
+        {
+          "title": "View Addons",
+          "key": "view",
+          "clientPath": "/addons/list",
+          "serverPath": "/addons/list",
+          "requestMethod": "GET",
+          "list": "Addons"
+        },
+        {
+          "title": "Edit Addons",
+          "key": "edit",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "PUT",
+          "list": "Addons"
+        },
+        {
+          "title": "Delete Addons",
+          "key": "delete",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "DELETE",
+          "list": "Addons"
+        },
+        {
+          "title": "View One Addons",
+          "key": "view-one",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "GET",
+          "list": "Addons"
         }
       ]
     }
