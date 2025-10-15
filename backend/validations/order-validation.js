@@ -1,3 +1,4 @@
+"use strict";
 const joi = require("joi");
 const httpStatus = require("http-status");
 const responseHelper = require("../helpers/response-helper");
@@ -8,41 +9,83 @@ const { validateRequestBody } = require("../helpers/validator-helper");
 
 const createOrderValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    orderType: joi.string().valid("dineIn", "takeaway", "delivery").required(),
-    tableId: joi.number().integer().when("orderType", {
-      is: "dineIn",
-      then: joi.required(),
-      otherwise: joi.optional(),
+    orderType: joi.string().valid("dineIn", "takeaway").required().messages({
+      "any.required": "Order type is required",
+      "string.base": "Order type must be a string",
+      "any.only": "Order type must be one of: dineIn, takeaway",
     }),
-    customerId: joi.number().integer().optional(),
-    customerName: joi.string().min(2).max(255).optional(),
-    customerPhone: joi.string().min(10).max(20).optional(),
-    customerEmail: joi.string().email().optional(),
+    tableId: joi
+      .number()
+      .integer()
+      .when("orderType", {
+        is: "dineIn",
+        then: joi.required().messages({
+          "any.required": "Table ID is required for dine-in orders",
+          "number.base": "Table ID must be a number",
+        }),
+        otherwise: joi.forbidden(),
+      }),
+    customerDetails: joi
+      .object({
+        firstName: joi.string().min(2).max(255).optional(),
+        lastName: joi.string().min(2).max(255).optional(),
+        name: joi.string().min(2).max(255).optional(),
+        email: joi.string().email().optional(),
+        mobileNo: joi.string().min(10).max(20).optional(),
+        phone: joi.string().min(10).max(20).optional(),
+      })
+      .optional(),
     orderItems: joi
       .array()
       .items(
-        joi.object({
-          productId: joi.number().integer().required(),
-          quantity: joi.number().integer().min(1).required(),
-          specialInstructions: joi.string().allow("").max(500).optional(),
-          departmentId: joi.number().integer().optional(),
-        }),
+        joi
+          .object({
+            quantity: joi.number().integer().min(1).required(),
+            specialInstructions: joi.string().allow("").max(500).optional(),
+            departmentId: joi.number().integer().required(),
+            discount: joi.number().min(0).optional(),
+            discountPercentage: joi.number().min(0).max(100).optional(),
+            addons: joi
+              .array()
+              .items(
+                joi.object({
+                  addonId: joi.number().integer().required(),
+                  quantity: joi.number().integer().min(1).required(),
+                  specialInstructions: joi
+                    .string()
+                    .allow("")
+                    .max(500)
+                    .optional(),
+                }),
+              )
+              .optional(),
+            productId: joi.number().integer(),
+            openItemId: joi.number().integer(),
+          })
+          .xor("productId", "openItemId"),
       )
       .min(1)
-      .required(),
-    orderNote: joi.string().allow("").max(1000).optional(),
-    estimatedTime: joi.number().integer().min(1).max(300).optional(),
-    deliveryAddress: joi.string().max(500).when("orderType", {
-      is: "delivery",
-      then: joi.required(),
-      otherwise: joi.optional(),
-    }),
-    takeAwayName: joi.string().max(255).when("orderType", {
-      is: "takeaway",
-      then: joi.required(),
-      otherwise: joi.optional(),
-    }),
+      .required()
+      .messages({
+        "array.min": "Order must contain at least one item",
+        "object.xor":
+          "Each order item must specify exactly one of productId or openItemId",
+      }),
+    takeAwayName: joi
+      .string()
+      .max(255)
+      .when("orderType", {
+        is: "takeaway",
+        then: joi.required().messages({
+          "any.required": "Takeaway name is required for takeaway orders",
+          "string.empty": "Takeaway name cannot be empty",
+          "string.base": "Takeaway name must be a string",
+          "string.max": "Takeaway name cannot be longer than 255 characters",
+        }),
+        otherwise: joi.forbidden(),
+      }),
     paymentMethod: joi.string().valid("cash", "card", "online").optional(),
+    orderNote: joi.string().allow("", null).optional(),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -150,21 +193,75 @@ const updateOrderItemStatusValidation = async (req, res, next) => {
 };
 
 const updateOrderItemsValidation = async (req, res, next) => {
-  let joiModel = joi.object({
-    items: joi
+  const joiModel = joi.object({
+    orderItems: joi
       .array()
       .items(
-        joi.object({
-          id: joi.number().integer().required(),
-          quantity: joi.number().integer().min(1).optional(),
-          status: joi
-            .string()
-            .valid("pending", "preparing", "ready", "served", "cancelled")
-            .optional(),
-        }),
+        joi
+          .object({
+            id: joi.number().positive(),
+            quantity: joi.number().integer().min(1).required(),
+            specialInstructions: joi.string().allow("").max(500).optional(),
+            departmentId: joi.number().integer().required(),
+            discount: joi.number().min(0).optional(),
+            discountPercentage: joi.number().min(0).max(100).optional(),
+            addons: joi
+              .array()
+              .items(
+                joi.object({
+                  addonId: joi.number().integer().required(),
+                  quantity: joi.number().integer().min(1).required(),
+                  specialInstructions: joi
+                    .string()
+                    .allow("")
+                    .max(500)
+                    .optional(),
+                }),
+              )
+              .optional(),
+            productId: joi.number().integer(),
+            openItemId: joi.number().integer(),
+          })
+          .xor("productId", "openItemId"),
       )
       .min(1)
-      .required(),
+      .required()
+      .messages({
+        "array.min": "Order must contain at least one item",
+        "object.xor":
+          "Each order item must specify exactly one of productId or openItemId",
+      }),
+    takeAwayName: joi
+      .string()
+      .max(255)
+      .when("orderType", {
+        is: "takeaway",
+        then: joi.required().messages({
+          "any.required": "Takeaway name is required for takeaway orders",
+          "string.empty": "Takeaway name cannot be empty",
+          "string.base": "Takeaway name must be a string",
+          "string.max": "Takeaway name cannot be longer than 255 characters",
+        }),
+        otherwise: joi.forbidden(),
+      }),
+    paymentMethod: joi.string().valid("cash", "card", "online").optional(),
+    orderNote: joi.string().allow("", null).optional(),
+    orderType: joi.string().valid("dineIn", "takeaway").required().messages({
+      "any.required": "Order type is required",
+      "string.base": "Order type must be a string",
+      "any.only": "Order type must be one of: dineIn, takeaway",
+    }),
+    tableId: joi
+      .number()
+      .integer()
+      .when("orderType", {
+        is: "dineIn",
+        then: joi.required().messages({
+          "any.required": "Table ID is required for dine-in orders",
+          "number.base": "Table ID must be a number",
+        }),
+        otherwise: joi.forbidden(),
+      }),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
@@ -202,8 +299,18 @@ const bulkServeOrderItemsValidation = async (req, res, next) => {
 
 const updateOrderItemsStatusValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    orderItemIds: joi.array().items(joi.number().integer()).min(1).required(),
-    status: joi.string().valid("preparing", "ready").required(),
+    orderItemIds: joi.number().positive().required(),
+    status: joi
+      .string()
+      .valid(
+        "pending",
+        "preparing",
+        "ready",
+        "served",
+        "completed",
+        "cancelled",
+      )
+      .required(),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
@@ -221,18 +328,71 @@ const updateOrderItemsStatusValidation = async (req, res, next) => {
 };
 
 const checkoutOrderValidation = async (req, res, next) => {
-  let joiModel = joi.object({
-    customerId: joi.number().integer().optional(),
-    customerDetails: joi
-      .object({
-        username: joi.string().min(2).max(255).required(),
-        email: joi.string().email().optional(),
-        phone: joi.string().min(10).max(20).optional(),
-      })
-      .optional(),
-    paymentMethod: joi.string().valid("cash", "card", "online"),
-    isGuestOrder: joi.boolean().optional(),
-  });
+  const paymentSplitSchema = joi
+    .object({
+      checkoutAll: joi.valid(true).required(),
+      payments: joi
+        .array()
+        .items(
+          joi
+            .object({
+              paymentMethod: joi
+                .string()
+                .valid("cash", "card", "online")
+                .required(),
+              amount: joi.number().positive().required(),
+              accountId: joi.number().positive().required(),
+            })
+            .unknown(false),
+        )
+        .min(1)
+        .required(),
+    })
+    .required()
+    .unknown(false); // disallow unknown fields
+
+  const checkoutAllSchema = joi
+    .object({
+      checkoutAll: joi.valid(true).required(),
+      sessionId: joi.string().uuid({ version: "uuidv4" }).required(),
+      paymentMethod: joi.string().valid("cash", "online").required(),
+      cashOrCredit: joi.string().valid("cash", "credit").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const takeawayCheckoutSchema = joi
+    .object({
+      orderId: joi.number().positive().required(),
+      paymentMethod: joi.string().valid("cash", "card", "online").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const selectiveCheckoutSchema = joi
+    .object({
+      orderItemIds: joi
+        .array()
+        .items(joi.number().positive())
+        .min(1)
+        .required(),
+      paymentMethod: joi.string().valid("cash", "card", "online").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const joiModel = joi
+    .alternatives()
+    .try(
+      paymentSplitSchema,
+      checkoutAllSchema,
+      takeawayCheckoutSchema,
+      selectiveCheckoutSchema,
+    )
+    .messages({
+      "alternatives.match":
+        "Invalid payload — must match one of the valid checkout types.",
+    });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(

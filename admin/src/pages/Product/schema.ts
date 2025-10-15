@@ -6,10 +6,11 @@ export const VariantSchema = z.object({
   price: z.coerce
     .number({ message: "Price must be a number" })
     .positive("Price must be greater than 0"),
-  // quantity: z.coerce
-  //   .number({ message: "Quantity must be a number" })
-  //   .int()
-  //   .min(0, "Quantity cannot be negative"),
+  quantity: z.coerce
+    .number({ message: "Quantity must be a number" })
+    .int()
+    .min(0, "Quantity cannot be negative")
+    .optional(),
 });
 
 export const ProductSchema = z
@@ -20,6 +21,10 @@ export const ProductSchema = z
     productCategoryId: z.coerce.number().min(1, "Product Category is required"),
     mediaArr: z
       .array(z.string().min(1, "Each Image URL must be valid"))
+      .optional()
+      .default([]),
+    addons: z
+      .array(z.coerce.number())
       .optional()
       .default([]),
     hasVariant: z.boolean().default(false),

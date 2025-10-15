@@ -16,6 +16,8 @@ import { useCheckoutOrderMutation } from "@/redux/services/orders";
 import { X } from "lucide-react";
 import Bill from "@/components/Bill";
 import { useReactToPrint } from "react-to-print";
+import Drawer from "@/components/Drawer";
+import SplitPayment from "./SplitPayment";
 
 // Define interfaces
 interface OrderItem {
@@ -83,9 +85,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   orderId,
   selectedItemIds,
 }) => {
-  const [paymentType, setPaymentType] = useState<"cash" | "qr" | "bank">(
-    "cash",
-  );
+  const [paymentType, setPaymentType] = useState<
+    "cash" | "qr" | "bank" | "split"
+  >("cash");
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
   const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
@@ -101,6 +103,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [checkoutOrderApi] = useCheckoutOrderMutation();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [splitOpen, setSplitOpen] = useState<boolean>(false);
+  const [splitPaymentData, setSplitPaymentData] = useState<any>(null);
 
   // Placeholder for Bill ref; print handler defined after data hooks
   const billRef = useRef<HTMLDivElement>(null);
@@ -255,20 +259,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           : basePayload;
 
       if (paymentType === "cash") {
-        const response = await checkoutOrderApi({
-          id: tableId,
-          body: payload,
-        }).unwrap();
-
-        if (response?.success) {
-          handleResponse({ res: response });
-          setIsPaymentSuccess(true);
-        }
-      }
-
-      if (paymentType === "qr") {
-        payload.accountId = selectedBankDetail?.data?.id;
-        payload.paymentMethod = "online";
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,
@@ -739,7 +729,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <h2 className="font-semibold mb-4 text-[17px]">
                       Payment Method
                     </h2>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <button
                         type="button"
                         onClick={() => setPaymentType("cash")}
@@ -761,6 +751,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         }`}
                       >
                         QR / E-Payment
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentType("split");
+                          setSplitOpen(true);
+                        }}
+                        className={`border rounded-md p-3 text-[14px] font-medium transition ${
+                          paymentType === "split"
+                            ? "bg-yellow-50 border-yellow-300 text-yellow-700"
+                            : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+                        }`}
+                      >
+                        Split payment
                       </button>
                     </div>
 
@@ -989,6 +993,46 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                     )}
 
+                    {paymentType === "split" && (
+                      <div className="flex flex-col gap-3 mt-6">
+                        {accountsResp?.data?.data?.map((account) => {
+                          const paymentAccount = splitPaymentData?.find(
+                            (acc: any) => acc.accountId === account.id,
+                          );
+                          if (paymentAccount) {
+                            return (
+                              <div
+                                key={account.id}
+                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <p className="text-lg font-semibold text-gray-900 cursor-pointer">
+                                    {account.name}
+                                  </p>
+                                </div>
+
+                                <div className="w-32">
+                                  <div className="relative">
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
+                                      {CurrencySign}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      disabled
+                                      className="pl-6 text-right border rounded-md p-2 w-full bg-white"
+                                      placeholder="0.00"
+                                      value={paymentAccount.amount}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    )}
+
                     <div className="mt-6 gap-3 flex justify-center flex-wrap">
                       <div className="flex gap-3">
                         <button
@@ -1006,6 +1050,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           Preview Bill
                         </button>
                         <button
+                          disabled={
+                            paymentType === "split" && splitPaymentData === null
+                          }
                           onClick={handlePayment}
                           className="p-2 bg-primaryColor text-white rounded text-[14px] font-medium hover:bg-opacity-90"
                           title={
@@ -1019,6 +1066,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             : "Complete Payment"}
                         </button>
                         <button
+                          disabled={
+                            paymentType === "split" && splitPaymentData === null
+                          }
                           onClick={handleSubmitAndPrint}
                           className="p-2 bg-emerald-600 text-white rounded text-[14px] font-medium hover:bg-emerald-700"
                           title="Submit and print the bill"
@@ -1032,6 +1082,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </>
           )}
+          <Drawer
+            isOpen={splitOpen}
+            setIsOpen={setSplitOpen}
+            width="w-[90%] lg:w-[30%]"
+          >
+            <SplitPayment
+              id={tableId}
+              setSplitPaymentData={setSplitPaymentData}
+              closeSplitPayment={() => setSplitOpen(false)}
+            />
+          </Drawer>
         </div>
       </div>
       {/* Preview Modal */}

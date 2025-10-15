@@ -1,4 +1,5 @@
 const {
+  addonModel,
   orderModel,
   departmentModel,
   orderItemModel,
@@ -34,10 +35,22 @@ const list = async (req) => {
       {
         model: orderItemModel,
         as: "orderItems",
+        where: { isAddon: false }, // Only get main items
         include: [
           {
             model: productModel,
             as: "product",
+          },
+          // Include addons for each order item
+          {
+            model: orderItemModel,
+            as: "addons",
+            include: [
+              {
+                model: addonModel,
+                as: "addon",
+              },
+            ],
           },
         ],
       },

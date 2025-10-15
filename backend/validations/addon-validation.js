@@ -18,8 +18,7 @@ const addonPostValidation = async (req, res, next) => {
       "number.min": "Price must be a non-negative number",
       "any.required": "Price is required",
     }),
-    imageUrl: joi.string().uri().required().messages({
-      "string.uri": "Image URL must be a valid URI",
+    imageUrl: joi.string().required().messages({
       "any.required": "Image URL is required",
     }),
   });
@@ -40,20 +39,22 @@ const addonPostValidation = async (req, res, next) => {
 };
 
 const addonPutValidation = async (req, res, next) => {
-  const joiModel = joi.object({
-    name: joi.string().trim().min(1).messages({
-      "string.base": "Name must be a string",
-      "string.empty": "Name cannot be empty",
-    }),
-    price: joi.number().precision(2).min(0).messages({
-      "number.base": "Price must be a number",
-      "number.precision": "Price can have up to 2 decimal places",
-      "number.min": "Price must be a non-negative number",
-    }),
-    imageUrl: joi.string().uri().messages({
-      "string.uri": "Image URL must be a valid URI",
-    }),
-  }).min(1); // At least one field is required for update
+  const joiModel = joi
+    .object({
+      name: joi.string().trim().min(1).messages({
+        "string.base": "Name must be a string",
+        "string.empty": "Name cannot be empty",
+      }),
+      price: joi.number().precision(2).min(0).messages({
+        "number.base": "Price must be a number",
+        "number.precision": "Price can have up to 2 decimal places",
+        "number.min": "Price must be a non-negative number",
+      }),
+      imageUrl: joi.string().messages({
+        "any.required": "Image URL is required",
+      }),
+    })
+    .min(1); // At least one field is required for update
 
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
@@ -63,7 +64,7 @@ const addonPutValidation = async (req, res, next) => {
       false,
       null,
       errors,
-      messageConstant.EN.VALIDATION_ERROR
+      messageConstant.EN.VALIDATION_ERROR,
     );
   }
   return next();

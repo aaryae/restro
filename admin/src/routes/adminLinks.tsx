@@ -46,9 +46,8 @@ import ExpenseCategory from "@/pages/ExpenseCategory";
 import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
 import Transaction from "@/pages/Transaction";
 import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
-// import Addons from "@/pages/Addons";
-// import AddEditAddons from "@/pages/Addons/AddEditAddons";
-import AccountPermission from "@/pages/AccountPermission";
+import AddEditAddons from "@/pages/Addons/AddEditAddons";
+import Addons from "@/pages/Addons";
 
 export const adminLinks = [
   {
@@ -331,16 +330,17 @@ export const adminLinks = [
     path: "/account-permission/:id",
     element: <AddEditAccountPermission />,
   },
-  // {
-  //   path: "/addons/list",
-  //   element: <Addons />,
-  // },
-  // {
-  //   path: "/addons/",
-  //   element: <AddEditAddons />,
-  // },
-  // {
-  //   path: "/addons/:id",
-  //   element: <AddEditAddons />,
-  // },
+
+  {
+    path: "/addons/list",
+    element: <Addons />,
+  },
+  {
+    path: "/addons/",
+    element: <AddEditAddons />,
+  },
+  {
+    path: "/addons/:id",
+    element: <AddEditAddons />,
+  },
 ];

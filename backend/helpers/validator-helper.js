@@ -13,38 +13,41 @@ internal.buildUsefulErrorObject = (errors) => {
     if (!errorProcess) {
       errorProcess = errors.length ? errors : null;
     }
-    errorProcess.forEach((detail) => {
-      let msg = `${detail.message.replace(/['"]/g, "")}`;
-      if (detail.path.length > 1) {
-        const keys = detail.path;
+    if (errorProcess) {
+      // Group messages by path to handle multiples without assuming type early
+      const grouped = {};
+      errorProcess.forEach((detail) => {
+        let msg = `${detail.message.replace(/['"]/g, "")}`;
+        const pathKey = detail.path.join(".");
+        if (!grouped[pathKey]) {
+          grouped[pathKey] = [];
+        }
+        grouped[pathKey].push(msg);
+      });
+
+      // Now build the nested object, using arrays for fields with multiple msgs
+      Object.keys(grouped).forEach((pathKey) => {
+        const msgs = grouped[pathKey];
+        const keys = pathKey.split(".");
         let ref = sendObject;
         for (let i = 0; i < keys.length; i++) {
           let k = keys[i];
-          if (!ref[k]) {
-            if (keys[i + 1] > -1) {
-              ref[k] = [];
-            } else {
-              ref[k] = {};
-            }
-          }
-          if (Number(keys[i]).toString() != "NaN") {
-            if (i === keys.length - 1) {
-              ref[k].push(msg);
-            } else {
-              ref = ref[k];
-            }
+          const isIndex = Number(k).toString() !== "NaN";
+          if (i === keys.length - 1) {
+            // Leaf: if multiple msgs, use array; if one, use string for BC
+            ref[k] = msgs.length > 1 ? msgs : msgs[0];
           } else {
-            if (i === keys.length - 1) {
-              ref[k] = msg;
-            } else {
-              ref = ref[k];
+            if (!ref[k]) {
+              // Decide type based on next key
+              const nextIsIndex =
+                i + 1 < keys.length && Number(keys[i + 1]).toString() !== "NaN";
+              ref[k] = nextIsIndex ? [] : {};
             }
+            ref = ref[k];
           }
         }
-      } else {
-        sendObject[detail.path[0]] = msg;
-      }
-    });
+      });
+    }
   }
   return sendObject;
 };
@@ -56,9 +59,7 @@ validationHelper.validateRequestBody = (req, res, validationModule, opt) => {
     };
     const validation = validationModule.validate(req.body, options);
     if (validation.error) {
-      const errors = validation.error
-        ? internal.buildUsefulErrorObject(validation.error.details)
-        : null;
+      const errors = internal.buildUsefulErrorObject(validation.error);
       return errors;
     } else {
       return null;
@@ -74,9 +75,7 @@ validationHelper.validateRequestParams = (req, res, validationModule, opt) => {
   };
   const validation = validationModule.validate(req.params, options);
   if (validation.error) {
-    const errors = validation.error
-      ? internal.buildUsefulErrorObject(validation.error)
-      : null;
+    const errors = internal.buildUsefulErrorObject(validation.error);
     return errors;
   } else {
     return null;
@@ -90,9 +89,7 @@ validationHelper.validateRequestQuery = (req, res, validationModule, opt) => {
     };
     const validation = validationModule.validate(req.query, options);
     if (validation.error) {
-      const errors = validation.error
-        ? internal.buildUsefulErrorObject(validation.error.details)
-        : null;
+      const errors = internal.buildUsefulErrorObject(validation.error);
       return errors;
     } else {
       return null;
@@ -119,38 +116,7 @@ validationHelper.requireJsonData = (req, res, next) => {
 };
 
 validationHelper.requireMultipartFormData = (req, res, next) => {
-  if (!req.headers["content-type"].includes("multipart/form-data")) {
-    return responseHelper.sendResponse(
-      res,
-      httpStatus.BAD_REQUEST,
-      false,
-      null,
-      `Server requires multipart/form-data got ${req.headers["content-type"]}`,
-      "Bad Request.",
-      null,
-    );
-  } else {
-    return next();
-  }
-};
-
-validationHelper.requireJsonData = (req, res, next) => {
-  if (req.headers["content-type"] !== "application/json") {
-    return responseHelper.sendResponse(
-      res,
-      httpStatus.BAD_REQUEST,
-      false,
-      null,
-      `Server requires application/json got ${req.headers["content-type"]}`,
-      "Bad Request.",
-      null,
-    );
-  } else {
-    return next();
-  }
-};
-validationHelper.requireMultipartFormData = (req, res, next) => {
-  if (req.headers["content-type"].includes("multipart/form-data")) {
+  if (!req.headers["content-type"]?.includes("multipart/form-data")) {
     return responseHelper.sendResponse(
       res,
       httpStatus.BAD_REQUEST,

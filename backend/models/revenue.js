@@ -1,4 +1,4 @@
-const { Model, DataTypes, Sequelize } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
   class Revenue extends Model {
@@ -18,6 +18,12 @@ module.exports = (sequelize) => {
         foreignKey: "accountId",
         as: "account",
       });
+
+      Revenue.belongsTo(models.orderModel, {
+        foreignKey: "orderId",
+        as: "order",
+        onDelete: "CASCADE",
+      });
     }
   }
 
@@ -29,12 +35,17 @@ module.exports = (sequelize) => {
         primaryKey: true,
         type: DataTypes.INTEGER,
       },
+      orderId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "orders", key: "id" },
+      },
       cash_or_credit: {
         type: DataTypes.ENUM("cash", "credit"),
         defaultValue: "cash",
       },
       paymentMethod: {
-        type: DataTypes.ENUM("cash", "card", "online"),
+        type: DataTypes.ENUM("cash", "card", "online", "cheque"),
         defaultValue: "cash",
       },
       amount: {
@@ -64,11 +75,14 @@ module.exports = (sequelize) => {
       modelName: "Revenue",
       tableName: "revenues",
       timestamps: true,
-      indexes: [{ fields: ["accountId"] }, { fields: ["customerId"] }],
+      indexes: [
+        { fields: ["accountId"] },
+        { fields: ["customerId"] },
+        { fields: ["orderId"] },
+      ],
     },
   );
 
-  // Hook to update currentBalance
   Revenue.addHook("afterCreate", async (revenue, options) => {
     try {
       if (!revenue.accountId) {
@@ -99,7 +113,7 @@ module.exports = (sequelize) => {
         `[Revenue Hook] Error in afterCreate for revenue ID: ${revenue.id}`,
         error.message,
       );
-      throw error; // Re-throw to ensure transaction rollback
+      throw error;
     }
   });
 

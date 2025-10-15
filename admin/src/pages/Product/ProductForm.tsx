@@ -27,6 +27,9 @@ import Drawer from "@/components/Drawer";
 import ListCategoryDetails from "./ListCategoryDetails";
 import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
+import { ADDON_URL } from "@/constants/apiUrlConstants";
+import { IMAGE_BASE_URL } from "@/constants";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 
 type ProductFormType = z.infer<typeof ProductSchema>;
 
@@ -55,6 +58,7 @@ export default function ProductForm() {
       // quantity: 0,
       price: 0,
       mediaArr: [],
+      addons: [],
     },
   });
 
@@ -78,6 +82,8 @@ export default function ProductForm() {
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  const [addonDrawerOpen, setAddonDrawerOpen] = useState<boolean>(false);
+  const selectedAddons = watch("addons");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   const [productCategoryOptions, setProductCategoryOptions] = useState<
@@ -99,6 +105,11 @@ export default function ProductForm() {
 
   const { data: departmentData } = useGetApiQuery({
     url: `${DEPARTMENT_URL}list`,
+  });
+
+  // Fetch addons for selection drawer
+  const { data: addonListData } = useGetApiQuery({
+    url: `${ADDON_URL}`,
   });
 
   const departmentOptions = useMemo(() => {
@@ -127,6 +138,9 @@ export default function ProductForm() {
         // quantity,
         price,
         mediaArr: product?.data?.mediaArr?.map((each) => each.imageUrl) || [],
+        addons: Array.isArray((product?.data as any)?.addons)
+          ? (product?.data as any).addons.map((a: any) => a.id)
+          : [],
       });
       setSelectedOption(product?.data?.productCategoryId);
       console.log("Reset form with product data:", {
@@ -143,6 +157,7 @@ export default function ProductForm() {
         // quantity: 0,
         price: 0,
         mediaArr: [],
+        addons: [],
       });
     }
   }, [success, product, reset, setValue]);
@@ -382,6 +397,37 @@ export default function ProductForm() {
           </>
         )}
 
+        {/* Addons selector */}
+        <div className="flex flex-col gap-2 w-full md:w-1/2">
+          <label className="input-label">Addons</label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="bg-primaryColor text-white px-4 py-2 rounded"
+              onClick={() => setAddonDrawerOpen(true)}
+            >
+              Select Addons
+            </button>
+            <span className="text-sm text-gray-600">
+              {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
+              selected
+            </span>
+          </div>
+          {/* Simple chips preview */}
+          <div className="flex flex-wrap gap-2">
+            {(addonListData?.data?.data || [])
+              .filter((a: any) => (selectedAddons || []).includes(a.id))
+              .map((a: any) => (
+                <span
+                  key={a.id}
+                  className="px-2 py-1 text-xs rounded bg-gray-100 border"
+                >
+                  {a.name}
+                </span>
+              ))}
+          </div>
+        </div>
+
         {hasVariant && (
           <div className="flex flex-col gap-4 w-full md:w-2/3">
             <label className="font-medium">Variants</label>
@@ -458,6 +504,77 @@ export default function ProductForm() {
         width="w-full lg:w-[30%]"
       >
         <ListCategoryDetails id={selectedOption} />
+      </Drawer>
+
+      {/* Addon selection Drawer */}
+      <Drawer
+        isOpen={addonDrawerOpen}
+        setIsOpen={setAddonDrawerOpen}
+        width="w-full lg:w-[40%]"
+      >
+        <div className="p-4 flex flex-col gap-4">
+          <h3 className="text-lg font-semibold">Select Addons</h3>
+          <div className="max-h-[60vh] overflow-auto flex flex-col gap-2">
+            {(addonListData?.data?.data || []).map((addon: any) => {
+              const checked = (selectedAddons || []).includes(addon.id);
+              return (
+                <label
+                  key={addon.id}
+                  className="flex items-center gap-3 p-2 border rounded"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      const curr = Array.isArray(selectedAddons)
+                        ? [...selectedAddons]
+                        : [];
+                      if (e.target.checked) {
+                        if (!curr.includes(addon.id)) curr.push(addon.id);
+                      } else {
+                        const idx = curr.indexOf(addon.id);
+                        if (idx > -1) curr.splice(idx, 1);
+                      }
+                      setValue("addons", curr, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                    }}
+                  />
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={
+                        addon.imageUrl?.startsWith("http")
+                          ? addon.imageUrl
+                          : `${IMAGE_BASE_URL}${addon.imageUrl}`
+                      }
+                      alt={addon.name}
+                      className="w-12 h-10 object-cover rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = DishPlaceHolder;
+                      }}
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-medium">{addon.name}</span>
+                      <span className="text-xs text-gray-600">
+                        Rs. {addon.price}
+                      </span>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="px-3 py-2 border rounded"
+              onClick={() => setAddonDrawerOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </Drawer>
     </>
   );

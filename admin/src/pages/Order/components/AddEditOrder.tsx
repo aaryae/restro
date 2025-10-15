@@ -33,7 +33,8 @@ import {
 } from "@/redux/services/orders";
 import { buildQueryString } from "@/utils/generalHelper";
 import usePagination from "@/hooks/usePagination";
-import DishPlaceHolder from "@/assets/product_placeholder.jpg"
+import DishPlaceHolder from "@/assets/product_placeholder.jpg";
+import Drawer from "@/components/Drawer";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -47,6 +48,12 @@ interface OrderItem {
   specialInstructions?: string;
   status?: string;
   subtotal: number;
+  addons?: {
+    addonId: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
 }
 
 interface Props {
@@ -110,6 +117,10 @@ export default function AddEditOrder({
   const [isConfirming, setIsConfirming] = useState(false);
   const kotRef = useRef<HTMLDivElement>(null);
   const [kotPreviewData, setKotPreviewData] = useState<KotData | null>(null);
+  const [addonDrawerOpen, setAddonDrawerOpen] = useState(false);
+  const [activeAddonItem, setActiveAddonItem] = useState<OrderItem | null>(
+    null,
+  );
 
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
   const beepRef = useRef<HTMLAudioElement | null>(null);
@@ -213,6 +224,7 @@ export default function AddEditOrder({
             subtotal: Number(item.subtotal),
             status: item.status,
             departmentId: item.product.departmentId,
+            addons: item.addons,
           }),
         ),
       );
@@ -237,6 +249,11 @@ export default function AddEditOrder({
         ? undefined
         : Number(item.productId),
       specialInstructions: item.specialInstructions,
+      addons: (item.addons || []).map((a) => ({
+        addonId: a.addonId,
+        quantity: a.quantity,
+        specialInstructions: "",
+      })),
     }));
     setValue("orderItems", formOrderItems as any);
   }, [orderItems, setValue]);
@@ -290,10 +307,19 @@ export default function AddEditOrder({
         departmentId: Number(product.departmentId),
         quantity: 1,
         subtotal: product.price,
+        addons: [],
         specialInstructions: "",
       };
       setOrderItems((prev) => [...prev, newItem]);
     }
+  };
+
+  const calcSubtotal = (item: OrderItem) => {
+    const addonsUnitSum = (item.addons || []).reduce(
+      (s, a) => s + Number(a.price || 0) * Number(a.quantity || 0),
+      0,
+    );
+    return Number(item.quantity) * (Number(item.productPrice) + addonsUnitSum);
   };
 
   const updateOrderItemQuantity = (itemId: string, newQuantity: number) => {
@@ -308,7 +334,7 @@ export default function AddEditOrder({
           ? {
               ...item,
               quantity: newQuantity,
-              subtotal: item.productPrice * newQuantity,
+              subtotal: calcSubtotal({ ...item, quantity: newQuantity }),
             }
           : item,
       ),
@@ -359,6 +385,10 @@ export default function AddEditOrder({
               productId: item.productId,
               quantity: item.quantity,
               departmentId: item.departmentId,
+              addons: (item.addons || []).map((a) => ({
+                addonId: a.addonId,
+                quantity: a.quantity,
+              })),
             };
           }
           return {
@@ -366,6 +396,10 @@ export default function AddEditOrder({
             productId: item.productId,
             quantity: item.quantity,
             departmentId: item.departmentId,
+            addons: (item.addons || []).map((a) => ({
+              addonId: a.addonId,
+              quantity: a.quantity,
+            })),
           };
         }),
       };
@@ -630,12 +664,12 @@ export default function AddEditOrder({
                               {product.name}
                             </h4>
                             <div className="flex items-center gap-2 justify-center">
-                                <img
-                                  src={`${product?.mediaArr?.[0]?.imageUrl?IMAGE_BASE_URL+product.mediaArr[0].imageUrl:DishPlaceHolder}`}
-                                  alt={product.name}
-                                  className="w-[80px] h-[80px] object-cover rounded mb-3"
-                                  loading="lazy"
-                                />
+                              <img
+                                src={`${product?.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + product.mediaArr[0].imageUrl : DishPlaceHolder}`}
+                                alt={product.name}
+                                className="w-[80px] h-[80px] object-cover rounded mb-3"
+                                loading="lazy"
+                              />
                             </div>
                             {/* <p
                               dangerouslySetInnerHTML={{
@@ -733,6 +767,18 @@ export default function AddEditOrder({
                           {CurrencySign} {Number(item.productPrice).toFixed(2)}{" "}
                           each
                         </p>
+                        {item.addons && item.addons.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.addons.map((a) => (
+                              <span
+                                key={`${item.id}_${a.addonId}`}
+                                className="text-[10px] px-2 py-[2px] rounded bg-gray-100 border"
+                              >
+                                + {a.name} x{a.quantity}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div
@@ -771,6 +817,19 @@ export default function AddEditOrder({
                             <Plus className="w-4 h-4" />
                           </Button>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAddonItem(item);
+                            setAddonDrawerOpen(true);
+                          }}
+                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded border"
+                        >
+                          {item.addons?.length
+                            ? `Edit Addons (${item.addons.length})`
+                            : "Add Addons"}
+                        </button>
 
                         <Button
                           disabled={item.status === "preparing"}
@@ -971,6 +1030,194 @@ export default function AddEditOrder({
       <div className="hidden">
         {kotPreviewData && <Kot ref={kotRef} data={kotPreviewData} />}
       </div>
+      {/* Addons Drawer */}
+      <Drawer
+        isOpen={addonDrawerOpen}
+        setIsOpen={setAddonDrawerOpen}
+        width="w-full lg:w-[40%]"
+      >
+        <div className="p-4 flex flex-col gap-4">
+          <h3 className="text-lg font-semibold">
+            {activeAddonItem?.productName} - Addons
+          </h3>
+          {activeAddonItem ? (
+            <AddonPicker
+              productId={activeAddonItem.productId}
+              selected={(activeAddonItem.addons || []).map((a) => ({
+                addonId: a.addonId,
+                name: a.name,
+                price: a.price,
+                quantity: a.quantity,
+              }))}
+              onCancel={() => setAddonDrawerOpen(false)}
+              onSave={(addons) => {
+                setOrderItems((prev) =>
+                  prev.map((it) =>
+                    it.id === activeAddonItem.id
+                      ? {
+                          ...it,
+                          addons,
+                          subtotal: (function () {
+                            const addonsUnit = addons.reduce(
+                              (s, a) =>
+                                s +
+                                Number(a.price || 0) * Number(a.quantity || 0),
+                              0,
+                            );
+                            return (
+                              Number(it.quantity) *
+                              (Number(it.productPrice) + addonsUnit)
+                            );
+                          })(),
+                        }
+                      : it,
+                  ),
+                );
+                setAddonDrawerOpen(false);
+              }}
+            />
+          ) : (
+            <p className="text-sm text-gray-600">No item selected.</p>
+          )}
+        </div>
+      </Drawer>
     </>
+  );
+}
+
+function AddonPicker({
+  productId,
+  selected,
+  onCancel,
+  onSave,
+}: {
+  productId: string;
+  selected: {
+    addonId: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
+  onCancel: () => void;
+  onSave: (
+    addons: {
+      addonId: number;
+      name: string;
+      price: number;
+      quantity: number;
+    }[],
+  ) => void;
+}) {
+  const { data, isLoading } = useGetApiQuery(
+    { url: `product/${productId}` },
+    { skip: !productId },
+  );
+  const [local, setLocal] = useState<
+    { addonId: number; name: string; price: number; quantity: number }[]
+  >(selected || []);
+
+  useEffect(() => {
+    setLocal(selected || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
+
+  const addons = data?.data?.addons || [];
+
+  const toggle = (addon: any) => {
+    setLocal((prev) => {
+      const idx = prev.findIndex((a) => a.addonId === addon.id);
+      if (idx > -1) {
+        const copy = [...prev];
+        copy.splice(idx, 1);
+        return copy;
+      }
+      return [
+        ...prev,
+        {
+          addonId: addon.id,
+          name: addon.name,
+          price: Number(addon.price || 0),
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const setQty = (addonId: number, qty: number) => {
+    setLocal((prev) =>
+      prev.map((a) =>
+        a.addonId === addonId ? { ...a, quantity: Math.max(1, qty) } : a,
+      ),
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {isLoading ? (
+        <p>Loading addons...</p>
+      ) : addons.length === 0 ? (
+        <p className="text-sm text-gray-600">No addons for this product.</p>
+      ) : (
+        <div className="max-h-[60vh] overflow-auto flex flex-col gap-2">
+          {addons.map((ad: any) => {
+            const sel = local.find((a) => a.addonId === ad.id);
+            return (
+              <div
+                key={ad.id}
+                className="flex items-center justify-between p-2 border rounded"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!sel}
+                    onChange={() => toggle(ad)}
+                  />
+                  <span className="font-medium">{ad.name}</span>
+                  <span className="text-xs text-gray-600">
+                    {CurrencySign}
+                    {Number(ad.price || 0).toFixed(2)}
+                  </span>
+                </div>
+                {sel ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded"
+                      onClick={() => setQty(ad.id, (sel.quantity || 1) - 1)}
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center">{sel.quantity || 1}</span>
+                    <button
+                      type="button"
+                      className="px-2 py-1 border rounded"
+                      onClick={() => setQty(ad.id, (sel.quantity || 1) + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          className="px-4 py-2 border rounded"
+          onClick={onCancel}
+        >
+          Close
+        </button>
+        <button
+          type="button"
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+          onClick={() => onSave(local)}
+        >
+          Save
+        </button>
+      </div>
+    </div>
   );
 }

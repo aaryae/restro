@@ -21,7 +21,10 @@ const create = async (req) => {
       req.body.hasVariant ||
       (req.body.variants && req.body.variants.length > 0);
     // Ensure product-level quantity is set even if not provided by client
-    if (typeof req.body.quantity === "undefined" || req.body.quantity === null) {
+    if (
+      typeof req.body.quantity === "undefined" ||
+      req.body.quantity === null
+    ) {
       req.body.quantity = 0;
     }
 
@@ -68,9 +71,9 @@ const create = async (req) => {
     // Fetch the created product with all associations
     const createdProduct = await productModel.findByPk(product.id, {
       include: [
-        { model: productMediaModel, as: 'mediaArr' },
-        { model: productVariantModel, as: 'variants' },
-        { model: addonModel, as: 'addons' },
+        { model: productMediaModel, as: "mediaArr" },
+        { model: productVariantModel, as: "variants" },
+        { model: addonModel, as: "addons" },
       ],
       transaction,
     });
@@ -92,7 +95,7 @@ const list = async (req) => {
     const filters = category ? { productCategoryId: category } : {};
     const include = [
       { model: productMediaModel, as: "mediaArr" },
-      { model: addonModel, as: 'addons' },
+      { model: addonModel, as: "addons" },
     ];
 
     if (slug) {
@@ -138,13 +141,13 @@ const getById = async (req) => {
       include: [
         { model: productMediaModel, as: "mediaArr" },
         { model: productVariantModel, as: "variants" },
+        {
+          model: addonModel,
+          as: "addons",
+          through: { attributes: [] }, // Exclude the join table attributes
+        },
       ],
     });
-
-    // REDIS EXCLUSION
-    // const getData = await redis.get(`product:${req.params.id}:reserved`);
-    // const quantity = +getData;
-    // product.reservedQuantity = quantity;
 
     if (!product) {
       return {
@@ -152,11 +155,19 @@ const getById = async (req) => {
         data: null,
       };
     }
+
+    // Transform the response to include addons at the same level as variants
+    const responseData = {
+      ...product.get({ plain: true }),
+      addons: product.addons || [],
+    };
+
     return {
       ...generalConstant.EN.PRODUCT.PRODUCT_GET_SUCCESS,
-      data: product,
+      data: responseData,
     };
   } catch (error) {
+    console.error("Error in getById:", error);
     throw error;
   }
 };
@@ -166,9 +177,9 @@ const updateById = async (req) => {
   try {
     const product = await productModel.findByPk(+req.params.id, {
       include: [
-        { model: addonModel, as: 'addons' },
-        { model: productMediaModel, as: 'mediaArr' },
-        { model: productVariantModel, as: 'variants' }
+        { model: addonModel, as: "addons" },
+        { model: productMediaModel, as: "mediaArr" },
+        { model: productVariantModel, as: "variants" },
       ],
       transaction,
     });
@@ -234,8 +245,10 @@ const updateById = async (req) => {
     // Handle addons association
     if (Array.isArray(addons)) {
       // First, remove all existing addon associations
-      await product.removeAddons(await product.getAddons({ transaction }), { transaction });
-      
+      await product.removeAddons(await product.getAddons({ transaction }), {
+        transaction,
+      });
+
       // Then add the new addons
       if (addons.length > 0) {
         const validAddons = await addonModel.findAll({
@@ -249,9 +262,9 @@ const updateById = async (req) => {
     // Fetch updated product with all associations
     const updatedProduct = await productModel.findByPk(+req.params.id, {
       include: [
-        { model: productMediaModel, as: 'mediaArr' },
-        { model: productVariantModel, as: 'variants' },
-        { model: addonModel, as: 'addons' },
+        { model: productMediaModel, as: "mediaArr" },
+        { model: productVariantModel, as: "variants" },
+        { model: addonModel, as: "addons" },
       ],
       transaction,
     });
@@ -339,7 +352,7 @@ const importFromExcel = async (file) => {
   const transaction = await sequelize.transaction();
   try {
     const products = parseExcel(file.path);
-    
+
     // Create products in database
     const createdProducts = await productModel.bulkCreate(products, {
       transaction,
@@ -352,13 +365,13 @@ const importFromExcel = async (file) => {
       status: 201,
       success: true,
       data: { count: createdProducts.length },
-      message: 'Products imported successfully',
+      message: "Products imported successfully",
     };
   } catch (error) {
     await transaction.rollback();
     throw error;
   }
-}
+};
 
 module.exports = {
   create,
@@ -367,5 +380,5 @@ module.exports = {
   updateById,
   deleteById,
   updateByOrder,
-  importFromExcel
+  importFromExcel,
 };

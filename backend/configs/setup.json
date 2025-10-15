@@ -1579,52 +1579,6 @@
       ]
     },
     {
-      "title": "Account Permission",
-      "key": "account-permission",
-      "actions": [
-        {
-          "title": "Add Account Permission",
-          "key": "add",
-          "clientPath": "/account-permission",
-          "serverPath": "/account-permission",
-          "requestMethod": "POST",
-          "list": "Account Permission"
-        },
-        {
-          "title": "View Account Permission",
-          "key": "view",
-          "clientPath": "/account-permission/list",
-          "serverPath": "/account-permission/list",
-          "requestMethod": "GET",
-          "list": "Account Permission"
-        },
-        {
-          "title": "Edit Account Permission",
-          "key": "edit",
-          "clientPath": "/account-permission/:id",
-          "serverPath": "/account-permission/:id",
-          "requestMethod": "PUT",
-          "list": "Account Permission"
-        },
-        {
-          "title": "Delete Account Permission",
-          "key": "delete",
-          "clientPath": "/account-permission/:id",
-          "serverPath": "/account-permission/:id",
-          "requestMethod": "DELETE",
-          "list": "Account Permission"
-        },
-        {
-          "title": "View One Account Permission",
-          "key": "view-one",
-          "clientPath": "/account-permission/:id",
-          "serverPath": "/account-permission/:id",
-          "requestMethod": "GET",
-          "list": "Account Permission"
-        }
-      ]
-    },
-    {
       "title": "Addons",
       "key": "addons",
       "actions": [
@@ -1645,6 +1599,14 @@
           "list": "Addons"
         },
         {
+          "title": "View One Addons",
+          "key": "view-one",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "GET",
+          "list": "Addons"
+        },
+        {
           "title": "Edit Addons",
           "key": "edit",
           "clientPath": "/addons/:id",
@@ -1658,14 +1620,6 @@
           "clientPath": "/addons/:id",
           "serverPath": "/addons/:id",
           "requestMethod": "DELETE",
-          "list": "Addons"
-        },
-        {
-          "title": "View One Addons",
-          "key": "view-one",
-          "clientPath": "/addons/:id",
-          "serverPath": "/addons/:id",
-          "requestMethod": "GET",
           "list": "Addons"
         }
       ]
