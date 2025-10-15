@@ -270,6 +270,32 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
       }
 
+      if (paymentType === "qr") {
+        payload.accountId = selectedBankDetail?.data?.id;
+        payload.paymentMethod = "online";
+        const response = await checkoutOrderApi({
+          id: tableId,
+          body: payload,
+        }).unwrap();
+
+        if (response?.success) {
+          handleResponse({ res: response });
+          setIsPaymentSuccess(true);
+        }
+      }
+
+      if (paymentType === "split") {
+        const response = await checkoutOrderApi({
+          id: tableId,
+          body: { checkoutAll: true, payments: splitPaymentData },
+        }).unwrap();
+
+        if (response?.success) {
+          handleResponse({ res: response });
+          setIsPaymentSuccess(true);
+        }
+      }
+
       setTimeout(() => {
         setIsPaymentSuccess(false);
         onClose();
