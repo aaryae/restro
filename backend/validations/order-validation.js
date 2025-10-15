@@ -193,116 +193,76 @@ const updateOrderItemStatusValidation = async (req, res, next) => {
 };
 
 const updateOrderItemsValidation = async (req, res, next) => {
-  const addonSchema = joi.object({
-    addonId: joi.number().integer().required().messages({
-      "any.required": "Addon ID is required",
-      "number.base": "Addon ID must be a number",
-      "number.integer": "Addon ID must be an integer",
+  const joiModel = joi.object({
+    orderItems: joi
+      .array()
+      .items(
+        joi
+          .object({
+            id: joi.number().positive(),
+            quantity: joi.number().integer().min(1).required(),
+            specialInstructions: joi.string().allow("").max(500).optional(),
+            departmentId: joi.number().integer().required(),
+            discount: joi.number().min(0).optional(),
+            discountPercentage: joi.number().min(0).max(100).optional(),
+            addons: joi
+              .array()
+              .items(
+                joi.object({
+                  addonId: joi.number().integer().required(),
+                  quantity: joi.number().integer().min(1).required(),
+                  specialInstructions: joi
+                    .string()
+                    .allow("")
+                    .max(500)
+                    .optional(),
+                }),
+              )
+              .optional(),
+            productId: joi.number().integer(),
+            openItemId: joi.number().integer(),
+          })
+          .xor("productId", "openItemId"),
+      )
+      .min(1)
+      .required()
+      .messages({
+        "array.min": "Order must contain at least one item",
+        "object.xor":
+          "Each order item must specify exactly one of productId or openItemId",
+      }),
+    takeAwayName: joi
+      .string()
+      .max(255)
+      .when("orderType", {
+        is: "takeaway",
+        then: joi.required().messages({
+          "any.required": "Takeaway name is required for takeaway orders",
+          "string.empty": "Takeaway name cannot be empty",
+          "string.base": "Takeaway name must be a string",
+          "string.max": "Takeaway name cannot be longer than 255 characters",
+        }),
+        otherwise: joi.forbidden(),
+      }),
+    paymentMethod: joi.string().valid("cash", "card", "online").optional(),
+    orderNote: joi.string().allow("", null).optional(),
+    orderType: joi.string().valid("dineIn", "takeaway").required().messages({
+      "any.required": "Order type is required",
+      "string.base": "Order type must be a string",
+      "any.only": "Order type must be one of: dineIn, takeaway",
     }),
-    quantity: joi.number().integer().min(1).optional().messages({
-      "number.base": "Addon quantity must be a number",
-      "number.integer": "Addon quantity must be an integer",
-      "number.min": "Addon quantity must be at least 1",
-    }),
-    specialInstructions: joi.string().allow("").max(500).optional().messages({
-      "string.max": "Addon special instructions cannot exceed 500 characters",
-    }),
+    tableId: joi
+      .number()
+      .integer()
+      .when("orderType", {
+        is: "dineIn",
+        then: joi.required().messages({
+          "any.required": "Table ID is required for dine-in orders",
+          "number.base": "Table ID must be a number",
+        }),
+        otherwise: joi.forbidden(),
+      }),
   });
-
-  const existingItemSchema = joi.object({
-    id: joi.number().integer().required().messages({
-      "any.required": "ID is required for existing items",
-      "number.base": "ID must be a number",
-      "number.integer": "ID must be an integer",
-    }),
-    quantity: joi.number().integer().min(1).optional().messages({
-      "number.base": "Quantity must be a number",
-      "number.integer": "Quantity must be an integer",
-      "number.min": "Quantity must be at least 1",
-    }),
-    specialInstructions: joi.string().allow("").max(500).optional().messages({
-      "string.max": "Special instructions cannot exceed 500 characters",
-    }),
-    discount: joi.number().min(0).optional().messages({
-      "number.base": "Discount must be a number",
-      "number.min": "Discount must be at least 0",
-    }),
-    discountPercentage: joi.number().min(0).max(100).optional().messages({
-      "number.base": "Discount percentage must be a number",
-      "number.min": "Discount percentage must be at least 0",
-      "number.max": "Discount percentage cannot exceed 100",
-    }),
-    addons: joi.array().items(addonSchema).optional().messages({
-      "array.base": "Addons must be an array",
-    }),
-  });
-
-  const newItemSchema = joi
-    .object({
-      tempId: joi.string().optional().messages({
-        "string.base": "tempId must be a string",
-      }),
-      quantity: joi.number().integer().min(1).required().messages({
-        "any.required": "Quantity is required for new items",
-        "number.base": "Quantity must be a number",
-        "number.integer": "Quantity must be an integer",
-        "number.min": "Quantity must be at least 1",
-      }),
-      specialInstructions: joi.string().allow("").max(500).optional().messages({
-        "string.max": "Special instructions cannot exceed 500 characters",
-      }),
-      departmentId: joi.number().integer().required().messages({
-        "any.required": "Department ID is required for new items",
-        "number.base": "Department ID must be a number",
-        "number.integer": "Department ID must be an integer",
-      }),
-      discount: joi.number().min(0).optional().messages({
-        "number.base": "Discount must be a number",
-        "number.min": "Discount must be at least 0",
-      }),
-      discountPercentage: joi.number().min(0).max(100).optional().messages({
-        "number.base": "Discount percentage must be a number",
-        "number.min": "Discount percentage must be at least 0",
-        "number.max": "Discount percentage cannot exceed 100",
-      }),
-      productId: joi.number().integer().optional().messages({
-        "number.base": "Product ID must be a number",
-        "number.integer": "Product ID must be an integer",
-      }),
-      openItemId: joi.number().integer().optional().messages({
-        "number.base": "Open item ID must be a number",
-        "number.integer": "Open item ID must be an integer",
-      }),
-      addons: joi.array().items(addonSchema).optional().messages({
-        "array.base": "Addons must be an array",
-      }),
-    })
-    .xor("productId", "openItemId")
-    .messages({
-      "object.xor":
-        "Each new order item must specify exactly one of productId or openItemId",
-    });
-
-  const orderItemSchema = joi
-    .alternatives()
-    .conditional("id", {
-      is: joi.exist(),
-      then: existingItemSchema,
-      otherwise: newItemSchema,
-    })
-    .messages({
-      "alternatives.base":
-        "Item must be either an existing item (with id) or a new item (with productId/openItemId, quantity, departmentId)",
-    });
-
-  let joiModel = joi.object({
-    orderItems: joi.array().items(orderItemSchema).min(1).required().messages({
-      "array.base": "Order items must be an array",
-      "array.min": "Order items must contain at least one item",
-      "any.required": "Order items are required",
-    }),
-  });
-
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(

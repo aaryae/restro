@@ -66,7 +66,7 @@ router.put(
   "/items/:orderId",
   authentication,
   authorization,
-  // updateOrderItemsValidation,
+  updateOrderItemsValidation,
   updateOrderItems,
 );
 
