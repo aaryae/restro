@@ -1579,48 +1579,48 @@
       ]
     },
     {
-      "title": "Account Access",
-      "key": "account-access",
+      "title": "Addons",
+      "key": "addons",
       "actions": [
         {
-          "title": "Add Account Access",
+          "title": "Add Addons",
           "key": "add",
-          "clientPath": "/account-access",
-          "serverPath": "/account-access",
+          "clientPath": "/addons",
+          "serverPath": "/addons",
           "requestMethod": "POST",
-          "list": "Account Access"
+          "list": "Addons"
         },
         {
-          "title": "View Account Access",
+          "title": "View Addons",
           "key": "view",
-          "clientPath": "/account-access/list",
-          "serverPath": "/account-access/list",
+          "clientPath": "/addons/list",
+          "serverPath": "/addons/list",
           "requestMethod": "GET",
-          "list": "Account Access"
+          "list": "Addons"
         },
         {
-          "title": "Edit Account Access",
-          "key": "edit",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
-          "requestMethod": "PUT",
-          "list": "Account Access"
-        },
-        {
-          "title": "Delete Account Access",
-          "key": "delete",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
-          "requestMethod": "DELETE",
-          "list": "Account Access"
-        },
-        {
-          "title": "View One Account Access",
+          "title": "View One Addons",
           "key": "view-one",
-          "clientPath": "/account-access/:id",
-          "serverPath": "/account-access/:id",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
           "requestMethod": "GET",
-          "list": "Account Access"
+          "list": "Addons"
+        },
+        {
+          "title": "Edit Addons",
+          "key": "edit",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "PUT",
+          "list": "Addons"
+        },
+        {
+          "title": "Delete Addons",
+          "key": "delete",
+          "clientPath": "/addons/:id",
+          "serverPath": "/addons/:id",
+          "requestMethod": "DELETE",
+          "list": "Addons"
         }
       ]
     }

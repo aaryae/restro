@@ -63,6 +63,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <HandPlatter size={12} />,
         path: "/admin/open-item/list",
       },
+      {
+        key: 1.4,
+        name: "Addons",
+        icon: <HandPlatter size={12} />,
+        path: "/admin/addons/list",
+      },
       // {
       //   key: 3.3,
       //   name: "Product Variant",
