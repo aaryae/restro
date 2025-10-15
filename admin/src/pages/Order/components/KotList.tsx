@@ -12,13 +12,37 @@ import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
 
+interface Addon {
+  id: number | string;
+  name: string;
+  price: number | string;
+}
+
 type OrderItem = {
   id: number | string;
   quantity: number;
   status?: string;
-  product?: { name?: string };
-  subtotal?: number;
+  product?: {
+    id?: number | string;
+    name?: string;
+    price?: number | string;
+  };
+  subtotal?: number | string;
+  specialInstructions?: string;
+  addons?: Addon[];
 };
+
+function getItemTotal(item: OrderItem): number {
+  const basePrice =
+    Number(item.product?.price || 0) * Number(item.quantity || 0);
+  const addonsTotal =
+    item.addons?.reduce(
+      (sum: number, addon: Addon) =>
+        sum + Number(addon.price || 0) * Number(item.quantity || 0),
+      0,
+    ) || 0;
+  return basePrice + addonsTotal;
+}
 
 type Order = {
   id: number;
@@ -224,8 +248,11 @@ function KotCard({ kot }) {
   });
 
   const totalDish = items.length;
-  console.log("totalDish", items);
-  const totalQty = items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
+  const totalQty = items.reduce((sum, item) => {
+    const itemQty = Number(item.quantity || 0);
+    const addonsQty = item.addons?.length || 0;
+    return sum + itemQty + addonsQty * itemQty;
+  }, 0);
 
   const [openCheckout, setOpenCheckout] = useState(false);
 
@@ -306,17 +333,70 @@ function KotCard({ kot }) {
           <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
 
           <div className="space-y-3 leading-[10px]">
-            {items.map((it, index) => (
-              <>
-                <div key={String(it.id)} className="grid grid-cols-12 ">
-                  <div className="col-span-8 flex gap-2">
-                    <span>{index + 1}.</span>
-                    <span>{it.product?.name || "-"}</span>
+            {items.map((it, index) => {
+              const itemTotal = getItemTotal(it);
+              return (
+                <div key={String(it.id)} className="space-y-1">
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-8 flex gap-2">
+                      <span>{index + 1}.</span>
+                      <div>
+                        <div className="font-medium text-left">
+                          {it.product?.name || "-"}
+                        </div>
+                        {it.specialInstructions && (
+                          <div className="text-xs text-gray-600 italic">
+                            Note: {it.specialInstructions}
+                          </div>
+                        )}
+                        {it.addons && it.addons.length > 0 && (
+                          <div className="mt-1">
+                            <div className="text-xs font-medium text-left">
+                              Addons:
+                            </div>
+                            <ul className="text-xs pl-4 list-disc">
+                              {it.addons.map(
+                                (addonItem: any, index: number) => (
+                                  <li key={index} className="text-left">
+                                    {addonItem?.addon?.name || "No name"}
+                                    {addonItem?.addon?.price !== undefined &&
+                                      ` (+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
+                                  </li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-4 text-right flex flex-col gap-2">
+                      <div>
+                        {it.quantity} × Rs.
+                        {Number(it.product?.price || 0).toFixed(2)}
+                      </div>
+                      {it.addons && it.addons.length > 0 && (
+                        <div className="text-xs text-gray-600">
+                          + Rs.
+                          {it.addons
+                            .reduce(
+                              (sum: number, addonItem: any) =>
+                                sum +
+                                Number(addonItem?.addon?.price || 0) *
+                                  it.quantity,
+                              0,
+                            )
+                            .toFixed(2)}{" "}
+                          addons
+                        </div>
+                      )}
+                      <div className="font-medium">
+                        Total: Rs.{itemTotal.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="col-span-4 text-right">{it.quantity}</div>
                 </div>
-              </>
-            ))}
+              );
+            })}
           </div>
 
           <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
@@ -395,12 +475,14 @@ function KotCard({ kot }) {
             </Button>
           )}
         </div>
-        {openCheckout && <CheckoutModal
-          isOpen={openCheckout}
-          onClose={() => setOpenCheckout(false)}
-          tableId={Number(kot?.order?.table?.id || 0)}
-          orderId={kot.id}
-        />}
+        {openCheckout && (
+          <CheckoutModal
+            isOpen={openCheckout}
+            onClose={() => setOpenCheckout(false)}
+            tableId={Number(kot?.order?.table?.id || 0)}
+            orderId={kot.id}
+          />
+        )}
       </div>
     </>
   );
