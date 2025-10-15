@@ -48,6 +48,7 @@ import Transaction from "@/pages/Transaction";
 import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
 import AddEditAddons from "@/pages/Addons/AddEditAddons";
 import Addons from "@/pages/Addons";
+import AccountPermission from "@/pages/AccountPermission";
 
 export const adminLinks = [
   {
