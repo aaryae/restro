@@ -93,8 +93,7 @@ router.post(
   "/checkout/:tableId",
   authentication,
   authorization,
-  // idValidation,
-  // checkoutOrderValidation,
+  checkoutOrderValidation,
   checkoutOrder,
 );
 

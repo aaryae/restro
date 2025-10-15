@@ -271,9 +271,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (paymentType === "split") {
+        let splitPayload = { checkoutAll: true, payments: splitPaymentData };
+        if (checkoutType === "member" && selectedMember) {
+          splitPayload.customerId = selectedMember.id;
+        }
         const response = await checkoutOrderApi({
           id: tableId,
-          body: { checkoutAll: true, payments: splitPaymentData },
+          body: splitPayload,
         }).unwrap();
 
         if (response?.success) {

@@ -328,156 +328,71 @@ const updateOrderItemsStatusValidation = async (req, res, next) => {
 };
 
 const checkoutOrderValidation = async (req, res, next) => {
-  let joiModel = joi
+  const paymentSplitSchema = joi
     .object({
-      orderId: joi.number().integer().positive().optional().messages({
-        "number.base": "Order ID must be a number",
-        "number.integer": "Order ID must be an integer",
-        "number.positive": "Order ID must be positive",
-      }),
-      checkoutAll: joi.boolean().default(false).messages({
-        "boolean.base": "Checkout all must be a boolean",
-      }),
-      orderItemIds: joi
-        .array()
-        .items(joi.number().integer().positive())
-        .optional()
-        .when("paymentSources", {
-          is: joi.exist(),
-          then: joi.forbidden().messages({
-            "any.unknown": "orderItemIds is not allowed with paymentSources",
-          }),
-        })
-        .messages({
-          "array.base": "Order item IDs must be an array",
-          "number.base": "Each order item ID must be a number",
-          "number.integer": "Each order item ID must be an integer",
-          "number.positive": "Each order item ID must be positive",
-        }),
-      customerId: joi.number().integer().positive().optional().messages({
-        "number.base": "Customer ID must be a number",
-        "number.integer": "Customer ID must be an integer",
-        "number.positive": "Customer ID must be positive",
-      }),
-      customerDetails: joi
-        .object({
-          firstName: joi.string().min(2).max(255).optional().messages({
-            "string.min": "First name must be at least 2 characters",
-            "string.max": "First name cannot exceed 255 characters",
-          }),
-          lastName: joi.string().min(2).max(255).optional().messages({
-            "string.min": "Last name must be at least 2 characters",
-            "string.max": "Last name cannot exceed 255 characters",
-          }),
-          name: joi.string().min(2).max(255).optional().messages({
-            "string.min": "Name must be at least 2 characters",
-            "string.max": "Name cannot exceed 255 characters",
-          }),
-          email: joi.string().email().optional().messages({
-            "string.email": "Email must be a valid email address",
-          }),
-          mobileNo: joi.string().min(10).max(20).optional().messages({
-            "string.min": "Mobile number must be at least 10 characters",
-            "string.max": "Mobile number cannot exceed 20 characters",
-          }),
-          phone: joi.string().min(10).max(20).optional().messages({
-            "string.min": "Phone number must be at least 10 characters",
-            "string.max": "Phone number cannot exceed 20 characters",
-          }),
-        })
-        .optional()
-        .messages({
-          "object.base": "Customer details must be an object",
-        }),
-      sessionId: joi.string().uuid().optional().messages({
-        "string.uuid": "Session ID must be a valid UUID",
-      }),
-      isGuestOrder: joi.boolean().default(false).messages({
-        "boolean.base": "Is guest order must be a boolean",
-      }),
-      paymentSources: joi
+      checkoutAll: joi.valid(true).required(),
+      payments: joi
         .array()
         .items(
-          joi.object({
-            paymentMethod: joi
-              .string()
-              .valid("cash", "card", "online", "cheque")
-              .required()
-              .messages({
-                "any.required": "Payment method is required for payment source",
-                "string.base": "Payment method must be a string",
-                "any.only":
-                  "Payment method must be one of: cash, card, online, cheque",
-              }),
-            amount: joi.number().positive().precision(2).required().messages({
-              "any.required": "Amount is required for payment source",
-              "number.base": "Amount must be a number",
-              "number.positive": "Amount must be positive",
-              "number.precision": "Amount must have at most 2 decimal places",
-            }),
-            cashOrCredit: joi
-              .string()
-              .valid("cash", "credit")
-              .default("cash")
-              .messages({
-                "string.base": "Cash or credit must be a string",
-                "any.only": "Cash or credit must be one of: cash, credit",
-              }),
-            accountId: joi.number().integer().positive().optional().messages({
-              "number.base": "Account ID must be a number",
-              "number.integer": "Account ID must be an integer",
-              "number.positive": "Account ID must be positive",
-            }),
-            remarks: joi.string().optional().messages({
-              "string.base": "Remarks must be a string",
-            }),
-          }),
+          joi
+            .object({
+              paymentMethod: joi
+                .string()
+                .valid("cash", "card", "online")
+                .required(),
+              amount: joi.number().positive().required(),
+              accountId: joi.number().positive().required(),
+            })
+            .unknown(false),
         )
-        .optional()
-        .messages({
-          "array.base": "Payment sources must be an array",
-        }),
-      paymentMethod: joi
-        .string()
-        .valid("cash", "card", "online", "cheque")
-        .optional()
-        .messages({
-          "string.base": "Payment method must be a string",
-          "any.only":
-            "Payment method must be one of: cash, card, online, cheque",
-        }),
-      cashOrCredit: joi
-        .string()
-        .valid("cash", "credit")
-        .default("cash")
-        .messages({
-          "string.base": "Cash or credit must be a string",
-          "any.only": "Cash or credit must be one of: cash, credit",
-        }),
-      remarks: joi.string().optional().messages({
-        "string.base": "Remarks must be a string",
-      }),
-      takeAwayName: joi
-        .string()
-        .max(255)
-        .when("isGuestOrder", {
-          is: true,
-          then: joi.required().messages({
-            "any.required":
-              "Takeaway name is required for guest takeaway orders",
-            "string.empty": "Takeaway name cannot be empty",
-            "string.base": "Takeaway name must be a string",
-            "string.max": "Takeaway name cannot be longer than 255 characters",
-          }),
-          otherwise: joi.optional(),
-        }),
+        .min(1)
+        .required(),
     })
-    .oxor("paymentSources", "paymentMethod")
-    .messages({
-      "object.oxor":
-        "Either paymentSources or paymentMethod must be provided, but not both",
-    });
+    .required()
+    .unknown(false); // disallow unknown fields
 
+  const checkoutAllSchema = joi
+    .object({
+      checkoutAll: joi.valid(true).required(),
+      sessionId: joi.string().uuid({ version: "uuidv4" }).required(),
+      paymentMethod: joi.string().valid("cash", "online").required(),
+      cashOrCredit: joi.string().valid("cash", "credit").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const takeawayCheckoutSchema = joi
+    .object({
+      orderId: joi.number().positive().required(),
+      paymentMethod: joi.string().valid("cash", "card", "online").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const selectiveCheckoutSchema = joi
+    .object({
+      orderItemIds: joi
+        .array()
+        .items(joi.number().positive())
+        .min(1)
+        .required(),
+      paymentMethod: joi.string().valid("cash", "card", "online").required(),
+    })
+    .required()
+    .unknown(false);
+
+  const joiModel = joi
+    .alternatives()
+    .try(
+      paymentSplitSchema,
+      checkoutAllSchema,
+      takeawayCheckoutSchema,
+      selectiveCheckoutSchema,
+    )
+    .messages({
+      "alternatives.match":
+        "Invalid payload — must match one of the valid checkout types.",
+    });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(
