@@ -9,6 +9,32 @@ import { LuChefHat } from "react-icons/lu";
 import Checkbox from "@/components/Checkbox";
 import CustomDialog from "@/components/Dialog";
 import ChooseTable from "./TransferModel/ChooseTable";
+
+interface Addon {
+  id: number;
+  name: string;
+  price: number | string;
+}
+
+interface OrderItem {
+  id: number;
+  product: {
+    id: number;
+    name: string;
+    price: number | string;
+  };
+  quantity: number;
+  subtotal: number | string;
+  specialInstructions?: string;
+  addons?: Addon[];
+}
+
+interface Order {
+  id: number;
+  status: "pending" | "completed" | "cancelled";
+  orderItems: OrderItem[];
+  totalAmount: number | string;
+}
 interface ViewTableOrderProps {
   id: number | null;
   tableNo: number | null;
@@ -90,7 +116,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                           >
                             <div className="flex justify-between items-center w-full">
                               <div className="leading-[1.5] text-gray-600 ">
-                                <p className="font-medium text-[14px]">
+                                <p className="font-medium text-[14px] text-left">
                                   Item: {item.product.name}
                                 </p>
                                 <p className="flex text-[13px]">
@@ -101,15 +127,62 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                     Note: {item.specialInstructions}
                                   </p>
                                 )}
+                                {console.log(
+                                  "Item data:",
+                                  JSON.stringify(item, null, 2),
+                                )}
+                                {item.addons && item.addons.length > 0 ? (
+                                  <div className="mt-1">
+                                    <p className="text-xs font-medium text-left">
+                                      Addons ({item.addons.length}):
+                                    </p>
+                                    <ul className="text-xs pl-4 list-disc">
+                                      {item.addons.map(
+                                        (addonItem: any, index: number) => (
+                                          <li key={index} className="text-left">
+                                            {addonItem?.addon?.name ||
+                                              "No name"}
+                                            {addonItem?.addon?.price !==
+                                              undefined &&
+                                              `(+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
+                                          </li>
+                                        ),
+                                      )}
+                                    </ul>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-gray-400 mt-1 text-left">
+                                    No addons
+                                  </div>
+                                )}
                               </div>
                               <div className="leading-[1.5] text-gray-600 text-right">
                                 <p className="text-[14px]">
                                   Rs. {Number(item.product.price).toFixed(2)}{" "}
                                   each
                                 </p>
-                                <p className="text-[13px]">
+                                {item.addons && item.addons.length > 0 && (
+                                  <p className="text-xs text-gray-500">
+                                    + Rs.
+                                    {item.addons
+                                      .reduce(
+                                        (sum, addon) =>
+                                          sum + Number(addon.price),
+                                        0,
+                                      )
+                                      .toFixed(2)}{" "}
+                                    addons
+                                  </p>
+                                )}
+                                <p className="text-[13px] font-medium">
                                   Subtotal: Rs.
-                                  {Number(item.subtotal).toFixed(2)}
+                                  {(
+                                    Number(item.subtotal) +
+                                    (item.addons?.reduce(
+                                      (sum, addon) => sum + Number(addon.price),
+                                      0,
+                                    ) || 0)
+                                  ).toFixed(2)}
                                 </p>
                               </div>
                             </div>
