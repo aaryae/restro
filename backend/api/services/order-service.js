@@ -1,4 +1,4 @@
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { v4: uuidv4 } = require("uuid");
 const { generateUUID } = require("../../utils/uuidGenerator");
