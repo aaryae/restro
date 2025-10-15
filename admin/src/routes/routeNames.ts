@@ -80,6 +80,10 @@ export const WITHDRAW_LIST_ROUTE = "/admin/transaction/list";
 export const WITHDRAW_ADD_ROUTE = "/admin/transaction/";
 export const WITHDRAW_EDIT_ROUTE = "/admin/transaction/:id";
 
-export const ACCOUNT_ACCESS_LIST_ROUTE = "/admin/account-permission/list";
-export const ACCOUNT_ACCESS_ADD_ROUTE = "/admin/account-permission/";
-export const ACCOUNT_ACCESS_EDIT_ROUTE = "/admin/account-permission/:id";
+export const ACCOUNT_PERMISSION_LIST_ROUTE = "/admin/account-permission/list";
+export const ACCOUNT_PERMISSION_ADD_ROUTE = "/admin/account-permission/";
+export const ACCOUNT_PERMISSION_EDIT_ROUTE = "/admin/account-permission/:id";
+
+export const ADDONS_LIST_ROUTE = "/admin/addons/list";
+export const ADDONS_ADD_ROUTE = "/admin/addons/";
+export const ADDONS_EDIT_ROUTE = "/admin/addons/:id";

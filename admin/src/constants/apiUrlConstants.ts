@@ -1,5 +1,6 @@
 export const CONTACT_URL = "contact/";
 export const PRODUCT_URL = "product/";
+export const ADDON_URL = "addon/";
 export const OPEN_ITEM_URL = "open-item/";
 export const BANNER_URL = "banner/";
 export const DEPARTMENT_URL = "department/";

@@ -110,25 +110,32 @@ export default function Product() {
     "Price",
     // "Order",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ];
+  ].filter(Boolean) as string[];
 
   const tableData =
     success && allProduct?.data?.data
-      ? allProduct?.data?.data.map(({ id, name, price, mediaArr }) => [
-          id,
+      ? allProduct?.data?.data.map((item: any) => [
+          item.id,
           <div className="flex items-center gap-[1rem] md:w-[8rem] w-[20rem]">
             <img
-             src={`${mediaArr?.[0]?.imageUrl?IMAGE_BASE_URL+mediaArr[0].imageUrl:DishPlaceHolder}`}
+             src={`${item.mediaArr?.[0]?.imageUrl?IMAGE_BASE_URL+item.mediaArr[0].imageUrl:DishPlaceHolder}`}
               alt="Product Image"
               className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
               // crossOrigin="anonymous"
             />
-            <p>{name}</p>
+            <div className="flex items-center gap-2">
+              <p>{item.name}</p>
+              {(item.addons?.length || item.addonIds?.length) ? (
+                <span className="text-[10px] px-2 py-[2px] rounded bg-gray-100 border">
+                  {(item.addons?.length || 0) + (item.addonIds?.length || 0)} addons
+                </span>
+              ) : null}
+            </div>
           </div>,
-          `${CurrencySign} ${price}`,
+          `${CurrencySign} ${item.price}`,
           // order,
           <div
-            key={id}
+            key={item.id}
             className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
           >
             {accessList.includes("edit") && (
@@ -136,7 +143,7 @@ export default function Product() {
                 <MdEditSquare
                   size={18}
                   className="text-[#0090DD]"
-                  onClick={() => handleNewUser(id)}
+                  onClick={() => handleNewUser(item.id)}
                 />
                 <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
                   Edit Product
@@ -147,7 +154,7 @@ export default function Product() {
               <DeleteModal
                 open={open}
                 setOpen={setOpen}
-                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
                 handleConfirmDelete={handleDelete}
               />
             )}

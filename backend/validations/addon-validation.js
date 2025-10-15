@@ -50,7 +50,7 @@ const addonPutValidation = async (req, res, next) => {
         "number.precision": "Price can have up to 2 decimal places",
         "number.min": "Price must be a non-negative number",
       }),
-      imageUrl: joi.string().uri().messages({
+      imageUrl: joi.string().messages({
         "any.required": "Image URL is required",
       }),
     })
