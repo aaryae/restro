@@ -347,6 +347,7 @@ const checkoutOrderValidation = async (req, res, next) => {
         )
         .min(1)
         .required(),
+      customerId: joi.number().positive().optional,
     })
     .required()
     .unknown(false); // disallow unknown fields
@@ -357,6 +358,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       sessionId: joi.string().uuid({ version: "uuidv4" }).required(),
       paymentMethod: joi.string().valid("cash", "online").required(),
       cashOrCredit: joi.string().valid("cash", "credit").required(),
+      customerId: joi.number().positive().optional,
     })
     .required()
     .unknown(false);
@@ -365,6 +367,7 @@ const checkoutOrderValidation = async (req, res, next) => {
     .object({
       orderId: joi.number().positive().required(),
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
+      customerId: joi.number().positive().optional,
     })
     .required()
     .unknown(false);
@@ -377,6 +380,7 @@ const checkoutOrderValidation = async (req, res, next) => {
         .min(1)
         .required(),
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
+      customerId: joi.number().positive().optional,
     })
     .required()
     .unknown(false);
