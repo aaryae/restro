@@ -84,7 +84,7 @@ router.patch(
   "/items/status",
   authentication,
   authorization,
-  // updateOrderItemsStatusValidation,
+  updateOrderItemsStatusValidation,
   updateOrderItemsStatus,
 );
 

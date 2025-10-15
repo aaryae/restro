@@ -339,8 +339,18 @@ const bulkServeOrderItemsValidation = async (req, res, next) => {
 
 const updateOrderItemsStatusValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    orderItemIds: joi.array().items(joi.number().integer()).min(1).required(),
-    status: joi.string().valid("preparing", "ready").required(),
+    orderItemIds: joi.number().positive().required(),
+    status: joi
+      .string()
+      .valid(
+        "pending",
+        "preparing",
+        "ready",
+        "served",
+        "completed",
+        "cancelled",
+      )
+      .required(),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
