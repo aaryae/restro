@@ -12,7 +12,7 @@ const todayStart = startOfDay(currentDate);
 const todayEnd = endOfDay(currentDate);
 const createdToday = { [Op.between]: [todayStart, todayEnd] };
 
-module.exports.getAccountsRevenue = async (req, res) => {
+const getAccountsRevenue = async (req, res) => {
   const todayTotalRevenue = await revenueModel.findAll({
     attributes: [
       "accountId",
@@ -34,7 +34,7 @@ module.exports.getAccountsRevenue = async (req, res) => {
   return todayTotalRevenue;
 };
 
-module.exports.getAccountsPurchase = async (req, res) => {
+const getAccountsPurchase = async (req, res) => {
   const todayTotalPurchase = await purchaseModel.findAll({
     attributes: [
       "accountId",
@@ -56,7 +56,7 @@ module.exports.getAccountsPurchase = async (req, res) => {
   return todayTotalPurchase;
 };
 
-module.exports.getAccountsExpense = async (req, res) => {
+const getAccountsExpense = async (req, res) => {
   const todayTotalExpense = await expenseModel.findAll({
     attributes: [
       "accountId",
@@ -76,4 +76,53 @@ module.exports.getAccountsExpense = async (req, res) => {
   });
 
   return todayTotalExpense;
+};
+
+const getClosingBalance = async () => {
+  const closingBalance = await accountModel.sum("currentBalance");
+  return closingBalance;
+};
+
+const getAccountNetChange = (
+  accountsRevenue,
+  accountsExpense,
+  accountsPurchase,
+) => {
+  const overAllRevenue = accountsRevenue?.[0].overAllTotal || 0;
+  const overAllExpense = accountsExpense?.[0].overallTotal || 0;
+  const overAllPurchase = accountsPurchase?.[0].overAllTotal || 0;
+
+  return overAllRevenue - (overAllPurchase + overAllExpense);
+};
+
+module.exports.getDailySummary = async (req) => {
+  try {
+    const accountsRevenue = await getAccountsRevenue();
+    const accountsPurchase = await getAccountsPurchase();
+    const accountsExpense = await getAccountsExpense();
+    const closingBalance = await getClosingBalance();
+    const netChange = getAccountNetChange();
+    const openingBalance = closingBalance - netChange;
+    const result = {
+      accountsRevenue,
+      accountsPurchase,
+      accountsExpense,
+      closingBalance,
+      openingBalance,
+    };
+    return {
+      status: 200,
+      success: true,
+      message: "Daily Summary retrieved successfully",
+      data: result,
+    };
+  } catch (error) {
+    console.error("Daily summary error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
 };

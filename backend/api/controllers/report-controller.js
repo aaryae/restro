@@ -1,26 +1,10 @@
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
-const {
-  getAccountsRevenue,
-  getAccountsPurchase,
-  getAccountsExpense,
-} = require("../services/report-service");
+const reportsService = require("../services/report-service");
 
 module.exports.getDailySummary = async (req, res, next) => {
   try {
-    const accountsRevenue = await getAccountsRevenue(req, res);
-    const accountsPurchase = await getAccountsPurchase(req, res);
-    const accountsExpense = await getAccountsExpense(req, res);
-    const result = {
-      data: {
-        accountsRevenue,
-        accountsPurchase,
-        accountsExpense,
-      },
-      message: "Daily summary retrived successfully.",
-      status: 200,
-      success: true,
-    };
+    const result = await reportsService.getDailySummary(req);
 
     return responseHelper.sendResponse(
       res,
