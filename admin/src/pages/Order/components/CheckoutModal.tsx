@@ -242,21 +242,64 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePayment = async () => {
     try {
-      const basePayload = {
-        paymentMethod: paymentType,
-        orderId: orderId,
-        checkoutAll: typeof orderId === "object" && selectedIds.length === 0, // Only checkout all if no specific items are selected
-        orderItemIds:
-          selectedIds.length > 0 ? selectedIds.map(Number) : undefined, // Include selected item IDs if any
+      // Expand selected orderItemIds to include child addon item IDs
+      const selectedSet = new Set(selectedIds);
+      const addonIdsForSelected = (previewData.items || [])
+        .filter((it: any) => selectedSet.has(String(it.id)))
+        .flatMap((it: any) => (Array.isArray(it.addons) ? it.addons : []))
+        .map((a: any) => Number(a.id))
+        .filter((n: any) => !isNaN(n));
+
+      // Map UI payment types to backend accepted values
+      const mapPaymentMethod = (
+        t: typeof paymentType,
+      ): "cash" | "card" | "online" => {
+        if (t === "cash") return "cash";
+        if (t === "qr") return "online";
+        if (t === "bank") return "card";
+        return "cash"; // fallback, split handled separately
       };
 
-      const payload =
-        checkoutType === "member" && selectedMember
-          ? {
-              ...basePayload,
-              customerId: selectedMember.id,
-            }
-          : basePayload;
+      const isSelective = selectedIds.length > 0;
+      const isCheckoutAll = Array.isArray(orderId) && selectedIds.length === 0;
+
+      // Selective checkout: orderItemIds + paymentMethod (+customerId)
+      let payload: any;
+      if (isSelective) {
+        payload = {
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
+          ...(checkoutType === "member" && selectedMember
+            ? { customerId: selectedMember.id }
+            : {}),
+        };
+      }
+
+      // Checkout all: checkoutAll + sessionId + paymentMethod + cashOrCredit (+customerId)
+      if (!isSelective && isCheckoutAll) {
+        payload = {
+          checkoutAll: true,
+          sessionId: table?.data?.sessionId,
+          paymentMethod: mapPaymentMethod(
+            paymentType === "bank" ? "qr" : paymentType,
+          ), // only cash|online allowed
+          cashOrCredit: paymentType === "cash" ? "cash" : "credit",
+          ...(checkoutType === "member" && selectedMember
+            ? { customerId: selectedMember.id }
+            : {}),
+        };
+      }
+
+      // Fallback: single order without specific items - treat as selective of all items
+      if (!payload && Array.isArray(items) && items.length > 0) {
+        payload = {
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderItemIds: items.map((it: any) => Number(it.id)),
+          ...(checkoutType === "member" && selectedMember
+            ? { customerId: selectedMember.id }
+            : {}),
+        };
+      }
 
       if (paymentType === "cash") {
         const response = await checkoutOrderApi({
@@ -271,8 +314,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (paymentType === "qr") {
-        payload.accountId = selectedBankDetail?.data?.id;
-        payload.paymentMethod = "online";
+        // For non-split QR, backend disallows extra fields; send only allowed keys
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,
@@ -337,18 +379,43 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     // Single-order checkout
     if (!Array.isArray(orderId)) {
       const orderData: any = order?.data || {};
-      const items = Array.isArray(orderData.orderItems)
-        ? orderData.orderItems.map((oi: any) => ({
-            id: oi.id,
-            productName: oi?.product?.name ?? oi.productName ?? "Item",
-            quantity: Number(oi.quantity ?? 0),
-            productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
-            subtotal: Number(
-              oi.subtotal ??
-                Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
-            ),
-          }))
+      const rawItems: any[] = Array.isArray(orderData.orderItems)
+        ? orderData.orderItems
         : [];
+      const parents = rawItems.filter((it) => !it.parentOrderItemId);
+      const items = parents.map((parent: any) => {
+        const addons = rawItems
+          .filter((it) => it.parentOrderItemId === parent.id)
+          .map((a: any) => ({
+            id: a.id,
+            name: a?.product?.name ?? `Addon #${a.id}`,
+            quantity: Number(a.quantity ?? 0),
+            price: Number(a.price ?? 0),
+            subtotal: Number(a.subtotal ?? 0),
+          }));
+        const addonsTotal = addons.reduce(
+          (s: number, a: any) => s + (Number(a.subtotal) || 0),
+          0,
+        );
+        return {
+          id: parent.id,
+          productName: parent?.product?.name ?? parent.productName ?? "Item",
+          quantity: Number(parent.quantity ?? 0),
+          productPrice: Number(parent?.product?.price ?? parent.price ?? 0),
+          subtotal: Number(
+            parent.subtotal ??
+              Number(parent?.product?.price ?? parent.price ?? 0) *
+                Number(parent.quantity ?? 0),
+          ),
+          addons,
+          totalWithAddons:
+            Number(
+              parent.subtotal ??
+                Number(parent?.product?.price ?? parent.price ?? 0) *
+                  Number(parent.quantity ?? 0),
+            ) + addonsTotal,
+        };
+      });
 
       return {
         orderNumber: orderData.orderNumber,
@@ -368,18 +435,53 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const orders = Array.isArray(activeOrdersResp?.data?.orders)
       ? activeOrdersResp?.data?.orders
       : [];
-    const items = orders.flatMap((o: any) =>
-      (o?.orderItems || []).map((oi: any) => ({
-        id: oi.id,
-        productName: oi?.product?.name ?? oi.productName ?? "Item",
-        quantity: Number(oi.quantity ?? 0),
-        productPrice: Number(oi?.product?.price ?? oi.productPrice ?? 0),
-        subtotal: Number(
-          oi.subtotal ??
-            Number(oi?.product?.price ?? 0) * Number(oi.quantity ?? 0),
-        ),
-      })),
-    );
+    const items = orders.flatMap((o: any) => {
+      const raw: any[] = Array.isArray(o?.orderItems) ? o.orderItems : [];
+      const parents = raw.filter((it) => !it.parentOrderItemId);
+      return parents.map((parent: any) => {
+        const addons = raw
+          .filter((it) => it.parentOrderItemId === parent.id)
+          .map((a: any) => ({
+            id: a.id,
+            name: a?.product?.name ?? `Addon #${a.id}`,
+            quantity: Number(a.quantity ?? 0),
+            price: Number(a.price ?? 0),
+            subtotal: Number(a.subtotal ?? 0),
+          }));
+        const addonsTotal = addons.reduce(
+          (s: number, a: any) => s + (Number(a.subtotal) || 0),
+          0,
+        );
+        return {
+          id: parent.id,
+          productName: parent?.product?.name ?? parent.productName ?? "Item",
+          quantity: Number(parent.quantity ?? 0),
+          productPrice: Number(
+            parent?.product?.price ?? parent.productPrice ?? parent.price ?? 0,
+          ),
+          subtotal: Number(
+            parent.subtotal ??
+              Number(
+                parent?.product?.price ??
+                  parent.productPrice ??
+                  parent.price ??
+                  0,
+              ) * Number(parent.quantity ?? 0),
+          ),
+          addons,
+          totalWithAddons:
+            Number(
+              parent.subtotal ??
+                Number(
+                  parent?.product?.price ??
+                    parent.productPrice ??
+                    parent.price ??
+                    0,
+                ) * Number(parent.quantity ?? 0),
+            ) + addonsTotal,
+        };
+      });
+    });
     const totalAmount = orders.reduce(
       (sum: number, o: any) => sum + Number(o?.totalAmount ?? 0),
       0,
@@ -405,12 +507,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     selectedMember,
   ]);
 
-  const items = previewData.items as Array<{
-    id: any;
-    productName: string;
-    quantity: number;
-    subtotal: number;
-  }>;
+  const items = previewData.items as any[];
   const allSelected = items?.length > 0 && selectedIds.length === items.length;
 
   useEffect(() => {
@@ -446,8 +543,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!items || items.length === 0) return 0;
     const set = new Set(selectedIds);
     return items
-      .filter((it) => set.has(String(it.id)))
-      .reduce((sum, it) => sum + (Number(it.subtotal) || 0), 0);
+      .filter((it: any) => set.has(String(it.id)))
+      .reduce((sum: number, it: any) => {
+        const base = Number(it.subtotal) || 0;
+        const addonsTotal = Array.isArray(it.addons)
+          ? it.addons.reduce(
+              (s: number, a: any) => s + (Number(a.subtotal) || 0),
+              0,
+            )
+          : 0;
+        const combined = Number(it.totalWithAddons ?? base + addonsTotal);
+        return sum + combined;
+      }, 0);
   }, [items, selectedIds]);
 
   const orderIdForBill = Array.isArray(orderId) ? null : orderId;
@@ -564,7 +671,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               </td>
                             </tr>
                           )}
-                          {items?.map((it, idx) => {
+                          {items?.map((it: any, idx) => {
                             const sid = String(it.id);
                             return (
                               <tr
@@ -580,14 +687,46 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                   />
                                 </td>
                                 <td className="p-2 sm:p-4 border">{idx + 1}</td>
-                                <td className="p-2 sm:p-4 border flex">
-                                  {it.productName}
+                                <td className="p-2 sm:p-4 border">
+                                  <div className="flex flex-col gap-1">
+                                    <div className="font-medium">
+                                      {it.productName}
+                                    </div>
+                                    {Array.isArray(it.addons) &&
+                                      it.addons.length > 0 && (
+                                        <div className="text-xs text-gray-600 flex flex-col gap-1">
+                                          {it.addons.map((a: any) => (
+                                            <div
+                                              key={`${sid}_addon_${a.id}`}
+                                              className="flex items-center justify-between"
+                                            >
+                                              <span>{`+ ${a.name} x${a.quantity}`}</span>
+                                              <span>
+                                                {Number(
+                                                  a.subtotal || 0,
+                                                ).toFixed(2)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                  </div>
                                 </td>
                                 <td className="p-2 sm:p-4 border text-right">
                                   {it.quantity}
                                 </td>
                                 <td className="p-2 sm:p-4 border text-right">
-                                  {it.subtotal.toFixed(2)}
+                                  {(
+                                    Number(it.totalWithAddons ?? 0) ||
+                                    Number(it.subtotal ?? 0) +
+                                      (Array.isArray(it.addons)
+                                        ? it.addons.reduce(
+                                            (s: number, a: any) =>
+                                              s + (Number(a.subtotal) || 0),
+                                            0,
+                                          )
+                                        : 0)
+                                  ).toFixed(2)}
                                 </td>
                               </tr>
                             );
