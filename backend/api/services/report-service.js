@@ -88,9 +88,9 @@ const getAccountNetChange = (
   accountsExpense,
   accountsPurchase,
 ) => {
-  const overAllRevenue = accountsRevenue?.[0].overAllTotal || 0;
-  const overAllExpense = accountsExpense?.[0].overallTotal || 0;
-  const overAllPurchase = accountsPurchase?.[0].overAllTotal || 0;
+  const overAllRevenue = accountsRevenue?.[0]?.overAllTotal || 0;
+  const overAllExpense = accountsExpense?.[0]?.overallTotal || 0;
+  const overAllPurchase = accountsPurchase?.[0]?.overAllTotal || 0;
 
   return overAllRevenue - (overAllPurchase + overAllExpense);
 };
@@ -101,7 +101,11 @@ module.exports.getDailySummary = async (req) => {
     const accountsPurchase = await getAccountsPurchase();
     const accountsExpense = await getAccountsExpense();
     const closingBalance = await getClosingBalance();
-    const netChange = getAccountNetChange();
+    const netChange = getAccountNetChange(
+      accountsRevenue,
+      accountsExpense,
+      accountsPurchase,
+    );
     const openingBalance = closingBalance - netChange;
     const result = {
       accountsRevenue,
