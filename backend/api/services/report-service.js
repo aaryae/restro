@@ -43,8 +43,7 @@ module.exports.getAccountsPurchase = async (req, res) => {
     ],
     group: ["accountId"],
     where: {
-      createdAt: createdToday,
-      //   paymentDate: createdToday,
+      paymentDate: createdToday,
       status: { [Op.ne]: "cancelled" },
     },
     include: {
@@ -67,8 +66,7 @@ module.exports.getAccountsExpense = async (req, res) => {
     group: ["accountId"],
     raw: true,
     where: {
-      createdAt: createdToday,
-      //   implement paydate logic on create services
+      paymentDate: createdToday,
     },
     include: {
       model: accountModel,

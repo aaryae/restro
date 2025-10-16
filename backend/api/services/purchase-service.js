@@ -430,7 +430,10 @@ const completePurchase = async (req) => {
       };
     }
 
-    await purchase.update({ status: "completed" }, { transaction });
+    await purchase.update(
+      { status: "completed", paymentDate: new Date() },
+      { transaction },
+    );
 
     if (purchase.paymentTerms !== "credit") {
       const account = await accountModel.findByPk(purchase.accountId, {

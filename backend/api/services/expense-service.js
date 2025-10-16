@@ -117,7 +117,7 @@ const create = async (req) => {
         userId: req.user.id,
         accountId,
         supplierId,
-        paymentDate: new Date(),
+        paymentDate: cash_or_credit === "cash" ? new Date() : null,
       },
       { transaction },
     );
