@@ -1,16 +1,16 @@
 const { Model, DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
-  class ProductMedia extends Model {
+  class OpenItemMedia extends Model {
     static associate(models) {
-      ProductMedia.belongsTo(models.productModel, {
-        foreignKey: "productId",
-        as: "product_media",
+      OpenItemMedia.belongsTo(models.openItemModel, {
+        foreignKey: "openItemId",
+        as: "open_item",
       });
     }
   }
 
-  ProductMedia.init(
+  OpenItemMedia.init(
     {
       id: {
         allowNull: false,
@@ -18,7 +18,7 @@ module.exports = (sequelize) => {
         primaryKey: true,
         type: DataTypes.INTEGER,
       },
-      productId: {
+      openItemId: {
         type: DataTypes.STRING,
         allowNull: true,
       },
@@ -30,10 +30,10 @@ module.exports = (sequelize) => {
     {
       timestamps: true,
       sequelize,
-      modelName: "ProductMedia",
-      tableName: "product_media",
+      modelName: "OpenItemMedia",
+      tableName: "open_item_media",
     },
   );
 
-  return ProductMedia;
+  return OpenItemMedia;
 };

@@ -3,7 +3,7 @@ const { Model, DataTypes } = require("sequelize");
 module.exports = (sequelize) => {
   class OpenItem extends Model {
     static associate(models) {
-      OpenItem.hasMany(models.productMediaModel, {
+      OpenItem.hasMany(models.openItemMediaModel, {
         foreignKey: "openItemId",
         as: "mediaArr",
       });
