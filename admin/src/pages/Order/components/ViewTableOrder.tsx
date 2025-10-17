@@ -176,13 +176,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                 )}
                                 <p className="text-[13px] font-medium">
                                   Subtotal: Rs.
-                                  {(
-                                    Number(item.subtotal) +
-                                    (item.addons?.reduce(
-                                      (sum, addon) => sum + Number(addon.price),
-                                      0,
-                                    ) || 0)
-                                  ).toFixed(2)}
+                                  {Number(item.itemTotal).toFixed(2)}
                                 </p>
                               </div>
                             </div>
