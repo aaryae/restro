@@ -20,6 +20,7 @@ import Loader from "@/components/Loader";
 import Input from "@/components/Input";
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import DraggableTable from "@/components/Table/dragableTable";
+import Table from "@/components/Table";
 
 const Addons = () => {
   const translate = useTranslation();
@@ -88,8 +89,7 @@ const Addons = () => {
   const tableData =
     isSuccess && data?.data?.data
       ? data?.data?.data.map((item: any) => [
-          item.id,
-          <div className="flex items-center gap-[1rem] md:w-[8rem] w-[20rem]">
+          <div className="flex items-center justify-center gap-[1rem] md:w-full w-[20rem]">
             <img
               src={
                 item.imageUrl
@@ -108,7 +108,7 @@ const Addons = () => {
           `${CurrencySign} ${item.price}`,
           <div
             key={item.id}
-            className="flex items-center justify-start gap-[0.5rem]"
+            className="flex items-center justify-center gap-[0.5rem]"
           >
             {accessList.includes("edit") && (
               <div className="relative group">
@@ -164,20 +164,16 @@ const Addons = () => {
           />
         </div>
       </div>
-      {!isSuccess ? (
+      {isLoading ? (
         <Loader />
       ) : accessList.includes("view") ? (
         <div className="overflow-x-auto -mx-3 sm:mx-0">
-          <DraggableTable
+          <Table
+            isSN
             headers={headers}
             data={tableData}
             pagination={pagination}
             handlePagination={handlePagination}
-            action={updateOrder}
-            url="addon/update-order"
-            success={isSuccess}
-            loading={isLoading}
-            fetching={isFetching}
           />
         </div>
       ) : (
