@@ -6,6 +6,30 @@ import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { SetStateAction } from "react";
 
+interface Addon {
+  id: number;
+  name: string;
+  price: string;
+}
+
+type OrderItem = {
+  id: string | number;
+  product: {
+    name: string;
+    mediaArr?: Array<{ imageUrl: string }>;
+  };
+  quantity: number;
+  price: string;
+  subtotal: string;
+  discount: number;
+  status: string;
+  department?: {
+    name: string;
+  };
+  specialInstructions?: string;
+  addons?: Addon[];
+};
+
 type ViewCustomerProps = {
   id: number;
   isOpen: boolean;
@@ -38,7 +62,7 @@ export default function ViewOrder({
 
   const [patchStatus] = usePatchApiMutation();
 
-  async function handleStatusUpdate(status: string, id: number) {
+  async function handleStatusUpdate(status: string, id: string | number) {
     try {
       const response = await patchStatus({
         url: `${ORDER_URL}items/status`,
@@ -68,7 +92,7 @@ export default function ViewOrder({
       </div>
       {success && (
         <div>
-          {orderData?.data?.orderItems.map((item) => (
+          {orderData?.data?.orderItems.map((item: OrderItem) => (
             <div
               className={`border-l-4 p-4 bg-white shadow-sm mb-4 flex gap-4
   ${
@@ -133,6 +157,30 @@ export default function ViewOrder({
                     <span className="font-medium">Instructions:</span>{" "}
                     {item.specialInstructions}
                   </p>
+                )}
+
+                {item.addons && item.addons.length > 0 && (
+                  <div className="mt-3 pl-4 border-l-2 border-gray-200">
+                    <p className="font-medium text-sm text-gray-600 mb-1">
+                      Addons:
+                    </p>
+                    <div className="space-y-2">
+                      {item.addons.map((addonItem: any, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <span className="text-gray-500">+</span>
+                          <span>{addonItem?.addon?.name}</span>
+                          <span className="text-gray-500">
+                            ({CurrencySign}
+                            {parseFloat(addonItem?.price).toFixed(2)} ×{" "}
+                            {addonItem?.quantity})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

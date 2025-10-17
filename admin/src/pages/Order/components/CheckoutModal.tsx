@@ -250,7 +250,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         .map((a: any) => Number(a.id))
         .filter((n: any) => !isNaN(n));
 
-      // Map UI payment types to backend accepted values
+      // Map UI payment types
       const mapPaymentMethod = (
         t: typeof paymentType,
       ): "cash" | "card" | "online" => {
@@ -263,7 +263,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const isSelective = selectedIds.length > 0;
       const isCheckoutAll = Array.isArray(orderId) && selectedIds.length === 0;
 
-      // Selective checkout: orderItemIds + paymentMethod (+customerId)
+      // Selective checkout
       let payload: any;
       if (isSelective) {
         payload = {
@@ -275,7 +275,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         };
       }
 
-      // Checkout all: checkoutAll + sessionId + paymentMethod + cashOrCredit (+customerId)
+      // Checkout all:
       if (!isSelective && isCheckoutAll) {
         payload = {
           checkoutAll: true,
@@ -290,7 +290,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         };
       }
 
-      // Fallback: single order without specific items - treat as selective of all items
+      // Fallback:
       if (!payload && Array.isArray(items) && items.length > 0) {
         payload = {
           paymentMethod: mapPaymentMethod(paymentType),
@@ -314,10 +314,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (paymentType === "qr") {
-        // For non-split QR, backend disallows extra fields; send only allowed keys
+        // For QR code payments
+        const qrPayload = {
+          checkoutAll: true,
+          sessionId: table?.data?.sessionId,
+          paymentMethod: "online",
+          cashOrCredit: "credit",
+          ...(checkoutType === "member" && selectedMember
+            ? { customerId: selectedMember.id }
+            : {}),
+        };
+
         const response = await checkoutOrderApi({
           id: tableId,
-          body: payload,
+          body: qrPayload,
         }).unwrap();
 
         if (response?.success) {

@@ -49,6 +49,7 @@ import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPe
 import AddEditAddons from "@/pages/Addons/AddEditAddons";
 import Addons from "@/pages/Addons";
 import AccountPermission from "@/pages/AccountPermission";
+import Report from "@/pages/DailyReport";
 
 export const adminLinks = [
   {
@@ -343,5 +344,9 @@ export const adminLinks = [
   {
     path: "/addons/:id",
     element: <AddEditAddons />,
+  },
+  {
+    path: "/daily-report",
+    element: <Report />,
   },
 ];
