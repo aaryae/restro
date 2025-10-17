@@ -9,6 +9,13 @@ interface OrderItem {
   quantity: number;
   productPrice: number;
   subtotal: number;
+  addons?: Array<{
+    id: string | number;
+    name: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+  }>;
 }
 
 interface OrderSummaryData {
@@ -179,6 +186,18 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
                             {item.productDescription}
                           </p>
                         )}
+                        {item.addons?.map((addon: any) => (
+                          <div
+                            key={addon.id}
+                            className="text-xs text-gray-600 pl-2 mt-1 flex justify-between"
+                          >
+                            <span>+ {addon.name}</span>
+                            <div>
+                              <span className="ml-2">x{addon.quantity}</span>
+                              <span className="ml-2">Rs. {addon.price}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </td>
                     <td className="py-2 px-2 border-b border-r border-black text-center">

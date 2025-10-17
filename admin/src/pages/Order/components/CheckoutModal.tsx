@@ -386,44 +386,63 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [checkoutType, selectedMember]);
 
   const previewData = useMemo(() => {
-    // Single-order checkout
+    const getItemAddons = (parent: any, raw: any[]) => {
+      const embedded = Array.isArray(parent?.addons)
+        ? parent.addons.map((ad: any, idx: number) => {
+            const name = ad?.addon?.name ?? ad?.name ?? `Addon #${idx + 1}`;
+            const price = Number(ad?.price ?? ad?.addon?.price ?? 0);
+            const quantity = Number(ad?.quantity ?? 1);
+            return {
+              id:
+                ad?.id ??
+                ad?.orderItemId ??
+                ad?.addonId ??
+                `${parent.id}_ad_${idx}`,
+              name,
+              quantity,
+              price,
+              subtotal: Number(ad?.subtotal ?? price),
+            };
+          })
+        : [];
+      if (embedded.length > 0) return embedded;
+      return raw
+        .filter((it) => it.parentOrderItemId === parent.id)
+        .map((a: any) => ({
+          id: a.id,
+          name: a?.product?.name ?? `Addon #${a.id}`,
+          quantity: Number(a.quantity ?? 0),
+          price: Number(a.price ?? 0),
+          subtotal: Number(a.subtotal ?? 0),
+        }));
+    };
+
+    // Single order
     if (!Array.isArray(orderId)) {
       const orderData: any = order?.data || {};
-      const rawItems: any[] = Array.isArray(orderData.orderItems)
+      const raw: any[] = Array.isArray(orderData.orderItems)
         ? orderData.orderItems
         : [];
-      const parents = rawItems.filter((it) => !it.parentOrderItemId);
+      const parents = raw.filter((it) => !it.parentOrderItemId);
       const items = parents.map((parent: any) => {
-        const addons = rawItems
-          .filter((it) => it.parentOrderItemId === parent.id)
-          .map((a: any) => ({
-            id: a.id,
-            name: a?.product?.name ?? `Addon #${a.id}`,
-            quantity: Number(a.quantity ?? 0),
-            price: Number(a.price ?? 0),
-            subtotal: Number(a.subtotal ?? 0),
-          }));
+        const addons = getItemAddons(parent, raw);
         const addonsTotal = addons.reduce(
           (s: number, a: any) => s + (Number(a.subtotal) || 0),
           0,
+        );
+        const baseSubtotal = Number(
+          parent.subtotal ??
+            Number(parent?.product?.price ?? parent.price ?? 0) *
+              Number(parent.quantity ?? 0),
         );
         return {
           id: parent.id,
           productName: parent?.product?.name ?? parent.productName ?? "Item",
           quantity: Number(parent.quantity ?? 0),
           productPrice: Number(parent?.product?.price ?? parent.price ?? 0),
-          subtotal: Number(
-            parent.subtotal ??
-              Number(parent?.product?.price ?? parent.price ?? 0) *
-                Number(parent.quantity ?? 0),
-          ),
+          subtotal: baseSubtotal,
           addons,
-          totalWithAddons:
-            Number(
-              parent.subtotal ??
-                Number(parent?.product?.price ?? parent.price ?? 0) *
-                  Number(parent.quantity ?? 0),
-            ) + addonsTotal,
+          totalWithAddons: baseSubtotal + addonsTotal,
         };
       });
 
@@ -433,15 +452,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         orderType: orderData.orderType,
         deliveryAddress: orderData.deliveryAddress,
         orderNote: orderData.orderNote,
-        customerInfo: {
-          name: displayCustomerName,
-        },
+        customerInfo: { name: displayCustomerName },
         items,
         totalAmount: Number(orderData.totalAmount ?? 0),
       };
     }
 
-    // Checkout ALL: aggregate items and totals across all active orders for the table
+    // Checkout all (multiple orders)
     const orders = Array.isArray(activeOrdersResp?.data?.orders)
       ? activeOrdersResp?.data?.orders
       : [];
@@ -449,18 +466,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const raw: any[] = Array.isArray(o?.orderItems) ? o.orderItems : [];
       const parents = raw.filter((it) => !it.parentOrderItemId);
       return parents.map((parent: any) => {
-        const addons = raw
-          .filter((it) => it.parentOrderItemId === parent.id)
-          .map((a: any) => ({
-            id: a.id,
-            name: a?.product?.name ?? `Addon #${a.id}`,
-            quantity: Number(a.quantity ?? 0),
-            price: Number(a.price ?? 0),
-            subtotal: Number(a.subtotal ?? 0),
-          }));
+        const addons = getItemAddons(parent, raw);
         const addonsTotal = addons.reduce(
           (s: number, a: any) => s + (Number(a.subtotal) || 0),
           0,
+        );
+        const baseSubtotal = Number(
+          parent.subtotal ??
+            Number(
+              parent?.product?.price ??
+                parent.productPrice ??
+                parent.price ??
+                0,
+            ) * Number(parent.quantity ?? 0),
         );
         return {
           id: parent.id,
@@ -469,26 +487,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           productPrice: Number(
             parent?.product?.price ?? parent.productPrice ?? parent.price ?? 0,
           ),
-          subtotal: Number(
-            parent.subtotal ??
-              Number(
-                parent?.product?.price ??
-                  parent.productPrice ??
-                  parent.price ??
-                  0,
-              ) * Number(parent.quantity ?? 0),
-          ),
+          subtotal: baseSubtotal,
           addons,
-          totalWithAddons:
-            Number(
-              parent.subtotal ??
-                Number(
-                  parent?.product?.price ??
-                    parent.productPrice ??
-                    parent.price ??
-                    0,
-                ) * Number(parent.quantity ?? 0),
-            ) + addonsTotal,
+          totalWithAddons: baseSubtotal + addonsTotal,
         };
       });
     });
@@ -703,23 +704,27 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                       {it.productName}
                                     </div>
                                     {Array.isArray(it.addons) &&
-                                      it.addons.length > 0 && (
-                                        <div className="text-xs text-gray-600 flex flex-col gap-1">
-                                          {it.addons.map((a: any) => (
-                                            <div
-                                              key={`${sid}_addon_${a.id}`}
-                                              className="flex items-center justify-between"
-                                            >
-                                              <span>{`+ ${a.name} x${a.quantity}`}</span>
-                                              <span>
-                                                {Number(
-                                                  a.subtotal || 0,
-                                                ).toFixed(2)}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
+                                    it.addons.length > 0 ? (
+                                      <div className="text-xs text-gray-600 flex flex-col gap-1">
+                                        {it.addons.map((a: any) => (
+                                          <div
+                                            key={`${sid}_addon_${a.id}`}
+                                            className="flex items-center justify-between"
+                                          >
+                                            <span>{`+ ${a.name} x${a.quantity}`}</span>
+                                            <span>
+                                              {Number(a.subtotal || 0).toFixed(
+                                                2,
+                                              )}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-xs text-gray-500">
+                                        No addons
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="p-2 sm:p-4 border text-right">
