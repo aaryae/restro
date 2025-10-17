@@ -1287,6 +1287,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         orderId={orderIdForBill}
         data={billData}
         customerInfo={previewData.customerInfo}
+        onPrintBill={printBill}
         onCompletePayment={async () => {
           await handlePayment();
           handleClosePreview();

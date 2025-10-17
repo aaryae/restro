@@ -18,8 +18,7 @@ const Report = () => {
   const { data: sessionsRes, isLoading: loadingSessions } = useGetApiQuery(
     selectedTable
       ? { url: `report/daily-table-sessions/${selectedTable?.id}` }
-      : // @ts-ignore RTK Query supports skip option as second arg
-        ("report/daily-table-sessions/skip" as any),
+      : ("report/daily-table-sessions/skip" as any),
     { skip: !selectedTable },
   );
 

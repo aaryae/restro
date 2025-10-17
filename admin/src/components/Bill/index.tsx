@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { format } from "date-fns";
+import { Printer } from "lucide-react";
 
 interface OrderItem {
   id: string | number;
@@ -42,7 +43,7 @@ interface BillProps {
   onClose: () => void;
   data: OrderSummaryData;
   onCompletePayment: () => void;
-  onPrintBill?: (targetId?: string) => void;
+  onPrintBill?: () => void;
   invoiceNumber?: string | number;
   invoiceDate?: Date | string;
   customerInfo?: CustomerInfo;
@@ -76,32 +77,44 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
       <div
         className={`max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto mx-auto bg-white p-6 fixed z-[50] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-gray-200 shadow-lg rounded-lg ${className ?? ""}`}
       >
-        {/* Back/Close Button */}
-        <button
-          onClick={onClose}
-          aria-label="Close preview"
-          className="no-print absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5 text-gray-600"
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center mb-4 no-print">
+          <button
+            onClick={onClose}
+            className="text-gray-600 hover:text-gray-800 flex items-center gap-1 text-sm"
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back
+          </button>
+
+          <button
+            onClick={() => onPrintBill && onPrintBill()}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm"
+          >
+            <Printer size={16} />
+            Print Bill
+          </button>
+        </div>
+
         {/* Header */}
         <div ref={ref} id="bill-print">
           <div className="flex flex-col gap-1">
             <h2 className="text-[18px] font-bold text-center">{companyname}</h2>
             {companyAddress && (
-              <h3 className="text-[12px] font-normal text-center ">
+              <h3 className="text-[12px] font-normal text-center">
                 {companyAddress}
               </h3>
             )}
