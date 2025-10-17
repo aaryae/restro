@@ -1,12 +1,15 @@
 const { Op, literal } = require("sequelize");
 const {
   revenueModel,
+  orderItemModel,
   orderModel,
   tableModel,
   purchaseModel,
   expenseModel,
   sequelize,
   accountModel,
+  productModel,
+  addonModel,
   Sequelize,
 } = require("../../models");
 const { startOfDay, endOfDay } = require("date-fns");
@@ -232,6 +235,160 @@ module.exports.getDailyRevenueReport = async (req) => {
     };
   } catch (error) {
     console.error("Daily Revenue Report error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    };
+  }
+};
+
+const getTableSessions = async (req) => {
+  const tableId = parseInt(req.params.id, 10);
+  if (isNaN(tableId)) throw new Error("Invalid table ID");
+
+  const orders = await orderModel.findAll({
+    attributes: [
+      "id",
+      "sessionId",
+      "orderStartTime",
+      "orderFinishTime",
+      "totalAmount",
+    ],
+    where: {
+      tableId: tableId,
+    },
+    include: [
+      {
+        model: revenueModel,
+        as: "revenues",
+        where: {
+          createdAt: createdToday,
+        },
+        required: true,
+        attributes: [],
+      },
+      {
+        model: orderItemModel,
+        as: "orderItems",
+        include: [
+          {
+            model: productModel,
+            as: "product",
+            attributes: ["name"],
+          },
+          {
+            model: addonModel,
+            as: "addon",
+            attributes: ["name"],
+          },
+        ],
+      },
+    ],
+    order: [
+      ["sessionId", "ASC"],
+      ["orderStartTime", "ASC"],
+    ],
+  });
+
+  const sessionMap = orders.reduce((acc, order) => {
+    const sessionId = order.sessionId || "unknown";
+    if (!acc[sessionId]) {
+      acc[sessionId] = {
+        sessionId,
+        sessionStart: null,
+        sessionEnd: null,
+        total: 0,
+        orders: [],
+      };
+    }
+
+    const plainOrder = order.toJSON();
+    delete plainOrder.revenues;
+
+    const startTime = new Date(plainOrder.orderStartTime);
+    const endTime = plainOrder.orderFinishTime
+      ? new Date(plainOrder.orderFinishTime)
+      : null;
+    const amount = parseFloat(plainOrder.totalAmount) || 0;
+
+    if (
+      !acc[sessionId].sessionStart ||
+      startTime < acc[sessionId].sessionStart
+    ) {
+      acc[sessionId].sessionStart = startTime;
+    }
+
+    if (
+      endTime &&
+      (!acc[sessionId].sessionEnd || endTime > acc[sessionId].sessionEnd)
+    ) {
+      acc[sessionId].sessionEnd = endTime;
+    } else if (!endTime && !acc[sessionId].sessionEnd) {
+      const fallbackEnd = startTime;
+      if (
+        !acc[sessionId].sessionEnd ||
+        fallbackEnd > acc[sessionId].sessionEnd
+      ) {
+        acc[sessionId].sessionEnd = fallbackEnd;
+      }
+    }
+
+    // Add to total
+    acc[sessionId].total += amount;
+
+    // Push order
+    acc[sessionId].orders.push(plainOrder);
+
+    return acc;
+  }, {});
+
+  const sessions = Object.values(sessionMap);
+
+  sessions.forEach((session) => {
+    session.orders.sort((a, b) => a.id - b.id);
+
+    // Optional: Format dates to ISO or locale string
+    if (session.sessionStart) {
+      session.sessionStart = session.sessionStart.toISOString();
+    }
+    if (session.sessionEnd) {
+      session.sessionEnd = session.sessionEnd.toISOString();
+    }
+
+    // Round total to 2 decimals
+    session.total = parseFloat(session.total.toFixed(2));
+  });
+
+  // Optional: Sort sessions by sessionStart
+  sessions.sort((a, b) => new Date(a.sessionStart) - new Date(b.sessionStart));
+
+  return sessions;
+};
+
+module.exports.getDailyTableSessions = async (req) => {
+  try {
+    const { id } = req.params;
+    const table = await tableModel.findByPk(id);
+    if (!table) {
+      return {
+        status: 400,
+        success: false,
+        message: "Table not found.",
+        data: null,
+      };
+    }
+
+    const sessions = await getTableSessions(req);
+    return {
+      status: 200,
+      success: true,
+      message: "Sessions retrieved successfully",
+      data: sessions,
+    };
+  } catch (error) {
+    console.error("Daily table sessions error:", error);
     return {
       status: 500,
       success: false,
