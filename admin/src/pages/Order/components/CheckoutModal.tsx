@@ -319,7 +319,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           checkoutAll: true,
           sessionId: table?.data?.sessionId,
           paymentMethod: "online",
-          cashOrCredit: "credit",
+          cashOrCredit: "cash",
+          accountId: selectedBankId,
           ...(checkoutType === "member" && selectedMember
             ? { customerId: selectedMember.id }
             : {}),
