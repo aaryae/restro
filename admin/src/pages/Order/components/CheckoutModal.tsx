@@ -319,7 +319,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           checkoutAll: true,
           sessionId: table?.data?.sessionId,
           paymentMethod: "online",
-          cashOrCredit: "credit",
+          cashOrCredit: "cash",
+          accountId: selectedBankId,
           ...(checkoutType === "member" && selectedMember
             ? { customerId: selectedMember.id }
             : {}),
@@ -616,7 +617,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           ) : (
             <>
-              <div className="sticky top-0 z-10 bg-white pb-2 pt-[24px]">
+              <div className="sticky top-0 bg-white pb-2 pt-[24px]">
                 <div className="flex justify-between items-center">
                   <h2 className={styles.modalTitle}>
                     Checkout - Table{" "}

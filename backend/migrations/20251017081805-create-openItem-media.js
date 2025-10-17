@@ -3,18 +3,18 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("product_media", {
+    await queryInterface.createTable("open_item_media", {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
         allowNull: false,
         primaryKey: true,
       },
-      productId: {
+      openItemId: {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
-          model: "products",
+          model: "open_items",
           key: "id",
         },
         onUpdate: "CASCADE",
@@ -38,6 +38,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable("product_media");
+    await queryInterface.dropTable("open_item_media");
   },
 };

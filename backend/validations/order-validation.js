@@ -359,6 +359,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       paymentMethod: joi.string().valid("cash", "online").required(),
       cashOrCredit: joi.string().valid("cash", "credit").required(),
       customerId: joi.number().positive().optional,
+      accountId: joi.number().positive().optional(),
     })
     .required()
     .unknown(false);
@@ -368,6 +369,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       orderId: joi.number().positive().required(),
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
       customerId: joi.number().positive().optional,
+      accountId: joi.number().positive().optional(),
     })
     .required()
     .unknown(false);
@@ -381,6 +383,7 @@ const checkoutOrderValidation = async (req, res, next) => {
         .required(),
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
       customerId: joi.number().positive().optional,
+      accountId: joi.number().positive().optional(),
     })
     .required()
     .unknown(false);

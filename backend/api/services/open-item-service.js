@@ -1,4 +1,8 @@
-const { openItemModel, productMediaModel, sequelize } = require("../../models");
+const {
+  openItemModel,
+  openItemMediaModel,
+  sequelize,
+} = require("../../models");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
 const httpStatus = require("http-status");
@@ -17,7 +21,7 @@ const create = async (req) => {
         imageUrl: each,
         openItemId: openItem.id,
       }));
-      await productMediaModel.bulkCreate(bulkMedia, { transaction });
+      await openItemMediaModel.bulkCreate(bulkMedia, { transaction });
     }
 
     if (!openItem) {
@@ -50,7 +54,7 @@ const list = async (req) => {
   try {
     let { limit, page, slug, name } = req.query;
     const filters = {};
-    const include = [{ model: productMediaModel, as: "mediaArr" }];
+    const include = [{ model: openItemMediaModel, as: "mediaArr" }];
 
     if (slug) {
       filters.slug = {
@@ -94,7 +98,7 @@ const list = async (req) => {
 const getById = async (req) => {
   try {
     const openItem = await openItemModel.findByPk(+req.params.id, {
-      include: [{ model: productMediaModel, as: "mediaArr" }],
+      include: [{ model: openItemMediaModel, as: "mediaArr" }],
     });
 
     if (!openItem) {
@@ -149,22 +153,22 @@ const updateById = async (req) => {
 
     // Handle media updates
     if (Array.isArray(mediaArr)) {
-      await productMediaModel.destroy({
-        where: { productId: openItem.id },
+      await openItemMediaModel.destroy({
+        where: { openItemId: openItem.id },
         transaction,
       });
 
       const bulkMedia = mediaArr.map((imageUrl) => ({
         imageUrl,
-        productId: openItem.id,
+        openItemId: openItem.id,
       }));
 
-      await productMediaModel.bulkCreate(bulkMedia, { transaction });
+      await openItemMediaModel.bulkCreate(bulkMedia, { transaction });
     }
 
     // Fetch updated open item with media
     const updatedOpenItem = await openItemModel.findByPk(+req.params.id, {
-      include: [{ model: productMediaModel, as: "mediaArr" }],
+      include: [{ model: openItemMediaModel, as: "mediaArr" }],
       transaction,
     });
 
