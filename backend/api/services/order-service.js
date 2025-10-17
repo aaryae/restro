@@ -1878,9 +1878,12 @@ const checkoutOrder = async (req) => {
       const updateFields = {
         ...updateData,
         paymentMethods: usedMethods,
+        paymentStatus: newPayableAmount <= 0 ? "paid" : "partially_paid",
+        status: newPayableAmount <= 0 ? "completed" : order.status,
         customerId: finalCustomerId,
         isGuestOrder,
         payableAmount: newPayableAmount,
+        ...(newPayableAmount <= 0 && { orderFinishTime: new Date() }),
       };
       if (newPayableAmount <= 0) {
         updateFields.status = "completed";
@@ -2040,17 +2043,31 @@ const getOrderById = async (req) => {
             as: "product",
             include: [{ model: productMediaModel, as: "mediaArr" }],
           },
-        ],
-        ...(itemStatus && {
-          where: {
-            status: itemStatus.includes(",")
-              ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
-              : itemStatus === "active"
-                ? { [Op.notIn]: ["completed", "cancelled"] }
-                : { [Op.eq]: itemStatus },
+          {
+            model: orderItemModel,
+            as: "addons",
+            where: {
+              isAddon: true,
+              ...(itemStatus && {
+                status: itemStatus.includes(",")
+                  ? { [Op.in]: itemStatus.split(",").map((s) => s.trim()) }
+                  : itemStatus === "active"
+                    ? { [Op.notIn]: ["completed", "cancelled"] }
+                    : { [Op.eq]: itemStatus },
+              }),
+            },
+            required: false,
+            include: [
+              {
+                model: addonModel,
+                as: "addon",
+                required: false,
+              },
+            ],
           },
-        }),
+        ],
       },
+
       {
         model: customerModel,
         as: "customer",

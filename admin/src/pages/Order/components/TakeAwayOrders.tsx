@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
 import PageTitle from "@/components/PageTitle";
 import Drawer from "@/components/Drawer";
-import ViewOrder from "../ViewOrder";
+import ViewTakeawayOrders from "./ViewTakeawayOrders";
 
 function TakeAwayOrders() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
@@ -106,6 +106,7 @@ function TakeAwayOrders() {
               paymentStatus,
               status,
               totalAmount,
+              orderItems,
             }: any) => (
               <div
                 key={id}
@@ -194,7 +195,7 @@ function TakeAwayOrders() {
         )}
       </div>
       <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
-        <ViewOrder id={orderId} isOpen={open} setIsOpen={setOpen} />
+        <ViewTakeawayOrders id={orderId} />
       </Drawer>
     </>
   );

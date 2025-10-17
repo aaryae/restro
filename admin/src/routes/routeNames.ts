@@ -87,3 +87,5 @@ export const ACCOUNT_PERMISSION_EDIT_ROUTE = "/admin/account-permission/:id";
 export const ADDONS_LIST_ROUTE = "/admin/addons/list";
 export const ADDONS_ADD_ROUTE = "/admin/addons/";
 export const ADDONS_EDIT_ROUTE = "/admin/addons/:id";
+
+export const DAILY_REPORT_ROUTE = "/admin/daily-report";

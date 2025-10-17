@@ -26,6 +26,7 @@ import {
   Layers,
   UtensilsCrossed,
   ChartBarStacked,
+  ClipboardPlus,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -69,12 +70,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <HandPlatter size={12} />,
         path: "/admin/addons/list",
       },
-      // {
-      //   key: 3.3,
-      //   name: "Product Variant",
-      //   path: "/admin/product-variant/list",
-      //   icon: <MdOutlineFactCheck />,
-      // },
+      {
+        key: 1.5,
+        name: "Reports",
+        icon: <ClipboardPlus size={12} />,
+        path: "/admin/daily-report",
+      },
     ],
   },
   {
