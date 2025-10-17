@@ -1623,6 +1623,36 @@
           "list": "Addons"
         }
       ]
+    },
+    {
+      "title": "Reports",
+      "key": "reports",
+      "actions": [
+        {
+          "title": "Daily Summary",
+          "key": "view",
+          "clientPath": "/report/daily-summary",
+          "serverPath": "/report/daily-summary",
+          "requestMethod": "GET",
+          "list": "Reports"
+        },
+        {
+          "title": "Daily Revenue Report",
+          "key": "view",
+          "clientPath": "/report/daily-revenue-report",
+          "serverPath": "/report/daily-revenue-report",
+          "requestMethod": "GET",
+          "list": "Reports"
+        },
+        {
+          "title": "Daily Table Sessions",
+          "key": "view",
+          "clientPath": "/report/daily-table-sessions/:id",
+          "serverPath": "/report/daily-table-sessions/:id",
+          "requestMethod": "GET",
+          "list": "Reports"
+        }
+      ]
     }
   ]
 }

@@ -9,8 +9,18 @@ const {
   getDailyTableSessions,
 } = require("../controllers/report-controller");
 
-router.get("/daily-summary", getDailySummary);
-router.get("/daily-revenue-report", getDailyRevenueReport);
-router.get("/daily-sessions/:id", getDailyTableSessions);
+router.get("/daily-summary", authentication, authorization, getDailySummary);
+router.get(
+  "/daily-revenue-report",
+  authentication,
+  authorization,
+  getDailyRevenueReport,
+);
+router.get(
+  "/daily-table-sessions/:id",
+  authentication,
+  authorization,
+  getDailyTableSessions,
+);
 
 module.exports = router;
