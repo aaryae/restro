@@ -11,11 +11,13 @@ import { useReactToPrint } from "react-to-print";
 import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
+import { CurrencySign } from "@/constants";
 
 interface Addon {
   id: number | string;
   name: string;
   price: number | string;
+  quantity: number | string;
 }
 
 type OrderItem = {
@@ -242,6 +244,8 @@ function KotCard({ kot }) {
           background-size: 100% 1px !important;
           background-position: 0 .5008px !important;
         }
+          .kot-print .number {margin:0 !important; }
+        
         .no-print { display: none !important; }
       }
     `,
@@ -252,6 +256,10 @@ function KotCard({ kot }) {
     const itemQty = Number(item.quantity || 0);
     const addonsQty = item.addons?.length || 0;
     return sum + itemQty + addonsQty * itemQty;
+  }, 0);
+  const totalAmount = items.reduce((sum, item) => {
+    const itemTotal = getItemTotal(item);
+    return sum + itemTotal;
   }, 0);
 
   const [openCheckout, setOpenCheckout] = useState(false);
@@ -339,10 +347,11 @@ function KotCard({ kot }) {
                 <div key={String(it.id)} className="space-y-1">
                   <div className="grid grid-cols-12">
                     <div className="col-span-8 flex gap-2">
-                      <span>{index + 1}.</span>
+                      <span className="mt-[2.5px] number">{index + 1}.</span>
                       <div>
                         <div className="font-medium text-left">
-                          {it.product?.name || "-"}
+                          {it.product?.name || "-"}{" "}
+                          <span className="text-sm">(x{it.quantity})</span>
                         </div>
                         {it.specialInstructions && (
                           <div className="text-xs text-gray-600 italic">
@@ -360,7 +369,7 @@ function KotCard({ kot }) {
                                   <li key={index} className="text-left">
                                     {addonItem?.addon?.name || "No name"}
                                     {addonItem?.addon?.price !== undefined &&
-                                      ` (+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
+                                      ` (+Rs.${Number(addonItem.addon.price).toFixed(2)})(×${addonItem.quantity})`}
                                   </li>
                                 ),
                               )}
@@ -371,7 +380,7 @@ function KotCard({ kot }) {
                     </div>
                     <div className="col-span-4 text-right flex flex-col gap-2">
                       <div>
-                        {it.quantity} × Rs.
+                        Rs.
                         {Number(it.product?.price || 0).toFixed(2)}
                       </div>
                       {it.addons && it.addons.length > 0 && (
@@ -389,9 +398,9 @@ function KotCard({ kot }) {
                           addons
                         </div>
                       )}
-                      <div className="font-medium">
+                      {/* <div className="font-medium">
                         Total: Rs.{itemTotal.toFixed(2)}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -404,6 +413,13 @@ function KotCard({ kot }) {
             <div className="col-span-8 flex">Total (Dish/QTY)</div>
             <div className="col-span-4 text-right">
               {totalDish}/{totalQty}
+            </div>
+          </div>
+          <div className="grid grid-cols-12 font-semibold text-[12px]">
+            <div className="col-span-8 flex text-[13px]">Total:</div>
+            <div className="col-span-4 text-right text-[13px]">
+              {CurrencySign}
+              {totalAmount.toFixed(2)}
             </div>
           </div>
 

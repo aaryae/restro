@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "@/components/Button";
 import RestroTable from "@/components/RestroTable";
 import { FLOOR_URL } from "@/constants/apiUrlConstants";
+import { useUpdateFloorMutation } from "@/redux/services/floor";
 import { useAppSelector } from "@/redux/store/hooks";
 import Drawer from "@/components/Drawer";
 import { useGetApiQuery } from "@/redux/services/crudApi";
@@ -241,10 +242,22 @@ function Tables({
   selectedFloor,
 }: TablesProps) {
   const filteredTables = tables?.filter((table: any) => {
-    const statusMatch =
-      !selectedStatus ||
-      selectedStatus === "all" ||
-      table.status === selectedStatus;
+    let statusMatch = !selectedStatus || selectedStatus === "all";
+    if (!statusMatch) {
+      switch (selectedStatus) {
+        case "available":
+          statusMatch = table.status === "available" && table.floor.isActive;
+          break;
+        case "occupied":
+          statusMatch = table.status === "occupied" && table.floor.isActive;
+          break;
+        case "maintenance":
+          statusMatch = table.status === "maintenance" && table.floor.isActive;
+          break;
+        default:
+          statusMatch = table.status === selectedStatus;
+      }
+    }
     const floorMatch =
       !selectedFloor || table.floorId?.toString() === selectedFloor;
     return statusMatch && floorMatch;

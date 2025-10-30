@@ -6,9 +6,7 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
 import MediaComponent from "@/components/MediaComponent";
-import {
-  ImageInputUI,
-} from "@/components/ImageComponent";
+import { ImageInputUI } from "@/components/ImageComponent";
 import { IMAGE_BASE_URL } from "@/constants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import {
@@ -93,7 +91,10 @@ const AddEditAddons = () => {
   const onConfirmMedia = () => {
     const selected = typeof selectedImage === "string" ? selectedImage : "";
     if (!selected) {
-      setError("imageUrl", { type: "manual", message: "Please select an image" });
+      setError("imageUrl", {
+        type: "manual",
+        message: "Please select an image",
+      });
       return;
     }
     setImage(selected);
@@ -164,7 +165,7 @@ const AddEditAddons = () => {
             open={isImageModelOpen}
             setOpen={setIsImageModalOpen}
           />
-          <div className="mt-[1rem] flex w-full justify-between">
+          {/* <div className="mt-[1rem] flex w-full justify-between">
             <button
               type="button"
               className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
@@ -186,29 +187,15 @@ const AddEditAddons = () => {
             >
               Next
             </button>
-          </div>
-          {image && (
-            <div className="mt-[0.75rem]">
-              <div className="border h-[6.25rem] w-[6.25rem] rounded-[0.375rem] overflow-hidden">
-                <img
-                  src={
-                    image.startsWith("http")
-                      ? image
-                      : `${IMAGE_BASE_URL}${image}`
-                  }
-                  alt="Addon Preview"
-                  className="object-cover h-[6.25rem] w-[6.25rem]"
-                />
-              </div>
-            </div>
-          )}
-          {errors.imageUrl && (
-            <p className="text-red-500 text-sm">{errors.imageUrl.message}</p>
-          )}
+          </div> */}
         </div>
 
         <div className="flex justify-start">
-          <Button type="submit" className="submit-button w-[8rem]" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="submit-button w-[8rem]"
+            disabled={isSubmitting}
+          >
             <div className="flex justify-center items-center gap-[0.5rem] text-white">
               {id ? "Update" : "Create"}
             </div>

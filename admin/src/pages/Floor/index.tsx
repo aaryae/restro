@@ -5,7 +5,11 @@ import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
 import { FLOOR_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
-import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
+import {
+  useDeleteApiMutation,
+  useGetApiQuery,
+  usePatchApiMutation,
+} from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
@@ -26,7 +30,7 @@ interface FloorResponseType {
 
 export default function Floor() {
   const accessList = checkAccess("Floor");
-
+  const [patchApi] = usePatchApiMutation();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
   const [open, setOpen] = useState<boolean>(false);
@@ -78,6 +82,23 @@ export default function Floor() {
       handleError({ error });
     } finally {
       setOpen(false);
+    }
+  };
+
+  const handleFloorStatus = async (id: number, isActive: boolean) => {
+    try {
+      const res = await patchApi({
+        url: `${FLOOR_URL}${id}`,
+        body: { status: isActive ? "inactive" : "active" },
+      }).unwrap();
+      handleResponse({
+        res,
+        onSuccess: () => {
+          refetch();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
     }
   };
 
@@ -152,6 +173,13 @@ export default function Floor() {
                   </span>
                 </div>
               )}
+              <button
+                type="button"
+                className={`px-2 py-1 text-xs rounded border`}
+                onClick={() => handleFloorStatus(id, isActive)}
+              >
+                {isActive ? "Inactive" : "Active"}
+              </button>
             </div>,
           ],
         )

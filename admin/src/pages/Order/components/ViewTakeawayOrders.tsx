@@ -2,7 +2,9 @@ import React from "react";
 import PageTitle from "@/components/PageTitle";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
+import Button from "@/components/Button";
 import { useGetApiQuery } from "@/redux/services/crudApi";
+import CheckoutModal from "./CheckoutModal";
 
 type ViewTakeawayOrdersProps = {
   id: number | null;
@@ -22,15 +24,6 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
     { skip: id === null || id === undefined },
   );
 
-  React.useEffect(() => {
-    if (success && orderData) {
-      console.log("Order Data:", JSON.stringify(orderData, null, 2));
-      if (orderData.data?.orderItems?.[0]) {
-        console.log("First item addons:", orderData.data.orderItems[0].addons);
-      }
-    }
-  }, [success, orderData]);
-
   const items = (success ? orderData?.data?.orderItems : []) || [];
   const orderNo = orderData?.data?.id || id;
 
@@ -38,6 +31,13 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
     <div className="mt-[2rem]">
       <div className="flex justify-between items-center">
         <PageTitle title={`Takeaway Order ${orderNo ? `#${orderNo}` : ""}`} />
+        <div className="text-right">
+          <div className="text-sm text-gray-500">Grand Total</div>
+          <div className="text-xl font-bold text-green-600">
+            {CurrencySign}
+            {Number(orderData?.data?.totalAmount ?? 0).toFixed(2)}
+          </div>
+        </div>
       </div>
 
       {loading && <div className="text-gray-600 mt-4">Loading order...</div>}
@@ -77,7 +77,7 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <div className=" border-b border-gray-200 py-2 gap-6 flex items-center">
+                  <div className="  py-2 gap-6 flex items-center">
                     <div className="flex justify-between items-center w-full">
                       <div className="leading-[1.5] text-gray-600 ">
                         <p className="font-medium text-[14px] text-left">
@@ -158,6 +158,13 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
           )}
         </div>
       )}
+      <div className="flex justify-end">
+        <div className="flex items-center gap-2">
+          <Button className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]">
+            Checkout
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

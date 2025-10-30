@@ -247,19 +247,6 @@ const Account: React.FC = () => {
               >
                 {row?.status === "active" ? "Deactivate" : "Activate"}
               </button>
-              {/* <button
-                type="button"
-                className={`px-2 py-1 text-xs rounded border ${row?.isDefault ? "opacity-50 cursor-not-allowed" : "hover:bg-red-50 border-red-400 text-red-600"}`}
-                onClick={() => !row?.isDefault && handleDeleteTrigger(row?.id)}
-                title={
-                  row?.isDefault
-                    ? "Default account cannot be deleted"
-                    : "Delete Account"
-                }
-                disabled={row?.isDefault}
-              >
-                Delete
-              </button> */}
               <div className="relative group">
                 <DeleteModal
                   open={deleteModelOpen}

@@ -262,17 +262,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       const isSelective = selectedIds.length > 0;
       const isCheckoutAll = Array.isArray(orderId) && selectedIds.length === 0;
+      const isTakeaway =
+        !Array.isArray(orderId) &&
+        (order?.data?.orderType === "takeaway" || !tableId);
 
       // Selective checkout
       let payload: any;
       if (isSelective) {
-        payload = {
-          paymentMethod: mapPaymentMethod(paymentType),
-          orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
-          ...(checkoutType === "member" && selectedMember
-            ? { customerId: selectedMember.id }
-            : {}),
-        };
+        if (isTakeaway) {
+          payload = {
+            paymentMethod: mapPaymentMethod(paymentType),
+            orderId,
+            ...(checkoutType === "member" && selectedMember
+              ? { customerId: selectedMember.id }
+              : {}),
+          };
+        } else {
+          payload = {
+            paymentMethod: mapPaymentMethod(paymentType),
+            orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
+            ...(checkoutType === "member" && selectedMember
+              ? { customerId: selectedMember.id }
+              : {}),
+          };
+        }
       }
 
       // Checkout all:
@@ -315,16 +328,28 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       if (paymentType === "qr") {
         // For QR code payments
-        const qrPayload = {
-          checkoutAll: true,
-          sessionId: table?.data?.sessionId,
-          paymentMethod: "online",
-          cashOrCredit: "cash",
-          accountId: selectedBankId,
-          ...(checkoutType === "member" && selectedMember
-            ? { customerId: selectedMember.id }
-            : {}),
-        };
+        let qrPayload;
+        if (isTakeaway) {
+          qrPayload = {
+            paymentMethod: "online",
+            orderId,
+            accountId: selectedBankId,
+            ...(checkoutType === "member" && selectedMember
+              ? { customerId: selectedMember.id }
+              : {}),
+          };
+        } else {
+          qrPayload = {
+            checkoutAll: true,
+            sessionId: table?.data?.sessionId,
+            paymentMethod: "online",
+            cashOrCredit: "cash",
+            accountId: selectedBankId,
+            ...(checkoutType === "member" && selectedMember
+              ? { customerId: selectedMember.id }
+              : {}),
+          };
+        }
 
         const response = await checkoutOrderApi({
           id: tableId,
@@ -707,22 +732,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                     {Array.isArray(it.addons) &&
                                     it.addons.length > 0 ? (
                                       <div className="text-xs text-gray-600 flex flex-col gap-1">
-                                        {it.addons.map((a: any) => (
+                                        {it.addons.map((addon: any) => (
                                           <div
-                                            key={`${sid}_addon_${a.id}`}
+                                            key={`${sid}_addon_${addon.id}`}
                                             className="flex items-center justify-between"
                                           >
-                                            <span>{`+ ${a.name} x${a.quantity}`}</span>
+                                            <span>{`+ ${addon.name} (x${addon.quantity})`}</span>
                                             <span>
-                                              {Number(a.subtotal || 0).toFixed(
-                                                2,
-                                              )}
+                                              {Number(
+                                                addon.subtotal || 0,
+                                              ).toFixed(2)}
                                             </span>
                                           </div>
                                         ))}
                                       </div>
                                     ) : (
-                                      <div className="text-xs text-gray-500">
+                                      <div className="text-xs text-gray-500 text-left">
                                         No addons
                                       </div>
                                     )}

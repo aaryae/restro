@@ -191,9 +191,10 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
                             key={addon.id}
                             className="text-xs text-gray-600 pl-2 mt-1 flex justify-between"
                           >
-                            <span>+ {addon.name}</span>
+                            <span>
+                              + {addon.name} (x{addon.quantity})
+                            </span>
                             <div>
-                              <span className="ml-2">x{addon.quantity}</span>
                               <span className="ml-2">Rs. {addon.price}</span>
                             </div>
                           </div>

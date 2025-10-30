@@ -142,10 +142,10 @@ const Report = () => {
                 </div>
               </button>
             ))}
-            {!tables?.length && (
-              <div className="text-sm text-gray-500">No data for today.</div>
-            )}
           </div>
+        )}
+        {!tables?.length && (
+          <div className="text-sm text-gray-500 text0">No data for today.</div>
         )}
       </div>
 

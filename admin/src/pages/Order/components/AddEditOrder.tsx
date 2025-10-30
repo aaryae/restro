@@ -963,6 +963,16 @@ export default function AddEditOrder({
                     >
                       <div className="col-span-6 truncate">
                         {item.productName}
+                        {Array.isArray(item.addons) &&
+                          item.addons.length > 0 && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              (+
+                              {item.addons
+                                .map((addon: any) => addon.name)
+                                .join(", ")}
+                              )
+                            </span>
+                          )}
                       </div>
                       <div className="col-span-2 text-right">
                         {item.quantity}
@@ -1115,6 +1125,7 @@ function AddonPicker({
   const [local, setLocal] = useState<
     { addonId: number; name: string; price: number; quantity: number }[]
   >(selected || []);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     setLocal(selected || []);
@@ -1151,64 +1162,151 @@ function AddonPicker({
     );
   };
 
+  const filtered = addons.filter((a: any) =>
+    a.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-left">Addons</h3>
+          <p className="text-sm text-gray-500">
+            Enhance the item with complementary addons
+          </p>
+        </div>
+        <div className="text-sm text-gray-700">
+          <span className="font-medium">{(local || []).length}</span>
+          <span className="ml-1">selected</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex-1 relative">
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search addons..."
+            className="w-full p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primaryColor"
+          />
+          <FaSearch className="absolute right-3 top-2.5 text-gray-400" />
+        </div>
+        <button
+          type="button"
+          className="px-3 py-2 bg-gray-100 rounded-md text-sm"
+          onClick={() => setSearchTerm("")}
+        >
+          Clear
+        </button>
+      </div>
+
       {isLoading ? (
-        <p>Loading addons...</p>
-      ) : addons.length === 0 ? (
+        <div className="text-center py-6">Loading addons...</div>
+      ) : filtered.length === 0 ? (
         <p className="text-sm text-gray-600">No addons for this product.</p>
       ) : (
-        <div className="max-h-[60vh] overflow-auto flex flex-col gap-2">
-          {addons.map((ad: any) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-auto">
+          {filtered.map((ad: any) => {
             const sel = local.find((a) => a.addonId === ad.id);
             return (
               <div
                 key={ad.id}
-                className="flex items-center justify-between p-2 border rounded"
+                className={`relative bg-white border rounded-lg p-3 flex gap-3 items-start hover:shadow-md transition-shadow`}
               >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!sel}
-                    onChange={() => toggle(ad)}
+                <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                  <img
+                    src={
+                      ad.imageUrl?.startsWith("http")
+                        ? ad.imageUrl
+                        : `${IMAGE_BASE_URL}${ad.imageUrl}`
+                    }
+                    alt={ad.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DishPlaceHolder;
+                    }}
                   />
-                  <span className="font-medium">{ad.name}</span>
-                  <span className="text-xs text-gray-600">
-                    {CurrencySign}
-                    {Number(ad.price || 0).toFixed(2)}
-                  </span>
                 </div>
-                {sel ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="px-2 py-1 border rounded"
-                      onClick={() => setQty(ad.id, (sel.quantity || 1) - 1)}
-                    >
-                      -
-                    </button>
-                    <span className="w-6 text-center">{sel.quantity || 1}</span>
-                    <button
-                      type="button"
-                      className="px-2 py-1 border rounded"
-                      onClick={() => setQty(ad.id, (sel.quantity || 1) + 1)}
-                    >
-                      +
-                    </button>
+
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">{ad.name}</h4>
+                    <div className="text-sm font-semibold text-primaryColor">
+                      Rs. {ad.price}
+                    </div>
                   </div>
-                ) : null}
+                  {ad.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {ad.description}
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {sel ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded"
+                            onClick={() =>
+                              setQty(ad.id, (sel.quantity || 1) - 1)
+                            }
+                          >
+                            -
+                          </button>
+                          <span className="w-8 text-center font-medium">
+                            {sel.quantity || 1}
+                          </span>
+                          <button
+                            type="button"
+                            className="px-2 py-1 border rounded"
+                            onClick={() =>
+                              setQty(ad.id, (sel.quantity || 1) + 1)
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggle(ad)}
+                        className={`px-3 py-1 rounded-full text-sm border ${sel ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
+                      >
+                        {sel ? "Selected" : "Add"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {sel && (
+                  <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    ✓
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
-      <div className="flex justify-end gap-2">
+
+      <div className="flex justify-end gap-2 pt-3 border-t">
+        <button
+          type="button"
+          className="px-4 py-2 border rounded"
+          onClick={() => setLocal([])}
+        >
+          Clear All
+        </button>
         <button
           type="button"
           className="px-4 py-2 border rounded"
           onClick={onCancel}
         >
-          Close
+          Cancel
         </button>
         <button
           type="button"

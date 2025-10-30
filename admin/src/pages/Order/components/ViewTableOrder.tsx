@@ -145,6 +145,8 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                             {addonItem?.addon?.price !==
                                               undefined &&
                                               `(+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
+                                            {addonItem?.quantity > 1 &&
+                                              ` (x${addonItem.quantity})`}
                                           </li>
                                         ),
                                       )}

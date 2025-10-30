@@ -41,6 +41,7 @@ export const api = createApi({
     "product-category",
     "product",
     "product-variant",
+    "floor",
     "table",
     "order",
     "account",

@@ -85,6 +85,16 @@ export default function ProductForm() {
   const [addonDrawerOpen, setAddonDrawerOpen] = useState<boolean>(false);
   const selectedAddons = watch("addons");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [addonSearch, setAddonSearch] = useState<string>("");
+
+  // Toggle addon selection helper
+  const toggleAddon = (addonId: number) => {
+    const current = Array.isArray(selectedAddons) ? [...selectedAddons] : [];
+    const index = current.indexOf(addonId);
+    if (index > -1) current.splice(index, 1);
+    else current.push(addonId);
+    setValue("addons", current, { shouldValidate: true, shouldDirty: true });
+  };
 
   const [productCategoryOptions, setProductCategoryOptions] = useState<
     { label: string; value: string }[]
@@ -315,7 +325,7 @@ export default function ProductForm() {
             open={isImageModelOpen}
             setOpen={setIsImageModalOpen}
           />
-          <div className="mt-[1rem] flex w-full justify-between">
+          {/* <div className="mt-[1rem] flex w-full justify-between">
             <button
               type="button"
               className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
@@ -337,7 +347,7 @@ export default function ProductForm() {
             >
               Next
             </button>
-          </div>
+          </div> */}
         </div>
 
         {(!id || success) && (
@@ -512,67 +522,129 @@ export default function ProductForm() {
         setIsOpen={setAddonDrawerOpen}
         width="w-full lg:w-[40%]"
       >
-        <div className="p-4 flex flex-col gap-4">
-          <h3 className="text-lg font-semibold">Select Addons</h3>
-          <div className="max-h-[60vh] overflow-auto flex flex-col gap-2">
-            {(addonListData?.data?.data || []).map((addon: any) => {
-              const checked = (selectedAddons || []).includes(addon.id);
-              return (
-                <label
-                  key={addon.id}
-                  className="flex items-center gap-3 p-2 border rounded"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e) => {
-                      const curr = Array.isArray(selectedAddons)
-                        ? [...selectedAddons]
-                        : [];
-                      if (e.target.checked) {
-                        if (!curr.includes(addon.id)) curr.push(addon.id);
-                      } else {
-                        const idx = curr.indexOf(addon.id);
-                        if (idx > -1) curr.splice(idx, 1);
-                      }
-                      setValue("addons", curr, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      });
-                    }}
-                  />
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={
-                        addon.imageUrl?.startsWith("http")
-                          ? addon.imageUrl
-                          : `${IMAGE_BASE_URL}${addon.imageUrl}`
-                      }
-                      alt={addon.name}
-                      className="w-12 h-10 object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = DishPlaceHolder;
-                      }}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{addon.name}</span>
-                      <span className="text-xs text-gray-600">
-                        Rs. {addon.price}
-                      </span>
-                    </div>
-                  </div>
-                </label>
-              );
-            })}
+        <div className="p-4 flex flex-col gap-4 h-full">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-left">Select Addons</h3>
+              <p className="text-sm text-gray-500">
+                Choose complementary items
+              </p>
+            </div>
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">
+                {Array.isArray(selectedAddons) ? selectedAddons.length : 0}
+              </span>
+              <span className="ml-1">selected</span>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
+
+          <div className="flex items-center gap-2">
+            <input
+              value={addonSearch}
+              onChange={(e) => setAddonSearch(e.target.value)}
+              placeholder="Search addons..."
+              className="flex-1 p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primaryColor"
+            />
             <button
               type="button"
-              className="px-3 py-2 border rounded"
-              onClick={() => setAddonDrawerOpen(false)}
+              className="px-3 py-2 bg-gray-100 rounded-md text-sm"
+              onClick={() => {
+                setAddonSearch("");
+              }}
             >
-              Close
+              Clear
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-auto max-h-[60vh]">
+            {(addonListData?.data?.data || [])
+              .filter((a: any) =>
+                a.name.toLowerCase().includes(addonSearch.toLowerCase()),
+              )
+              .map((addon: any) => {
+                const checked = (selectedAddons || []).includes(addon.id);
+                return (
+                  <div
+                    key={addon.id}
+                    className={`relative flex items-center gap-3 p-3 border rounded-lg hover:shadow-lg transition-shadow bg-white`}
+                  >
+                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                      <img
+                        src={
+                          addon.imageUrl?.startsWith("http")
+                            ? addon.imageUrl
+                            : `${IMAGE_BASE_URL}${addon.imageUrl}`
+                        }
+                        alt={addon.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DishPlaceHolder;
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">{addon.name}</h4>
+                        <div className="text-sm font-semibold text-primaryColor">
+                          Rs. {addon.price}
+                        </div>
+                      </div>
+                      {addon.description && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {addon.description}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleAddon(addon.id)}
+                          className={`px-3 py-1 rounded-full text-sm border ${checked ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
+                        >
+                          {checked ? "Selected" : "Add"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {checked && (
+                      <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          <div className="mt-auto pt-3 border-t flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 rounded border text-sm"
+              onClick={() => {
+                setValue("addons", [], {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }}
+            >
+              Clear All
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 rounded border text-sm"
+                onClick={() => setAddonDrawerOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded bg-primaryColor text-white text-sm"
+                onClick={() => setAddonDrawerOpen(false)}
+              >
+                Save Selection
+              </button>
+            </div>
           </div>
         </div>
       </Drawer>

@@ -57,7 +57,7 @@ const Table: React.FC<TableProps> = ({
                     {row.map((cell, cellIndex) => (
                       <td
                         key={cellIndex}
-                        className="md:px-6 px-2 py-3 text-center"
+                        className="md:px-4 px-2 py-3 text-center"
                       >
                         {React.isValidElement(cell) ? cell : `${cell}`}
                       </td>

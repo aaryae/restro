@@ -232,7 +232,7 @@ export default function OpenItemForm() {
           open={isImageModelOpen}
           setOpen={setIsImageModalOpen}
         />
-        <div className="mt-[1rem] flex w-full justify-between">
+        {/* <div className="mt-[1rem] flex w-full justify-between">
           <button
             type="button"
             className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
@@ -254,7 +254,7 @@ export default function OpenItemForm() {
           >
             {"Next"}
           </button>
-        </div>
+        </div> */}
       </div>
 
       <div className="flex justify-start">

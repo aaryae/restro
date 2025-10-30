@@ -124,16 +124,16 @@ export default function ViewOrder({
                 </h3>
 
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
-                  <p>
+                  <p className="text-left">
                     <span className="font-medium">Quantity:</span>{" "}
                     {item.quantity}
                   </p>
-                  <p>
+                  <p className="text-left">
                     <span className="font-medium">Price:</span>
                     {CurrencySign}
                     {parseFloat(item.price).toFixed(2)}
                   </p>
-                  <p>
+                  <p className="text-left">
                     <span className="font-medium">Subtotal:</span>
                     {CurrencySign}
                     {parseFloat(item.subtotal).toFixed(2)}
@@ -161,7 +161,7 @@ export default function ViewOrder({
 
                 {item.addons && item.addons.length > 0 && (
                   <div className="mt-3 pl-4 border-l-2 border-gray-200">
-                    <p className="font-medium text-sm text-gray-600 mb-1">
+                    <p className="font-medium text-sm text-gray-600 mb-1 text-left">
                       Addons:
                     </p>
                     <div className="space-y-2">
