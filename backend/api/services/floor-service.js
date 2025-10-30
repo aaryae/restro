@@ -113,6 +113,58 @@ const updateById = async (req) => {
   }
 };
 
+const updateStatusById = async (req) => {
+  try {
+    const result = await floorModel.findByPk(+req.params.id);
+    if (!result) {
+      return {
+        status: 404,
+        success: false,
+        message: `Floor Not Found`,
+        data: null,
+      };
+    }
+
+    const occupiedTables = await tableModel.findAll({
+      where: {
+        floorId: req.params.id,
+        status: "occupied",
+      },
+    });
+
+    if (req.body.status === "inactive" && occupiedTables.length > 0) {
+      return {
+        status: 404,
+        success: false,
+        message: `Update Failed! (Floor has occupied tables)`,
+        data: null,
+      };
+    }
+
+    const updated = await result.update({
+      isActive: req.body.status === "active" ? true : false,
+    });
+
+    if (!updated) {
+      return {
+        status: 500,
+        success: false,
+        message: `Floor updated Failed`,
+        data: null,
+      };
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: `Floor updated successfully`,
+      data: updated,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 const deleteById = async (req) => {
   try {
     const floorId = +req.params.id;
@@ -166,4 +218,5 @@ module.exports = {
   getById,
   updateById,
   deleteById,
+  updateStatusById,
 };

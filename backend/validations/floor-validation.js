@@ -50,7 +50,27 @@ const updateFloorValidation = async (req, res, next) => {
   return next();
 };
 
+const updateFloorStatusValidation = async (req, res, next) => {
+  let joiModel = joi.object({
+    status: joi.string().valid("active", "inactive"),
+  });
+  const errors = await validateRequestBody(req, res, joiModel);
+  if (!isEmpty(errors)) {
+    return responseHelper.sendResponse(
+      res,
+      httpStatus.BAD_REQUEST,
+      false,
+      null,
+      errors,
+      messageConstant.EN.INPUT_ERROR,
+      null,
+    );
+  }
+  return next();
+};
+
 module.exports = {
   createFloorValidation,
   updateFloorValidation,
+  updateFloorStatusValidation,
 };

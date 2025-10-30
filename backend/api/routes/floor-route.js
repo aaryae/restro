@@ -5,10 +5,12 @@ const {
   getById,
   updateById,
   deleteById,
+  updateStatusById,
 } = require("../controllers/floor-controller");
 const {
   createFloorValidation,
   updateFloorValidation,
+  updateFloorStatusValidation,
 } = require("../../validations/floor-validation");
 const {
   paginationValidation,
@@ -33,6 +35,15 @@ router.put(
   idValidation,
   updateFloorValidation,
   updateById,
+);
+
+router.patch(
+  "/:id",
+  authentication,
+  authorization,
+  idValidation,
+  updateFloorStatusValidation,
+  updateStatusById,
 );
 
 router.delete("/:id", authentication, authorization, idValidation, deleteById);

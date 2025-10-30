@@ -979,6 +979,14 @@
           "list": "Floor"
         },
         {
+          "title": "Update Floor Status",
+          "key": "edit-status",
+          "clientPath": "/floor/:id",
+          "serverPath": "/floor/:id",
+          "requestMethod": "PATCH",
+          "list": "Floor"
+        },
+        {
           "title": "Delete Floor",
           "key": "delete",
           "clientPath": "/floor/:id",
