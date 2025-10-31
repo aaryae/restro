@@ -115,7 +115,7 @@ const Account: React.FC = () => {
         Component: FilterInput,
         control,
       },
-      // Place Account Type as the last field so it appears at the far right on large screens
+      // Placed Account Type as the last field so it appears at the far right on large screens
       {
         name: "accountType",
         label: "Account Type",

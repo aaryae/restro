@@ -114,7 +114,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                             key={item.id}
                             className=" border-b border-gray-200 py-2 gap-6 flex items-center"
                           >
-                            <div className="flex justify-between items-center w-full">
+                            <div className="flex justify-between w-full">
                               <div className="leading-[1.5] text-gray-600 ">
                                 <p className="font-medium text-[14px] text-left">
                                   Item: {item.product.name}
@@ -126,10 +126,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                   <p className="text-xs italic">
                                     Note: {item.specialInstructions}
                                   </p>
-                                )}
-                                {console.log(
-                                  "Item data:",
-                                  JSON.stringify(item, null, 2),
                                 )}
                                 {item.addons && item.addons.length > 0 ? (
                                   <div className="mt-1">
@@ -158,12 +154,12 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                   </div>
                                 )}
                               </div>
-                              <div className="leading-[1.5] text-gray-600 text-right">
+                              <div className="leading-[1.5] text-gray-600 text-right flex flex-col justify-between">
                                 <p className="text-[14px]">
                                   Rs. {Number(item.product.price).toFixed(2)}{" "}
                                   each
                                 </p>
-                                {item.addons && item.addons.length > 0 && (
+                                {/* {item.addons && item.addons.length > 0 && (
                                   <p className="text-xs text-gray-500">
                                     + Rs.
                                     {item.addons
@@ -175,7 +171,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                       .toFixed(2)}{" "}
                                     addons
                                   </p>
-                                )}
+                                )} */}
                                 <p className="text-[13px] font-medium">
                                   Subtotal: Rs.
                                   {Number(item.itemTotal).toFixed(2)}

@@ -12,7 +12,7 @@ import Kot, { type KotData } from "@/components/Kot";
 import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
 import Select from "@/components/Select";
-import { FaPlus, FaTrash, FaSearch } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import { MdShoppingCart } from "react-icons/md";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Beep from "@/assets/audio/beep.mp3";
@@ -25,8 +25,7 @@ import {
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Minus, Plus, PlusCircle, ShoppingBasket } from "lucide-react";
-import { id } from "date-fns/locale";
+import { Minus, Plus, ShoppingBasket } from "lucide-react";
 import {
   useCreateOrderMutation,
   useUpdateOrderMutation,
@@ -224,7 +223,13 @@ export default function AddEditOrder({
             subtotal: Number(item.subtotal),
             status: item.status,
             departmentId: item.product.departmentId,
-            addons: item.addons,
+
+            addons: (item.addons || []).map((a: any) => ({
+              addonId: a.addonId ?? a.id ?? a.addon?.id,
+              name: a.name || a.addon?.name || a.addonName || "",
+              price: Number(a.price ?? a.addon?.price ?? 0),
+              quantity: a.quantity ?? a.qty ?? 1,
+            })),
           }),
         ),
       );
@@ -380,11 +385,15 @@ export default function AddEditOrder({
         ...data,
         orderNote: getValues("orderNote"),
         orderItems: orderItems.map((item: OrderItem) => {
+          const base = {
+            productId: Number(item.productId),
+            quantity: item.quantity,
+            departmentId: item.departmentId,
+          } as any;
+
           if (String(item.id).includes("newitem_")) {
             return {
-              productId: item.productId,
-              quantity: item.quantity,
-              departmentId: item.departmentId,
+              ...base,
               addons: (item.addons || []).map((a) => ({
                 addonId: a.addonId,
                 quantity: a.quantity,
@@ -393,9 +402,7 @@ export default function AddEditOrder({
           }
           return {
             id: item.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            departmentId: item.departmentId,
+            ...base,
             addons: (item.addons || []).map((a) => ({
               addonId: a.addonId,
               quantity: a.quantity,
@@ -451,18 +458,18 @@ export default function AddEditOrder({
         ...pendingData,
         orderNote: getValues("orderNote"),
         orderItems: orderItems.map((item: OrderItem) => {
+          const base = {
+            productId: Number(item.productId),
+            quantity: item.quantity,
+            departmentId: item.departmentId,
+          } as any;
+
           if (String(item.id).includes("newitem_")) {
-            return {
-              productId: item.productId,
-              quantity: item.quantity,
-              departmentId: item.departmentId,
-            };
+            return base;
           }
           return {
             id: item.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            departmentId: item.departmentId,
+            ...base,
           };
         }),
       };
@@ -755,7 +762,7 @@ export default function AddEditOrder({
                   {orderItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex items-start sm:items-center justify-between gap-3 sm:gap-0 px-4 py-6 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                      className={`flex items-start justify-between gap-3 sm:gap-0 px-4 py-4 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
                     >
                       <div
                         className={`flex flex-col items-start ${item.status === "cancelled" ? "line-through" : ""}`}
@@ -768,86 +775,68 @@ export default function AddEditOrder({
                           each
                         </p>
                         {item.addons && item.addons.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {item.addons.map((a) => (
-                              <span
-                                key={`${item.id}_${a.addonId}`}
-                                className="text-[10px] px-2 py-[2px] rounded bg-gray-100 border"
-                              >
-                                + {a.name} x{a.quantity}
-                              </span>
-                            ))}
+                          <div className="mt-1 flex flex-wrap gap-1 text-xs font-medium text-gray-500">
+                            Addons:
+                            {item.addons.map((a) => {
+                              const addonName =
+                                (a as any).name ||
+                                (a as any).addon?.name ||
+                                (a as any).addonName ||
+                                String((a as any).addonId || "");
+                              const qty =
+                                (a as any).quantity ?? (a as any).qty ?? 1;
+                              return (
+                                <span
+                                  key={`${item.id}_${(a as any).addonId || addonName}`}
+                                  className="px-2 py-[2px] text-xs rounded bg-gray-100 border"
+                                >
+                                  + {addonName} x{qty}
+                                </span>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
-
-                      <div
-                        className={`flex items-center space-x-2 ${item.status === "cancelled" ? "hidden" : ""}`}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            disabled={item.status === "preparing"}
-                            handleClick={() => {
-                              updateOrderItemQuantity(
-                                item.id,
-                                item.quantity - 1,
-                              );
-                              playAudio();
-                            }}
-                            className={`bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center
+                      <div className="flex">
+                        <div className="flex flex-col items-center justify-center gap-3">
+                          <div
+                            className={`flex items-center space-x-2 ${item.status === "cancelled" ? "hidden" : ""}`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                disabled={item.status === "preparing"}
+                                handleClick={() => {
+                                  updateOrderItemQuantity(
+                                    item.id,
+                                    item.quantity - 1,
+                                  );
+                                  playAudio();
+                                }}
+                                className={`bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center
                                 ${item.status === "preparing" ? "opacity-50 cursor-not-allowed" : ""}
                             `}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
+                              >
+                                <Minus className="w-4 h-4" />
+                              </Button>
 
-                          <span className="w-8 text-center font-medium text-[15px]">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            handleClick={() => {
-                              updateOrderItemQuantity(
-                                item.id,
-                                item.quantity + 1,
-                              );
-                              playAudio();
-                            }}
-                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
+                              <span className="w-8 text-center font-medium text-[15px]">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                handleClick={() => {
+                                  updateOrderItemQuantity(
+                                    item.id,
+                                    item.quantity + 1,
+                                  );
+                                  playAudio();
+                                }}
+                                className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveAddonItem(item);
-                            setAddonDrawerOpen(true);
-                          }}
-                          className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded border"
-                        >
-                          {item.addons?.length
-                            ? `Edit Addons (${item.addons.length})`
-                            : "Add Addons"}
-                        </button>
-
-                        <Button
-                          disabled={item.status === "preparing"}
-                          handleClick={() => {
-                            removeOrderItem(item.id);
-                            playDeleteAudio();
-                          }}
-                          className={`text-right ${
-                            item.status === "preparing"
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }`}
-                        >
-                          <Plus
-                            className={`rotate-45 ${item.status === "preparing" ? "text-red-300" : "text-red-400"} cursor-pointer`}
-                          />
-                        </Button>
-                        {/* {item?.status === "pending" && (
+                            {/* {item?.status === "pending" && (
                           <Button
                             type="button"
                             onClick={() => removeOrderItem(item.id)}
@@ -856,6 +845,40 @@ export default function AddEditOrder({
                             Cancel Order
                           </Button>
                         )} */}
+                          </div>
+                          <div className="flex justify-center items-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveAddonItem(item);
+                                setAddonDrawerOpen(true);
+                              }}
+                              className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded border"
+                            >
+                              {item.addons?.length
+                                ? `Edit Addons (${item.addons.length})`
+                                : "Add Addons"}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <Button
+                            disabled={item.status === "preparing"}
+                            handleClick={() => {
+                              removeOrderItem(item.id);
+                              playDeleteAudio();
+                            }}
+                            className={`text-right ${
+                              item.status === "preparing"
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <Plus
+                              className={`rotate-45 ${item.status === "preparing" ? "text-red-300" : "text-red-400"} cursor-pointer`}
+                            />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -968,7 +991,17 @@ export default function AddEditOrder({
                             <span className="text-xs text-gray-500 ml-2">
                               (+
                               {item.addons
-                                .map((addon: any) => addon.name)
+                                .map((addon: any) => {
+                                  const name =
+                                    addon.name ||
+                                    addon.addon?.name ||
+                                    addon.addonName ||
+                                    String(addon.addonId ?? "");
+                                  const qty = addon.quantity ?? addon.qty ?? 1;
+                                  return qty && qty > 1
+                                    ? `${name} x${qty}`
+                                    : name;
+                                })
                                 .join(", ")}
                               )
                             </span>
@@ -1041,6 +1074,7 @@ export default function AddEditOrder({
         {kotPreviewData && <Kot ref={kotRef} data={kotPreviewData} />}
       </div>
       {/* Addons Drawer */}
+
       <Drawer
         isOpen={addonDrawerOpen}
         setIsOpen={setAddonDrawerOpen}
@@ -1053,11 +1087,11 @@ export default function AddEditOrder({
           {activeAddonItem ? (
             <AddonPicker
               productId={activeAddonItem.productId}
-              selected={(activeAddonItem.addons || []).map((a) => ({
-                addonId: a.addonId,
-                name: a.name,
-                price: a.price,
-                quantity: a.quantity,
+              selected={(activeAddonItem.addons || []).map((a: any) => ({
+                addonId: a.addonId ?? a.id ?? a.addon?.id,
+                name: a.name || a.addon?.name || a.addonName || "",
+                price: Number(a.price ?? a.addon?.price ?? 0),
+                quantity: a.quantity ?? 1,
               }))}
               onCancel={() => setAddonDrawerOpen(false)}
               onSave={(addons) => {
@@ -1129,17 +1163,16 @@ function AddonPicker({
 
   useEffect(() => {
     setLocal(selected || []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId]);
+  }, [productId, selected]);
 
   const addons = data?.data?.addons || [];
 
   const toggle = (addon: any) => {
     setLocal((prev) => {
-      const idx = prev.findIndex((a) => a.addonId === addon.id);
-      if (idx > -1) {
+      const index = prev.findIndex((a) => a.addonId === addon.id);
+      if (index > -1) {
         const copy = [...prev];
-        copy.splice(idx, 1);
+        copy.splice(index, 1);
         return copy;
       }
       return [
@@ -1163,7 +1196,9 @@ function AddonPicker({
   };
 
   const filtered = addons.filter((a: any) =>
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    String(a?.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -1205,22 +1240,20 @@ function AddonPicker({
       ) : filtered.length === 0 ? (
         <p className="text-sm text-gray-600">No addons for this product.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-auto">
-          {filtered.map((ad: any) => {
-            const sel = local.find((a) => a.addonId === ad.id);
+        <div className="grid grid-cols-1  gap-3 max-h-[60vh] overflow-auto">
+          {filtered.map((addon: any) => {
+            const selectedAddon = local.find((a) => a.addonId === addon.id);
             return (
               <div
-                key={ad.id}
+                key={addon.id}
                 className={`relative bg-white border rounded-lg p-3 flex gap-3 items-start hover:shadow-md transition-shadow`}
               >
                 <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
                   <img
                     src={
-                      ad.imageUrl?.startsWith("http")
-                        ? ad.imageUrl
-                        : `${IMAGE_BASE_URL}${ad.imageUrl}`
+                      `${IMAGE_BASE_URL}${addon.imageUrl}` || DishPlaceHolder
                     }
-                    alt={ad.name}
+                    alt={addon.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = DishPlaceHolder;
@@ -1230,38 +1263,44 @@ function AddonPicker({
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">{ad.name}</h4>
+                    <h4 className="font-medium text-sm">{addon.name}</h4>
                     <div className="text-sm font-semibold text-primaryColor">
-                      Rs. {ad.price}
+                      Rs. {addon.price}
                     </div>
                   </div>
-                  {ad.description && (
+                  {addon.description && (
                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {ad.description}
+                      {addon.description}
                     </p>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-3 flex items-center justify-end gap-4">
                     <div className="flex items-center gap-2">
-                      {sel ? (
+                      {selectedAddon ? (
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             className="px-2 py-1 border rounded"
                             onClick={() =>
-                              setQty(ad.id, (sel.quantity || 1) - 1)
+                              setQty(
+                                addon.id,
+                                (selectedAddon.quantity || 1) - 1,
+                              )
                             }
                           >
                             -
                           </button>
                           <span className="w-8 text-center font-medium">
-                            {sel.quantity || 1}
+                            {selectedAddon.quantity || 1}
                           </span>
                           <button
                             type="button"
                             className="px-2 py-1 border rounded"
                             onClick={() =>
-                              setQty(ad.id, (sel.quantity || 1) + 1)
+                              setQty(
+                                addon.id,
+                                (selectedAddon.quantity || 1) + 1,
+                              )
                             }
                           >
                             +
@@ -1273,16 +1312,16 @@ function AddonPicker({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => toggle(ad)}
-                        className={`px-3 py-1 rounded-full text-sm border ${sel ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
+                        onClick={() => toggle(addon)}
+                        className={`px-3 py-1 rounded-full text-sm border ${selectedAddon ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
                       >
-                        {sel ? "Selected" : "Add"}
+                        {selectedAddon ? "Selected" : "Add"}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {sel && (
+                {selectedAddon && (
                   <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
                     ✓
                   </div>
