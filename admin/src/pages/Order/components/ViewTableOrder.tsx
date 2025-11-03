@@ -9,6 +9,7 @@ import { LuChefHat } from "react-icons/lu";
 import Checkbox from "@/components/Checkbox";
 import CustomDialog from "@/components/Dialog";
 import ChooseTable from "./TransferModel/ChooseTable";
+import { CurrencySign } from "@/constants";
 
 interface Addon {
   id: number;
@@ -159,19 +160,28 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                   Rs. {Number(item.product.price).toFixed(2)}{" "}
                                   each
                                 </p>
-                                {/* {item.addons && item.addons.length > 0 && (
+                                {item.addons && item.addons.length > 0 && (
                                   <p className="text-xs text-gray-500">
-                                    + Rs.
-                                    {item.addons
-                                      .reduce(
-                                        (sum, addon) =>
-                                          sum + Number(addon.price),
-                                        0,
-                                      )
-                                      .toFixed(2)}{" "}
-                                    addons
+                                    {item.addons && item.addons.length > 0 && (
+                                      <div className="text-xs text-gray-600">
+                                        + {CurrencySign}
+                                        {item.addons
+                                          .reduce(
+                                            (sum: number, addonItem: any) =>
+                                              sum +
+                                              Number(
+                                                addonItem?.addon?.price || 0,
+                                              ) *
+                                                addonItem.quantity,
+                                            0,
+                                          )
+                                          .toFixed(2)}{" "}
+                                        addons
+                                      </div>
+                                    )}
                                   </p>
-                                )} */}
+                                )}
+
                                 <p className="text-[13px] font-medium">
                                   Subtotal: Rs.
                                   {Number(item.itemTotal).toFixed(2)}

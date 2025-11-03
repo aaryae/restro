@@ -91,21 +91,33 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                               <p className="text-xs font-medium">
                                 Addons ({item.addons.length}):
                               </p>
+
                               <ul className="text-xs pl-4 list-disc">
-                                {item.addons.map((addon: any, idx: number) => {
+                                {/* {item.addons.map((addon: any, idx: number) => {
                                   const addonName =
                                     addon?.addon?.name ||
                                     addon?.name ||
                                     "Unknown Addon";
                                   const addonPrice =
                                     addon?.price || addon?.addon?.price || 0;
+                                  const addonQuantity =
+                                    addon?.addon?.quantity || 1;
                                   return (
                                     <li key={idx}>
                                       {addonName}
-                                      {` (+${CurrencySign}${Number(addonPrice).toFixed(2)})`}
+                                      {` (+${CurrencySign}${Number(addonPrice).toFixed(2)})(x${Number(addonQuantity)})`}
                                     </li>
                                   );
-                                })}
+                                })} */}
+                                {item.addons.map(
+                                  (addonItem: any, index: number) => (
+                                    <li key={index} className="text-left">
+                                      {addonItem?.addon?.name || "No name"}
+                                      {addonItem?.addon?.price !== undefined &&
+                                        ` (+${CurrencySign}${Number(addonItem.addon.price).toFixed(2)})(×${addonItem.quantity})`}
+                                    </li>
+                                  ),
+                                )}
                               </ul>
                             </div>
                           ) : (
@@ -124,27 +136,28 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                           </p>
                           {item.addons && item.addons.length > 0 && (
                             <p className="text-xs text-gray-500">
-                              + {CurrencySign}
-                              {item.addons
-                                .reduce(
-                                  (sum: number, addon: any) =>
-                                    sum + Number(addon.price),
-                                  0,
-                                )
-                                .toFixed(2)}{" "}
-                              addons
+                              {item.addons && item.addons.length > 0 && (
+                                <div className="text-xs text-gray-600">
+                                  + {CurrencySign}
+                                  {item.addons
+                                    .reduce(
+                                      (sum: number, addonItem: any) =>
+                                        sum +
+                                        Number(addonItem?.addon?.price || 0) *
+                                          addonItem.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}{" "}
+                                  addons
+                                </div>
+                              )}
                             </p>
                           )}
                           <p className="text-[13px] font-medium">
                             Subtotal: {CurrencySign}
-                            {(
-                              Number(item.subtotal ?? 0) +
-                              (item.addons?.reduce(
-                                (sum: number, addon: any) =>
-                                  sum + Number(addon.price),
-                                0,
-                              ) || 0)
-                            ).toFixed(2)}
+                            {Number(orderData?.data?.totalAmount ?? 0).toFixed(
+                              2,
+                            )}
                           </p>
                         </div>
                       </div>

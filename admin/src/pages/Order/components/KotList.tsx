@@ -38,11 +38,10 @@ function getItemTotal(item: OrderItem): number {
   const basePrice =
     Number(item.product?.price || 0) * Number(item.quantity || 0);
   const addonsTotal =
-    item.addons?.reduce(
-      (sum: number, addon: Addon) =>
-        sum + Number(addon.price || 0) * Number(item.quantity || 0),
-      0,
-    ) || 0;
+    item.addons?.reduce((sum: number, addon: Addon) => {
+      const addonPrice = Number(addon.price || 0) * Number(addon.quantity || 1);
+      return sum + addonPrice * Number(item.quantity || 1);
+    }, 0) || 0;
   return basePrice + addonsTotal;
 }
 
@@ -341,30 +340,30 @@ function KotCard({ kot }) {
           <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
 
           <div className="space-y-3 leading-[10px]">
-            {items.map((it, index) => {
-              const itemTotal = getItemTotal(it);
+            {items.map((item, index) => {
+              const itemTotal = getItemTotal(item);
               return (
-                <div key={String(it.id)} className="space-y-1">
+                <div key={String(item.id)} className="space-y-1">
                   <div className="grid grid-cols-12">
                     <div className="col-span-8 flex gap-2">
                       <span className="mt-[2.5px] number">{index + 1}.</span>
                       <div>
                         <div className="font-medium text-left">
-                          {it.product?.name || "-"}{" "}
-                          <span className="text-sm">(x{it.quantity})</span>
+                          {item.product?.name || "-"}{" "}
+                          <span className="text-sm">(x{item.quantity})</span>
                         </div>
-                        {it.specialInstructions && (
+                        {item.specialInstructions && (
                           <div className="text-xs text-gray-600 italic">
-                            Note: {it.specialInstructions}
+                            Note: {item.specialInstructions}
                           </div>
                         )}
-                        {it.addons && it.addons.length > 0 && (
+                        {item.addons && item.addons.length > 0 && (
                           <div className="mt-1">
                             <div className="text-xs font-medium text-left">
                               Addons:
                             </div>
                             <ul className="text-xs pl-4 list-disc">
-                              {it.addons.map(
+                              {item.addons.map(
                                 (addonItem: any, index: number) => (
                                   <li key={index} className="text-left">
                                     {addonItem?.addon?.name || "No name"}
@@ -381,17 +380,17 @@ function KotCard({ kot }) {
                     <div className="col-span-4 text-right flex flex-col gap-2">
                       <div>
                         Rs.
-                        {Number(it.product?.price || 0).toFixed(2)}
+                        {Number(item.product?.price || 0).toFixed(2)}
                       </div>
-                      {it.addons && it.addons.length > 0 && (
+                      {item.addons && item.addons.length > 0 && (
                         <div className="text-xs text-gray-600">
                           + Rs.
-                          {it.addons
+                          {item.addons
                             .reduce(
                               (sum: number, addonItem: any) =>
                                 sum +
                                 Number(addonItem?.addon?.price || 0) *
-                                  it.quantity,
+                                  addonItem.quantity,
                               0,
                             )
                             .toFixed(2)}{" "}
