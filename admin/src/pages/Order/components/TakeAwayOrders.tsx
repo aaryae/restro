@@ -118,14 +118,16 @@ function TakeAwayOrders() {
                   </div>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${
-                      paymentStatus === "paid"
+                      status === "prepared"
                         ? "bg-green-100 text-green-700"
-                        : paymentStatus === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-gray-100 text-gray-700"
+                        : status === "preparing"
+                          ? "bg-blue-100 text-blue-700"
+                          : status === "pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {paymentStatus}
+                    {status}
                   </span>
                 </div>
 
