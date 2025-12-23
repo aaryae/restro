@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { generateUUID } = require("../../utils/uuidGenerator");
+const { transferModel } = require("../../models");
 
 const {
   customerModel,
@@ -240,6 +241,18 @@ const deleteAccount = async (req) => {
         success: false,
         message: "Default Account cannot be deleted",
       };
+    }
+
+    const relatedTransfers = await transferModel.count({
+      where: {
+        [Op.or]: [{ fromAccountId: id }, { toAccountId: id }],
+      },
+      transaction,
+    });
+    if (relatedTransfers > 0) {
+      throw new Error(
+        "Cannot delete account: there are transfer records associated with this account.",
+      );
     }
 
     // Delete type-specific records first
