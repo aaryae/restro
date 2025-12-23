@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import PageTitle from "@/components/PageTitle";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
@@ -28,6 +28,20 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
   const orderNo = orderData?.data?.id || id;
   const [openCheckout, setOpenCheckout] = useState(false);
 
+  const itemsTotal = useMemo(
+    () =>
+      items.reduce((sum: number, item: any) => {
+        const unitPrice = Array.isArray(item.price)
+          ? item.price.reduce(
+              (s: number, priceObj: any) => s + Number(priceObj.price || 0),
+              0,
+            )
+          : Number(item.price ?? item?.product?.price ?? 0);
+        return sum + unitPrice * Number(item.quantity || 0);
+      }, 0),
+    [items],
+  );
+
   return (
     <>
       <div className="mt-[2rem]">
@@ -53,17 +67,13 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                     <p className="text-[14px] font-semibold">Item #{item.id}</p>
                     <span
                       className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        item.status === "served"
-                          ? "bg-purple-100 text-purple-800"
-                          : item.status === "ready"
-                            ? "bg-green-100 text-green-800"
-                            : item.status === "preparing"
-                              ? "bg-blue-100 text-blue-800"
-                              : item.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : item.status === "cancelled"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-800"
+                        item.status === "prepared"
+                          ? "bg-green-100 text-green-800"
+                          : item.status === "preparing"
+                            ? "bg-blue-100 text-blue-800"
+                            : item.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
                       }`}
                     >
                       {item.status?.charAt(0)?.toUpperCase() +
@@ -129,10 +139,20 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                         <div className="leading-[1.5] text-gray-600 text-right">
                           <p className="text-[14px]">
                             {CurrencySign}
-                            {Number(
-                              item?.price ?? item?.product?.price ?? 0,
-                            ).toFixed(2)}{" "}
-                            each
+                            {(() => {
+                              const unitPrice = Array.isArray(item.price)
+                                ? item.price.reduce(
+                                    (sum: number, priceObj: any) =>
+                                      sum + Number(priceObj.price || 0),
+                                    0,
+                                  )
+                                : Number(
+                                    item.price ?? item?.product?.price ?? 0,
+                                  );
+                              return (
+                                unitPrice * Number(item.quantity || 0)
+                              ).toFixed(2);
+                            })()}
                           </p>
                           {item.addons && item.addons.length > 0 && (
                             <p className="text-xs text-gray-500">
