@@ -60,6 +60,8 @@ const purchasePostValidation = async (req, res, next) => {
       "any.required": "Items array is required",
     }),
     notes: Joi.string().optional().allow(null),
+    billImage: Joi.string().optional().allow(null),
+    paidByUserId: Joi.number().optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -87,6 +89,8 @@ const purchasePutValidation = async (req, res, next) => {
     discountAmount: Joi.number().precision(2).min(0).optional(),
     items: Joi.array().items(purchaseItemSchema).min(1).optional(),
     notes: Joi.string().optional().allow(null),
+    billImage: Joi.string().optional().allow(null),
+    paidByUserId: Joi.number().optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

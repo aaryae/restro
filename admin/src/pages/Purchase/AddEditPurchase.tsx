@@ -18,7 +18,11 @@ import {
   useCompletePurchaseByIdMutation,
 } from "@/redux/services/purchase";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { PURCHASE_URL } from "@/constants/apiUrlConstants";
+import {
+  ACCOUNT_URL,
+  PURCHASE_URL,
+  PURCHASE_CATEGORY_URL,
+} from "@/constants/apiUrlConstants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   PurchaseSchema,
@@ -28,80 +32,10 @@ import {
 import { Input } from "react-aria-components";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
+import { Controller } from "react-hook-form";
+import { paintOrder } from "html2canvas/dist/types/css/property-descriptors/paint-order";
 
 type ItemRow = PurchaseItemInput;
-
-type IdChangeHandler = (val: string) => void;
-
-function AccountDropdown({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: IdChangeHandler;
-}) {
-  // Fetch active accounts
-  const url = buildQueryString("account/list", { page: 1, limit: 100 });
-  const { data, isFetching, isSuccess } = useGetApiQuery({ url });
-  const rows: any[] =
-    isSuccess && Array.isArray((data as any)?.data?.data)
-      ? ((data as any).data.data as any[])
-      : [];
-  const options = [{ label: "Select Account", value: "" }].concat(
-    rows.map((a: any) => ({
-      label: `${a.name} (${a.accountType})`,
-      value: String(a.id),
-    })),
-  );
-  return (
-    <select
-      className="border rounded px-3 py-2 bg-white"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      title="Account"
-      aria-label="Account"
-    >
-      {isFetching && <option value="">Loading accounts...</option>}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function UserDropdown({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: IdChangeHandler;
-}) {
-  const { data, isLoading, isSuccess } = useGetAllUserQuery({
-    page: 1,
-    limit: 100,
-  });
-  const users = isSuccess ? ((data as any)?.data?.data ?? []) : [];
-  return (
-    <select
-      className="border rounded px-3 py-2 bg-white"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      title="Paid by user"
-      aria-label="Paid by user"
-    >
-      <option value="">{isLoading ? "Loading users..." : "Select User"}</option>
-      {users.map((u: any) => (
-        <option key={u.id} value={String(u.id)}>
-          {u.username ||
-            `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
-            `User ${u.id}`}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 type FormValues = PurchaseFormInput;
 
@@ -251,21 +185,61 @@ const AddEditPurchase: React.FC = () => {
     );
   }, [suppliersOk, suppliersResp, supplierSearchTerm]);
 
+  const [accounts, setAccounts] = useState<{ value: string; label: string }[]>(
+    [],
+  );
+
+  const { data: AccountsData } = useGetApiQuery({
+    url: `${ACCOUNT_URL}list?page=1&limit=100`,
+  });
+
+  useEffect(() => {
+    if (AccountsData?.data?.data) {
+      const accountOptions = AccountsData.data.data.map((account: any) => ({
+        value: account.id,
+        label: account.name,
+      }));
+      setAccounts(accountOptions);
+    }
+  }, [AccountsData]);
+
   // Purchase Categories dropdown
-  const pcUrl = buildQueryString("purchase-category/list", {
+
+  const [purchaseCategories, setPurchaseCategories] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const { data: PurchaseCategoriesData } = useGetApiQuery({
+    url: `${PURCHASE_CATEGORY_URL}list?page=1&limit=100`,
+  });
+
+  useEffect(() => {
+    if (PurchaseCategoriesData?.data?.data) {
+      const categoryOptions = PurchaseCategoriesData.data.data.map(
+        (category: any) => ({
+          value: category.id,
+          label: category.name,
+        }),
+      );
+      setPurchaseCategories(categoryOptions);
+    }
+  }, [PurchaseCategoriesData]);
+
+  const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
+
+  const { data: usersData } = useGetAllUserQuery({
     page: 1,
     limit: 100,
   });
-  const { data: pcResp, isSuccess: pcOk } = useGetApiQuery({ url: pcUrl });
-  const purchaseCategoryOptions = useMemo(() => {
-    const rows: any[] =
-      pcOk && Array.isArray((pcResp as any)?.data?.data)
-        ? (((pcResp as any).data.data as any[]) ?? [])
-        : [];
-    return [{ label: "Select Category", value: "" }].concat(
-      rows.map((c: any) => ({ label: c.name, value: String(c.id) })),
-    );
-  }, [pcOk, pcResp]);
+
+  useEffect(() => {
+    if (usersData?.data?.data) {
+      const userOptions = usersData.data.data.map((user: any) => ({
+        value: user.id,
+        label: user.username,
+      }));
+      setUsers(userOptions);
+    }
+  }, [usersData]);
 
   const items = watch("items") as ItemRow[];
   const username = useAppSelector((s) => (s as any).auth?.username) as
@@ -350,15 +324,15 @@ const AddEditPurchase: React.FC = () => {
       items: (p.purchaseItems || []).map((it: any) => ({
         particulars: it.particulars || "",
         hsCode: it.hsCode || "",
-        categoryId: it.categoryId ? String(it.categoryId) : "",
+        categoryId: it.categoryId ? it.categoryId : "",
         qty: it.quantity || 0,
         rate: it.rate || 0,
         isTaxable: it.isTaxable !== undefined ? Boolean(it.isTaxable) : true,
       })),
       billImage: "",
       paymentTerm: (p.paymentTerms as any) || "cash",
-      accountId: p.accountId ? String(p.accountId) : "",
-      paidByUserId: p.paidByUserId ? String(p.paidByUserId) : "",
+      accountId: p.accountId ? p.accountId : "",
+      paidByUserId: p.paidByUserId ? p.paidByUserId : "",
     });
   }, [isEdit, purchaseFetched, purchaseData, reset]);
 
@@ -368,6 +342,8 @@ const AddEditPurchase: React.FC = () => {
       invoiceDate: new Date(data.invoiceDate).toISOString(),
       invoiceNumber: data.invoiceNumber?.trim() || null,
       paymentTerms: data.paymentTerm === "" ? "cash" : data.paymentTerm,
+      billImage: data.billImage,
+      paidByUserId: data.paidByUserId,
       accountId:
         data.paymentTerm === "credit"
           ? Number(data.accountId || 0)
@@ -747,18 +723,39 @@ const AddEditPurchase: React.FC = () => {
                   <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Account
                   </label>
-                  <AccountDropdown
-                    onChange={(val) =>
-                      setValue("accountId", val, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      })
-                    }
-                    value={watch("accountId") || ""}
+                  <Controller
+                    name="accountId"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        value={
+                          field.value !== undefined && field.value !== null
+                            ? String(field.value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : undefined,
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="">Select Account</option>
+                        {accounts.map((option) => (
+                          <option
+                            key={option.value}
+                            value={String(option.value)}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   />
-                  {errors.accountId && isSubmitted && (
-                    <span className="text-xs text-red-600 mt-1">
-                      {errors.accountId.message}
+                  {errors.accountId?.message && (
+                    <span className="input-error">
+                      {String(errors.accountId.message)}
                     </span>
                   )}
                 </div>
@@ -830,18 +827,44 @@ const AddEditPurchase: React.FC = () => {
                               />
                             </td>
                             <td className="p-2 border">
-                              <select
-                                className="border rounded px-2 py-1 w-full bg-white"
-                                {...register(
-                                  `items.${idx}.categoryId` as const,
+                              <Controller
+                                name={`items.${idx}.categoryId`}
+                                control={control}
+                                render={({ field }) => (
+                                  <select
+                                    {...field}
+                                    value={
+                                      field.value !== undefined &&
+                                      field.value !== null
+                                        ? String(field.value)
+                                        : ""
+                                    }
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        e.target.value
+                                          ? Number(e.target.value)
+                                          : undefined,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                  >
+                                    <option value="">Select Category</option>
+                                    {purchaseCategories.map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={String(option.value)}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 )}
-                              >
-                                {purchaseCategoryOptions.map((opt) => (
-                                  <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </option>
-                                ))}
-                              </select>
+                              />
+                              {errors.items?.[idx]?.categoryId?.message && (
+                                <span className="input-error">
+                                  {String(errors.items[idx].categoryId.message)}
+                                </span>
+                              )}
                             </td>
                             <td className="p-2 border">
                               <input
@@ -1043,10 +1066,41 @@ const AddEditPurchase: React.FC = () => {
                   <label className="text-sm text-gray-700 mb-1">
                     Paid By (User)
                   </label>
-                  <UserDropdown
-                    onChange={(val) => setValue("paidByUserId", val)}
-                    value={watch("paidByUserId") || ""}
+                  <Controller
+                    name="paidByUserId"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        value={
+                          field.value !== undefined && field.value !== null
+                            ? String(field.value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : undefined,
+                          )
+                        }
+                        className="w-[20%] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="">Select User</option>
+                        {users.map((option) => (
+                          <option
+                            key={option.value}
+                            value={String(option.value)}
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   />
+                  {errors.paidByUserId?.message && (
+                    <span className="input-error">
+                      {String(errors.paidByUserId.message)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <label className="flex items-center gap-2 text-sm text-gray-700 mb-1">
