@@ -344,7 +344,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             sessionId: table?.data?.sessionId,
             paymentMethod: "online",
             cashOrCredit: "cash",
-            accountId: selectedBankId,
+            accountId: selectedBankId || selectedWalletId,
             ...(checkoutType === "member" && selectedMember
               ? { customerId: selectedMember.id }
               : {}),
@@ -1074,11 +1074,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                               <button
                                 key={type}
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
                                   setSelectedQrCategory(
                                     type as "bank" | "wallet",
-                                  )
-                                }
+                                  );
+                                  setSelectedBankId(null);
+                                  setSelectedWalletId(null);
+                                }}
                                 className={`border rounded-md p-2 text-sm font-medium transition ${
                                   selectedQrCategory === type
                                     ? "bg-blue-50 border-blue-300 text-blue-700"

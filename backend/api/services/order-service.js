@@ -1510,7 +1510,7 @@ const checkoutOrder = async (req) => {
                 amount: paymentAmount,
                 paymentMethod: payment.paymentMethod,
                 cash_or_credit: payment.cashOrCredit || "cash",
-                customerId: orderRecord.customerId || null,
+                customerId: customerId || null,
                 userId: req.user.id,
                 accountId: payment.accountId || selectedAccountId,
                 remarks:

@@ -358,7 +358,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       sessionId: joi.string().uuid({ version: "uuidv4" }).required(),
       paymentMethod: joi.string().valid("cash", "online").required(),
       cashOrCredit: joi.string().valid("cash", "credit").required(),
-      customerId: joi.number().positive().optional,
+      customerId: joi.number().positive().optional(),
       accountId: joi.number().positive().optional(),
     })
     .required()
