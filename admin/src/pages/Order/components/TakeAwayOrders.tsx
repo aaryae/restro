@@ -7,12 +7,21 @@ import { FaEye } from "react-icons/fa";
 import PageTitle from "@/components/PageTitle";
 import Drawer from "@/components/Drawer";
 import ViewTakeawayOrders from "./ViewTakeawayOrders";
+import CheckoutModal from "./CheckoutModal";
 
 function TakeAwayOrders() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
   const [orderId, setOrderId] = useState<number | null>(null);
   const [open, setOpen] = useState<boolean>(false);
-  const [queryStringOptions, setQueryStringOptions] = useState({
+  const [openCheckout, setOpenCheckout] = useState<boolean>(false);
+  const [checkoutCtx, setCheckoutCtx] = useState<{
+    orderId: number | null;
+    tableId: number | null;
+  }>({
+    orderId: null,
+    tableId: null,
+  });
+  const [queryStringOptions, _setQueryStringOptions] = useState({
     orderType: "takeaway",
     status: "pending,preparing,prepared", // Exclude completed orders
   });
@@ -32,6 +41,17 @@ function TakeAwayOrders() {
     setOpen(true);
   };
 
+  const handleOpenCheckout = (
+    orderIdForCheckout: number,
+    tableIdForCheckout?: number | null,
+  ) => {
+    setCheckoutCtx({
+      orderId: orderIdForCheckout ?? null,
+      tableId: tableIdForCheckout ?? null,
+    });
+    setOpenCheckout(true);
+  };
+
   const url = useMemo(() => {
     return buildQueryString("order/list", {
       page: query.page,
@@ -43,7 +63,7 @@ function TakeAwayOrders() {
     data: allOrders,
     isSuccess: success,
     isLoading: loading,
-    refetch,
+    refetch: _refetch,
   } = useGetApiQuery({ url });
 
   const items = (success ? allOrders?.data?.data : []) || [];
@@ -103,10 +123,8 @@ function TakeAwayOrders() {
               table,
               orderType,
               orderStartTime,
-              paymentStatus,
               status,
               totalAmount,
-              orderItems,
             }: any) => (
               <div
                 key={id}
@@ -197,8 +215,19 @@ function TakeAwayOrders() {
         )}
       </div>
       <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
-        <ViewTakeawayOrders id={orderId} />
+        <ViewTakeawayOrders id={orderId} onOpenCheckout={handleOpenCheckout} />
       </Drawer>
+      {openCheckout && (
+        <CheckoutModal
+          isOpen={openCheckout}
+          onClose={() => {
+            setOpenCheckout(false);
+            setCheckoutCtx({ orderId: null, tableId: null });
+          }}
+          tableId={Number(checkoutCtx.tableId ?? 0)}
+          orderId={Number(checkoutCtx.orderId ?? 0)}
+        />
+      )}
     </>
   );
 }

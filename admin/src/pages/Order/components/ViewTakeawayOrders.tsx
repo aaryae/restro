@@ -7,13 +7,15 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import CheckoutModal from "./CheckoutModal";
 
 type ViewTakeawayOrdersProps = {
-  id: number | null;
-  orderId: number | null;
+  id?: number | null;
+  orderId?: number | null;
+  onOpenCheckout?: (orderId: number, tableId?: number | null) => void;
 };
 
 const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
   id,
   orderId,
+  onOpenCheckout,
 }) => {
   const {
     data: orderData,
@@ -26,7 +28,6 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
 
   const items = (success ? orderData?.data?.orderItems : []) || [];
   const orderNo = orderData?.data?.id || id;
-  const [openCheckout, setOpenCheckout] = useState(false);
 
   const itemsTotal = useMemo(
     () =>
@@ -37,7 +38,17 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
               0,
             )
           : Number(item.price ?? item?.product?.price ?? 0);
-        return sum + unitPrice * Number(item.quantity || 0);
+        const addonsTotal = Array.isArray(item.addons)
+          ? item.addons.reduce(
+              (s: number, addonItem: any) =>
+                s +
+                Number(addonItem?.addon?.price || 0) *
+                  Number(addonItem?.quantity || 0),
+              0,
+            )
+          : 0;
+        const qty = Number(item.quantity || 0);
+        return sum + unitPrice * qty + addonsTotal;
       }, 0),
     [items],
   );
@@ -175,9 +186,30 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                           )}
                           <p className="text-[13px] font-medium">
                             Subtotal: {CurrencySign}
-                            {Number(orderData?.data?.totalAmount ?? 0).toFixed(
-                              2,
-                            )}
+                            {(() => {
+                              const unitPrice = Array.isArray(item.price)
+                                ? item.price.reduce(
+                                    (sum: number, priceObj: any) =>
+                                      sum + Number(priceObj.price || 0),
+                                    0,
+                                  )
+                                : Number(
+                                    item.price ?? item?.product?.price ?? 0,
+                                  );
+                              const addonsTotal = Array.isArray(item.addons)
+                                ? item.addons.reduce(
+                                    (s: number, addonItem: any) =>
+                                      s +
+                                      Number(addonItem?.addon?.price || 0) *
+                                        Number(addonItem?.quantity || 0),
+                                    0,
+                                  )
+                                : 0;
+                              return (
+                                unitPrice * Number(item.quantity || 0) +
+                                addonsTotal
+                              ).toFixed(2);
+                            })()}
                           </p>
                         </div>
                       </div>
@@ -201,7 +233,11 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
             </div>
             <Button
               className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
-              handleClick={() => setOpenCheckout(true)}
+              handleClick={() => {
+                const orderid = Number(orderData?.data?.id ?? id ?? 0);
+                const tableid = orderData?.data?.table?.id ?? null;
+                if (onOpenCheckout) onOpenCheckout(orderid, tableid);
+              }}
               disabled={items.length === 0}
             >
               Checkout
@@ -209,14 +245,6 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
           </div>
         </div>
       </div>
-      {openCheckout && (
-        <CheckoutModal
-          isOpen={openCheckout}
-          onClose={() => setOpenCheckout(false)}
-          tableId={Number(orderData?.data?.table?.id || 0)}
-          orderId={Number(orderId || orderData?.data?.id || id || 0)}
-        />
-      )}
     </>
   );
 };
