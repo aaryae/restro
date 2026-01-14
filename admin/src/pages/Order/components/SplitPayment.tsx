@@ -1,12 +1,11 @@
-import { useState } from "react";
 import Button from "@/components/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { buildQueryString } from "@/utils/generalHelper";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
-import { handleError, handleResponse } from "@/utils/responseHandler";
+import { buildQueryString } from "@/utils/generalHelper";
+import { useState } from "react";
 
 interface Account {
   id: string;
@@ -17,7 +16,7 @@ interface Account {
 }
 
 interface SplitPaymentProps {
-  id: number;
+  id: number | [number] | null;
   setSplitPaymentData: React.Dispatch<any>;
   closeSplitPayment: () => void;
 }
@@ -31,7 +30,8 @@ function SplitPayment({
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
   const { data: tableOrder } = useGetApiQuery(
-    { url: `${ORDER_URL}active-orders/${id}` },
+    { url: `${ORDER_URL}${id}` },
+
     { skip: id === null || id === undefined },
   );
 
@@ -57,7 +57,7 @@ function SplitPayment({
       return sum + (parseFloat(amount) || 0);
     }, 0);
 
-    const grandTotal = tableOrder?.data?.sessionTotal || 0;
+    const grandTotal = tableOrder?.data?.totalAmount || 0;
     return grandTotal - totalPaid;
   };
 
@@ -84,7 +84,7 @@ function SplitPayment({
           <div className="text-sm text-gray-500">Grand Total</div>
           <div className="text-2xl font-bold text-green-600">
             {CurrencySign}
-            {tableOrder?.data?.sessionTotal?.toFixed(2) || "0.00"}
+            {tableOrder?.data?.totalAmount || "1.00"}
           </div>
         </div>
       </div>

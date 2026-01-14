@@ -1,22 +1,20 @@
+import QR_IMAGE from "@/assets/qr-code.png";
+import Bill from "@/components/Bill";
+import CustomDialog from "@/components/Dialog";
+import Drawer from "@/components/Drawer";
+import Input from "@/components/Input";
+import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
+import { ACCOUNT_URL, ORDER_URL } from "@/constants/apiUrlConstants";
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useCheckoutOrderMutation } from "@/redux/services/orders";
+import { buildQueryString } from "@/utils/generalHelper";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { Contact, Mail, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus } from "react-icons/fa";
-import styles from "./CheckoutModal.module.css";
-import QR_IMAGE from "@/assets/qr-code.png";
-import { useGetApiQuery } from "@/redux/services/crudApi";
-import { ORDER_URL } from "@/constants/apiUrlConstants";
-import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
-import { handleError, handleResponse } from "@/utils/responseHandler";
-import CustomDialog from "@/components/Dialog";
-import AddEditCustomer from "../../Customer/AddEditCustomer";
-import { Mail, Contact } from "lucide-react";
-import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
-import Input from "@/components/Input";
-import { buildQueryString } from "@/utils/generalHelper";
-import { useCheckoutOrderMutation } from "@/redux/services/orders";
-import { X } from "lucide-react";
-import Bill from "@/components/Bill";
 import { useReactToPrint } from "react-to-print";
-import Drawer from "@/components/Drawer";
+import AddEditCustomer from "../../Customer/AddEditCustomer";
+import styles from "./CheckoutModal.module.css";
 import SplitPayment from "./SplitPayment";
 
 // Define interfaces
@@ -1296,7 +1294,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             width="w-[90%] lg:w-[30%]"
           >
             <SplitPayment
-              id={tableId}
+              id={orderId}
               setSplitPaymentData={setSplitPaymentData}
               closeSplitPayment={() => setSplitOpen(false)}
             />

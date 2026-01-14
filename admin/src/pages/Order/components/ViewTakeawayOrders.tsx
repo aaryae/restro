@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from "react";
+import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
-import Button from "@/components/Button";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import CheckoutModal from "./CheckoutModal";
+import React, { useMemo } from "react";
 
 type ViewTakeawayOrdersProps = {
   id?: number | null;
@@ -12,19 +11,9 @@ type ViewTakeawayOrdersProps = {
   onOpenCheckout?: (orderId: number, tableId?: number | null) => void;
 };
 
-const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
-  id,
-  orderId,
-  onOpenCheckout,
-}) => {
-  const {
-    data: orderData,
-    isLoading: loading,
-    isSuccess: success,
-  } = useGetApiQuery(
-    { url: `${ORDER_URL}${id}` },
-    { skip: id === null || id === undefined },
-  );
+const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({ id,orderId,onOpenCheckout,}) => {
+  
+  const { data: orderData, isLoading: loading, isSuccess: success,} = useGetApiQuery( { url: `${ORDER_URL}${id}` }, { skip: id === null || id === undefined },);
 
   const items = (success ? orderData?.data?.orderItems : []) || [];
   const orderNo = orderData?.data?.id || id;
@@ -228,6 +217,7 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
               </div>
               <div className="text-xl font-bold text-green-600">
                 {CurrencySign}
+               
                 {Number(orderData?.data?.totalAmount ?? 0).toFixed(2)}
               </div>
             </div>

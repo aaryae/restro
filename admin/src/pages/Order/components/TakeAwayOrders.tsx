@@ -1,13 +1,13 @@
+import Drawer from "@/components/Drawer";
+import PageTitle from "@/components/PageTitle";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { FaEye } from "react-icons/fa";
-import PageTitle from "@/components/PageTitle";
-import Drawer from "@/components/Drawer";
-import ViewTakeawayOrders from "./ViewTakeawayOrders";
 import CheckoutModal from "./CheckoutModal";
+import ViewTakeawayOrders from "./ViewTakeawayOrders";
 
 function TakeAwayOrders() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
@@ -41,14 +41,12 @@ function TakeAwayOrders() {
     setOpen(true);
   };
 
-  const handleOpenCheckout = (
-    orderIdForCheckout: number,
-    tableIdForCheckout?: number | null,
-  ) => {
+  const handleOpenCheckout = ( orderIdForCheckout: number,tableIdForCheckout?: number | null,) => {
     setCheckoutCtx({
       orderId: orderIdForCheckout ?? null,
       tableId: tableIdForCheckout ?? null,
     });
+
     setOpenCheckout(true);
   };
 
