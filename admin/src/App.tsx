@@ -101,7 +101,7 @@ export default function App() {
       dispatch(setAuthData(response.data));
       handleResponse({
         res: response,
-        onSuccess: () => navigate("/admin/dashboard"),
+        onSuccess: () => navigate("/admin/order/list"),
       });
     } catch (error) {
       handleError({ error });
