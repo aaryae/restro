@@ -151,7 +151,7 @@ export const SideMenuList: SideListMenuType[] = [
   {
     key: 8,
     name: "Cash and banks",
-    icon: <AiFillBank />,
+    icon: <LandmarkIcon />,
     menu: [
       {
         key: 8.1,
