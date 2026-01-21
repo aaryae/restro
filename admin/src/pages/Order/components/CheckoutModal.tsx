@@ -99,6 +99,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [tenderAmount, setTenderAmount] = useState<string>("");
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
+
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [splitOpen, setSplitOpen] = useState<boolean>(false);
@@ -287,7 +288,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       // Checkout all:
-      if (!isSelective && isCheckoutAll) {
+      if (!
+        isSelective && isCheckoutAll) {
         payload = {
           checkoutAll: true,
           sessionId: table?.data?.sessionId,
@@ -1294,7 +1296,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             width="w-[90%] lg:w-[30%]"
           >
             <SplitPayment
-              id={orderId}
+              id={tableId}
               setSplitPaymentData={setSplitPaymentData}
               closeSplitPayment={() => setSplitOpen(false)}
             />

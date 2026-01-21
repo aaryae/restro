@@ -1,15 +1,12 @@
-import React, { useState } from "react";
+import Button from "@/components/Button";
+import CustomDialog from "@/components/Dialog";
+import { CurrencySign } from "@/constants";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { RiSeoLine } from "react-icons/ri";
-import { Link } from "react-router-dom";
-import CheckoutModal from "./CheckoutModal";
-import Button from "@/components/Button";
+import React, { useState } from "react";
 import { LuChefHat } from "react-icons/lu";
-import Checkbox from "@/components/Checkbox";
-import CustomDialog from "@/components/Dialog";
+import { Link } from "react-router-dom";
 import ChooseTable from "./TransferModel/ChooseTable";
-import { CurrencySign } from "@/constants";
 
 interface Addon {
   id: number;
@@ -63,7 +60,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
   const { data: table } = useGetApiQuery({ url: `${TABLE_URL}${id}` });
 
-  console.log(table?.data, "this table");
 
   const orders = tableOrder?.data?.orders;
   const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);

@@ -30,7 +30,8 @@ function SplitPayment({
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
   const { data: tableOrder } = useGetApiQuery(
-    { url: `${ORDER_URL}${id}` },
+    { url: `${ORDER_URL}active-orders/${id}` },
+    // { url: `order/${id}?itemStatus=active` },
 
     { skip: id === null || id === undefined },
   );
@@ -84,7 +85,8 @@ function SplitPayment({
           <div className="text-sm text-gray-500">Grand Total</div>
           <div className="text-2xl font-bold text-green-600">
             {CurrencySign}
-            {tableOrder?.data?.totalAmount || "1.00"}
+
+            {tableOrder?.data?.sessionTotal || "0.00"}
           </div>
         </div>
       </div>

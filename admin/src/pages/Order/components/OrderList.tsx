@@ -1,22 +1,19 @@
-import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
-import Table from "@/components/Table";
-import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
-import moment from "moment";
-import { useEffect, useMemo, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import ViewOrder from "../ViewOrder";
-import usePagination from "@/hooks/usePagination";
-import { Controller, useForm } from "react-hook-form";
-import { handleError, handleResponse } from "@/utils/responseHandler";
-import { buildQueryString } from "@/utils/generalHelper";
-import PageFilterWrapper from "@/components/PageFilterWrapper";
-import { useNavigate } from "react-router-dom";
-import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
-import { format } from "date-fns";
 import CancelOrderModal from "@/components/CancelOrderModal";
-import OrderFilter from "./OrderFilter";
+import Drawer from "@/components/Drawer";
+import Table from "@/components/Table";
+import usePagination from "@/hooks/usePagination";
+import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
+import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
+import { buildQueryString } from "@/utils/generalHelper";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { FaEye } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import ViewOrder from "../ViewOrder";
+import OrderFilter from "./OrderFilter";
 
 export default function OrderList() {
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
