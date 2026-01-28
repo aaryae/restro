@@ -181,7 +181,7 @@ export const SideMenuList: SideListMenuType[] = [
       },
       {
         key: 8.5,
-        name: "Addons",
+        name: "Dashboard",
         label: "Dashboard",
         icon: <MdDashboard size={12} />,
         path: "/admin/dashboard",

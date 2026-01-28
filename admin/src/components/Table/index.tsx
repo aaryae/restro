@@ -26,7 +26,7 @@ const Table: React.FC<TableProps> = ({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         {/* Table (horizontal scroll only for table) */}
         <div className="w-full overflow-x-auto">
-          <table className="min-w-full text-sm text-gray-800">
+          <table className="min-w-full text-[12px] text-gray-800">
             <thead className="bg-primaryColor">
               <tr>
                 {isSN && (
@@ -81,13 +81,13 @@ const Table: React.FC<TableProps> = ({
         {pagination && (
           <div className="sticky bottom-0 sm:static flex sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white">
             <div>
-              <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+              <label className="inline-flex items-center gap-2 text-[12px] font-medium text-gray-700">
                 Show:
                 <select
                   name="pagination"
                   id="pagination"
                   value={pagination.limit}
-                  className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="bg-white border border-gray-300 rounded-md px-2 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   onChange={(e) =>
                     handlePagination &&
                     handlePagination({
@@ -135,7 +135,7 @@ const Table: React.FC<TableProps> = ({
                 <FaAngleRight size={18} />
               </button>
             </div>
-            <div className="flex gap-2 text-sm">
+            <div className="flex gap-2 text-[12px]">
               <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
                 Page {pagination.page} of {pagination.totalPages}
               </span>

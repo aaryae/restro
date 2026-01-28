@@ -1661,6 +1661,20 @@
           "list": "Reports"
         }
       ]
+    },
+    {
+      "title": "Dashboard",
+      "key": "dashboard",
+      "actions": [
+        {
+          "title": "View Dashboard",
+          "key": "view",
+          "clientPath": "/dashboard",
+          "serverPath": "/dashboard",
+          "requestMethod": "GET",
+          "list": "Dashboard"
+        }
+      ]
     }
   ]
 }
