@@ -20,11 +20,15 @@ const {
   getById,
   groupedList,
   totalRevenue,
+  revenueByAccount,
+  todayRevenue,
 } = require("../controllers/revenue-controller");
 
 router.post("/", authentication, revenuePostValidation, create);
 router.get("/list", authentication, paginationValidation, list);
 router.get("/grouped-list", authentication, paginationValidation, groupedList);
+router.get("/by-account", authentication, revenueByAccount);
+router.get("/revenue-today", authentication, todayRevenue);
 router.get(
   "/total-revenue",
   authentication,
