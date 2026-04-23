@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
@@ -11,10 +11,17 @@ import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
+import { FilterInput } from "@/components/Input/filterInput";
+import PageFilterSample from "@/components/PageFilterSample";
+import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { IdCard, MapPin, Phone, UserRound } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { ExpenseFilterSchema, ExpenseFilterType } from "./schema";
 
 const Expenses: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +29,11 @@ const Expenses: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+
+  const { control, handleSubmit, reset } = useForm<ExpenseFilterType>({
+    resolver: zodResolver(ExpenseFilterSchema),
+    defaultValues: {},
+  });
 
   const url = buildQueryString(`${EXPENSE_URL}list`, {
     page: query.page,
@@ -31,6 +43,8 @@ const Expenses: React.FC = () => {
   const [deleteExpense] = useDeleteApiMutation();
 
   const { data: apiData, isSuccess: success } = useGetApiQuery({ url });
+
+  const [queryString, setQueryString] = useState<Record<string, any>>({});
 
   const pagination: PaginationType = {
     // page: apiData?.data?.page ?? query.page,
@@ -80,6 +94,26 @@ const Expenses: React.FC = () => {
       setOpen(false);
     }
   };
+  const filterField = useMemo(
+    () => [
+      {
+        name: "name",
+        label: "Name of Entity",
+        Component: FilterInput,
+        control,
+        icon: <UserRound className="w-4 h-4" />,
+      },
+    ],
+
+    [control],
+  );
+
+  const { Component } = PageFilterSample(
+    filterField,
+    handleSubmit,
+    (query: Record<string, any>) => setQueryString(query),
+    reset,
+  );
 
   const data = success
     ? apiData?.data?.data?.map((expense) => [
@@ -130,6 +164,7 @@ const Expenses: React.FC = () => {
         handleReloadButton={() => {}}
         hasSubText={false}
       />
+      <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
       <Table
         headers={headers}

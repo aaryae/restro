@@ -61,7 +61,16 @@ const create = async (req) => {
 
 const getList = async (req) => {
   try {
-    let { limit, page, name, slug } = req.query;
+    let {
+      limit,
+      page,
+      name,
+      slug,
+      address,
+      pan_vat_number,
+      contact_person,
+      contact_number,
+    } = req.query;
     const filters = {};
     const include = [];
 
@@ -70,6 +79,22 @@ const getList = async (req) => {
     }
     if (slug) {
       filters.slug = { [Op.like]: `%${slug}%` };
+    }
+
+    if (address) {
+      filters.address = { [Op.like]: `%${address}%` };
+    }
+
+    if (pan_vat_number) {
+      filters.pan_vat_number = { [Op.like]: `%${pan_vat_number}%` };
+    }
+
+    if (contact_person) {
+      filters.contact_person = { [Op.like]: `%${contact_person}%` };
+    }
+
+    if (contact_number) {
+      filters.contact_number = { [Op.like]: `%${contact_number}%` };
     }
 
     const order = [["createdAt", "DESC"]];

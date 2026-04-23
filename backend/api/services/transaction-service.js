@@ -119,6 +119,8 @@ const list = async (req) => {
       endDate,
       minAmount,
       maxAmount,
+      name,
+      userName,
     } = req.query;
 
     const filters = {};
@@ -135,25 +137,18 @@ const list = async (req) => {
       },
     ];
 
-    // Apply filters
+    if (name) {
+      include[0].where = { ...include[0].where, name: { [Op.like]: `%${name}%` } };
+    }
+    if (userName) {
+      include[1].where = { ...include[1].where, username: { [Op.like]: `%${userName}%` } };
+    }
+
     if (accountId) filters.accountId = accountId;
     if (userId) filters.userId = userId;
     if (type) filters.type = type;
     if (minAmount) filters.amount = { [Op.gte]: minAmount };
     if (maxAmount) filters.amount = { ...filters.amount, [Op.lte]: maxAmount };
-
-    // Date range filtering
-    if (startDate && endDate) {
-      const start = startOfDay(parseISO(startDate));
-      const end = endOfDay(parseISO(endDate));
-      filters.transactionDate = { [Op.between]: [start, end] };
-    } else if (startDate) {
-      const start = startOfDay(parseISO(startDate));
-      filters.transactionDate = { [Op.gte]: start };
-    } else if (endDate) {
-      const end = endOfDay(parseISO(endDate));
-      filters.transactionDate = { [Op.lte]: end };
-    }
 
     const result = await paginate(transactionModel, {
       limit,
