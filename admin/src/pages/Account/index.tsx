@@ -1,6 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
 import { PaginationType } from "@/types/commonTypes";
@@ -34,7 +34,6 @@ const Account: React.FC = () => {
   const navigate = useNavigate();
   // delete supported
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const [queryString, setQueryString] = useState<Record<string, any>>({});
   const [patchApi] = usePatchApiMutation();
   const [deleteAccount] = useDeleteApiMutation();
   const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
@@ -135,14 +134,15 @@ const Account: React.FC = () => {
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    (qs: Record<string, any>) =>
+    (qs: Record<string, any>) => {
       setFilters(
         Object.fromEntries(
           Object.entries(qs).filter(
             ([_, v]) => v !== undefined && v !== null && v !== "",
           ),
         ),
-      ),
+      );
+    },
 
     reset,
   );
@@ -167,9 +167,7 @@ const Account: React.FC = () => {
     totalPages: allAccount?.data?.totalPages,
   };
 
-  useEffect(() => {
-    refetch();
-  }, [queryString]);
+  
 
   const headers = [
     "S.N",

@@ -43,7 +43,7 @@ const WalletAccount = BaseAccount.extend({
 });
 
 const AccountFilter = z.object({
-  accountName: z.string().optional(),
+  name: z.string().optional(),
   accountType: z.enum(["cash", "bank", "wallet"]).optional(),
 });
 export const AccountSchema = z.discriminatedUnion("accountType", [
