@@ -140,3 +140,18 @@ export const PAYMENT_STATUS_OPTIONS = [
   { label: "Failed", value: "failed" },
   { label: "Expired", value: "expired" },
 ];
+
+export const nepaliMonths = [
+  "Baisakh",
+  "Jestha",
+  "Ashar",
+  "Shrawan",
+  "Bhadra",
+  "Ashwin",
+  "Kartik",
+  "Mangsir",
+  "Poush",
+  "Magh",
+  "Falgun",
+  "Chaitra",
+];
