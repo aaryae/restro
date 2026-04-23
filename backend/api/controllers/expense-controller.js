@@ -164,6 +164,24 @@ const getUnpaidCredits = async (req, res, next) => {
   }
 };
 
+const todayExpense = async (req, res, next) => {
+  try {
+    const result = await expenseService.todayExpense(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -174,4 +192,5 @@ module.exports = {
   getUnpaidCredits,
   totalExpense,
   categorySummary,
+  todayExpense,
 };

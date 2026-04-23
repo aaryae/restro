@@ -512,6 +512,68 @@ const getUnpaidCredits = async (req) => {
   }
 };
 
+// Daily expense summary
+const todayExpense = async (req) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date || new Date().toISOString().split("T")[0];
+
+    const start = startOfDay(parseISO(targetDate));
+    const end = endOfDay(parseISO(targetDate));
+
+    const expenseFilters = {
+      createdAt: { [Sequelize.Op.between]: [start, end] },
+    };
+
+    const total = await expenseModel.sum("amount", {
+      where: expenseFilters,
+    });
+
+    const expensesByCategory = await expenseModel.findAll({
+      attributes: [
+        "categoryId",
+        [sequelize.col("category.name"), "categoryName"],
+        [sequelize.fn("SUM", sequelize.col("amount")), "totalExpense"],
+        [sequelize.fn("COUNT", sequelize.col("Expense.id")), "itemCount"],
+      ],
+      where: expenseFilters,
+      include: [
+        {
+          model: expenseCategoryModel,
+          as: "category",
+          attributes: [],
+          required: false,
+        },
+      ],
+      group: ["categoryId", "category.id", "category.name"],
+      order: [[sequelize.fn("SUM", sequelize.col("amount")), "DESC"]],
+      raw: true,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Today's expense retrieved successfully",
+      data: {
+        date: targetDate,
+        totalExpense: parseFloat(total || 0),
+        categories: expensesByCategory.map((e) => ({
+          categoryName: e.categoryName || "Uncategorized",
+          totalExpense: parseFloat(e.totalExpense || 0),
+        })),
+      },
+    };
+  } catch (error) {
+    console.error("Today's expense error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve today's expense",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -522,4 +584,5 @@ module.exports = {
   getUnpaidCredits,
   totalExpense,
   categorySummary,
+  todayExpense,
 };
