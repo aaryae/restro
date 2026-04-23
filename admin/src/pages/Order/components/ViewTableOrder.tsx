@@ -63,10 +63,10 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
   const { data: table } = useGetApiQuery({ url: `${TABLE_URL}${id}` });
 
-  console.log(table?.data, "this table");
+  const sessionTotal = tableOrder?.data?.sessionTotal;
 
   const orders = tableOrder?.data?.orders;
-  const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
+  const allOrderIds = tableOrder?.data?.orders.map(({ id }: any) => id);
 
   return (
     <>
@@ -218,7 +218,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         )}
                       </div>
                       <p className="text-lg font-semibold text-gray-800">
-                        Total: Rs.{Number(order.totalAmount).toFixed(2)}
+                        Total: Rs.{Number(sessionTotal).toFixed(2)}
                       </p>
                     </div>
                   </div>
