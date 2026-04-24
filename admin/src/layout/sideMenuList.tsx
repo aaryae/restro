@@ -7,7 +7,7 @@ import {
 } from "react-icons/md";
 
 import { FaMoneyBillWave } from "react-icons/fa";
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, ClipboardList } from "lucide-react";
 import { AiFillBank } from "react-icons/ai";
 import { FiShoppingCart } from "react-icons/fi";
 import { MdDashboard } from "react-icons/md";
@@ -73,7 +73,6 @@ export const SideMenuList: SideListMenuType[] = [
       },
     ],
   },
-
   {
     key: 3,
     name: "Finance",
@@ -114,6 +113,27 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Supplier",
         icon: <GiExpense />,
         path: "/admin/supplier/list",
+      },
+    ],
+  },
+  {
+    key: 10,
+    name: "Report",
+    icon: <ClipboardList size={12} />,
+    menu: [
+      {
+        key: 10.2,
+        name: "Daily Reports",
+        label: "Daily Reports",
+        icon: <ClipboardPlus size={12} />,
+        path: "/admin/daily-reports",
+      },
+      {
+        key: 10.3,
+        name: "Table Report",
+        label: "Table Report",
+        icon: <ClipboardPlus size={12} />,
+        path: "/admin/table-report",
       },
     ],
   },
@@ -173,12 +193,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <LandmarkIcon size={12} />,
         path: "/admin/account-permission/list",
       },
-      {
-        key: 8.4,
-        name: "Reports",
-        icon: <ClipboardPlus size={12} />,
-        path: "/admin/daily-report",
-      },
+      // {
+      //   key: 8.4,
+      //   name: "Reports",
+      //   icon: <ClipboardPlus size={12} />,
+      //   path: "/admin/daily-report",
+      // },
       {
         key: 8.5,
         name: "Dashboard",

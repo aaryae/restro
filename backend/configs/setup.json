@@ -1663,6 +1663,20 @@
       ]
     },
     {
+      "title": "Daily Reports",
+      "key": "daily-reports",
+      "actions": [
+        {
+          "title": "Daily Reports",
+          "key": "view",
+          "clientPath": "/daily-reports",
+          "serverPath": "/daily-reports",
+          "requestMethod": "GET",
+          "list": "Daily Reports"
+        }
+      ]
+    },
+    {
       "title": "Dashboard",
       "key": "dashboard",
       "actions": [
@@ -1673,6 +1687,20 @@
           "serverPath": "/dashboard",
           "requestMethod": "GET",
           "list": "Dashboard"
+        }
+      ]
+    },
+    {
+      "title": "Table Report",
+      "key": "table-report",
+      "actions": [
+        {
+          "title": "View Table Report",
+          "key": "view",
+          "clientPath": "/table-report",
+          "serverPath": "/table-report",
+          "requestMethod": "GET",
+          "list": "Table Report"
         }
       ]
     }
