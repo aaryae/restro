@@ -869,6 +869,7 @@ const todayPurchase = async (req) => {
     const purchasesByCategory = await purchaseItemModel.findAll({
       attributes: [
         "categoryId",
+        [sequelize.col("category.id"), "id"],
         [sequelize.col("category.name"), "categoryName"],
         [sequelize.fn("SUM", sequelize.col("amount")), "totalPurchase"],
         [sequelize.fn("COUNT", sequelize.col("purchaseItem.id")), "itemCount"],
@@ -878,7 +879,7 @@ const todayPurchase = async (req) => {
         {
           model: purchaseCategoryModel,
           as: "category",
-          attributes: [],
+          attributes: ["id", "name"],
           required: true,
         },
         {
@@ -902,6 +903,7 @@ const todayPurchase = async (req) => {
         date: targetDate,
         totalPurchase: parseFloat(total || 0),
         categories: purchasesByCategory.map((p) => ({
+          id: p.id,
           categoryName: p.categoryName || "Uncategorized",
           totalPurchase: parseFloat(p.totalPurchase || 0),
         })),
