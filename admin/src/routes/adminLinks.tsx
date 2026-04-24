@@ -50,6 +50,8 @@ import AddEditAddons from "@/pages/Addons/AddEditAddons";
 import Addons from "@/pages/Addons";
 import AccountPermission from "@/pages/AccountPermission";
 import Report from "@/pages/DailyReport";
+import { DailySummaryReport } from "@/pages/DailySummaryReport";
+import { TableReport } from "@/pages/TableReport";
 
 export const adminLinks = [
   {
@@ -348,5 +350,13 @@ export const adminLinks = [
   {
     path: "/daily-report",
     element: <Report />,
+  },
+  {
+    path: "/daily-reports",
+    element: <DailySummaryReport />,
+  },
+  {
+    path: "/table-report",
+    element: <TableReport />,
   },
 ];
