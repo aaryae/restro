@@ -1,6 +1,6 @@
 import z from "zod";
 
-const ExpenseSchema = z.object({
+export const ExpenseSchema = z.object({
   paymentMethod: z.enum(["cash", "card", "online"], {
     required_error: "Payment method is required",
   }),
@@ -13,4 +13,12 @@ const ExpenseSchema = z.object({
   supplierId: z.string().optional(),
   remarks: z.string().optional().or(z.literal("")),
 });
-export default ExpenseSchema;
+
+export const ExpenseFilterSchema = z.object({
+  paymentMethod: z.enum(["cash", "card", "online"]).optional(),
+  accountId: z.string().optional(),
+  categoryId: z.string().optional(),
+  supplierId: z.string().optional(),
+});
+
+export type ExpenseFilterType = z.infer<typeof ExpenseFilterSchema>;

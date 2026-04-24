@@ -24,7 +24,7 @@ import Input from "@/components/Input";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import AddEditExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-import ExpenseSchema from "./schema";
+import { ExpenseSchema } from "./schema";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
 
@@ -209,8 +209,14 @@ const AddEditExpense: React.FC = () => {
     <div className="p-6">
       <PageTitle title={isEdit ? "Edit Expense" : "Add Expense"} isBack />
       <form
-        onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"
+        onSubmit={(e) => {
+          if (expenseCategoryDialogOpen) {
+            e.preventDefault();
+            return;
+          }
+          handleSubmit(onSubmit)(e);
+        }}
       >
         <div className="flex gap-2 w-full mt-[1rem]">
           {/* max-w-[900px] */}
