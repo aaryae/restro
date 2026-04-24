@@ -1633,6 +1633,20 @@
       ]
     },
     {
+      "title": "Table Report",
+      "key": "table-report",
+      "actions": [
+        {
+          "title": "View Table Report",
+          "key": "view",
+          "clientPath": "/table-report",
+          "serverPath": "/table-report",
+          "requestMethod": "GET",
+          "list": "Table Report"
+        }
+      ]
+    },
+    {
       "title": "Reports",
       "key": "reports",
       "actions": [
@@ -1687,20 +1701,6 @@
           "serverPath": "/dashboard",
           "requestMethod": "GET",
           "list": "Dashboard"
-        }
-      ]
-    },
-    {
-      "title": "Table Report",
-      "key": "table-report",
-      "actions": [
-        {
-          "title": "View Table Report",
-          "key": "view",
-          "clientPath": "/table-report",
-          "serverPath": "/table-report",
-          "requestMethod": "GET",
-          "list": "Table Report"
         }
       ]
     }
