@@ -3,9 +3,13 @@ import { EXPENSE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { Receipt, CreditCard, DollarSign } from "lucide-react";
 
-const TotalExpense = () => {
+interface TotalExpenseProps {
+  dateParams?: string;
+}
+
+const TotalExpense = ({ dateParams = "" }: TotalExpenseProps) => {
   const { data: expenseData, isFetching } = useGetApiQuery({
-    url: `${EXPENSE_URL}expense-today`,
+    url: `${EXPENSE_URL}expense-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const categories = expenseData?.data?.categories || [];

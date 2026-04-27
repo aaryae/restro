@@ -3,9 +3,13 @@ import { REVENUE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { Wallet, Building2, CreditCard } from "lucide-react";
 
-const TotalRevenue = () => {
+interface TotalRevenueProps {
+  dateParams?: string;
+}
+
+const TotalRevenue = ({ dateParams = "" }: TotalRevenueProps) => {
   const { data: revenueByAccountData, isFetching } = useGetApiQuery({
-    url: `${REVENUE_URL}revenue-today`,
+    url: `${REVENUE_URL}revenue-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const revenues = revenueByAccountData?.data?.revenues || [];
