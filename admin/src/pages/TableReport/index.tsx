@@ -7,12 +7,15 @@ import { FLOOR_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { formatDate } from "@/utils/formatDate";
 import { DateRangePicker } from "react-date-range";
 import { subDays, startOfDay, endOfDay } from "date-fns";
+import TopTablesChart from "./components/TopTablesChart";
 
 export const TableReport = () => {
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
   const [selectedFloorId, setSelectedFloorId] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
+    null,
+  );
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
     endDate: new Date(),
@@ -62,14 +65,30 @@ export const TableReport = () => {
   const floors = floorsRes?.data?.data || [];
   const allTables = tablesRes?.data?.data || [];
 
+  const floorMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    floors.forEach((f: any) => {
+      map[f.id] = f.name;
+    });
+    return map;
+  }, [floors]);
+
   const filteredTables = useMemo(() => {
     if (!selectedFloorId) return allTables;
     return allTables.filter((t: any) => t.floorId === selectedFloorId);
   }, [allTables, selectedFloorId]);
 
   const getDateParams = () => {
-    const start = startOfDay(dateRange.startDate).toISOString().split("T")[0];
-    const end = endOfDay(dateRange.endDate).toISOString().split("T")[0];
+    const year = dateRange.startDate.getFullYear();
+    const month = String(dateRange.startDate.getMonth() + 1).padStart(2, "0");
+    const day = String(dateRange.startDate.getDate()).padStart(2, "0");
+    const start = `${year}-${month}-${day}`;
+
+    const year2 = dateRange.endDate.getFullYear();
+    const month2 = String(dateRange.endDate.getMonth() + 1).padStart(2, "0");
+    const day2 = String(dateRange.endDate.getDate()).padStart(2, "0");
+    const end = `${year2}-${month2}-${day2}`;
+
     return `start=${start}&end=${end}`;
   };
 
@@ -226,7 +245,7 @@ export const TableReport = () => {
                 </div>
               </div>
               <div className="text-xs text-gray-500">
-                Floor: {table.floorId}
+                Floor: {floorMap[table.floorId] || table.floorId}
               </div>
               {(tableData?.accounts || []).length > 0 && (
                 <div className="mt-2 pt-2 border-t border-gray-100">
@@ -252,6 +271,7 @@ export const TableReport = () => {
       {!filteredTables.length && (
         <div className="text-sm text-gray-500">No tables found.</div>
       )}
+      <TopTablesChart data={tables} isLoading={loadingRevenue} />
 
       {/* Table Sessions Modal */}
       <Modal

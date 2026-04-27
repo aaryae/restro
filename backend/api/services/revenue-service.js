@@ -1,5 +1,6 @@
 const { Op, Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { getLocalDateRange } = require("../../utils/timezone");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
 const {
@@ -1137,14 +1138,24 @@ const revenueByAccount = async (req) => {
 
 const todayRevenue = async (req) => {
   try {
-    const { date } = req.query;
-    const targetDate = date || new Date().toISOString().split("T")[0];
-
-    const start = startOfDay(parseISO(targetDate));
-    const end = endOfDay(parseISO(targetDate));
+    const { start, end } = req.query;
+    
+    let startDate, endDate, targetDate;
+    
+    if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+      targetDate = start;
+    } else {
+      targetDate = new Date().toISOString().split("T")[0];
+      const dateRange = getLocalDateRange(targetDate, targetDate);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+    }
 
     const filters = {
-      createdAt: { [Op.between]: [start, end] },
+      createdAt: { [Op.between]: [startDate, endDate] },
     };
 
     const includes = [

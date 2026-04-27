@@ -12,20 +12,16 @@ const {
   addonModel,
   Sequelize,
 } = require("../../models");
-const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { startOfDay, endOfDay } = require("date-fns");
+const { parseLocalDate, getLocalDateRange, getTimezone } = require("../../utils/timezone");
 
-// Get date range from query params or default to today
 const getDateRange = (req) => {
   const { start, end } = req.query;
-  
+
   if (start && end) {
-    return {
-      start: startOfDay(parseISO(start)),
-      end: endOfDay(parseISO(end)),
-    };
+    return getLocalDateRange(start, end);
   }
-  
-  // Default to today
+
   const currentDate = new Date();
   return {
     start: startOfDay(currentDate),
