@@ -1,6 +1,6 @@
 import z from "zod";
 
-const ExpenseSchema = z.object({
+export const ExpenseSchema = z.object({
   paymentMethod: z.enum(["cash", "card", "online"], {
     required_error: "Payment method is required",
   }),

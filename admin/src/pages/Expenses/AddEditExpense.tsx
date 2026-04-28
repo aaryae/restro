@@ -24,7 +24,7 @@ import Input from "@/components/Input";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import AddEditExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-import ExpenseSchema from "./schema";
+import { ExpenseSchema } from "./schema";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
 
