@@ -33,20 +33,22 @@ const TopTablesChart: React.FC<TopTablesChartProps> = ({ data, isLoading }) => {
     );
   }
 
-  const chartData = data.slice(0, 5).map((table: any) => ({
+  const chartData = data.map((table: any) => ({
     name: `Table - ${table.name || table.id || "Unknown"}`,
     revenue: table.totalRevenue || 0,
     id: table.id,
   }));
 
-  const COLORS = ["#032768", "#FF6B00", "#10B981", "#8B5CF6", "#EF4444"];
+  const COLORS = ["#032768", "#FF6B00", "#10B981", "#8B5CF6", "#EF4444", "#3B82F6", "#F59E0B", "#EC4899", "#14B8A6", "#6366F1"];
+
+  const chartHeight = Math.max(300, chartData.length * 60);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       <h2 className="text-lg font-semibold mb-4">
-        Top 5 Performing Tables (Today)
+        Table Revenue (Today)
       </h2>
-      <div className="h-64">
+      <div style={{ height: `${chartHeight}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
