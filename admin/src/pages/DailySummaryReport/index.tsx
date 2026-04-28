@@ -7,7 +7,7 @@ import { formatNepaliDate } from "@/utils/formatNepaliDate";
 import { OpeningBalance } from "./components/OpeningBalance";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { DateRangePicker } from "react-date-range";
+
 import { subDays } from "date-fns";
 import { useState } from "react";
 
@@ -74,26 +74,19 @@ const PageHeader = ({
             >
               ×
             </button>
-            <DateRangePicker
-              ranges={[
-                {
-                  startDate: dateRange.startDate,
-                  endDate: dateRange.endDate,
-                  key: "selection",
-                },
-              ]}
-              onChange={(ranges: any) => {
+            <input
+              type="date"
+              value={dateRange.startDate.toISOString().split("T")[0]}
+              onChange={(e) => {
+                const date = new Date(e.target.value);
                 setDateRange({
-                  startDate: ranges.selection.startDate,
-                  endDate: ranges.selection.endDate,
+                  startDate: date,
+                  endDate: date,
                   key: "selection",
                 });
                 setSelectedDateFilter("custom");
               }}
-              showSelectionPreview={true}
-              moveRangeOnFirstSelection={false}
-              months={2}
-              direction="horizontal"
+              className="px-4 py-2 border border-gray-300 rounded-md"
             />
           </div>
         </div>
