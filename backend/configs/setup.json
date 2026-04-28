@@ -1,4 +1,6 @@
 {
+  "default_timezone": "Asia/Kathmandu",
+
   "mediaCategory": [
     {
       "id": 354,

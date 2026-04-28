@@ -3,9 +3,13 @@ import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { Package, ShoppingCart, Utensils, Coffee } from "lucide-react";
 
-const TotalPurchase = () => {
+interface TotalPurchaseProps {
+  dateParams?: string;
+}
+
+const TotalPurchase = ({ dateParams = "" }: TotalPurchaseProps) => {
   const { data: purchaseData, isFetching } = useGetApiQuery({
-    url: `${PURCHASE_URL}purchase-today`,
+    url: `${PURCHASE_URL}purchase-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const categories = purchaseData?.data?.categories || [];

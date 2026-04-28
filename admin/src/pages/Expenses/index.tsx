@@ -10,44 +10,126 @@ import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
-import { buildQueryString } from "@/utils/generalHelper";
-import { FilterInput } from "@/components/Input/filterInput";
-import PageFilterSample from "@/components/PageFilterSample";
-import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { IdCard, MapPin, Phone, UserRound } from "lucide-react";
+import PageFilterSample from "@/components/PageFilterSample";
+import PageFilterWrapper from "@/components/PageFilterWrapper";
+import DateInput from "@/components/DateInput";
+import { FilterSelect } from "@/components/Select/FilterSelect";
+import { subDays } from "date-fns";
+import { ExpenseFilterSchema, type ExpenseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ExpenseFilterSchema, ExpenseFilterType } from "./schema";
 
 const Expenses: React.FC = () => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
+    null,
+  );
+
+  // Filters form
+  const { control, handleSubmit, reset, setValue, getValues } =
+    useForm<ExpenseFilterInput>({
+      resolver: zodResolver(ExpenseFilterSchema),
+      defaultValues: {
+        date: undefined as any,
+        cash_or_credit: "",
+      },
+    });
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  const handleDateChange = (value: Date) => {
+    setValue("date", value);
+    setSelectedDateFilter(null);
+  };
+
+  const filterFields = useMemo(
+    () => [
+      {
+        name: "date",
+        label: "Date",
+        Component: DateInput,
+        control,
+        handleChange: handleDateChange,
+        value: getValues("date"),
+      },
+      {
+        name: "cash_or_credit",
+        label: "Payment Method",
+        Component: FilterSelect,
+        className: "w-full",
+        handleChange: (v: string) => setValue("cash_or_credit", v as any),
+        options: [
+          { label: "Any", value: "" },
+          { label: "Cash", value: "cash" },
+          { label: "Credit", value: "credit" },
+        ],
+        control,
+      },
+    ],
+    [control, getValues],
+  );
+
+  const { Component } = PageFilterSample(
+    filterFields,
+    handleSubmit,
+    (query: Record<string, any>) => setFilters(query),
+    reset,
+  );
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
-  const { control, handleSubmit, reset } = useForm<ExpenseFilterType>({
-    resolver: zodResolver(ExpenseFilterSchema),
-    defaultValues: {},
-  });
+  const getDateParams = () => {
+    let dateStr = "";
+    if (filters.date) {
+      const date =
+        filters.date instanceof Date ? filters.date : new Date(filters.date);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      dateStr = `${year}-${month}-${day}`;
+    } else if (selectedDateFilter) {
+      const today = new Date();
+      const date =
+        selectedDateFilter === "yesterday" ? subDays(today, 1) : today;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      dateStr = `${year}-${month}-${day}`;
+    }
+    return dateStr;
+  };
 
-  const url = buildQueryString(`${EXPENSE_URL}list`, {
-    page: query.page,
-    limit: query.limit,
-  });
+  const url = useMemo(() => {
+    const baseUrl = `${EXPENSE_URL}list`;
+    const params = new URLSearchParams();
+    params.append("page", String(query.page));
+    params.append("limit", String(query.limit));
+
+    const dateStr = getDateParams();
+    if (dateStr) {
+      params.append("date", dateStr);
+    }
+    if (filters.cash_or_credit) {
+      params.append("cash_or_credit", filters.cash_or_credit);
+    }
+
+    return `${baseUrl}?${params.toString()}`;
+  }, [filters, query.page, query.limit, selectedDateFilter]);
 
   const [deleteExpense] = useDeleteApiMutation();
 
-  const { data: apiData, isSuccess: success } = useGetApiQuery({ url });
-
-  const [queryString, setQueryString] = useState<Record<string, any>>({});
+  const {
+    data: apiData,
+    isSuccess: success,
+    refetch,
+  } = useGetApiQuery({ url });
 
   const pagination: PaginationType = {
-    // page: apiData?.data?.page ?? query.page,
     page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
     limit: apiData?.data?.limit ?? query.limit,
     total: apiData?.data?.total ?? 0,
@@ -94,26 +176,6 @@ const Expenses: React.FC = () => {
       setOpen(false);
     }
   };
-  const filterField = useMemo(
-    () => [
-      {
-        name: "name",
-        label: "Name of Entity",
-        Component: FilterInput,
-        control,
-        icon: <UserRound className="w-4 h-4" />,
-      },
-    ],
-
-    [control],
-  );
-
-  const { Component } = PageFilterSample(
-    filterField,
-    handleSubmit,
-    (query: Record<string, any>) => setQueryString(query),
-    reset,
-  );
 
   const data = success
     ? apiData?.data?.data?.map((expense) => [
@@ -161,9 +223,46 @@ const Expenses: React.FC = () => {
         hasAddButton={true}
         newButtonText="Add Expense"
         handleNewButton={() => handleNewExpense(null)}
-        handleReloadButton={() => {}}
+        handleReloadButton={() => refetch()}
         hasSubText={false}
       />
+
+      {/* Quick Date Filters */}
+      <div className="flex items-center gap-2 px-4 py-2">
+        <span className="text-sm font-medium text-gray-700">Quick Date:</span>
+        {[
+          { label: "Yesterday", value: "yesterday" },
+          { label: "Today", value: "today" },
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              setSelectedDateFilter(item.value);
+              setValue("date", undefined as any);
+            }}
+            className={`px-3 py-1.5 rounded text-sm transition-colors ${
+              selectedDateFilter === item.value
+                ? "bg-primaryColor text-white"
+                : "border border-primaryColor text-primaryColor bg-white hover:bg-blue-50"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+        {selectedDateFilter && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDateFilter(null);
+            }}
+            className="px-2 py-1 text-sm text-red-500 hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
       <Table

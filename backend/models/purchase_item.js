@@ -32,10 +32,6 @@ module.exports = (sequelize) => {
         allowNull: true, // Optional for flexibility
         references: { model: "purchase_categories", key: "id" },
       },
-      hsCode: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
       particulars: {
         type: DataTypes.STRING,
         allowNull: false,

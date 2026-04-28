@@ -8,17 +8,14 @@ export const ExpenseSchema = z.object({
   amount: z.coerce
     .number({ message: "Amount must be a number" })
     .positive("Amount must be positive"),
-  // Required in UI
   categoryId: z.string().min(1, "Category is required"),
   supplierId: z.string().optional(),
   remarks: z.string().optional().or(z.literal("")),
 });
 
 export const ExpenseFilterSchema = z.object({
-  paymentMethod: z.enum(["cash", "card", "online"]).optional(),
-  accountId: z.string().optional(),
-  categoryId: z.string().optional(),
-  supplierId: z.string().optional(),
+  date: z.union([z.date(), z.string()]).optional().or(z.literal("")),
+  cash_or_credit: z.string().optional().or(z.literal("")),
 });
 
-export type ExpenseFilterType = z.infer<typeof ExpenseFilterSchema>;
+export type ExpenseFilterInput = z.infer<typeof ExpenseFilterSchema>;

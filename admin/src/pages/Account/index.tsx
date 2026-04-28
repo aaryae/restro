@@ -167,8 +167,6 @@ const Account: React.FC = () => {
     totalPages: allAccount?.data?.totalPages,
   };
 
-  
-
   const headers = [
     "S.N",
     "Name",

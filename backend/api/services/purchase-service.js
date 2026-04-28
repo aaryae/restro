@@ -10,6 +10,7 @@ const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 const { Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { getLocalDateRange } = require("../../utils/timezone");
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -168,10 +169,20 @@ const categorySummary = async (req) => {
 
 const list = async (req) => {
   try {
-    const { limit, page, supplierId, status } = req.query;
+    const { limit, page, supplierId, status, start, end, date } = req.query;
     const filters = {};
     if (supplierId) filters.supplierId = supplierId;
     if (status) filters.status = status;
+
+    // Handle date filtering
+    if (date) {
+      const dateRange = getLocalDateRange(date, date);
+      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+    } else if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+    }
+
     const include = [
       { model: supplierModel, as: "supplier" },
       {
@@ -569,7 +580,7 @@ const recordCreditPayment = async (req) => {
     // Update purchase with payment details
     await purchase.update(
       {
-        paidByUserId: req.user.id,
+        // paidByUserId: req.user.id,
         paymentDate: new Date(),
         paymentAccountId: paymentAccountId, // Record the actual payment account used
       },
@@ -808,11 +819,18 @@ const purchaseByAccount = async (req) => {
         [sequelize.col("account.name"), "accountName"],
         [sequelize.col("account.accountType"), "accountType"],
         [sequelize.fn("SUM", sequelize.col("totalAmount")), "totalPurchase"],
-        [sequelize.fn("COUNT", sequelize.col("Purchase.id")), "transactionCount"],
+        [
+          sequelize.fn("COUNT", sequelize.col("Purchase.id")),
+          "transactionCount",
+        ],
       ],
       where: filters,
       include: includes,
-      group: ["accountId", sequelize.col("account.name"), sequelize.col("account.accountType")],
+      group: [
+        "accountId",
+        sequelize.col("account.name"),
+        sequelize.col("account.accountType"),
+      ],
       order: [[sequelize.fn("SUM", sequelize.col("totalAmount")), "DESC"]],
       raw: true,
     });
@@ -851,15 +869,25 @@ const purchaseByAccount = async (req) => {
 // Daily purchase summary
 const todayPurchase = async (req) => {
   try {
-    const { date } = req.query;
-    const targetDate = date || new Date().toISOString().split("T")[0];
+    const { start, end } = req.query;
 
-    const start = startOfDay(parseISO(targetDate));
-    const end = endOfDay(parseISO(targetDate));
+    let startDate, endDate, targetDate;
+
+    if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+      targetDate = start;
+    } else {
+      targetDate = new Date().toISOString().split("T")[0];
+      const dateRange = getLocalDateRange(targetDate, targetDate);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+    }
 
     const purchaseFilters = {
       status: "completed",
-      invoiceDate: { [Sequelize.Op.between]: [start, end] },
+      invoiceDate: { [Sequelize.Op.between]: [startDate, endDate] },
     };
 
     const total = await purchaseModel.sum("totalAmount", {

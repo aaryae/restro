@@ -77,6 +77,7 @@ const expensePutValidation = async (req, res, next) => {
     remarks: Joi.string().optional().allow(null),
     categoryId: Joi.number().integer().positive().optional().allow(null),
     accountId: Joi.number().integer().positive().optional(),
+    supplierId: Joi.number().integer().positive().optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
