@@ -33,7 +33,9 @@ const Purchase: React.FC = () => {
   const [deleteApi] = useDeleteApiMutation();
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>("today");
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
+    null,
+  );
 
   // Filters (client-side for now)
   const { control, handleSubmit, reset, setValue, getValues } =
@@ -377,7 +379,8 @@ const Purchase: React.FC = () => {
             type="button"
             onClick={() => {
               const today = new Date();
-              const date = item.value === "yesterday" ? subDays(today, 1) : today;
+              const date =
+                item.value === "yesterday" ? subDays(today, 1) : today;
               const year = date.getFullYear();
               const month = String(date.getMonth() + 1).padStart(2, "0");
               const day = String(date.getDate()).padStart(2, "0");
@@ -393,6 +396,18 @@ const Purchase: React.FC = () => {
             {item.label}
           </button>
         ))}
+        {selectedDateFilter && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDateFilter(null);
+              window.location.reload();
+            }}
+            className="px-2 py-1 text-sm text-red-500 hover:underline"
+          >
+            Clear
+          </button>
+        )}
       </div>
       <PageFilterWrapper title="Purchase Filters">
         {Component}

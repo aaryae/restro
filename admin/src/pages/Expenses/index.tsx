@@ -27,7 +27,9 @@ const Expenses: React.FC = () => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>("today");
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
+    null,
+  );
 
   // Filters form
   const { control, handleSubmit, reset, setValue, getValues } =
@@ -69,14 +71,14 @@ const Expenses: React.FC = () => {
         control,
       },
     ],
-    [control, getValues]
+    [control, getValues],
   );
 
   const { Component } = PageFilterSample(
     filterFields,
     handleSubmit,
     (query: Record<string, any>) => setFilters(query),
-    reset
+    reset,
   );
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
@@ -84,14 +86,16 @@ const Expenses: React.FC = () => {
   const getDateParams = () => {
     let dateStr = "";
     if (filters.date) {
-      const date = filters.date instanceof Date ? filters.date : new Date(filters.date);
+      const date =
+        filters.date instanceof Date ? filters.date : new Date(filters.date);
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       dateStr = `${year}-${month}-${day}`;
     } else if (selectedDateFilter) {
       const today = new Date();
-      const date = selectedDateFilter === "yesterday" ? subDays(today, 1) : today;
+      const date =
+        selectedDateFilter === "yesterday" ? subDays(today, 1) : today;
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
@@ -103,23 +107,27 @@ const Expenses: React.FC = () => {
   const url = useMemo(() => {
     const baseUrl = `${EXPENSE_URL}list`;
     const params = new URLSearchParams();
-    params.append('page', String(query.page));
-    params.append('limit', String(query.limit));
-    
+    params.append("page", String(query.page));
+    params.append("limit", String(query.limit));
+
     const dateStr = getDateParams();
     if (dateStr) {
-      params.append('date', dateStr);
+      params.append("date", dateStr);
     }
     if (filters.cash_or_credit) {
-      params.append('cash_or_credit', filters.cash_or_credit);
+      params.append("cash_or_credit", filters.cash_or_credit);
     }
-    
+
     return `${baseUrl}?${params.toString()}`;
   }, [filters, query.page, query.limit, selectedDateFilter]);
 
   const [deleteExpense] = useDeleteApiMutation();
 
-  const { data: apiData, isSuccess: success, refetch } = useGetApiQuery({ url });
+  const {
+    data: apiData,
+    isSuccess: success,
+    refetch,
+  } = useGetApiQuery({ url });
 
   const pagination: PaginationType = {
     page: apiData?.data?.total === 0 ? 0 : apiData?.data?.page,
@@ -218,7 +226,7 @@ const Expenses: React.FC = () => {
         handleReloadButton={() => refetch()}
         hasSubText={false}
       />
-      
+
       {/* Quick Date Filters */}
       <div className="flex items-center gap-2 px-4 py-2">
         <span className="text-sm font-medium text-gray-700">Quick Date:</span>
@@ -255,9 +263,7 @@ const Expenses: React.FC = () => {
         )}
       </div>
 
-      <PageFilterWrapper title="Expense Filters">
-        {Component}
-      </PageFilterWrapper>
+      <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
       <Table
         headers={headers}
