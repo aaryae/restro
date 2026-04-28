@@ -7,9 +7,10 @@ import { formatNepaliDate } from "@/utils/formatNepaliDate";
 import { OpeningBalance } from "./components/OpeningBalance";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-
 import { subDays } from "date-fns";
 import { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const PageHeader = ({
   dateRange,
@@ -74,11 +75,9 @@ const PageHeader = ({
             >
               ×
             </button>
-            <input
-              type="date"
-              value={dateRange.startDate.toISOString().split("T")[0]}
-              onChange={(e) => {
-                const date = new Date(e.target.value);
+            <DatePicker
+              selected={dateRange.startDate}
+              onChange={(date: Date) => {
                 setDateRange({
                   startDate: date,
                   endDate: date,
@@ -86,7 +85,7 @@ const PageHeader = ({
                 });
                 setSelectedDateFilter("custom");
               }}
-              className="px-4 py-2 border border-gray-300 rounded-md"
+              inline
             />
           </div>
         </div>

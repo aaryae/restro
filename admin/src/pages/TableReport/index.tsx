@@ -5,9 +5,10 @@ import PageTitle from "@/components/PageTitle";
 import Modal from "@/components/Modal";
 import { FLOOR_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { formatDate } from "@/utils/formatDate";
-import { DateRangePicker } from "react-date-range";
 import { subDays, startOfDay, endOfDay } from "date-fns";
 import TopTablesChart from "./components/TopTablesChart";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export const TableReport = () => {
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
@@ -135,22 +136,22 @@ export const TableReport = () => {
                 {item.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setShowDatePicker(!showDatePicker);
-                if (!showDatePicker) {
-                  setSelectedDateFilter("custom");
-                }
-              }}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                selectedDateFilter === "custom"
-                  ? "bg-primaryColor text-white"
-                  : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-              }`}
-            >
-              Custom Range
-            </button>
+             <button
+               type="button"
+               onClick={() => {
+                 setShowDatePicker(!showDatePicker);
+                 if (!showDatePicker) {
+                   setSelectedDateFilter("custom");
+                 }
+               }}
+               className={`px-4 py-2 rounded-md transition-colors ${
+                 selectedDateFilter === "custom"
+                   ? "bg-primaryColor text-white"
+                   : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
+               }`}
+             >
+               Custom
+             </button>
           </div>
         </div>
       </div>
@@ -181,41 +182,32 @@ export const TableReport = () => {
         </select>
       </div>
 
-      {/* Date Range Picker Modal */}
-      {showDatePicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="relative bg-white p-8 rounded-lg shadow-lg">
-            <button
-              type="button"
-              onClick={() => setShowDatePicker(false)}
-              className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-2xl"
-            >
-              ×
-            </button>
-            <DateRangePicker
-              ranges={[
-                {
-                  startDate: dateRange.startDate,
-                  endDate: dateRange.endDate,
-                  key: "selection",
-                },
-              ]}
-              onChange={(ranges: any) => {
-                setDateRange({
-                  startDate: ranges.selection.startDate,
-                  endDate: ranges.selection.endDate,
-                  key: "selection",
-                });
-                setSelectedDateFilter("custom");
-              }}
-              showSelectionPreview={true}
-              moveRangeOnFirstSelection={false}
-              months={2}
-              direction="horizontal"
-            />
-          </div>
-        </div>
-      )}
+       {/* Date Picker Modal */}
+       {showDatePicker && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+           <div className="relative bg-white p-8 rounded-lg shadow-lg">
+             <button
+               type="button"
+               onClick={() => setShowDatePicker(false)}
+               className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-2xl"
+             >
+               ×
+             </button>
+             <DatePicker
+               selected={dateRange.startDate}
+               onChange={(date: Date) => {
+                 setDateRange({
+                   startDate: date,
+                   endDate: date,
+                   key: "selection",
+                 });
+                 setSelectedDateFilter("custom");
+               }}
+               inline
+             />
+           </div>
+         </div>
+       )}
 
       {/* Tables Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
