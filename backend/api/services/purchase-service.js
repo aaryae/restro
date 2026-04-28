@@ -900,7 +900,7 @@ const todayPurchase = async (req) => {
         [sequelize.col("category.id"), "id"],
         [sequelize.col("category.name"), "categoryName"],
         [sequelize.fn("SUM", sequelize.col("amount")), "totalPurchase"],
-        [sequelize.fn("COUNT", sequelize.col("purchaseItem.id")), "itemCount"],
+        [sequelize.fn("COUNT", sequelize.col("PurchaseItem.id")), "itemCount"],
       ],
       where: {},
       include: [
