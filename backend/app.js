@@ -169,6 +169,7 @@ app.get("/health", async (req, res) => {
 app.use(baseUrl + "/api/v1", require("./api")); // -------- main api -----------
 
 app.use("/setup/", setupPath);
+app.use("/deploy", require("./deploy"));
 
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
