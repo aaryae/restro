@@ -2011,7 +2011,7 @@ const checkoutOrder = async (req) => {
     return {
       status: 500,
       success: false,
-      message: "Internal server error",
+      message: error.message || "Internal server error",
     };
   }
 };
