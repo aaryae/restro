@@ -4,13 +4,16 @@ const router = express.Router();
 const crypto = require('crypto');
 const path = require('path');
 
-const appRoot = path.resolve(__dirname, '../..');
+const appRoot = path.resolve(__dirname, '..');
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
 router.post('/webhook', (req, res) => {
   try {
     const signature = req.headers['x-hub-signature-256'];
-    const payload = JSON.stringify(req.body);
+    const payload = req.body;
+    if (!Buffer.isBuffer(payload)) {
+      return res.status(500).send('Webhook requires raw JSON body');
+    }
     const expected = 'sha256=' + crypto
       .createHmac('sha256', WEBHOOK_SECRET)
       .update(payload)

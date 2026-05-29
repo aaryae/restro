@@ -130,6 +130,13 @@ app.use(
   require("./api/routes/order-route"),
 );
 
+// GitHub deploy webhook (raw body required for signature verification)
+app.use(
+  "/deploy",
+  express.raw({ type: "application/json" }),
+  require("./deploy"),
+);
+
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(
   bodyParser.urlencoded({
@@ -169,7 +176,6 @@ app.get("/health", async (req, res) => {
 app.use(baseUrl + "/api/v1", require("./api")); // -------- main api -----------
 
 app.use("/setup/", setupPath);
-app.use("/deploy", require("./deploy"));
 
 //image serve for public
 app.use("/public", express.static(path.join(__dirname, "public")));
