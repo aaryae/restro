@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const PurchaseItemSchema = z.object({
   particulars: z.string().min(1, "Particulars is required"),
-  hsCode: z.string().optional().or(z.literal("")),
   // Backend (Joi) treats categoryId as optional
   categoryId: z.number().optional().or(z.literal("")),
   qty: z.coerce
@@ -41,12 +40,10 @@ export const PurchaseSchema = z.object({
   invoiceNumber: z.string().optional().nullable(),
 
   items: z.array(PurchaseItemSchema).min(1, "At least one item is required"),
-  billImage: z.string().optional().or(z.literal("")),
 
   // Match backend Joi: required enum of payment terms
   paymentTerm: z.enum(["cash", "cheque", "credit"]).default("cash"),
   accountId: z.number().min(1, "Account is required"),
-  paidByUserId: z.number().optional().or(z.literal("")),
 });
 
 export const PurchaseFilterSchema = z.object({

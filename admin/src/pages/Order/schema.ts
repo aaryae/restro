@@ -27,27 +27,25 @@ export const OrderSchema = z
       .number()
       .min(0, "Estimated time must be positive")
       .optional(),
-    orderItems: z
-      .array(
-        z.object({
-          productId: z.coerce.number().optional(),
-          openItemId: z.coerce.number().optional(),
-          productPrice: z.coerce.number(),
-          quantity: z.number().min(1),
-          departmentId: z.coerce.number(),
-          specialInstructions: z.string().optional(),
-          addons: z
-            .array(
-              z.object({
-                addonId: z.coerce.number(),
-                quantity: z.coerce.number().min(1),
-                specialInstructions: z.string().optional(),
-              }),
-            )
-            .optional(),
-        }),
-      )
-      .min(1, "At least one order item is required"),
+    orderItems: z.array(
+      z.object({
+        productId: z.coerce.number().optional(),
+        openItemId: z.coerce.number().optional(),
+        productPrice: z.coerce.number(),
+        quantity: z.number().min(1),
+        departmentId: z.coerce.number(),
+        specialInstructions: z.string().optional(),
+        addons: z
+          .array(
+            z.object({
+              addonId: z.coerce.number(),
+              quantity: z.coerce.number().min(1),
+              specialInstructions: z.string().optional(),
+            }),
+          )
+          .optional(),
+      }),
+    ),
   })
   .superRefine((data, ctx) => {
     if (data.orderType === "takeaway" && !data.takeAwayName) {

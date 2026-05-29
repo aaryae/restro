@@ -919,6 +919,31 @@ module.exports = {
         success: true,
         message: "Supplier List Successfully",
       },
+      SUPPLIER_NOT_FOUND: {
+        status: httpStatus.NOT_FOUND,
+        success: false,
+        message: "Supplier Not Found",
+      },
+      SUPPLIER_UPDATE_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "Supplier Updated Successfully",
+      },
+      SUPPLIER_UPDATE_FAILURE: {
+        status: httpStatus.NOT_ACCEPTABLE,
+        success: false,
+        message: "Supplier Update Failed",
+      },
+      SUPPLIER_DELETE_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "Supplier Deleted Successfully",
+      },
+      SUPPLIER_DELETE_FAILURE: {
+        status: httpStatus.NOT_ACCEPTABLE,
+        success: false,
+        message: "Supplier Delete Failed",
+      },
     },
 
     PRODUCT: {

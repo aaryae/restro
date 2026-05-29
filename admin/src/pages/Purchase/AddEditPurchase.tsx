@@ -33,7 +33,6 @@ import { Input } from "react-aria-components";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import { Controller } from "react-hook-form";
-import { paintOrder } from "html2canvas/dist/types/css/property-descriptors/paint-order";
 
 type ItemRow = PurchaseItemInput;
 
@@ -60,18 +59,16 @@ const AddEditPurchase: React.FC = () => {
       items: [
         {
           particulars: "",
-          hsCode: "",
           categoryId: "",
           qty: 1,
           rate: 0,
           discountPercent: 0,
           taxPercent: 13,
-          isTaxable: true,
+          isTaxable: false,
         },
       ],
       paymentTerm: "cash",
       accountId: "",
-      paidByUserId: "",
     },
   });
 
@@ -323,16 +320,15 @@ const AddEditPurchase: React.FC = () => {
       invoiceNumber: p.invoiceNumber || "",
       items: (p.purchaseItems || []).map((it: any) => ({
         particulars: it.particulars || "",
-        hsCode: it.hsCode || "",
+
         categoryId: it.categoryId ? it.categoryId : "",
         qty: it.quantity || 0,
         rate: it.rate || 0,
         isTaxable: it.isTaxable !== undefined ? Boolean(it.isTaxable) : true,
       })),
-      billImage: "",
+
       paymentTerm: (p.paymentTerms as any) || "cash",
       accountId: p.accountId ? p.accountId : "",
-      paidByUserId: p.paidByUserId ? p.paidByUserId : "",
     });
   }, [isEdit, purchaseFetched, purchaseData, reset]);
 
@@ -342,15 +338,12 @@ const AddEditPurchase: React.FC = () => {
       invoiceDate: new Date(data.invoiceDate).toISOString(),
       invoiceNumber: data.invoiceNumber?.trim() || null,
       paymentTerms: data.paymentTerm === "" ? "cash" : data.paymentTerm,
-      billImage: data.billImage,
-      paidByUserId: data.paidByUserId,
       accountId:
         data.paymentTerm === "credit"
           ? Number(data.accountId || 0)
           : Number(data.accountId),
       items: data.items.map((r) => ({
         categoryId: r.categoryId ? Number(r.categoryId) : undefined,
-        hsCode: r.hsCode || null,
         particulars: r.particulars,
         quantity: Number(r.qty) || 0,
         rate: Number(r.rate) || 0,
@@ -793,7 +786,6 @@ const AddEditPurchase: React.FC = () => {
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
                         <th className="p-2 border">S.N</th>
-                        <th className="p-2 border">HS Code</th>
                         <th className="p-2 border">Category</th>
                         <th className="p-2 border">Particulars</th>
                         <th className="p-2 border">Qty</th>
@@ -819,13 +811,7 @@ const AddEditPurchase: React.FC = () => {
                             <td className="p-2 border text-center w-16">
                               {idx + 1}
                             </td>
-                            <td className="p-2 border">
-                              <input
-                                type="text"
-                                className="border rounded px-2 py-1 w-20 bg-white"
-                                {...register(`items.${idx}.hsCode` as const)}
-                              />
-                            </td>
+
                             <td className="p-2 border">
                               <Controller
                                 name={`items.${idx}.categoryId`}
@@ -1055,93 +1041,6 @@ const AddEditPurchase: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Payment and file */}
-            <div className="w-full shrink-0">
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl p-4 flex flex-col gap-4">
-                <div className="flex flex-col items-start">
-                  <label className="text-sm text-gray-700 mb-1">
-                    Paid By (User)
-                  </label>
-                  <Controller
-                    name="paidByUserId"
-                    control={control}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        value={
-                          field.value !== undefined && field.value !== null
-                            ? String(field.value)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? Number(e.target.value) : undefined,
-                          )
-                        }
-                        className="w-[20%] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option value="">Select User</option>
-                        {users.map((option) => (
-                          <option
-                            key={option.value}
-                            value={String(option.value)}
-                          >
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  />
-                  {errors.paidByUserId?.message && (
-                    <span className="input-error">
-                      {String(errors.paidByUserId.message)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mb-1">
-                    Bill Image
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex flex-col gap-2 w-full md:w-[25rem]">
-                    <MediaComponent
-                      title={<ImageInputUI image={watch("billImage")} />}
-                      handleConfirmImage={() => {
-                        if (typeof selectedImage === "string") {
-                          setValue("billImage", selectedImage, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }
-                        setMediaOpen(false);
-                      }}
-                      isMultiSelect={false}
-                      open={mediaOpen}
-                      setOpen={setMediaOpen}
-                      acceptFiles="image/*"
-                    />
-                    {watch("billImage") && (
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          className="px-3 py-1 rounded bg-red-500 text-white text-sm"
-                          onClick={() =>
-                            setValue("billImage", "", {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true,
-                            })
-                          }
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

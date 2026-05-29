@@ -136,27 +136,6 @@ export default function SideMenu({
           </div>
         )}
         {/* Dashboard */}
-        {!isSettingsView && (
-          <div
-            className={`${
-              currentPath.includes("dashboard")
-                ? "bg-primaryColor text-white"
-                : ""
-            } group hover:bg-primaryColor hover:text-white transition-all duration-300 flex justify-between items-center rounded-[0.5rem] py-[1rem] px-[1rem] cursor-pointer mt-[0.5rem]`}
-            onClick={() => handleNavigate("dashboard", "/admin/dashboard")}
-          >
-            <div className="flex items-center gap-[0.5rem]">
-              <div className="h-[22px] w-[22px] flex-1 flex items-center">
-                <LayoutDashboard strokeWidth={1.75} />
-              </div>
-              {sideMenuOpen && (
-                <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300">
-                  {translate("Dashboard")}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
         {!isSettingsView && viewAccess.includes("Order") && (
           <div
             className={`${
@@ -201,12 +180,15 @@ export default function SideMenu({
           const subMenuList = each.menu
             ? each.menu.map((each) => each.name)
             : [each.name];
-          const hasAccess = subMenuList.some((item) => viewAccess.includes(item));
+          const hasAccess = subMenuList.some((item) =>
+            viewAccess.includes(item),
+          );
           if (!hasAccess) return null; // Completely remove unauthorized menu groups/items
 
-          const visibleSubItems = (each.menu as SideListMenuType[] | undefined)?.filter(
-            (item) => viewAccess.includes(item.name),
-          ) || [];
+          const visibleSubItems =
+            (each.menu as SideListMenuType[] | undefined)?.filter((item) =>
+              viewAccess.includes(item.name),
+            ) || [];
 
           return (
             <div key={index}>
@@ -236,13 +218,15 @@ export default function SideMenu({
                       </p>
                     )}
                   </div>
-                  {sideMenuOpen && (!each.path || (isSettingsView && each.name === "Settings")) && (
-                    <div>
-                      <MdKeyboardArrowRight
-                        className={`${isVisible.includes(each.key) ? "rotate-[90deg]" : ""}`}
-                      />
-                    </div>
-                  )}
+                  {sideMenuOpen &&
+                    (!each.path ||
+                      (isSettingsView && each.name === "Settings")) && (
+                      <div>
+                        <MdKeyboardArrowRight
+                          className={`${isVisible.includes(each.key) ? "rotate-[90deg]" : ""}`}
+                        />
+                      </div>
+                    )}
                 </div>
               ) : (
                 <div
@@ -293,7 +277,9 @@ export default function SideMenu({
                         }`}
                         onClick={() => handleNavigate(item.name, item.path)}
                       >
-                        <div className="h-[22px] w-[22px] flex items-center">{item.icon}</div>
+                        <div className="h-[22px] w-[22px] flex items-center">
+                          {item.icon}
+                        </div>
                         {sideMenuOpen && (
                           <p className="font-[400] text-[1rem] group-hover:translate-x-3 transition-all duration-300 text-start">
                             {translate(item.label || item.name)}

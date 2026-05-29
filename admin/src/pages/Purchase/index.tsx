@@ -24,6 +24,7 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ADToBS } from "bikram-sambat-js";
 import { PurchaseFilterSchema, type PurchaseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { subDays } from "date-fns";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +33,9 @@ const Purchase: React.FC = () => {
   const [deleteApi] = useDeleteApiMutation();
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
+    null,
+  );
 
   // Filters (client-side for now)
   const { control, handleSubmit, reset, setValue, getValues } =
@@ -47,6 +51,7 @@ const Purchase: React.FC = () => {
 
   const handleDateChange = (value: Date) => {
     setValue("date", value);
+    setSelectedDateFilter(null);
   };
 
   const handleViewPurchase = (id: number) => {
@@ -363,6 +368,47 @@ const Purchase: React.FC = () => {
         handleReloadButton={() => refetch()}
         hasSubText={false}
       />
+      <div className="flex items-center gap-2 px-4 py-2">
+        <span className="text-sm font-medium text-gray-700">Quick Date:</span>
+        {[
+          { label: "Yesterday", value: "yesterday" },
+          { label: "Today", value: "today" },
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => {
+              const today = new Date();
+              const date =
+                item.value === "yesterday" ? subDays(today, 1) : today;
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, "0");
+              const day = String(date.getDate()).padStart(2, "0");
+              setFilters({ ...filters, date: `${year}-${month}-${day}` });
+              setSelectedDateFilter(item.value);
+            }}
+            className={`px-3 py-1 rounded text-sm transition-colors ${
+              selectedDateFilter === item.value
+                ? "bg-primaryColor text-white"
+                : "border border-primaryColor text-primaryColor bg-white hover:bg-blue-50"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+        {selectedDateFilter && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDateFilter(null);
+              window.location.reload();
+            }}
+            className="px-2 py-1 text-sm text-red-500 hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
       <PageFilterWrapper title="Purchase Filters">
         {Component}
       </PageFilterWrapper>

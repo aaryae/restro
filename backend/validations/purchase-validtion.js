@@ -7,7 +7,6 @@ const { validateRequestBody } = require("../helpers/validator-helper");
 
 const purchaseItemSchema = Joi.object({
   categoryId: Joi.number().integer().positive().optional(),
-  hsCode: Joi.string().max(50).optional().allow(null),
   particulars: Joi.string().trim().min(1).required().messages({
     "string.base": "Particulars must be a string",
     "string.min": "Particulars must be at least 1 character",
@@ -60,8 +59,6 @@ const purchasePostValidation = async (req, res, next) => {
       "any.required": "Items array is required",
     }),
     notes: Joi.string().optional().allow(null),
-    billImage: Joi.string().optional().allow(null),
-    paidByUserId: Joi.number().optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -89,8 +86,6 @@ const purchasePutValidation = async (req, res, next) => {
     discountAmount: Joi.number().precision(2).min(0).optional(),
     items: Joi.array().items(purchaseItemSchema).min(1).optional(),
     notes: Joi.string().optional().allow(null),
-    billImage: Joi.string().optional().allow(null),
-    paidByUserId: Joi.number().optional().allow(null),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

@@ -7,9 +7,10 @@ import {
 } from "react-icons/md";
 
 import { FaMoneyBillWave } from "react-icons/fa";
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, ClipboardList } from "lucide-react";
 import { AiFillBank } from "react-icons/ai";
 import { FiShoppingCart } from "react-icons/fi";
+import { MdDashboard } from "react-icons/md";
 
 import { GiExpense } from "react-icons/gi";
 
@@ -70,19 +71,7 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <HandPlatter size={12} />,
         path: "/admin/addons/list",
       },
-      {
-        key: 1.5,
-        name: "Reports",
-        icon: <ClipboardPlus size={12} />,
-        path: "/admin/daily-report",
-      },
     ],
-  },
-  {
-    key: 2,
-    name: "Customer",
-    icon: <UserCheck />,
-    path: "/admin/customer/list",
   },
   {
     key: 3,
@@ -125,13 +114,34 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <GiExpense />,
         path: "/admin/supplier/list",
       },
+    ],
+  },
+  {
+    key: 10,
+    name: "Report",
+    icon: <ClipboardList size={12} />,
+    menu: [
       {
-        key: 3.7,
-        name: "Transaction",
-        icon: <GiExpense />,
-        path: "/admin/transaction/list",
+        key: 10.2,
+        name: "Daily Reports",
+        label: "Daily Reports",
+        icon: <ClipboardPlus size={12} />,
+        path: "/admin/daily-reports",
+      },
+      {
+        key: 10.3,
+        name: "Table Report",
+        label: "Table Report",
+        icon: <ClipboardPlus size={12} />,
+        path: "/admin/table-report",
       },
     ],
+  },
+  {
+    key: 2,
+    name: "Customer",
+    icon: <UserCheck />,
+    path: "/admin/customer/list",
   },
   {
     key: 4,
@@ -155,6 +165,46 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Department",
         path: "/admin/department/list",
         icon: <MdOutlineFactCheck />,
+      },
+    ],
+  },
+  {
+    key: 8,
+    name: "Cash and banks",
+    icon: <LandmarkIcon />,
+    menu: [
+      {
+        key: 8.1,
+        name: "Account",
+        label: "Accounts",
+        icon: <MdOutlineFactCheck />,
+        path: "/admin/account/list",
+      },
+      {
+        key: 8.2,
+        name: "Transaction",
+        icon: <GiExpense />,
+        path: "/admin/transaction/list",
+      },
+      {
+        key: 8.3,
+        name: "Account Permission",
+        label: "Permission",
+        icon: <LandmarkIcon size={12} />,
+        path: "/admin/account-permission/list",
+      },
+      // {
+      //   key: 8.4,
+      //   name: "Reports",
+      //   icon: <ClipboardPlus size={12} />,
+      //   path: "/admin/daily-report",
+      // },
+      {
+        key: 8.5,
+        name: "Dashboard",
+        label: "Dashboard",
+        icon: <MdDashboard size={12} />,
+        path: "/admin/dashboard",
       },
     ],
   },
@@ -190,13 +240,6 @@ export const SideMenuList: SideListMenuType[] = [
   //   icon: <Mail />,
   //   menu: [],
   // },
-  {
-    key: 8,
-    name: "Account",
-    label: "Cash and Banks",
-    icon: <LandmarkIcon />,
-    path: "/admin/account/list",
-  },
 
   {
     key: 9,
@@ -223,12 +266,5 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <MdOutlineMailOutline />,
       },
     ],
-  },
-  {
-    key: 10,
-    name: "Account Permission",
-    label: "Account Permission",
-    icon: <LandmarkIcon />,
-    path: "/admin/account-permission/list",
   },
 ];

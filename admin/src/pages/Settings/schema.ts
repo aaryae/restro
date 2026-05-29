@@ -26,9 +26,5 @@ export const SettingSchema = z.object({
       },
     ),
   pan_vat_number: z.string().optional().nullable(),
-  openingBalance: z.coerce
-    .number()
-    .positive("Opening Balance must be positive")
-    .optional()
-    .nullable(),
+  openingBalance: z.coerce.number().optional().nullable(),
 });

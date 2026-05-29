@@ -12,10 +12,6 @@ module.exports = (sequelize) => {
         as: "account",
       });
       Purchase.belongsTo(models.userModel, {
-        foreignKey: "paidByUserId",
-        as: "paidByUser",
-      });
-      Purchase.belongsTo(models.userModel, {
         foreignKey: "enteredByUserId",
         as: "enteredByUser",
       });
@@ -55,15 +51,6 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "accounts", key: "id" },
-      },
-      billPhotoUrl: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      paidByUserId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: "users", key: "id" },
       },
       enteredByUserId: {
         type: DataTypes.INTEGER,

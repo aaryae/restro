@@ -13,12 +13,29 @@ const {
   Sequelize,
 } = require("../../models");
 const { startOfDay, endOfDay } = require("date-fns");
-const currentDate = new Date();
-const todayStart = startOfDay(currentDate);
-const todayEnd = endOfDay(currentDate);
-const createdToday = { [Op.between]: [todayStart, todayEnd] };
+const { parseLocalDate, getLocalDateRange, getTimezone } = require("../../utils/timezone");
 
-const getAccountsRevenue = async (req, res) => {
+const getDateRange = (req) => {
+  const { start, end } = req.query;
+
+  if (start && end) {
+    return getLocalDateRange(start, end);
+  }
+
+  const currentDate = new Date();
+  return {
+    start: startOfDay(currentDate),
+    end: endOfDay(currentDate),
+  };
+};
+
+const createdDateRange = (req) => {
+  const { start, end } = getDateRange(req);
+  return { [Op.between]: [start, end] };
+};
+
+const getAccountsRevenue = async (req) => {
+  const dateFilter = createdDateRange(req);
   const todayTotalRevenue = await revenueModel.findAll({
     attributes: [
       "accountId",
@@ -28,7 +45,7 @@ const getAccountsRevenue = async (req, res) => {
     group: ["accountId"],
     raw: true,
     where: {
-      createdAt: createdToday,
+      createdAt: createdDateRange(req),
     },
     include: {
       model: accountModel,
@@ -40,7 +57,7 @@ const getAccountsRevenue = async (req, res) => {
   return todayTotalRevenue;
 };
 
-const getAccountsPurchase = async (req, res) => {
+const getAccountsPurchase = async (req) => {
   const todayTotalPurchase = await purchaseModel.findAll({
     attributes: [
       "accountId",
@@ -49,7 +66,7 @@ const getAccountsPurchase = async (req, res) => {
     ],
     group: ["accountId"],
     where: {
-      paymentDate: createdToday,
+      paymentDate: createdDateRange(req),
       status: { [Op.ne]: "cancelled" },
     },
     include: {
@@ -62,7 +79,7 @@ const getAccountsPurchase = async (req, res) => {
   return todayTotalPurchase;
 };
 
-const getAccountsExpense = async (req, res) => {
+const getAccountsExpense = async (req) => {
   const todayTotalExpense = await expenseModel.findAll({
     attributes: [
       "accountId",
@@ -72,7 +89,7 @@ const getAccountsExpense = async (req, res) => {
     group: ["accountId"],
     raw: true,
     where: {
-      paymentDate: createdToday,
+      paymentDate: createdDateRange(req),
     },
     include: {
       model: accountModel,
@@ -175,7 +192,7 @@ const formatTableReport = (rawReport) => {
   return tables;
 };
 
-const getTableRevenueReport = async () => {
+const getTableRevenueReport = async (req) => {
   const todayTableReport = await revenueModel.findAll({
     attributes: [
       [Sequelize.col("order->table.tableNo"), "tableNo"],
@@ -204,7 +221,7 @@ const getTableRevenueReport = async () => {
       },
     ],
     where: {
-      createdAt: createdToday,
+      createdAt: createdDateRange(req),
       orderId: { [Sequelize.Op.ne]: null },
       accountId: { [Sequelize.Op.ne]: null },
     },
@@ -221,8 +238,8 @@ const getTableRevenueReport = async () => {
 
 module.exports.getDailyRevenueReport = async (req) => {
   try {
-    const accountsRevenue = await getAccountsRevenue();
-    const todayTableReport = await getTableRevenueReport();
+    const accountsRevenue = await getAccountsRevenue(req);
+    const todayTableReport = await getTableRevenueReport(req);
     const result = {
       accountsRevenue,
       todayTableReport,
@@ -264,7 +281,7 @@ const getTableSessions = async (req) => {
         model: revenueModel,
         as: "revenues",
         where: {
-          createdAt: createdToday,
+          createdAt: createdDateRange(req),
         },
         required: true,
         attributes: [],

@@ -23,10 +23,12 @@ const {
   getUnpaidCredits,
   totalExpense,
   categorySummary,
+  todayExpense,
 } = require("../controllers/expense-controller");
 
 router.post("/", authentication, authorization, expensePostValidation, create);
 router.get("/list", paginationValidation, list);
+router.get("/expense-today", authentication, todayExpense);
 router.get(
   "/total-expense",
   authentication,

@@ -1,5 +1,6 @@
 const { Op, Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { getLocalDateRange } = require("../../utils/timezone");
 const { generateUUID } = require("../../utils/uuidGenerator");
 
 const {
@@ -596,11 +597,11 @@ const list = async (req) => {
     return {
       status: 200,
       success: true,
-      message: "Orders retrieved successfully",
+      message: "Revenue retrieved successfully",
       data: result,
     };
   } catch (error) {
-    console.error("List orders error:", error);
+    console.error("List revenue error:", error);
     return {
       status: 500,
       success: false,
@@ -1064,6 +1065,161 @@ const getOrderItems = async (req) => {
   }
 };
 
+const revenueByAccount = async (req) => {
+  try {
+    let { startDate, endDate, accountId } = req.query;
+
+    const filters = {};
+
+    if (startDate && endDate) {
+      const start = startOfDay(parseISO(startDate));
+      const end = endOfDay(parseISO(endDate));
+      filters.createdAt = { [Op.between]: [start, end] };
+    }
+
+    if (accountId) {
+      filters.accountId = parseInt(accountId);
+    }
+
+    const includes = [
+      {
+        model: accountModel,
+        as: "account",
+        attributes: ["id", "name", "accountType"],
+        required: true,
+      },
+    ];
+
+    const revenuesByAccount = await sequelize.models.Revenue.findAll({
+      attributes: [
+        "accountId",
+        [sequelize.col("account.name"), "accountName"],
+        [sequelize.col("account.accountType"), "accountType"],
+        [sequelize.fn("SUM", sequelize.col("Revenue.amount")), "totalRevenue"],
+        [sequelize.fn("COUNT", sequelize.col("Revenue.id")), "transactionCount"],
+      ],
+      where: filters,
+      include: includes,
+      group: ["accountId", sequelize.col("account.name"), sequelize.col("account.accountType")],
+      order: [[sequelize.fn("SUM", sequelize.col("Revenue.amount")), "DESC"]],
+      raw: true,
+    });
+
+    const grandTotal = await sequelize.models.Revenue.sum("amount", {
+      where: filters,
+      include: includes,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Revenue by account retrieved successfully",
+      data: {
+        revenues: revenuesByAccount.map((r) => ({
+          accountId: r.accountId,
+          accountName: r.accountName,
+          accountType: r.accountType,
+          totalRevenue: parseFloat(r.totalRevenue || 0),
+          transactionCount: parseInt(r.transactionCount || 0),
+        })),
+        grandTotal: parseFloat(grandTotal || 0),
+      },
+    };
+  } catch (error) {
+    console.error("Revenue by account error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve revenue by account",
+      error: error.message,
+    };
+  }
+};
+
+const todayRevenue = async (req) => {
+  try {
+    const { start, end } = req.query;
+    
+    let startDate, endDate, targetDate;
+    
+    if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+      targetDate = start;
+    } else {
+      targetDate = new Date().toISOString().split("T")[0];
+      const dateRange = getLocalDateRange(targetDate, targetDate);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+    }
+
+    const filters = {
+      createdAt: { [Op.between]: [startDate, endDate] },
+    };
+
+    const includes = [
+      {
+        model: accountModel,
+        as: "account",
+        attributes: ["id", "name", "accountType"],
+        required: false,
+      },
+    ];
+
+    const total = await revenueModel.sum("amount", {
+      where: filters,
+      include: includes,
+    });
+
+    const count = await revenueModel.count({
+      where: filters,
+      include: includes,
+    });
+
+    const revenuesByAccount = await sequelize.models.Revenue.findAll({
+      attributes: [
+        "accountId",
+        [sequelize.col("account.name"), "accountName"],
+        [sequelize.col("account.accountType"), "accountType"],
+        [sequelize.fn("SUM", sequelize.col("Revenue.amount")), "totalRevenue"],
+        [sequelize.fn("COUNT", sequelize.col("Revenue.id")), "transactionCount"],
+      ],
+      where: filters,
+      include: includes,
+      group: ["accountId", sequelize.col("account.name"), sequelize.col("account.accountType")],
+      order: [[sequelize.fn("SUM", sequelize.col("Revenue.amount")), "DESC"]],
+      raw: true,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Today's revenue retrieved successfully",
+      data: {
+        date: targetDate,
+        totalRevenue: parseFloat(total || 0),
+        transactionCount: count,
+        revenues: revenuesByAccount.map((r) => ({
+          accountId: r.accountId,
+          accountName: r.accountName || "Unknown",
+          accountType: r.accountType || "unknown",
+          totalRevenue: parseFloat(r.totalRevenue || 0),
+          transactionCount: parseInt(r.transactionCount || 0),
+        })),
+      },
+    };
+  } catch (error) {
+    console.error("Today's revenue error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve today's revenue",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   list,
   groupedList,
@@ -1072,4 +1228,6 @@ module.exports = {
   deleteRevenue,
   getRevenueById,
   totalRevenue,
+  revenueByAccount,
+  todayRevenue,
 };

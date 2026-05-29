@@ -6,7 +6,6 @@ import Table from "@/components/Table";
 import { PaginationType } from "@/types/commonTypes";
 import usePagination from "@/hooks/usePagination";
 import PageHeader from "@/components/PageHeader";
-import { useNavigate } from "react-router-dom";
 import { CurrencySign } from "@/constants";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
@@ -17,9 +16,8 @@ import Button from "@/components/Button";
 import TransactionModal from "./TransactionModal";
 
 const Transaction: React.FC = () => {
-  const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const [queryString, setQueryString] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<
     "deposit" | "withdraw"
@@ -35,14 +33,14 @@ const Transaction: React.FC = () => {
   };
 
   const { control, handleSubmit, reset } = useForm<{
-    accountName?: string;
+    name?: string;
     userName?: string;
-  }>({ defaultValues: { accountName: "", userName: "" } });
+  }>({ defaultValues: { name: "", userName: "" } });
 
   const filterField = useMemo(
     () => [
       {
-        name: "accountName",
+        name: "name",
         label: "Account Name",
         Component: FilterInput,
         control,
@@ -60,10 +58,18 @@ const Transaction: React.FC = () => {
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    (qs: Record<string, any>) => setQueryString(qs),
+    (qs: Record<string, any>) => {
+      setFilters(
+        Object.fromEntries(
+          Object.entries(qs).filter(
+            ([_, v]) => v !== undefined && v !== null && v !== "",
+          ),
+        ),
+      );
+    },
     () => {
-      reset({ accountName: "", userName: "" });
-      setQueryString({});
+      reset({ name: "", userName: "" });
+      setFilters({});
       handlePagination({ page: 1, limit: query.limit });
     },
   );
@@ -71,7 +77,7 @@ const Transaction: React.FC = () => {
   const url = buildQueryString("transaction/list", {
     page: query.page,
     limit: query.limit,
-    search: queryString,
+    search: filters,
   });
 
   const {
@@ -90,7 +96,7 @@ const Transaction: React.FC = () => {
 
   useEffect(() => {
     refetch();
-  }, [queryString]);
+  }, [filters]);
 
   const headers = ["Date", "Account", "Type", "Amount", "User", "Remarks"];
 

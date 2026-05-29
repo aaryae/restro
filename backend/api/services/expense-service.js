@@ -5,8 +5,9 @@ const {
   supplierModel,
   sequelize,
 } = require("../../models");
-const { Sequelize } = require("sequelize");
+const { Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { getLocalDateRange } = require("../../utils/timezone");
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 
@@ -189,10 +190,20 @@ const categorySummary = async (req) => {
 
 const list = async (req) => {
   try {
-    const { limit, page, categoryId, cash_or_credit } = req.query;
+    const { limit, page, categoryId, cash_or_credit, start, end, date } = req.query;
     const filters = {};
     if (categoryId) filters.categoryId = +categoryId;
     if (cash_or_credit) filters.cash_or_credit = cash_or_credit;
+
+    // Handle date filtering
+    if (date) {
+      const dateRange = getLocalDateRange(date, date);
+      filters.createdAt = { [Op.between]: [dateRange.start, dateRange.end] };
+    } else if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      filters.createdAt = { [Op.between]: [dateRange.start, dateRange.end] };
+    }
+
     const order = [["createdAt", "DESC"]];
 
     const result = await paginate(expenseModel, {
@@ -251,6 +262,7 @@ const getById = async (req) => {
       include: [
         { model: expenseCategoryModel, as: "category" },
         { model: accountModel, as: "account" },
+        { model: supplierModel, as: "supplier" },
       ],
     });
     if (!expense) {
@@ -281,6 +293,7 @@ const updateById = async (req) => {
       remarks,
       categoryId,
       accountId,
+      supplierId,
     } = req.body;
     // Do not allow changing the associated account in an update to avoid
     // double/missed balance adjustments with model hooks.
@@ -352,6 +365,7 @@ const updateById = async (req) => {
     if (amount !== undefined) updateData.amount = newAmount;
     if (remarks !== undefined) updateData.remarks = remarks;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (supplierId !== undefined) updateData.supplierId = supplierId;
     // We already disallow changing accountId, so do not update it here
 
     await expense.update(updateData, { transaction });
@@ -360,6 +374,7 @@ const updateById = async (req) => {
       include: [
         { model: expenseCategoryModel, as: "category" },
         { model: accountModel, as: "account" },
+        { model: supplierModel, as: "supplier" },
       ],
       transaction,
     });
@@ -512,6 +527,78 @@ const getUnpaidCredits = async (req) => {
   }
 };
 
+// Daily expense summary
+const todayExpense = async (req) => {
+  try {
+    const { start, end } = req.query;
+    
+    let startDate, endDate, targetDate;
+    
+    if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+      targetDate = start;
+    } else {
+      targetDate = new Date().toISOString().split("T")[0];
+      const dateRange = getLocalDateRange(targetDate, targetDate);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+    }
+
+    const expenseFilters = {
+      createdAt: { [Op.between]: [startDate, endDate] },
+    };
+
+    const total = await expenseModel.sum("amount", {
+      where: expenseFilters,
+    });
+
+    const expensesByCategory = await expenseModel.findAll({
+      attributes: [
+        "categoryId",
+        [sequelize.col("category.name"), "categoryName"],
+        [sequelize.fn("SUM", sequelize.col("amount")), "totalExpense"],
+        [sequelize.fn("COUNT", sequelize.col("Expense.id")), "itemCount"],
+      ],
+      where: expenseFilters,
+      include: [
+        {
+          model: expenseCategoryModel,
+          as: "category",
+          attributes: [],
+          required: false,
+        },
+      ],
+      group: ["categoryId", "category.id", "category.name"],
+      order: [[sequelize.fn("SUM", sequelize.col("amount")), "DESC"]],
+      raw: true,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Today's expense retrieved successfully",
+      data: {
+        date: targetDate,
+        totalExpense: parseFloat(total || 0),
+        categories: expensesByCategory.map((e) => ({
+          categoryName: e.categoryName || "Uncategorized",
+          totalExpense: parseFloat(e.totalExpense || 0),
+        })),
+      },
+    };
+  } catch (error) {
+    console.error("Today's expense error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve today's expense",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -522,4 +609,5 @@ module.exports = {
   getUnpaidCredits,
   totalExpense,
   categorySummary,
+  todayExpense,
 };

@@ -10,6 +10,7 @@ const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 const { Sequelize } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
+const { getLocalDateRange } = require("../../utils/timezone");
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -168,10 +169,20 @@ const categorySummary = async (req) => {
 
 const list = async (req) => {
   try {
-    const { limit, page, supplierId, status } = req.query;
+    const { limit, page, supplierId, status, start, end, date } = req.query;
     const filters = {};
     if (supplierId) filters.supplierId = supplierId;
     if (status) filters.status = status;
+
+    // Handle date filtering
+    if (date) {
+      const dateRange = getLocalDateRange(date, date);
+      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+    } else if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+    }
+
     const include = [
       { model: supplierModel, as: "supplier" },
       {
@@ -569,7 +580,7 @@ const recordCreditPayment = async (req) => {
     // Update purchase with payment details
     await purchase.update(
       {
-        paidByUserId: req.user.id,
+        // paidByUserId: req.user.id,
         paymentDate: new Date(),
         paymentAccountId: paymentAccountId, // Record the actual payment account used
       },
@@ -775,6 +786,168 @@ const deleteById = async (req) => {
   }
 };
 
+// Group purchases by account
+const purchaseByAccount = async (req) => {
+  try {
+    let { startDate, endDate, accountId } = req.query;
+
+    const filters = {};
+    filters.status = "completed";
+
+    if (startDate && endDate) {
+      const start = startOfDay(parseISO(startDate));
+      const end = endOfDay(parseISO(endDate));
+      filters.invoiceDate = { [Sequelize.Op.between]: [start, end] };
+    }
+
+    if (accountId) {
+      filters.accountId = parseInt(accountId);
+    }
+
+    const includes = [
+      {
+        model: accountModel,
+        as: "account",
+        attributes: ["id", "name", "accountType"],
+        required: true,
+      },
+    ];
+
+    const purchasesByAccount = await purchaseModel.findAll({
+      attributes: [
+        "accountId",
+        [sequelize.col("account.name"), "accountName"],
+        [sequelize.col("account.accountType"), "accountType"],
+        [sequelize.fn("SUM", sequelize.col("totalAmount")), "totalPurchase"],
+        [
+          sequelize.fn("COUNT", sequelize.col("Purchase.id")),
+          "transactionCount",
+        ],
+      ],
+      where: filters,
+      include: includes,
+      group: [
+        "accountId",
+        sequelize.col("account.name"),
+        sequelize.col("account.accountType"),
+      ],
+      order: [[sequelize.fn("SUM", sequelize.col("totalAmount")), "DESC"]],
+      raw: true,
+    });
+
+    const grandTotal = await purchaseModel.sum("totalAmount", {
+      where: filters,
+      include: includes,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Purchase by account retrieved successfully",
+      data: {
+        purchases: purchasesByAccount.map((p) => ({
+          accountId: p.accountId,
+          accountName: p.accountName,
+          accountType: p.accountType,
+          totalPurchase: parseFloat(p.totalPurchase || 0),
+          transactionCount: parseInt(p.transactionCount || 0),
+        })),
+        grandTotal: parseFloat(grandTotal || 0),
+      },
+    };
+  } catch (error) {
+    console.error("Purchase by account error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve purchase by account",
+      error: error.message,
+    };
+  }
+};
+
+// Daily purchase summary
+const todayPurchase = async (req) => {
+  try {
+    const { start, end } = req.query;
+
+    let startDate, endDate, targetDate;
+
+    if (start && end) {
+      const dateRange = getLocalDateRange(start, end);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+      targetDate = start;
+    } else {
+      targetDate = new Date().toISOString().split("T")[0];
+      const dateRange = getLocalDateRange(targetDate, targetDate);
+      startDate = dateRange.start;
+      endDate = dateRange.end;
+    }
+
+    const purchaseFilters = {
+      status: "completed",
+      invoiceDate: { [Sequelize.Op.between]: [startDate, endDate] },
+    };
+
+    const total = await purchaseModel.sum("totalAmount", {
+      where: purchaseFilters,
+    });
+
+    const purchasesByCategory = await purchaseItemModel.findAll({
+      attributes: [
+        "categoryId",
+        [sequelize.col("category.id"), "id"],
+        [sequelize.col("category.name"), "categoryName"],
+        [sequelize.fn("SUM", sequelize.col("amount")), "totalPurchase"],
+        [sequelize.fn("COUNT", sequelize.col("PurchaseItem.id")), "itemCount"],
+      ],
+      where: {},
+      include: [
+        {
+          model: purchaseCategoryModel,
+          as: "category",
+          attributes: ["id", "name"],
+          required: true,
+        },
+        {
+          model: purchaseModel,
+          as: "purchase",
+          attributes: [],
+          where: purchaseFilters,
+          required: true,
+        },
+      ],
+      group: ["categoryId", "category.id", "category.name"],
+      order: [[sequelize.fn("SUM", sequelize.col("amount")), "DESC"]],
+      raw: true,
+    });
+
+    return {
+      status: 200,
+      success: true,
+      message: "Today's purchase retrieved successfully",
+      data: {
+        date: targetDate,
+        totalPurchase: parseFloat(total || 0),
+        categories: purchasesByCategory.map((p) => ({
+          id: p.id,
+          categoryName: p.categoryName || "Uncategorized",
+          totalPurchase: parseFloat(p.totalPurchase || 0),
+        })),
+      },
+    };
+  } catch (error) {
+    console.error("Today's purchase error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve today's purchase",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -787,4 +960,6 @@ module.exports = {
   totalPurchase,
   categorySummary,
   deleteById,
+  purchaseByAccount,
+  todayPurchase,
 };

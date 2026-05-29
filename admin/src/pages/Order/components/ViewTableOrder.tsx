@@ -62,7 +62,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
 
   const orders = tableOrder?.data?.orders;
-  const allOrderIds = tableOrder?.data?.orders.map(({ id }) => id);
+  const allOrderIds = tableOrder?.data?.orders.map(({ id }: any) => id);
 
   return (
     <>
@@ -214,7 +214,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                         )}
                       </div>
                       <p className="text-lg font-semibold text-gray-800">
-                        Total: Rs.{Number(order.totalAmount).toFixed(2)}
+                        Total: Rs. {Number(order.calculatedTotal).toFixed(2)}
                       </p>
                     </div>
                   </div>

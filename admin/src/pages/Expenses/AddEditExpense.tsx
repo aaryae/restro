@@ -24,7 +24,7 @@ import Input from "@/components/Input";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import AddEditExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-import ExpenseSchema from "./schema";
+import { ExpenseSchema } from "./schema";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
 
@@ -42,6 +42,11 @@ const AddEditExpense: React.FC = () => {
   const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
   const [addSupplierDialogOpen, setAddSupplierDialogOpen] = useState(false);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<{
+    value: string;
+    label: string;
+  } | null>(null);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const {
     register,
@@ -134,8 +139,15 @@ const AddEditExpense: React.FC = () => {
       accountId: String(row.accountId),
       amount: Number(row?.amount) || 0,
       remarks: row?.remarks || "",
-      supplierId: row?.supplierId ? String(row.supplierId) : undefined,
+      supplierId: row?.supplierId ? String(row.supplierId) : "",
     });
+    if (row?.supplierId) {
+      setSelectedSupplier({
+        value: String(row.supplierId),
+        label: row.supplier?.name || "",
+      });
+      setSupplierSearchTerm(row.supplier?.name || "");
+    }
   }, [isEdit, id, expenseData, reset]);
 
   useEffect(() => {
@@ -172,8 +184,6 @@ const AddEditExpense: React.FC = () => {
   }, [supplierData, supplierFetched]);
 
   const onSubmit = async (data: ExpenseFormInput) => {
-    if (isEdit) delete data.supplierId;
-
     const body = {
       id: isEdit ? Number(id) : undefined,
       cash_or_credit: "cash",
@@ -181,11 +191,7 @@ const AddEditExpense: React.FC = () => {
       amount: Number(data.amount),
       accountId: Number(data.accountId),
       categoryId: data.categoryId ? Number(data.categoryId) : null,
-      supplierId: isEdit
-        ? undefined
-        : data.supplierId
-          ? Number(data.supplierId)
-          : null,
+      supplierId: data.supplierId ? Number(data.supplierId) : null,
       remarks: data.remarks ?? null,
     } as any;
 
@@ -209,8 +215,14 @@ const AddEditExpense: React.FC = () => {
     <div className="p-6">
       <PageTitle title={isEdit ? "Edit Expense" : "Add Expense"} isBack />
       <form
-        onSubmit={handleSubmit(onSubmit)}
         className="flex flex-col items-center space-y-6"
+        onSubmit={(e) => {
+          if (expenseCategoryDialogOpen) {
+            e.preventDefault();
+            return;
+          }
+          handleSubmit(onSubmit)(e);
+        }}
       >
         <div className="flex gap-2 w-full mt-[1rem]">
           {/* max-w-[900px] */}
@@ -295,7 +307,7 @@ const AddEditExpense: React.FC = () => {
                 />
               </div>
 
-              <div className={`flex flex-col ${isEdit ? "hidden" : ""}`}>
+              <div className={`flex flex-col`}>
                 <div className="relative">
                   <div className="flex items-center justify-between">
                     <label className="text-sm text-gray-700 mb-1 flex justify-start">
@@ -343,8 +355,85 @@ const AddEditExpense: React.FC = () => {
                       </button>
                     </div>
                   </div>
+                  <div className="relative mt-2">
+                    <input
+                      placeholder="Search supplier"
+                      className="border rounded px-3 py-2 bg-white w-full"
+                      value={selectedSupplier?.label || supplierSearchTerm}
+                      onChange={(e) => {
+                        setSelectedSupplier(null);
+                        setSupplierSearchTerm(e.target.value);
+                        setIsSupplierDropdownOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const first = suppliers?.[0];
+                          if (first) {
+                            setSelectedSupplier({
+                              value: String(first.id),
+                              label: first.name,
+                            });
+                            setValue("supplierId", String(first.id), {
+                              shouldValidate: true,
+                            });
+                            setSupplierSearchTerm(first.name);
+                            setIsSupplierDropdownOpen(false);
+                          }
+                        }
+                      }}
+                      onFocus={() => setIsSupplierDropdownOpen(true)}
+                      onBlur={() =>
+                        setTimeout(() => setIsSupplierDropdownOpen(false), 150)
+                      }
+                    />
+                    {isSupplierDropdownOpen &&
+                      supplierSearchTerm.trim().length >= 2 && (
+                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                          {!suppliersOk ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              Type at least 2 characters to search…
+                            </div>
+                          ) : suppliers.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No suppliers found
+                            </div>
+                          ) : (
+                            suppliers.map((supplier: any) => (
+                              <button
+                                key={supplier.id}
+                                type="button"
+                                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setSelectedSupplier({
+                                    value: String(supplier.id),
+                                    label: supplier.name,
+                                  });
+                                  setValue("supplierId", String(supplier.id), {
+                                    shouldValidate: true,
+                                  });
+                                  setSupplierSearchTerm(supplier.name);
+                                  setIsSupplierDropdownOpen(false);
+                                }}
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">
+                                    {supplier.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {[supplier.phone, supplier.email]
+                                      .filter(Boolean)
+                                      .join(" • ")}
+                                  </div>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                  </div>
 
-                  <Controller
+                  {/* <Controller
                     name="supplierId"
                     control={control}
                     render={({ field }) => (
@@ -379,7 +468,7 @@ const AddEditExpense: React.FC = () => {
                       //   )}
                       // </div>
                     )}
-                  />
+                  /> */}
                 </div>
 
                 {/* View Suppliers Dialog */}

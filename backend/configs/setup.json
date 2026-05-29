@@ -1,4 +1,6 @@
 {
+  "default_timezone": "Asia/Kathmandu",
+
   "mediaCategory": [
     {
       "id": 354,
@@ -1633,6 +1635,20 @@
       ]
     },
     {
+      "title": "Table Report",
+      "key": "table-report",
+      "actions": [
+        {
+          "title": "View Table Report",
+          "key": "view",
+          "clientPath": "/table-report",
+          "serverPath": "/table-report",
+          "requestMethod": "GET",
+          "list": "Table Report"
+        }
+      ]
+    },
+    {
       "title": "Reports",
       "key": "reports",
       "actions": [
@@ -1659,6 +1675,34 @@
           "serverPath": "/report/daily-table-sessions/:id",
           "requestMethod": "GET",
           "list": "Reports"
+        }
+      ]
+    },
+    {
+      "title": "Daily Reports",
+      "key": "daily-reports",
+      "actions": [
+        {
+          "title": "Daily Reports",
+          "key": "view",
+          "clientPath": "/daily-reports",
+          "serverPath": "/daily-reports",
+          "requestMethod": "GET",
+          "list": "Daily Reports"
+        }
+      ]
+    },
+    {
+      "title": "Dashboard",
+      "key": "dashboard",
+      "actions": [
+        {
+          "title": "View Dashboard",
+          "key": "view",
+          "clientPath": "/dashboard",
+          "serverPath": "/dashboard",
+          "requestMethod": "GET",
+          "list": "Dashboard"
         }
       ]
     }

@@ -480,7 +480,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         orderNote: orderData.orderNote,
         customerInfo: { name: displayCustomerName },
         items,
-        totalAmount: Number(orderData.totalAmount ?? 0),
+        totalAmount:
+          orderData.calculatedTotal ?? Number(orderData.totalAmount ?? 0),
       };
     }
 

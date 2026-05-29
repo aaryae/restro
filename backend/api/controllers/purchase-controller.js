@@ -200,6 +200,42 @@ const deleteById = async (req, res, next) => {
   }
 };
 
+const purchaseByAccount = async (req, res, next) => {
+  try {
+    const result = await purchaseService.purchaseByAccount(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const todayPurchase = async (req, res, next) => {
+  try {
+    const result = await purchaseService.todayPurchase(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -212,4 +248,6 @@ module.exports = {
   totalPurchase,
   categorySummary,
   deleteById,
+  purchaseByAccount,
+  todayPurchase,
 };

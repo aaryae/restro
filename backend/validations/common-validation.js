@@ -57,8 +57,10 @@ const slugValidation = async (req, res, next) => {
 const paginationValidation = async (req, res, next) => {
   let joiModel = joi.object({
     name: joi.string().optional().label("name"),
+    userName: joi.string().optional().label("userName"),
+    pan_vat_number: joi.number().optional().label("pan_vat_number"),
+    address: joi.string().optional().label("address"),
     page: joi.number().optional().label("page"),
-    name: joi.string().optional().label("name"),
     limit: joi.number().optional().label("limit"),
     isDeleted: joi.boolean().optional().label("isDeleted"),
     mediaCategoryId: joi.number().optional().label("id"),
@@ -119,6 +121,8 @@ const paginationValidation = async (req, res, next) => {
         }
         return value;
       }, "accountType validation"),
+    contact_person: joi.string().optional().label("contact_person"),
+    contact_number: joi.number().optional().label("contact_number"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

@@ -547,13 +547,18 @@ const changeDefaultAccount = async (req) => {
 
 const list = async (req) => {
   try {
-    let { limit, page, accountType } = req.query;
+    let { limit, page, accountType, name } = req.query;
     const filters = {};
     const include = [];
 
     if (accountType) {
       filters.accountType = {
         [Op.in]: accountType.split(","), // Support multiple types, e.g., "cash,bank"
+      };
+    }
+    if (name) {
+      filters.name = {
+        [Op.like]: `%${name}%`, // Case-insensitive partial match
       };
     }
 
