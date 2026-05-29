@@ -136,7 +136,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const { data: table } = useGetApiQuery(
     { url: `table/${tableId}` },
     {
-      skip: orderId === null || orderId === undefined,
+      skip: !tableId,
     },
   );
 
@@ -285,6 +285,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               : {}),
           };
         }
+      } else if (
+        !Array.isArray(orderId) &&
+        orderId &&
+        isTakeaway
+      ) {
+        payload = {
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderId,
+          ...(checkoutType === "member" && selectedMember
+            ? { customerId: selectedMember.id }
+            : {}),
+        };
       }
 
       // Checkout all:
