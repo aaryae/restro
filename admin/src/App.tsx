@@ -119,13 +119,15 @@ export default function App() {
           <img
             src={
               settings?.data?.brandingImage
-                ? `${IMAGE_BASE_URL}${settings.data.brandingImage}`
+                ? settings.data.brandingImage.startsWith("http")
+                  ? settings.data.brandingImage
+                  : `${IMAGE_BASE_URL}${settings.data.brandingImage}`
                 : Logo
             }
             alt="Logo"
             className="auth-logo"
           />
-          <h1>{PROJECT_NAME} Login</h1>
+          <h1>{settings?.data?.brand_name || PROJECT_NAME} Login</h1>
           <Input
             label="Username"
             placeholder="Enter your Username"

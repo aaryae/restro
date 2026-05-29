@@ -1,4 +1,4 @@
-export const PROJECT_NAME = "Nirvana Restro";
+export const PROJECT_NAME = "Serve";
 
 export const PROJECT_LOGO = "./public/fav.webp";
 
