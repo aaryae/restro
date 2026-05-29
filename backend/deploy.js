@@ -20,7 +20,7 @@ router.post('/webhook', (req, res) => {
       return res.status(401).send('Unauthorized');
     }
 
-    execSync(`cd ${appRoot} && git pull origin develop`);
+    execSync(`cd ${appRoot} && git pull origin development`);
     execSync(`touch ${appRoot}/backend/tmp/restart.txt`);
     console.log('Deployed successfully!');
     res.send('Deployed!');
