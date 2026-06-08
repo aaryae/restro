@@ -43,4 +43,16 @@ const sendNotification = async (
   }
 };
 
-module.exports = { sendNotification, clients };
+/**
+ * Push a real-time event to all connected admin clients (e.g. QR payment received).
+ */
+const broadcastPaymentEvent = (payload) => {
+  const message = JSON.stringify(payload);
+  for (const [, client] of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+};
+
+module.exports = { sendNotification, clients, broadcastPaymentEvent };

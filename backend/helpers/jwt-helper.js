@@ -45,7 +45,6 @@ module.exports.toAuthJSON = function (user, role) {
 };
 
 module.exports.verifyToken = async function (token) {
-  console.log(token);
   return await jwt.verify(token, JWT_SECRET);
 };
 
@@ -68,7 +67,6 @@ module.exports.toCustomerAuthJSON = function (user, role) {
   };
 };
 module.exports.verifyCustomerToken = async function (token) {
-  console.log(token);
   try {
     return await jwt.verify(token, "customer");
   } catch (error) {

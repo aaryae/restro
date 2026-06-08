@@ -222,4 +222,7 @@ app.use((err, req, res, next) => {
 
 initWebSocket(server);
 
+const { bootstrapMachbankEmerchant } = require("./integrations/machbank-emerchant/bootstrap");
+bootstrapMachbankEmerchant();
+
 module.exports = { app, server };

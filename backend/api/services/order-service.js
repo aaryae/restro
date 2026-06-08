@@ -2908,6 +2908,140 @@ const moveOrderItems = async (req) => {
   }
 };
 
+/**
+ * Settle an order after NEPALPAY QR confirmation (async gateway flow).
+ */
+const finalizeQrPayment = async (
+  {
+    orderId,
+    amount,
+    accountId,
+    userId,
+    paymentIntentId,
+    gatewayReference,
+    remarks,
+  },
+  transaction,
+) => {
+  const order = await orderModel.findByPk(orderId, {
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!order) {
+    return { success: false, message: "Order not found" };
+  }
+
+  let selectedAccountId = accountId;
+  if (!selectedAccountId) {
+    let account = await accountModel.findOne({
+      where: { accountType: "wallet", status: "active", isDefault: true },
+      transaction,
+    });
+    if (!account) {
+      account = await accountModel.findOne({
+        where: { accountType: "wallet", status: "active" },
+        transaction,
+      });
+    }
+    if (!account) {
+      return {
+        success: false,
+        message: "No active wallet account configured for QR settlement",
+      };
+    }
+    selectedAccountId = account.id;
+  } else {
+    const account = await accountModel.findByPk(selectedAccountId, {
+      transaction,
+    });
+    if (!account || account.status !== "active") {
+      return { success: false, message: "Invalid or inactive settlement account" };
+    }
+  }
+
+  await revenueModel.create(
+    {
+      amount,
+      paymentMethod: "online",
+      cash_or_credit: "cash",
+      customerId: order.customerId,
+      userId,
+      accountId: selectedAccountId,
+      remarks: remarks || `NEPALPAY QR settlement for order ${orderId}`,
+      orderId: order.id,
+      paymentIntentId,
+      gatewayReference,
+    },
+    { transaction },
+  );
+
+  const currentPayable = Number(order.payableAmount ?? order.totalAmount);
+  const newPayable = Math.max(0, currentPayable - Number(amount));
+  const paymentMethods = Array.isArray(order.paymentMethods)
+    ? [...order.paymentMethods]
+    : [];
+  if (!paymentMethods.includes("nepalpay_qr")) {
+    paymentMethods.push("nepalpay_qr");
+  }
+
+  const updateFields = {
+    payableAmount: newPayable,
+    paymentMethods,
+    paymentStatus: newPayable <= 0 ? "paid" : "partially_paid",
+  };
+
+  if (newPayable <= 0) {
+    updateFields.status = "completed";
+    updateFields.orderFinishTime = new Date();
+
+    await orderItemModel.update(
+      { status: "completed" },
+      {
+        where: {
+          orderId: order.id,
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        validate: false,
+        transaction,
+      },
+    );
+
+    const kots = await kotModel.findAll({
+      where: { orderId: order.id },
+      attributes: ["id"],
+      transaction,
+    });
+    const kotIds = kots.map((k) => k.id);
+    if (kotIds.length > 0) {
+      const rows = await orderItemModel.findAll({
+        attributes: ["kotId"],
+        where: {
+          kotId: { [Op.in]: kotIds },
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        group: ["kotId"],
+        transaction,
+        raw: true,
+      });
+      const incompleteKotIds = new Set(rows.map((r) => r.kotId));
+      const completeKotIds = kotIds.filter((id) => !incompleteKotIds.has(id));
+      if (completeKotIds.length > 0) {
+        await kotModel.update(
+          { status: "completed" },
+          {
+            where: { id: { [Op.in]: completeKotIds } },
+            validate: false,
+            transaction,
+          },
+        );
+      }
+    }
+  }
+
+  await order.update(updateFields, { transaction });
+  return { success: true };
+};
+
 module.exports = {
   getTableActiveOrders,
   getOrderById,
@@ -2917,6 +3051,7 @@ module.exports = {
   updateOrderItems,
   bulkServeOrderItems,
   checkoutOrder,
+  finalizeQrPayment,
   getOrderItems,
   updateOrderItemsStatus,
   categorySalesSummary,

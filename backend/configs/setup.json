@@ -935,6 +935,30 @@
           "list": "Order"
         },
         {
+          "title": "NEPALPAY QR Initiate",
+          "key": "payment-qr-initiate",
+          "clientPath": "/payment/qr/initiate",
+          "serverPath": "/payment/qr/initiate",
+          "requestMethod": "POST",
+          "list": "Order"
+        },
+        {
+          "title": "NEPALPAY QR Status",
+          "key": "payment-qr-status",
+          "clientPath": "/payment/qr/:id/status",
+          "serverPath": "/payment/qr/:id/status",
+          "requestMethod": "GET",
+          "list": "Order"
+        },
+        {
+          "title": "NEPALPAY QR Cancel",
+          "key": "payment-qr-cancel",
+          "clientPath": "/payment/qr/:id/cancel",
+          "serverPath": "/payment/qr/:id/cancel",
+          "requestMethod": "POST",
+          "list": "Order"
+        },
+        {
           "title": "View Order Item",
           "key": "view-order-item",
           "clientPath": "/order/list/order-items",
