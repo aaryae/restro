@@ -1,4 +1,4 @@
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import galleryIcon from "@/assets/gallery_icon.svg";
 
 export const ImageInputUI = ({
@@ -15,7 +15,7 @@ export const ImageInputUI = ({
       >
         {image !== undefined && image !== "" ? (
           <img
-            src={`${IMAGE_BASE_URL}${image}`}
+            src={buildAssetUrl(image)}
             alt="Gallery Icon"
             className="object-contain h-full w-full p-[1rem]"
             // crossOrigin="anonymous"
