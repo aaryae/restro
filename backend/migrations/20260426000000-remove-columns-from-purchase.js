@@ -5,12 +5,23 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      // First, remove foreign key constraint if exists
-      await queryInterface.sequelize.query(
-        'ALTER TABLE purchases DROP FOREIGN KEY IF EXISTS purchases_paidByUserId_foreign_idx',
+      const [foreignKeys] = await queryInterface.sequelize.query(
+        `SELECT CONSTRAINT_NAME
+         FROM information_schema.TABLE_CONSTRAINTS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'purchases'
+           AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+           AND CONSTRAINT_NAME LIKE '%paidByUserId%'`,
         { transaction }
       );
-      
+
+      for (const { CONSTRAINT_NAME } of foreignKeys) {
+        await queryInterface.sequelize.query(
+          `ALTER TABLE purchases DROP FOREIGN KEY \`${CONSTRAINT_NAME}\``,
+          { transaction }
+        );
+      }
+
       await queryInterface.removeColumn('purchases', 'billPhotoUrl', { transaction });
       await queryInterface.removeColumn('purchases', 'paidByUserId', { transaction });
       await transaction.commit();

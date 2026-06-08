@@ -24,6 +24,12 @@ module.exports = (sequelize) => {
         as: "order",
         onDelete: "CASCADE",
       });
+
+      Revenue.belongsTo(models.paymentIntentModel, {
+        foreignKey: "paymentIntentId",
+        as: "paymentIntent",
+        onDelete: "SET NULL",
+      });
     }
   }
 
@@ -68,6 +74,14 @@ module.exports = (sequelize) => {
       accountId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      paymentIntentId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      gatewayReference: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
       },
     },
     {
