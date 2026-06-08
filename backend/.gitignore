@@ -13,6 +13,11 @@ logs/combined.log
 #Environment
 .env
 
+# Machbank / payment secrets
+secrets/
+*.pfx
+*.p12
+
 
 # npm 
 package-lock.json
