@@ -4,15 +4,15 @@ import CustomDialog from "@/components/Dialog";
 import Drawer from "@/components/Drawer";
 import Input from "@/components/Input";
 import { CurrencySign } from "@/constants";
-import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { ACCOUNT_URL, ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useCheckoutOrderMutation } from "@/redux/services/orders";
 import {
   PaymentIntentData,
   useInitiateQrPaymentMutation,
   useLazyGetQrPaymentStatusQuery,
 } from "@/redux/services/payment";
-import { useCheckoutOrderMutation } from "@/redux/services/orders";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -655,12 +655,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }, 0);
   }, [items, selectedIds]);
 
+  // Checkout-all (multiple orders on a table) supports dynamic QR only when the
+  // whole bill is selected — partial item selection across orders isn't a
+  // single combined QR payment.
+  const canDynamicCheckoutAll =
+    Array.isArray(orderId) && allSelected && tableId != null;
+
   const canUseDynamicQr =
     isNepalPaySelected &&
-    checkoutOrderId != null &&
     selectedSubtotal > 0 &&
     paymentType === "qr" &&
-    selectedQrCategory === "bank";
+    selectedQrCategory === "bank" &&
+    (checkoutOrderId != null || canDynamicCheckoutAll);
 
   useEffect(() => {
     setQrMode("static");
@@ -675,11 +681,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const run = async () => {
       setDynamicQrError(null);
       try {
-        const res = await initiateQrPayment({
-          orderId: checkoutOrderId!,
-          amount: selectedSubtotal,
-          accountId: selectedBankId ?? undefined,
-        }).unwrap();
+        const body =
+          checkoutOrderId != null
+            ? {
+                orderId: checkoutOrderId,
+                amount: selectedSubtotal,
+                accountId: selectedBankId ?? undefined,
+              }
+            : {
+                tableId: tableId!,
+                checkoutAll: true,
+                amount: selectedSubtotal,
+                accountId: selectedBankId ?? undefined,
+              };
+        const res = await initiateQrPayment(body).unwrap();
         if (!cancelled && res.success && res.data) {
           setDynamicIntent(res.data);
         }
@@ -699,11 +714,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, qrMode, canUseDynamicQr, checkoutOrderId, selectedSubtotal, selectedBankId]);
+  }, [
+    isOpen,
+    qrMode,
+    canUseDynamicQr,
+    checkoutOrderId,
+    tableId,
+    selectedSubtotal,
+    selectedBankId,
+  ]);
 
   useEffect(() => {
     if (!dynamicIntent || dynamicIntent.status !== "pending") return;
-
+//indicator
     const poll = async () => {
       try {
         const res = await fetchQrStatus(dynamicIntent.id).unwrap();
@@ -720,8 +743,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             }, 2000);
           }
         }
-      } catch {
-        /* ignore transient poll errors */
+      } catch (error: any) {
+        const status = error?.status ?? error?.originalStatus;
+        if (status === 401 || status === 403) {
+          setDynamicQrError(
+            "Session expired while waiting for payment. Refresh the page and check order status.",
+          );
+        }
       }
     };
 
@@ -1328,12 +1356,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                   ),
                                 )}
                               </div>
-                              {qrMode === "dynamic" && !checkoutOrderId && (
-                                <p className="mt-2 text-xs text-amber-700">
-                                  Dynamic QR works for a single order checkout
-                                  only (not Checkout ALL on multiple orders).
-                                </p>
-                              )}
+                              {qrMode === "dynamic" &&
+                                !checkoutOrderId &&
+                                !canDynamicCheckoutAll && (
+                                  <p className="mt-2 text-xs text-amber-700">
+                                    For Checkout ALL, dynamic QR pays the whole
+                                    table at once — select all items, or use
+                                    static QR / cash for partial payments.
+                                  </p>
+                                )}
                             </div>
                           )}
 

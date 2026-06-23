@@ -2451,6 +2451,27 @@ const updateOrderItemsStatus = async (req) => {
       };
     }
 
+    // Already in the requested state — nothing to do (idempotent no-op)
+    if (orderItem.status === status) {
+      await transaction.rollback();
+      return {
+        status: 200,
+        success: true,
+        message: `Order item is already ${status}`,
+        data: [orderItem],
+      };
+    }
+
+    // A cancelled item is terminal and cannot transition further
+    if (orderItem.status === "cancelled") {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Order item is already cancelled",
+      };
+    }
+
     // Validate status transition
     if (
       (status === "preparing" && orderItem.status !== "pending") ||
@@ -2477,20 +2498,6 @@ const updateOrderItemsStatus = async (req) => {
 
     // If cancelled, handle addons and KOT
     if (status === "cancelled") {
-      // Find all KOTs that include this order item
-      const kots = await kotModel.findAll({
-        include: [
-          {
-            model: orderItemModel,
-            as: "orderItems",
-            where: { id: orderItem.id },
-            attributes: [], // We don't need the order item data
-            required: true,
-          },
-        ],
-        transaction,
-      });
-
       // Handle KOT
       if (orderItem.kotId) {
         const kotItems = await orderItemModel.findAll({
@@ -2504,7 +2511,7 @@ const updateOrderItemsStatus = async (req) => {
         );
 
         // Only update KOT status if all its items are cancelled
-        if (allItemsCancelled && kot.status !== "cancelled") {
+        if (allItemsCancelled) {
           await kotModel.update(
             { status: "cancelled" },
             {
@@ -2532,7 +2539,7 @@ const updateOrderItemsStatus = async (req) => {
       });
 
       // If no active items remain, update the order status
-      if (activeItemsCount === 0) {
+      if (mainItems.length === 0) {
         const newOrderStatus =
           status === "cancelled" ? "cancelled" : "completed";
 
@@ -3042,6 +3049,81 @@ const finalizeQrPayment = async (
   return { success: true };
 };
 
+/**
+ * Settle EVERY active order on a table from one NEPALPAY QR payment
+ * (checkout-all). Each order is paid in full for its own payable balance via
+ * finalizeQrPayment, then the table session is released once nothing remains.
+ */
+const finalizeQrPaymentForTable = async (
+  {
+    tableId,
+    sessionId,
+    accountId,
+    userId,
+    paymentIntentId,
+    gatewayReference,
+    remarks,
+  },
+  transaction,
+) => {
+  if (!tableId) {
+    return { success: false, message: "Missing tableId for checkout-all settlement" };
+  }
+
+  const orders = await orderModel.findAll({
+    where: {
+      tableId,
+      ...(sessionId ? { sessionId } : {}),
+      status: { [Op.notIn]: ["completed", "cancelled"] },
+    },
+    order: [["createdAt", "ASC"]],
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+
+  if (!orders.length) {
+    return { success: false, message: "No active orders to settle for this table" };
+  }
+
+  for (const order of orders) {
+    const orderPayable = Number(order.payableAmount ?? order.totalAmount);
+    if (orderPayable <= 0) continue;
+    const result = await finalizeQrPayment(
+      {
+        orderId: order.id,
+        amount: orderPayable,
+        accountId,
+        userId,
+        paymentIntentId,
+        gatewayReference,
+        remarks: remarks || `NEPALPAY QR settlement (table ${tableId})`,
+      },
+      transaction,
+    );
+    if (!result.success) {
+      return result;
+    }
+  }
+
+  // Release the table once no active orders remain in the session.
+  const stillActive = await orderModel.findOne({
+    where: {
+      tableId,
+      ...(sessionId ? { sessionId } : {}),
+      status: { [Op.notIn]: ["completed", "cancelled"] },
+    },
+    transaction,
+  });
+  if (!stillActive) {
+    await tableModel.update(
+      { status: "available", sessionId: null, sessionStartTime: null },
+      { where: { id: tableId }, transaction },
+    );
+  }
+
+  return { success: true };
+};
+
 module.exports = {
   getTableActiveOrders,
   getOrderById,
@@ -3052,6 +3134,7 @@ module.exports = {
   bulkServeOrderItems,
   checkoutOrder,
   finalizeQrPayment,
+  finalizeQrPaymentForTable,
   getOrderItems,
   updateOrderItemsStatus,
   categorySalesSummary,

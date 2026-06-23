@@ -27,7 +27,14 @@ const paymentApi = api.injectEndpoints({
   endpoints: (builder) => ({
     initiateQrPayment: builder.mutation<
       { success: boolean; data: PaymentIntentData; message?: string },
-      { orderId: number; amount?: number; accountId?: number; remarks?: string }
+      {
+        orderId?: number;
+        tableId?: number;
+        checkoutAll?: boolean;
+        amount?: number;
+        accountId?: number;
+        remarks?: string;
+      }
     >({
       query: (body) => ({
         url: "payment/qr/initiate",

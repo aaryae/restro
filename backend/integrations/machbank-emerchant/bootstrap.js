@@ -2,6 +2,7 @@
 
 const { config, assertEnabledConfig } = require("./config");
 const { registerMachbankWebSocketHandler } = require("./ws-lifecycle");
+const { assertWsTokenKeyUsable } = require("./crypto/encrypt-ws-token");
 const paymentIntentService = require("../../api/services/payment-intent-service");
 const { expirePaymentIntentsJob } = require("../../jobs/expire-payment-intents");
 const logger = require("../../configs/logger");
@@ -24,9 +25,12 @@ function bootstrapMachbankEmerchant() {
     paymentIntentService.settleFromGatewayEvent(event),
   );
 
+  // Surfaces a clear, actionable error at startup if the nqrws token key is unusable.
+  assertWsTokenKeyUsable();
+
   expirePaymentIntentsJob.start();
   logger.info(
-    "Machbank eMerchant ready (nqrws opens after successful QR generation only)",
+    `Machbank eMerchant ready (nqrws merchant_id=${config.wsMerchantId || "?"}; opens after successful QR generation)`,
   );
 }
 

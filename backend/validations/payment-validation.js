@@ -7,7 +7,19 @@ const { validateRequestBody } = require("../helpers/validator-helper");
 
 const initiateQrValidation = async (req, res, next) => {
   const joiModel = joi.object({
-    orderId: joi.number().integer().positive().required(),
+    checkoutAll: joi.boolean().optional(),
+    // For table checkout-all, tableId is required and orderId is optional;
+    // for single-order checkout, orderId is required.
+    orderId: joi.when("checkoutAll", {
+      is: true,
+      then: joi.number().integer().positive().optional(),
+      otherwise: joi.number().integer().positive().required(),
+    }),
+    tableId: joi.when("checkoutAll", {
+      is: true,
+      then: joi.number().integer().positive().required(),
+      otherwise: joi.number().integer().positive().optional(),
+    }),
     amount: joi.number().precision(2).positive().optional(),
     accountId: joi.number().integer().positive().optional(),
     remarks: joi.string().max(255).optional(),

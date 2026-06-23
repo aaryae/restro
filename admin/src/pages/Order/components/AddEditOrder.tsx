@@ -347,6 +347,8 @@ export default function AddEditOrder({
   };
 
   const removeOrderItem = async (itemId: string) => {
+    const target = orderItems.find((item) => item.id === itemId);
+    if (target?.status === "cancelled") return;
     if (!String(itemId).includes("newitem_")) {
       try {
         const response = await patchStatus({
@@ -384,31 +386,33 @@ export default function AddEditOrder({
       const payload = {
         ...data,
         orderNote: getValues("orderNote"),
-        orderItems: orderItems.map((item: OrderItem) => {
-          const base = {
-            productId: Number(item.productId),
-            quantity: item.quantity,
-            departmentId: item.departmentId,
-          } as any;
+        orderItems: orderItems
+          .filter((item: OrderItem) => item.status !== "cancelled")
+          .map((item: OrderItem) => {
+            const base = {
+              productId: Number(item.productId),
+              quantity: item.quantity,
+              departmentId: item.departmentId,
+            } as any;
 
-          if (String(item.id).includes("newitem_")) {
+            if (String(item.id).includes("newitem_")) {
+              return {
+                ...base,
+                addons: (item.addons || []).map((a) => ({
+                  addonId: a.addonId,
+                  quantity: a.quantity,
+                })),
+              };
+            }
             return {
+              id: item.id,
               ...base,
               addons: (item.addons || []).map((a) => ({
                 addonId: a.addonId,
                 quantity: a.quantity,
               })),
             };
-          }
-          return {
-            id: item.id,
-            ...base,
-            addons: (item.addons || []).map((a) => ({
-              addonId: a.addonId,
-              quantity: a.quantity,
-            })),
-          };
-        }),
+          }),
       };
       if (getValues("orderType") !== "dineIn") {
         delete payload.tableId;
@@ -457,21 +461,23 @@ export default function AddEditOrder({
       const payload: any = {
         ...pendingData,
         orderNote: getValues("orderNote"),
-        orderItems: orderItems.map((item: OrderItem) => {
-          const base = {
-            productId: Number(item.productId),
-            quantity: item.quantity,
-            departmentId: item.departmentId,
-          } as any;
+        orderItems: orderItems
+          .filter((item: OrderItem) => item.status !== "cancelled")
+          .map((item: OrderItem) => {
+            const base = {
+              productId: Number(item.productId),
+              quantity: item.quantity,
+              departmentId: item.departmentId,
+            } as any;
 
-          if (String(item.id).includes("newitem_")) {
-            return base;
-          }
-          return {
-            id: item.id,
-            ...base,
-          };
-        }),
+            if (String(item.id).includes("newitem_")) {
+              return base;
+            }
+            return {
+              id: item.id,
+              ...base,
+            };
+          }),
       };
       if (getValues("orderType") !== "dineIn") {
         delete payload.tableId;
@@ -527,6 +533,10 @@ export default function AddEditOrder({
       setIsConfirmOpen(false);
     }
   };
+
+  const visibleOrderItems = orderItems.filter(
+    (item) => item.status !== "cancelled",
+  );
 
   return (
     <>
@@ -747,7 +757,7 @@ export default function AddEditOrder({
                 </h3>
               </div>
 
-              {orderItems.length === 0 ? (
+              {visibleOrderItems.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                   <MdShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-gray-500 text-lg mb-2">
@@ -759,7 +769,7 @@ export default function AddEditOrder({
                 </div>
               ) : (
                 <div className="space-y-4 flex-1">
-                  {orderItems.map((item) => (
+                  {visibleOrderItems.map((item) => (
                     <div
                       key={item.id}
                       className={`flex items-start justify-between gap-3 sm:gap-0 px-4 py-4 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
@@ -863,13 +873,17 @@ export default function AddEditOrder({
                         </div>
                         <div className="flex items-start">
                           <Button
-                            disabled={item.status === "preparing"}
+                            disabled={
+                              item.status === "preparing" ||
+                              item.status === "cancelled"
+                            }
                             handleClick={() => {
                               removeOrderItem(item.id);
                               playDeleteAudio();
                             }}
                             className={`text-right ${
-                              item.status === "preparing"
+                              item.status === "preparing" ||
+                              item.status === "cancelled"
                                 ? "opacity-50 cursor-not-allowed"
                                 : ""
                             }`}
@@ -979,7 +993,7 @@ export default function AddEditOrder({
                   <div className="col-span-2 text-right">Subtotal</div>
                 </div>
                 <div className="divide-y">
-                  {orderItems.map((item) => (
+                  {visibleOrderItems.map((item) => (
                     <div
                       key={item.id}
                       className={`grid grid-cols-12 px-4 py-2 text-sm ${item.status === "cancelled" ? "line-through" : ""}`}

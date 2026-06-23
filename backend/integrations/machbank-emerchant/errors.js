@@ -44,6 +44,7 @@ function sanitizeRawConfirmPayload(event) {
     gatewayTxnId: event.gatewayTxnId ?? null,
     amount: event.amount ?? null,
     merchantTxnRef: event.merchantTxnRef ?? null,
+    requestId: event.requestId ?? null,
   };
 }
 

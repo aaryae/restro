@@ -36,6 +36,22 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      /** When checkoutAll, the table whose active orders this QR settles. */
+      tableId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      /** Table session this intent belongs to (for checkout-all settlement). */
+      sessionId: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
+      /** True when one QR settles every active order on the table (combined total). */
+      checkoutAll: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       amount: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
@@ -52,6 +68,11 @@ module.exports = (sequelize) => {
       },
       /** Bill number inside NCHL qrString (EMV tag 62-01) — used for nqrws settlement matching. */
       nchlBillNumber: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
+      /** NCHL validationTraceId from generateQR — sent as request_id on nqrws check-txn-status. */
+      validationTraceId: {
         type: DataTypes.STRING(64),
         allowNull: true,
       },
@@ -112,9 +133,11 @@ module.exports = (sequelize) => {
       timestamps: true,
       indexes: [
         { fields: ["orderId"] },
+        { fields: ["tableId"] },
         { fields: ["status"] },
         { fields: ["merchantTxnRef"], unique: true },
         { fields: ["nchlBillNumber"] },
+        { fields: ["validationTraceId"] },
         { fields: ["gatewayTxnId"], unique: true },
       ],
     },

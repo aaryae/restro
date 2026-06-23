@@ -16,7 +16,14 @@ const BANK_SUCCESS_CODES = new Set([
   "success",
 ]);
 
-function buildGenerateQrPayload({ amount, merchantTxnRef }) {
+// EMVCo tag 62-08 (Purpose of Transaction) caps at 25 chars.
+const PURPOSE_MAX_LEN = 25;
+
+function buildGenerateQrPayload({ amount, merchantTxnRef, purposeOfTransaction }) {
+  const purpose = String(purposeOfTransaction || "Bill payment")
+    .trim()
+    .slice(0, PURPOSE_MAX_LEN);
+
   return buildMerchantQrGenerationRequest({
     pointOfInitialization: POINT_OF_INIT_DYNAMIC,
     acquirerId: config.acquirerId,
@@ -30,8 +37,8 @@ function buildGenerateQrPayload({ amount, merchantTxnRef }) {
     transactionCurrency: config.currencyCode,
     transactionAmount: amount,
     billNumber: merchantTxnRef,
-    referenceLabel: null,
-    purposeOfTransaction: "Bill payment",
+    referenceLabel: "payment",
+    purposeOfTransaction: purpose,
     userId: config.npiUserId,
     qrImage: config.qrRequestImage,
   });
@@ -106,9 +113,13 @@ function extractQrFromResponse(data) {
   return { qrPayload, qrImageUrl, validationTraceId };
 }
 
-async function generateDynamicQr({ amount, merchantTxnRef }) {
+async function generateDynamicQr({ amount, merchantTxnRef, purposeOfTransaction }) {
   const client = createMachbankClient({ useBearer: false });
-  const body = buildGenerateQrPayload({ amount, merchantTxnRef });
+  const body = buildGenerateQrPayload({
+    amount,
+    merchantTxnRef,
+    purposeOfTransaction,
+  });
 
   let response;
   try {

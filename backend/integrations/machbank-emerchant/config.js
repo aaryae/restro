@@ -68,6 +68,27 @@ function readPublicKey() {
   return env("MACHBANK_GETPAY_PUBLIC_KEY");
 }
 
+/** Public key for encrypting the nqrws api_token (RSA/ECB/PKCS1Padding). */
+function readWsTokenPublicKey() {
+  const keyPath = env("MACHBANK_WS_TOKEN_PUBLIC_KEY_PATH");
+  if (keyPath && secretFileExists(keyPath)) {
+    return fs.readFileSync(resolveSecretPath(keyPath), "utf8");
+  }
+  return env("MACHBANK_WS_TOKEN_PUBLIC_KEY") || undefined;
+}
+
+/**
+ * nqrws `merchant_id` == the NEPALPAY merchant code (e.g. 1501KQZRFMY) — the same
+ * value sent as `merchantId` on generateQR. NCHL keys the websocket transaction
+ * lookup off the merchant code, not the store/terminal label.
+ * Override with MACHBANK_WS_MERCHANT_ID only if the bank explicitly says otherwise.
+ */
+function resolveWsMerchantId() {
+  const explicit = env("MACHBANK_WS_MERCHANT_ID");
+  if (explicit) return explicit;
+  return resolveBankMid() || env("MACHBANK_MERCHANT_CODE") || undefined;
+}
+
 /** NEPALPAY merchant id (e.g. 1501KQZRFMY) — NCHL `merchantId` on generateQR and WS. */
 function resolveBankMid() {
   return env("MACHBANK_MERCHANT_MID");
@@ -132,9 +153,12 @@ const config = {
   username: env("MACHBANK_USERNAME"),
   password: env("MACHBANK_PASSWORD"),
   wsUsername: env("MACHBANK_WS_USERNAME"),
+  wsMerchantId: resolveWsMerchantId(),
   apiToken: env("MACHBANK_API_TOKEN"),
 
   getpayPublicKey: readPublicKey(),
+  /** Key for encrypting the nqrws api_token; falls back to getpay key. */
+  wsTokenPublicKey: readWsTokenPublicKey(),
   /** mTLS client cert + key PEM (alternative to MACHBANK_PFX_PATH). */
   tlsCertPath: env("MACHBANK_TLS_CERT_PATH"),
   tlsPrivateKeyPath: env("MACHBANK_TLS_PRIVATE_KEY_PATH"),
@@ -167,6 +191,9 @@ const config = {
 
   // App tuning only (not bank endpoints); optional with safe defaults
   qrExpirySeconds: envInt("MACHBANK_QR_EXPIRY_SECONDS", 300),
+  // Payer-facing remarks/purpose embedded in the QR (EMVCo tag 62-08).
+  // Pre-filled so customers can just pay without typing remarks.
+  qrPurpose: (process.env.MACHBANK_QR_PURPOSE || "Payment of food").trim(),
   httpTimeoutMs: envInt("MACHBANK_HTTP_TIMEOUT_MS", 15000),
   wsReconnectMaxMs: envInt("MACHBANK_WS_RECONNECT_MAX_MS", 60000),
   wsHeartbeatMs: envInt("MACHBANK_WS_HEARTBEAT_MS", 30000),

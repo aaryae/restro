@@ -55,6 +55,14 @@ module.exports = {
         defaultValue: false,
       });
     }
+
+    if (!table.orderType) {
+      await queryInterface.addColumn("orders", "orderType", {
+        type: Sequelize.ENUM("dineIn", "takeaway"),
+        allowNull: false,
+        defaultValue: "dineIn",
+      });
+    }
   },
 
   async down(queryInterface) {
@@ -67,6 +75,7 @@ module.exports = {
       "orderStartTime",
       "orderFinishTime",
       "isGuestOrder",
+      "orderType",
     ];
 
     for (const column of columns) {
