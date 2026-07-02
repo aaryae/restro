@@ -223,6 +223,8 @@ app.use((err, req, res, next) => {
 initWebSocket(server);
 
 const { bootstrapMachbankEmerchant } = require("./integrations/machbank-emerchant/bootstrap");
-bootstrapMachbankEmerchant();
+bootstrapMachbankEmerchant().catch((err) => {
+  logger.error(`Machbank bootstrap failed: ${err.message}`);
+});
 
 module.exports = { app, server };

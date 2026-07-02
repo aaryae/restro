@@ -16,6 +16,12 @@ const logger = require("../../../configs/logger");
 let cachedKey = null;
 let cachedKeyError = null;
 
+/** Clear the cached WS-token public key so the next call rebuilds from config. */
+function resetWsTokenKey() {
+  cachedKey = null;
+  cachedKeyError = null;
+}
+
 function loadPublicKey() {
   if (cachedKey || cachedKeyError) {
     return cachedKey;
@@ -69,4 +75,5 @@ module.exports = {
   encryptWsToken,
   canEncryptWsToken,
   assertWsTokenKeyUsable,
+  resetWsTokenKey,
 };

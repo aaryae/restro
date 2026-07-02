@@ -11,12 +11,21 @@ const {
 
 let cachedAgent;
 
+/** Clear the cached mTLS agent so the next call rebuilds it from current config. */
+function resetHttpsAgent() {
+  cachedAgent = undefined;
+}
+
 function getHttpsAgent() {
   if (cachedAgent) return cachedAgent;
 
   const agentOptions = { rejectUnauthorized: false };
 
-  if (hasPemTlsCredentials()) {
+  // Inline PEM material from a DB-managed integration wins over file paths.
+  if (config.tlsCert && config.tlsKey) {
+    agentOptions.cert = config.tlsCert;
+    agentOptions.key = config.tlsKey;
+  } else if (hasPemTlsCredentials()) {
     agentOptions.cert = fs.readFileSync(resolveSecretPath(config.tlsCertPath));
     agentOptions.key = fs.readFileSync(resolveSecretPath(config.tlsPrivateKeyPath));
   } else if (config.pfxPath) {
@@ -55,4 +64,4 @@ function createMachbankClient(options = {}) {
   });
 }
 
-module.exports = { createMachbankClient, getHttpsAgent };
+module.exports = { createMachbankClient, getHttpsAgent, resetHttpsAgent };

@@ -27,6 +27,7 @@ import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import TransferModel from "./TransferModel";
+import PaymentIntegrationsPanel from "./PaymentIntegrationsPanel";
 import { AccountFilterSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -178,6 +179,7 @@ const Account: React.FC = () => {
   ];
 
   const [transferOpen, setTransferOpen] = useState<boolean>(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState<boolean>(false);
 
   const data =
     success && allAccount?.data?.data
@@ -279,6 +281,13 @@ const Account: React.FC = () => {
           <BiTransfer size={20} />
           Transfer
         </Button>
+
+        <Button
+          className="flex gap-2 bg-[#0090DD] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
+          onPress={() => setIntegrationsOpen(true)}
+        >
+          Payment Integrations
+        </Button>
       </div>
       <PageFilterWrapper title="Bank Filters">{Component}</PageFilterWrapper>
       {isFetching ? (
@@ -298,6 +307,10 @@ const Account: React.FC = () => {
           setTransferOpen(false);
           refetch();
         }}
+      />
+      <PaymentIntegrationsPanel
+        isOpen={integrationsOpen}
+        onClose={() => setIntegrationsOpen(false)}
       />
     </>
   );

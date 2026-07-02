@@ -1,13 +1,16 @@
 "use strict";
 
-const { config, assertEnabledConfig } = require("./config");
+const { config, assertEnabledConfig, refreshMachbankConfig } = require("./config");
 const { registerMachbankWebSocketHandler } = require("./ws-lifecycle");
 const { assertWsTokenKeyUsable } = require("./crypto/encrypt-ws-token");
 const paymentIntentService = require("../../api/services/payment-intent-service");
 const { expirePaymentIntentsJob } = require("../../jobs/expire-payment-intents");
 const logger = require("../../configs/logger");
 
-function bootstrapMachbankEmerchant() {
+async function bootstrapMachbankEmerchant() {
+  // Load the active DB-managed integration (falls back to .env) before any checks.
+  await refreshMachbankConfig();
+
   if (!config.enabled) {
     logger.info("Machbank eMerchant integration is disabled");
     return;

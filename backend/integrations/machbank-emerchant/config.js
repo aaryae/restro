@@ -125,7 +125,8 @@ function resolveQrStoreTerminalLabels() {
   };
 }
 
-const config = {
+function buildConfigFromEnv() {
+  return {
   enabled: process.env.MACHBANK_EMERCHANT_ENABLED === "true",
 
   baseUrl: env("MACHBANK_BASE_URL"),
@@ -172,6 +173,15 @@ const config = {
   qrSigningPfxPassphrase:
     env("MACHBANK_PFX_PASSPHRASE"),
 
+  /**
+   * Inline PEM material supplied by a DB-managed integration. When set these
+   * take precedence over the *_PATH file locations above. (Phase 1 only uses
+   * qrPrivateKey from the DB; tlsCert/tlsKey are reserved for a later phase.)
+   */
+  tlsCert: undefined,
+  tlsKey: undefined,
+  qrPrivateKey: undefined,
+
   currency: env("MACHBANK_CURRENCY"),
   currencyCode: resolveCurrencyCode(),
 
@@ -197,7 +207,21 @@ const config = {
   httpTimeoutMs: envInt("MACHBANK_HTTP_TIMEOUT_MS", 15000),
   wsReconnectMaxMs: envInt("MACHBANK_WS_RECONNECT_MAX_MS", 60000),
   wsHeartbeatMs: envInt("MACHBANK_WS_HEARTBEAT_MS", 30000),
-};
+
+  /** Where the active config came from: "env" or "db". */
+  source: "env",
+  };
+}
+
+const config = buildConfigFromEnv();
+
+/** True when the DB-managed integration supplied an inline QR signing key. */
+function hasInlineQrPrivateKey() {
+  return (
+    typeof config.qrPrivateKey === "string" &&
+    config.qrPrivateKey.trim().length > 0
+  );
+}
 
 function hasPemTlsCredentials() {
   return (
@@ -214,30 +238,39 @@ function hasQrPrivateKeyFile() {
   return secretFileExists(config.qrPrivateKeyPath);
 }
 
-const REQUIRED_WHEN_ENABLED = [
-  "MACHBANK_BASE_URL",
-  "MACHBANK_QR_GENERATE_URL",
-  "MACHBANK_WS_URL",
-  "MACHBANK_MERCHANT_CODE",
-  "MACHBANK_MERCHANT_NAME",
-  "MACHBANK_ACQUIRER_ID",
-  "MACHBANK_MCC",
-  "MACHBANK_TERMINAL_LABEL",
-  "MACHBANK_STORE_LABEL",
-  "MACHBANK_NPI_USER_ID",
-  "MACHBANK_USERNAME",
-  "MACHBANK_PASSWORD",
-  "MACHBANK_WS_USERNAME",
-  "MACHBANK_API_TOKEN",
-  "MACHBANK_CURRENCY",
+/**
+ * Required runtime values, validated against the merged `config` object so the
+ * same check works whether the source is .env or a DB-managed integration.
+ */
+const REQUIRED_CONFIG_FIELDS = [
+  "baseUrl",
+  "qrGenerateUrl",
+  "wsUrl",
+  "merchantCode",
+  "merchantName",
+  "acquirerId",
+  "mcc",
+  "terminalLabel",
+  "storeLabel",
+  "npiUserId",
+  "username",
+  "password",
+  "wsUsername",
+  "apiToken",
+  "currency",
 ];
 
 function assertEnabledConfig() {
   if (!config.enabled) return;
 
-  const missing = REQUIRED_WHEN_ENABLED.filter((key) => !env(key));
+  const missing = REQUIRED_CONFIG_FIELDS.filter((key) => {
+    const value = config[key];
+    return value === undefined || value === null || value === "";
+  });
   if (missing.length) {
-    logMachbankIssue("missing required env", { keys: missing });
+    logMachbankIssue(`missing required config (source=${config.source})`, {
+      keys: missing,
+    });
     throw new MachbankConfigError(CONFIG_CODES.INVALID_ENV);
   }
 
@@ -258,9 +291,14 @@ function assertEnabledConfig() {
     throw new MachbankConfigError(CONFIG_CODES.INVALID_ENV);
   }
 
-  if (!hasQrPrivateKeyFile() && !hasPfxTlsCredentials() && !config.qrSigningPfxPath) {
+  if (
+    !hasInlineQrPrivateKey() &&
+    !hasQrPrivateKeyFile() &&
+    !hasPfxTlsCredentials() &&
+    !config.qrSigningPfxPath
+  ) {
     logMachbankIssue(
-      "QR signing key missing — set MACHBANK_QR_PRIVATE_KEY_PATH (PEM) or keep PFX for signing fallback",
+      "QR signing key missing — provide it via the payment integration (NPI Private Key), MACHBANK_QR_PRIVATE_KEY_PATH (PEM), or PFX fallback",
       {},
     );
     throw new MachbankConfigError(CONFIG_CODES.INVALID_ENV);
@@ -297,9 +335,121 @@ function assertEnabledConfig() {
   }
 }
 
+/**
+ * Reload the active configuration from the DB-managed payment integration,
+ * mutating the shared `config` object IN PLACE so every module that already
+ * imported it picks up the new values without re-requiring.
+ *
+ * Resolution order:
+ *   1. Active, enabled `payment_integrations` row -> source "db".
+ *   2. No active row (or any error) -> fall back to .env -> source "env".
+ *
+ * This keeps the existing .env deployment working until an admin creates and
+ * activates an integration from the UI.
+ */
+async function refreshMachbankConfig() {
+  // Lazy requires avoid a circular dependency at module load
+  // (models -> services -> integration -> config).
+  const logger = require("../../configs/logger");
+
+  const resetCaches = () => {
+    try {
+      require("./https-client").resetHttpsAgent();
+    } catch (_) {
+      /* not loaded yet */
+    }
+    try {
+      require("./crypto/encrypt-ws-token").resetWsTokenKey();
+    } catch (_) {
+      /* not loaded yet */
+    }
+  };
+
+  const applyEnvOnly = () => {
+    Object.assign(config, buildConfigFromEnv());
+    config.source = "env";
+    resetCaches();
+  };
+
+  let row = null;
+  try {
+    const { paymentIntegrationModel } = require("../../models");
+    row = await paymentIntegrationModel.findOne({
+      where: { isActive: true, enabled: true, provider: "nepalpay" },
+      attributes: { include: ["passwordEnc", "webhookTokenEnc", "npiPrivateKeyEnc"] },
+      order: [["updatedAt", "DESC"]],
+    });
+  } catch (err) {
+    logger.error(
+      `[Machbank] could not load active payment integration; using .env (${err.message})`,
+    );
+    applyEnvOnly();
+    return null;
+  }
+
+  if (!row) {
+    applyEnvOnly();
+    return null;
+  }
+
+  try {
+    const { decrypt } = require("./crypto/secret-box");
+    const password = decrypt(row.passwordEnc);
+    const webhookToken = decrypt(row.webhookTokenEnc);
+    const npiPrivateKey = decrypt(row.npiPrivateKeyEnc);
+
+    const merchantId = row.merchantId || undefined;
+    const merchantCode = row.merchantCode || merchantId;
+
+    // Start from env (URLs, mTLS certs, getpay key, labels stay env-driven in
+    // phase 1), then overlay the DB-managed merchant identity + secrets.
+    const overlay = {
+      enabled: true,
+      bankMid: merchantId,
+      merchantCode,
+      mcc: row.merchantCategoryCode || undefined,
+      merchantName: row.merchantName || undefined,
+      acquirerId: row.acquirerId || undefined,
+      merchantCity: row.merchantCity || undefined,
+      merchantPostalCode: row.merchantPostalCode || "4600",
+      npiUserId: row.npiUsername || undefined,
+      username: row.username || undefined,
+      password: password || undefined,
+      // The bank's nqrws "webhook"/api token (Bearer + encrypted in SEND body).
+      apiToken: webhookToken || undefined,
+      // Inline PEM signing key — preferred over MACHBANK_QR_PRIVATE_KEY_PATH.
+      qrPrivateKey: npiPrivateKey || undefined,
+      source: "db",
+    };
+
+    Object.assign(config, buildConfigFromEnv(), overlay);
+
+    // ws merchant id follows the same precedence (env override -> mid -> code).
+    config.wsMerchantId =
+      env("MACHBANK_WS_MERCHANT_ID") || merchantId || merchantCode || undefined;
+    // ws username falls back to the basic-auth username when not set in env.
+    config.wsUsername = config.wsUsername || config.username;
+
+    resetCaches();
+    logger.info(
+      `[Machbank] active payment integration loaded (id=${row.id}, source=db, mid=${merchantId})`,
+    );
+    return row.id;
+  } catch (err) {
+    logger.error(
+      `[Machbank] failed to apply active integration #${row.id}; using .env (${err.message})`,
+    );
+    applyEnvOnly();
+    return null;
+  }
+}
+
 module.exports = {
   config,
   assertEnabledConfig,
+  refreshMachbankConfig,
+  buildConfigFromEnv,
+  hasInlineQrPrivateKey,
   env,
   resolveSecretPath,
   hasPemTlsCredentials,

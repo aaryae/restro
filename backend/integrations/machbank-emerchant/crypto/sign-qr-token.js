@@ -23,7 +23,16 @@ function resolveQrSigningPfxPath() {
     : path.resolve(process.cwd(), pfxPath);
 }
 
+/** Inline PEM signing key supplied by a DB-managed integration. */
+function hasInlineQrPrivateKey() {
+  return (
+    typeof config.qrPrivateKey === "string" &&
+    config.qrPrivateKey.trim().length > 0
+  );
+}
+
 function qrTokenSigningSource() {
+  if (hasInlineQrPrivateKey()) return "PaymentIntegration.npiPrivateKey";
   if (usesQrPrivateKeyFile()) return "MACHBANK_QR_PRIVATE_KEY_PATH";
   if (config.qrSigningPfxPath) return "MACHBANK_QR_SIGNING_PFX_PATH";
   return "MACHBANK_PFX_PATH";
@@ -184,8 +193,11 @@ function loadPrivateKeyPemFromPfx() {
   return extractPrivateKeyPemBlock(result.stdout);
 }
 
-/** Same entry for PEM file or PFX extract — then getPrivateKey + signSHA256RSA. */
+/** Same entry for inline PEM, PEM file, or PFX extract — then getPrivateKey + signSHA256RSA. */
 function loadSigningKeyMaterial() {
+  if (hasInlineQrPrivateKey()) {
+    return config.qrPrivateKey;
+  }
   if (usesQrPrivateKeyFile()) {
     return loadQrPrivateKeyRaw();
   }
@@ -234,7 +246,7 @@ function loadQrSigningPublicKeyPem() {
 }
 
 function loadPublicKeyPemForVerify() {
-  if (usesQrPrivateKeyFile()) {
+  if (hasInlineQrPrivateKey() || usesQrPrivateKeyFile()) {
     try {
       const privateKeyPem = loadSigningPrivateKeyPem();
       return crypto.createPublicKey(privateKeyPem).export({

@@ -15,6 +15,7 @@ import {
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
+import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Contact, Mail, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -227,7 +228,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     () => bankAccounts.find((a: any) => a.id === selectedBankId) ?? null,
     [bankAccounts, selectedBankId],
   );
-  const isNepalPaySelected = isNepalPayAccount(selectedBankAccount);
+
+  // Accounts linked to an active NepalPay integration drive the dynamic-QR flow.
+  // Name-based detection is kept only as a backward-compatible fallback.
+  const { data: nepalPayAccountsResp } = useGetActiveIntegrationAccountsQuery();
+  const nepalPayAccountIds: number[] = nepalPayAccountsResp?.data || [];
+  const isNepalPaySelected =
+    (!!selectedBankAccount &&
+      nepalPayAccountIds.includes(selectedBankAccount.id)) ||
+    isNepalPayAccount(selectedBankAccount);
 
   const checkoutOrderId = useMemo(() => {
     if (Array.isArray(orderId)) {

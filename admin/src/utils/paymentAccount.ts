@@ -1,4 +1,8 @@
-/** Bank/wallet account is Machbank NEPALPAY when name contains NEPALPAY (case-insensitive). */
+/**
+ * DEPRECATED fallback: detect NEPALPAY by account name (case-insensitive).
+ * Prefer linking an account to an active Payment Integration; checkout uses the
+ * integration's linked accountId and only falls back to this name match.
+ */
 export function isNepalPayAccount(account: {
   name?: string;
   accountName?: string;
