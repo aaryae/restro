@@ -25,8 +25,7 @@ function BrandingWrapper({ children }) {
       );
       localStorage.setItem("brandColor", settings?.data?.primaryColor);
     }
-
-    console.log(settings, "compnay settings fetched");
+    document.documentElement.classList.remove("dark");
   }, [success, settings]);
 
   return <>{children}</>;

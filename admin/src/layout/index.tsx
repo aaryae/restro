@@ -40,7 +40,7 @@ export default function Layout() {
       <div className="hidden lg:flex bg-[#f2f6fa]">
         {/* Side Menu */}
         <div
-          className={`h-screen fixed shadow-lg shadow-gray-400 z-10 transition-all duration-300 ${sideMenuOpen ? "w-[18%]" : "w-20"}`}
+          className={`h-screen fixed shadow-lg shadow-gray-400 z-50 transition-all duration-300 overflow-visible ${sideMenuOpen ? "w-[18%]" : "w-20"}`}
         >
           <SideMenu
             setToggleState={setSideMenuOpen}
