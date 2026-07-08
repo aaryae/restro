@@ -366,6 +366,7 @@ h3 {
 
 .sidebar-item:not(.sidebar-item-active):hover {
   background: #ffffff;
+  color: var(--primary-color);
   border-color: #d5e0ed;
 }
 
