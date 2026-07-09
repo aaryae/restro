@@ -1,15 +1,16 @@
 import DeleteModal from "@/components/DeleteModal";
 import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { TABLE_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
+import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
-import { FaEye } from "react-icons/fa";
+import { Eye } from "lucide-react";
 import ViewTable from "./ViewTable";
 import Spinner from "@/components/Spinner";
 import { TABLE_ADD_ROUTE } from "@/routes/routeNames";
@@ -31,8 +32,8 @@ interface TableResponseType {
 
 export default function OrderTable() {
   const accessList = checkAccess("Table");
-
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
@@ -42,17 +43,19 @@ export default function OrderTable() {
 
   const navigate = useNavigate();
 
+  const url = buildQueryString(`${TABLE_URL}list`, {
+    page: query.page,
+    limit: query.limit,
+    search: { tableNo: searchTerm },
+  });
+
   const {
     data: allTable,
     isSuccess: success,
     isLoading: loading,
     refetch,
-  } = useGetApiQuery({ url: `${TABLE_URL}list`, ...query });
+  } = useGetApiQuery({ url });
   const [deleteTable] = useDeleteApiMutation();
-
-  const handleReload = () => {
-    refetch();
-  };
 
   const handleDrawerOpen = (id: number) => {
     setOpenDrawerId(id);
@@ -98,20 +101,20 @@ export default function OrderTable() {
     "Floor",
     "Status",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
       case "occupied":
-        return "bg-orange-100 text-orange-800";
+        return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
       case "reserved":
-        return "bg-gray-100 text-gray-800";
+        return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
       case "maintenance":
-        return "bg-red-100 text-red-800";
+        return "bg-rose-50 text-rose-700 ring-1 ring-rose-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
     }
   };
 
@@ -119,74 +122,67 @@ export default function OrderTable() {
     success && allTable?.data?.data
       ? allTable?.data?.data.map(
           ({ id, tableNo, status, floor }: TableResponseType) => [
-            tableNo,
+            <span className="text-sm font-semibold text-slate-800">
+              {tableNo}
+            </span>,
             floor.floorNo + "-" + floor?.name || "-",
             <span
-              key={`status-${id}`}
-              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}
+              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${getStatusColor(status)}`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status}
             </span>,
-            <div
-              key={id}
-              className="flex items-center justify-center cursor-pointer gap-[0.5rem]"
-            >
+            <TableRowActions>
               {accessList.includes("view") && (
-                <div className="relative group">
-                  <FaEye
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                    onClick={() => handleDrawerOpen(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    View Table
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDrawerOpen(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                  title="View table"
+                >
+                  <Eye size={16} />
+                </button>
               )}
               {accessList.includes("edit") && (
-                <div className="relative group">
-                  <MdEditSquare
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                    onClick={() => handleNewButton(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Edit Table
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleNewButton(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                  title="Edit table"
+                >
+                  <MdEditSquare size={16} />
+                </button>
               )}
               {accessList.includes("delete") && (
-                <div className="relative group">
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                    handleConfirmDelete={handleDelete}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Delete Table
-                  </span>
-                </div>
+                <DeleteModal
+                  compact
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
               )}
-            </div>,
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <>
-      <PageTitle title="Table Management" />
-      <PageHeader
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search by table number..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
         hasAddButton={accessList.includes("add")}
-        newButtonText="Add New Table"
+        newButtonText="Add Table"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={handleReload}
-        hasSubText={false}
+        handleReloadButton={() => refetch()}
+        subText="Configure tables per floor and track availability status."
       />
+
       {accessList.includes("view") ? (
         <Table
           isSN
@@ -196,8 +192,11 @@ export default function OrderTable() {
           handlePagination={handlePagination}
         />
       ) : (
-        <p>You don't have Permission to view this table</p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view tables.
+        </div>
       )}
+
       <Drawer
         isOpen={openDrawer}
         setIsOpen={setOpenDrawer}
@@ -205,6 +204,6 @@ export default function OrderTable() {
       >
         <ViewTable id={drawerId} />
       </Drawer>
-    </>
+    </div>
   );
 }

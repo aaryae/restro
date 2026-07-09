@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
 import App from "./App";
 import { adminLinks } from "./routes/adminLinks";
 import Layout from "./layout";
@@ -32,10 +33,16 @@ export const Routes: RouteItem[] = [
         <Layout />
       </ProtectedRoute>
     ),
-    children: adminLinks.map((each) => ({
-      path: `/admin/${each.path}`,
-      element: each.element,
-    })),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/admin/order/list" replace />,
+      },
+      ...adminLinks.map((each) => ({
+        path: each.path.replace(/^\//, ""),
+        element: each.element,
+      })),
+    ],
     errorElement: <ErrorBoundary />,
   },
 ];

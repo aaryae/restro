@@ -26,13 +26,19 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    let { limit, page, slug } = req.query;
+    let { limit, page, slug, name } = req.query;
     const filters = {};
     const include = [];
 
     if (slug) {
       filters.slug = {
         [Op.like]: `%${slug}%`,
+      };
+    }
+
+    if (name) {
+      filters.name = {
+        [Op.like]: `%${name}%`,
       };
     }
 

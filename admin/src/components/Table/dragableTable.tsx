@@ -8,8 +8,6 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
-  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -18,9 +16,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableRow } from "./sortable-row";
-import { DragOverlayRow } from "./drag-overlay";
 import { PaginationType } from "@/types/commonTypes";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
+import styles from "./index.module.css";
 
 type DraggableTableProps = {
   headers: string[];
@@ -34,6 +32,19 @@ type DraggableTableProps = {
   url: string;
 };
 
+function isActionsHeader(header: string, index: number, total: number) {
+  return (
+    index === total - 1 && String(header).toLowerCase().includes("action")
+  );
+}
+
+function useMergedActionsLayout(headers: string[]) {
+  return (
+    headers.length === 2 &&
+    isActionsHeader(headers[headers.length - 1], headers.length - 1, headers.length)
+  );
+}
+
 export default function DraggableTable({
   headers,
   data,
@@ -45,21 +56,14 @@ export default function DraggableTable({
   pagination,
   handlePagination,
 }: DraggableTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState(data);
+  const mergedActionsLayout = useMergedActionsLayout(headers);
+
   useEffect(() => {
     if (success && !fetching && !loading) {
-      setProducts((prev) => {
-        const existingIds = new Set(prev.map((item) => item[0]));
-        const newData = data.filter((item) => !existingIds.has(item[0]));
-        return [...prev, ...newData];
-      });
+      setProducts(data);
     }
-  }, [success, loading, fetching]);
-  // const [activeId, setActiveId] = useState<string | null>(null);
-  // const activeProduct = activeId
-  //   ? products.find((product) => product.id === activeId) || null
-  //   : null;
+  }, [data, success, loading, fetching]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -71,7 +75,9 @@ export default function DraggableTable({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-  const getTaskPos = (id) => products.findIndex((task) => task[0] === id);
+
+  const getTaskPos = (id: number | string) =>
+    products.findIndex((task) => task[0] === id);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -80,165 +86,121 @@ export default function DraggableTable({
     setProducts((tasks) => {
       const originalPos = getTaskPos(active.id);
       const newPos = getTaskPos(over.id);
-      console.log(originalPos, newPos, "original and new pos");
       if (originalPos === -1 || newPos === -1) return tasks;
 
       const updatedTasks = arrayMove(tasks, originalPos, newPos);
-      console.log(tasks, "tasks");
-      const reorderedTasks = updatedTasks.map((task, index) => ({
-        ...task,
-        order: index + 1,
+      const payload = updatedTasks.map((each) => ({
+        id: each[0],
+        order: updatedTasks.indexOf(each) + 1,
       }));
+      action({ url, body: { orders: payload } });
 
-      const data = reorderedTasks.map((each) => {
-        return { id: each[0], order: each.order };
-      });
-      // updateOrder(body);
-      action({ url, body: { orders: data } });
-
-      return reorderedTasks;
+      return updatedTasks;
     });
   }
 
   return (
-    <div className="bg-white pt-[2rem] pb-[0.5rem] px-[1rem] rounded-lg">
-      <div className="overflow-x-auto">
-        <div className="border rounded-lg overflow-hidden">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            // onDragStart={handleDragStart}
-          >
-            {console.log(products.length, "products")}
-            <div className="overflow-y-auto max-h-[500px]">
-              <table className="w-full">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr className="text-left text-sm font-medium text-gray-500">
-                    <th className="px-2 py-3 w-10 bg-[#f2f6fa]"></th>
-                    {headers.map((header) => (
-                      <th className="px-4 py-3 whitespace-nowrap bg-[#f2f6fa]">
-                        <span className="text-[#111] font-[700] text-[0.875rem]">
-                          {header}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <SortableContext
-                  items={data.map((product) => product[0])}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <tbody className="divide-y divide-gray-200">
-                    {data.map((product, i) => (
-                      <SortableRow
-                        key={product[0]}
-                        product={product}
-                        index={i}
-                      />
-                    ))}
-                  </tbody>
-                </SortableContext>
-              </table>
-            </div>
-            {/* <DragOverlay>
-              {activeId ? <DragOverlayRow product={activeProduct} /> : null}
-            </DragOverlay> */}
-          </DndContext>
-        </div>
+    <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="max-w-full overflow-x-auto">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <table className="w-full border-collapse text-[13px] text-slate-700">
+            <colgroup>
+              <col className="w-10" />
+              {mergedActionsLayout ? (
+                <col />
+              ) : (
+                headers.map((header, index) => (
+                  <col
+                    key={header}
+                    className={
+                      isActionsHeader(header, index, headers.length)
+                        ? "w-32"
+                        : undefined
+                    }
+                  />
+                ))
+              )}
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/90">
+                <th className="px-2 py-3.5" aria-label="Reorder" />
+                {mergedActionsLayout ? (
+                  <th colSpan={2} className="px-4 py-3.5 text-left">
+                    <div className="flex w-full max-w-2xl items-center justify-between gap-6">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        {headers[0]}
+                      </span>
+                      <span className="min-w-[4.5rem] text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        {headers[1]}
+                      </span>
+                    </div>
+                  </th>
+                ) : (
+                  headers.map((header, index) => (
+                    <th
+                      key={header}
+                      className={`px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                        isActionsHeader(header, index, headers.length)
+                          ? "pr-6 text-center"
+                          : "text-left"
+                      }`}
+                    >
+                      {header}
+                    </th>
+                  ))
+                )}
+              </tr>
+            </thead>
+            <SortableContext
+              items={products.map((product) => product[0])}
+              strategy={verticalListSortingStrategy}
+            >
+              <tbody className={styles.tableBody}>
+                {products.map((product) => (
+                  <SortableRow
+                    key={product[0]}
+                    product={product}
+                    mergedActionsLayout={mergedActionsLayout}
+                  />
+                ))}
+              </tbody>
+            </SortableContext>
+          </table>
+        </DndContext>
       </div>
-      {/* Pagination */}
-      {/* <div className="mt-[6px] flex justify-between ">
-        <div>
-          <p className="font-[500] text-[0.875rem] text-[#2F2B3D] bg-white px-[0.75rem] py-[0.5rem]">
-            Show:{" "}
-            <select
-              name="pagination"
-              id="pagination"
-              value={pagination.limit}
-              className="bg-white"
-              onChange={(e) =>
-                handlePagination &&
-                handlePagination({
-                  ...pagination,
-                  limit: Number(e.target.value),
-                })
-              }
-            >
-              {[10, 25, 50, 100].map((each) => (
-                <option key={each} value={each}>
-                  {each}
-                </option>
-              ))}
-            </select>{" "}
-            entries
-          </p>
-        </div>
-        <div className="flex gap-[1rem] ">
-          <button
-            className={
-              pagination.page === 1 ? "text-gray-400 cursor-not-allowed" : ""
-            }
-            disabled={pagination.page === 1}
-            onClick={() =>
-              handlePagination({ ...pagination, page: pagination.page - 1 })
+
+      <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <label className="inline-flex items-center gap-2 text-[12px] font-medium text-slate-600">
+          Show
+          <select
+            name="pagination"
+            id="pagination"
+            value={pagination.limit}
+            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
+            onChange={(e) =>
+              handlePagination({
+                ...pagination,
+                limit: Number(e.target.value),
+              })
             }
           >
-            <FaAngleLeft size={24} />
-          </button>
+            {[10, 25, 50, 100].map((each) => (
+              <option key={each} value={each}>
+                {each}
+              </option>
+            ))}
+          </select>
+          entries
+        </label>
+
+        <div className="flex items-center gap-1.5">
           <button
-            className={
-              pagination.page === pagination.totalPages
-                ? "text-gray-400 cursor-not-allowed"
-                : ""
-            }
-            disabled={pagination.page === pagination.totalPages}
-            onClick={() =>
-              handlePagination({ ...pagination, page: pagination.page + 1 })
-            }
-          >
-            <FaAngleRight size={24} />
-          </button>
-        </div>
-        <div className="flex gap-[0.875rem]">
-          <p className="font-[500] text-[0.875rem] text-[#2F2B3D] bg-white px-[0.75rem] py-[0.5rem]">
-            Page {pagination.page} of {pagination.totalPages}
-          </p>
-          <p className="font-[500] text-[0.875rem] text-[#2F2B3D] bg-white px-[0.75rem] py-[0.5rem]">
-            Total Data: {pagination.total}
-          </p>
-        </div>
-      </div> */}
-      <div className="sticky bottom-0 sm:static flex sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white">
-        <div>
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-            Show:
-            <select
-              name="pagination"
-              id="pagination"
-              value={pagination.limit}
-              className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              onChange={(e) =>
-                handlePagination &&
-                handlePagination({
-                  ...pagination,
-                  limit: Number(e.target.value),
-                })
-              }
-            >
-              {[10, 25, 50, 100].map((each) => (
-                <option key={each} value={each}>
-                  {each}
-                </option>
-              ))}
-            </select>
-            entries
-          </label>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
-              pagination.page === 1 ? "opacity-50 cursor-not-allowed" : ""
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 ${
+              pagination.page === 1 ? "cursor-not-allowed opacity-40" : ""
             }`}
             disabled={pagination.page === 1}
             onClick={() =>
@@ -246,12 +208,15 @@ export default function DraggableTable({
             }
             aria-label="Previous Page"
           >
-            <FaAngleLeft size={18} />
+            <FaAngleLeft size={14} />
           </button>
+          <span className="min-w-[88px] text-center text-[12px] font-medium text-slate-600">
+            {pagination.page} / {Math.max(pagination.totalPages, 1)}
+          </span>
           <button
-            className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 ${
               pagination.page === pagination.totalPages
-                ? "opacity-50 cursor-not-allowed"
+                ? "cursor-not-allowed opacity-40"
                 : ""
             }`}
             disabled={pagination.page === pagination.totalPages}
@@ -260,15 +225,14 @@ export default function DraggableTable({
             }
             aria-label="Next Page"
           >
-            <FaAngleRight size={18} />
+            <FaAngleRight size={14} />
           </button>
         </div>
-        <div className="flex gap-2 text-sm">
-          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
-            Total: {pagination.total}
+
+        <div className="text-[12px] font-medium text-slate-500">
+          Total{" "}
+          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700">
+            {pagination.total}
           </span>
         </div>
       </div>

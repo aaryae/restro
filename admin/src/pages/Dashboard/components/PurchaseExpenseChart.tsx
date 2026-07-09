@@ -1,105 +1,182 @@
-import { ChartPie } from "lucide-react";
+import { useMemo, useState } from "react";
+import { PieChart, Receipt } from "lucide-react";
 import PieChartComponent from "../PieChartComponent";
+import BarChartComponent from "../BarChartComponent";
+import LineChartComponent from "../LineChartComponent";
 import { EXPENSE_URL, PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
+import DashboardChartCard from "./DashboardChartCard";
+import { type ChartType } from "./ChartTypeTabs";
+import { buildQueryString } from "@/utils/generalHelper";
+import {
+  CHART_BRAND,
+  CHART_BRAND_LIGHT,
+  CHART_EXPENSE_COLORS,
+  CHART_PURCHASE_COLORS,
+} from "../chartTheme";
+
+function toBarData(data: any[]) {
+  return (data || []).map((item) => ({
+    name: item.name,
+    amount: Number(item.value ?? item.amount ?? 0),
+  }));
+}
+
+function buildTrend(rows: any[], dateField: string) {
+  const buckets = new Map<string, number>();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    buckets.set(d.toISOString().slice(0, 10), 0);
+  }
+  rows.forEach((row) => {
+    const date = String(row?.createdAt || row?.[dateField] || "").slice(0, 10);
+    if (!buckets.has(date)) return;
+    const amount = Number(
+      row?.totalAmount ?? row?.total ?? row?.amount ?? 0,
+    );
+    buckets.set(date, (buckets.get(date) || 0) + amount);
+  });
+  return Array.from(buckets.entries()).map(([name, Amount]) => ({
+    name: name.slice(5),
+    Amount,
+  }));
+}
 
 function PurchaseExpenseSection() {
-  const { data: purchaseCategoryData } = useGetApiQuery({
-    url: `${PURCHASE_URL}category-summary?status=completed`,
-    skip: !checkAccess("Purchase").includes("view-category-summary"),
-  });
+  const purchaseAccess = checkAccess("Purchase");
+  const expenseAccess = checkAccess("Expense");
+  const [purchaseChart, setPurchaseChart] = useState<ChartType>("pie");
+  const [expenseChart, setExpenseChart] = useState<ChartType>("pie");
 
-  const { data: expenseCategoryData } = useGetApiQuery({
-    url: `${EXPENSE_URL}category-summary`,
-    skip: !checkAccess("Expense").includes("view-category-summary"),
-  });
+  const { data: purchaseCategoryData, isLoading: loadingPurchase } =
+    useGetApiQuery({
+      url: `${PURCHASE_URL}category-summary?status=completed`,
+      skip: !purchaseAccess.includes("view-category-summary"),
+    });
+
+  const { data: expenseCategoryData, isLoading: loadingExpense } =
+    useGetApiQuery({
+      url: `${EXPENSE_URL}category-summary`,
+      skip: !expenseAccess.includes("view-category-summary"),
+    });
+
+  const { data: purchaseListData, isLoading: loadingPurchaseList } =
+    useGetApiQuery({
+      url: buildQueryString(`${PURCHASE_URL}list`, {
+        page: 1,
+        limit: 200,
+        search: { status: "completed" },
+      }),
+      skip: !purchaseAccess.includes("view"),
+    });
+
+  const { data: expenseListData, isLoading: loadingExpenseList } =
+    useGetApiQuery({
+      url: buildQueryString(`${EXPENSE_URL}list`, { page: 1, limit: 200 }),
+      skip: !expenseAccess.includes("view"),
+    });
+
+  const purchaseTrend = useMemo(
+    () => buildTrend(purchaseListData?.data?.data || [], "purchaseDate"),
+    [purchaseListData],
+  );
+
+  const expenseTrend = useMemo(
+    () => buildTrend(expenseListData?.data?.data || [], "expenseDate"),
+    [expenseListData],
+  );
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <ChartPie className="text-blue-600" />
-          <h3 className="text-base font-semibold text-gray-900">
-            Fiscal Year Summary
-          </h3>
+    <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+      <DashboardChartCard
+        title="Purchase by Category"
+        icon={PieChart}
+        chartType={purchaseChart}
+        onChartTypeChange={setPurchaseChart}
+        loading={
+          purchaseChart === "line" ? loadingPurchaseList : loadingPurchase
+        }
+      >
+        <div className="min-w-0 overflow-hidden">
+          {purchaseChart === "pie" && (
+            <PieChartComponent
+              data={purchaseCategoryData?.data || []}
+              responsive
+              height={280}
+              showLegend
+              colorScale={CHART_PURCHASE_COLORS}
+            />
+          )}
+          {purchaseChart === "bar" && (
+            <BarChartComponent
+              data={toBarData(purchaseCategoryData?.data || [])}
+              dataKeys={["amount"]}
+              height={280}
+              xAxisLabel="Category"
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={CHART_PURCHASE_COLORS}
+            />
+          )}
+          {purchaseChart === "line" && (
+            <LineChartComponent
+              data={purchaseTrend}
+              dataKeys={["Amount"]}
+              height={280}
+              xAxisLabel="Date"
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={[CHART_BRAND]}
+            />
+          )}
         </div>
-      </div>
+      </DashboardChartCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <PieChartComponent
-            data={purchaseCategoryData?.data || []}
-            responsive
-            height={260}
-            showLegend
-            legendPosition="bottom"
-            colorScale={["#22c55e", "#8B0000"]}
-          />
+      <DashboardChartCard
+        title="Expense by Category"
+        icon={Receipt}
+        chartType={expenseChart}
+        onChartTypeChange={setExpenseChart}
+        loading={expenseChart === "line" ? loadingExpenseList : loadingExpense}
+      >
+        <div className="min-w-0 overflow-hidden">
+          {expenseChart === "pie" && (
+            <PieChartComponent
+              data={expenseCategoryData?.data || []}
+              responsive
+              height={280}
+              showLegend
+              colorScale={CHART_EXPENSE_COLORS}
+            />
+          )}
+          {expenseChart === "bar" && (
+            <BarChartComponent
+              data={toBarData(expenseCategoryData?.data || [])}
+              dataKeys={["amount"]}
+              height={280}
+              xAxisLabel="Category"
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={CHART_EXPENSE_COLORS}
+            />
+          )}
+          {expenseChart === "line" && (
+            <LineChartComponent
+              data={expenseTrend}
+              dataKeys={["Amount"]}
+              height={280}
+              xAxisLabel="Date"
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={[CHART_BRAND_LIGHT]}
+            />
+          )}
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <PieChartComponent
-            data={expenseCategoryData?.data || []}
-            responsive
-            height={260}
-            showLegend
-            legendPosition="bottom"
-            colorScale={["#22c55e", "#8B0000"]}
-          />
-        </div>
-      </div>
-
-      {/* <div className="mt-6 w-full max-w-md bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <h3 className="text-base font-semibold text-gray-900">
-            Top Selling Items
-          </h3>
-          <div className="flex items-center gap-2">
-            <select
-              value={topRange}
-              onChange={(e) => setTopRange(e.target.value as any)}
-              className="border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              title="Range"
-            >
-              <option value="fy">Fiscal Year</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-            </select>
-            <div className="flex items-center gap-1">
-              <label htmlFor="topN" className="text-xs text-gray-600">
-                Top
-              </label>
-              <input
-                id="topN"
-                type="number"
-                min={1}
-                max={15}
-                value={topN}
-                onChange={(e) =>
-                  setTopN(
-                    Math.max(1, Math.min(15, Number(e.target.value) || 5)),
-                  )
-                }
-                className="w-14 border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              />
-            </div>
-          </div>
-        </div>
-        {ordersLoading ? (
-          <div className="h-[220px] animate-pulse bg-gray-100 rounded" />
-        ) : (
-          <BarChartComponent
-            data={topItemsBarData}
-            dataKeys={["Quantity"]}
-            height={220}
-            xAxisLabel="Item"
-            yAxisLabel="Qty"
-            showLegend={false}
-            colorScale={["#6366f1"]}
-          />
-        )}
-      </div> */}
+      </DashboardChartCard>
     </div>
   );
 }
+
 export default PurchaseExpenseSection;

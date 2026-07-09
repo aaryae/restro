@@ -1,12 +1,16 @@
 import { format, getHours } from "date-fns";
 import { useAppSelector } from "@/redux/store/hooks";
-import { useForm } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import OverviewCards from "./components/OverviewCards";
-import PurchaseSection from "./components/PurchaseChart";
-import RevenueSection from "./components/RevenueChart";
 import PurchaseExpenseSection from "./components/PurchaseExpenseChart";
+import RevenueSection from "./components/RevenueChart";
 import CashAndBank from "./components/CashAndBank";
+import DashboardViewTabs, {
+  type DashboardView,
+} from "./components/DashboardViewTabs";
+import DashboardQuickLinks from "./components/DashboardQuickLinks";
+import AnimatedPanel from "./components/AnimatedPanel";
+import { LayoutDashboard } from "lucide-react";
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -18,81 +22,55 @@ const getPartOfDay = (date: Date = new Date()): string => {
 
 export default function Dashboard() {
   const userName = useAppSelector((state) => state.profile.username);
-  const todayDate = format(new Date(), "PPPP");
+  const todayDate = format(new Date(), "EEEE, MMMM d, yyyy");
 
-  const headerOptions = [
-    { label: "Overview", value: "overview" },
-    { label: "Purchase & Expense", value: "purchase-expense" },
-    { label: "Revenue", value: "revenue" },
-    { label: "Cash & Banks", value: "cashbanks" },
-  ];
-
-  const { control, watch } = useForm<{ accountType: string }>({
+  const { control, watch } = useForm<{ accountType: DashboardView }>({
     defaultValues: { accountType: "overview" },
   });
   const selectedView = watch("accountType");
 
   return (
-    <>
-      <div className="w-full flex justify-between">
-        <div className="flex flex-col">
-          <div className="text-left text-2xl font-bold">
-            Good {getPartOfDay()},{" "}
-            <span className="text-green-500">{userName}</span>
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primaryColor/10 text-primaryColor">
+              <LayoutDashboard size={20} />
+            </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold text-slate-900 sm:text-xl">
+                Good {getPartOfDay()},{" "}
+                <span className="text-primaryColor">{userName}</span>
+              </h1>
+              <p className="mt-0.5 text-[13px] text-slate-500">{todayDate}</p>
+            </div>
           </div>
-          <div className="flex">
-            <span className="text-blue-500 font-semibold">{todayDate}</span>
-          </div>
+
+          <Controller
+            name="accountType"
+            control={control}
+            render={({ field }) => (
+              <DashboardViewTabs
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </div>
       </div>
-      <div className="mt-4 w-full">
-        <Controller
-          name="accountType"
-          control={control}
-          render={({ field }) => (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:gap-2 gap-2">
-              {headerOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`w-full md:w-auto py-2 px-4 md:py-3 md:px-8 text-sm sm:text-base font-medium rounded-md transition-colors whitespace-nowrap ${
-                    field.value === option.value
-                      ? "bg-primaryColor text-white border-none"
-                      : "bg-white text-gray-700 border-2 hover:bg-gray-100"
-                  }`}
-                  onClick={() => field.onChange(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-        />
+
+      <div className="mt-3">
+        <DashboardQuickLinks />
       </div>
-      {/* Overview content */}
-      {selectedView === "overview" && (
-        <>
-          <OverviewCards />
-        </>
-      )}
-      {/* Revenue content */}
-      {selectedView === "purchase-expense" && (
-        <>
-          <PurchaseExpenseSection />
-        </>
-      )}
-      {/* Revenue content */}
-      {selectedView === "revenue" && (
-        <>
-          <RevenueSection />
-        </>
-      )}
-      {/* Purchase content */}
-      {selectedView === "cashbanks" && (
-        <>
-          <CashAndBank />
-        </>
-      )}
-    </>
+
+      <div className="mt-4 min-w-0">
+        <AnimatedPanel panelKey={selectedView}>
+          {selectedView === "overview" && <OverviewCards />}
+          {selectedView === "purchase-expense" && <PurchaseExpenseSection />}
+          {selectedView === "revenue" && <RevenueSection />}
+          {selectedView === "cashbanks" && <CashAndBank />}
+        </AnimatedPanel>
+      </div>
+    </div>
   );
 }

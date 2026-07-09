@@ -56,18 +56,21 @@ const Report = () => {
           title="Opening Balance"
           value={`${CurrencySign}${Number(summary?.openingBalance || 0).toLocaleString()}`}
           gradient="from-blue-500 via-blue-600 to-blue-500"
+          variant="gradient"
           Icon={Landmark}
         />
         <SummaryCard
           title="Net Change (Today)"
           value={`${CurrencySign}${netChange.toLocaleString()}`}
           gradient="from-amber-500 via-amber-600 to-amber-500"
+          variant="gradient"
           Icon={TrendingUp}
         />
         <SummaryCard
           title="Closing Balance"
           value={`${CurrencySign}${Number(summary?.closingBalance || 0).toLocaleString()}`}
           gradient="from-emerald-500 via-emerald-600 to-emerald-500"
+          variant="gradient"
           Icon={PiggyBank}
         />
       </div>

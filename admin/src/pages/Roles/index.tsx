@@ -1,5 +1,6 @@
-import { useState } from "react";
-import PageHeader from "@/components/PageHeader";
+import { useEffect, useState } from "react";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import ListGridToggle from "@/components/ListGridToggle";
 import Drawer from "@/components/Drawer";
 import {
   useDeleteRoleMutation,
@@ -7,6 +8,7 @@ import {
 } from "../../redux/services/role";
 import { MdEditSquare } from "react-icons/md";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import moment from "moment";
 import AddRoleForm from "./AddRoleForm";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -17,31 +19,31 @@ import useTranslation from "@/locale/useTranslation";
 import DeleteModal from "@/components/DeleteModal";
 import { PaginationType } from "@/types/commonTypes";
 import { ROLE_LIST_ROUTE } from "@/routes/routeNames";
-import { ViewType } from "../Users";
-import { FaCircleCheck } from "react-icons/fa6";
-import { FaCircleXmark } from "react-icons/fa6";
+import type { ViewType } from "../Users";
 import Spinner from "@/components/Spinner";
+
+const tableHeaders = ["Role", "Updated At", "Is Active", "Actions"];
 
 export default function Roles() {
   const translate = useTranslation();
   const navigate = useNavigate();
   const accessList = checkAccess("Roles");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // for query
-  const [query, setQuery] = useState({ page: 1, limit: 10 });
-
+  const [query, setQuery] = useState({ page: 1, limit: 10, title: "" });
   const [viewType, setViewType] = useState<ViewType>("list");
 
-  // Defining States
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [drawerType, setDrawerType] = useState<string>("");
   const [editId, setEditId] = useState<number | null>(null);
 
-  // For Delete
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [open, setOpen] = useState<boolean>(false);
 
-  // Api Initialization
+  useEffect(() => {
+    setQuery((prev) => ({ ...prev, page: 1, title: searchTerm }));
+  }, [searchTerm]);
+
   const {
     data: allRoles,
     isSuccess: success,
@@ -50,7 +52,6 @@ export default function Roles() {
   } = useGetRoleQuery(query);
   const [deleteRole] = useDeleteRoleMutation();
 
-  // Functions
   const handleNewRole = () => {
     setDrawerType("add");
     setIsOpen(true);
@@ -65,13 +66,6 @@ export default function Roles() {
     setEditId(id);
     setDrawerType("edit");
     setIsOpen(true);
-  };
-  const handleReload = () => {
-    refetch();
-  };
-
-  const toggleViewType = (type: ViewType) => {
-    setViewType(type);
   };
 
   const handleDelete = async () => {
@@ -102,77 +96,66 @@ export default function Roles() {
       ...prev,
       ...pagination,
     }));
-    refetch();
   };
 
-  // Content of the table
   const tableData =
     success && allRoles?.data?.data
       ? allRoles.data.data.map(({ id, title, updatedAt, isActive }) => [
-          title,
-          updatedAt ? moment(updatedAt).format("DD MMM, YYYY") : "",
-          isActive ? (
-            <span className="flex justify-center">
-              {isActive ? (
-                <FaCircleCheck className="text-[#0090dd]" />
-              ) : (
-                <FaCircleXmark className="text-red-500" />
-              )}
-            </span>
-          ) : (
-            ""
-          ),
-          <div
-            key={id}
-            className="flex items-center justify-center gap-[0.5rem]"
+          <span className="text-sm font-semibold text-slate-800">{title}</span>,
+          updatedAt ? moment(updatedAt).format("DD MMM, YYYY") : "—",
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+              isActive
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+            }`}
           >
+            {isActive ? "Active" : "Inactive"}
+          </span>,
+          <TableRowActions>
             {accessList.includes("edit") && (
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                  onClick={() => handleEditRole(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Edit Role
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleEditRole(id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit role"
+              >
+                <MdEditSquare size={16} />
+              </button>
             )}
             {accessList.includes("delete") && (
-              <div className="relative group">
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Delete Role
-                </span>
-              </div>
+              <DeleteModal
+                compact
+                open={open}
+                setOpen={setOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
+              />
             )}
-          </div>,
+          </TableRowActions>,
         ])
       : [];
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
+
   return (
-    <>
-      <PageHeader
-        hasViewType
-        viewType={viewType}
-        toggleViewType={toggleViewType}
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search roles..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
         hasAddButton={accessList.includes("add")}
-        newButtonText={translate("Add New Role")}
+        newButtonText={translate("Add Role")}
         handleNewButton={handleNewRole}
-        handleReloadButton={handleReload}
-        hasSubText
-        subText={translate(
-          "Include Detailed Role Information in Each Section.",
-        )}
+        handleReloadButton={() => refetch()}
+        subText="Define roles and control what each user group can access."
+        filters={
+          <ListGridToggle viewType={viewType} onChange={setViewType} />
+        }
       />
+
       {accessList.includes("view") ? (
         <div>
           {viewType === "list" ? (
@@ -184,34 +167,40 @@ export default function Roles() {
               handlePagination={handlePagination}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 justify-between gap-x-[1.125rem] gap-y-[2.25rem]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {allRoles.data.data.map(({ id, title, updatedAt, isActive }) => (
                 <button
                   key={id}
-                  className="text-start space-y-[1rem] p-[0.75rem] bg-white min-w-[20rem] rounded-[0.75rem] cursor-pointer"
+                  type="button"
+                  onClick={() => handleEditRole(id)}
+                  className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:shadow"
                 >
-                  <h2 className="font-[700] text-[#0091dd]">{title}</h2>
-                  <p>
-                    Updated at: &nbsp;{" "}
-                    {moment(updatedAt).format("DD-MMM, YYYY")}
+                  <h2 className="text-sm font-semibold text-primaryColor">
+                    {title}
+                  </h2>
+                  <p className="mt-2 text-[12px] text-slate-500">
+                    Updated {moment(updatedAt).format("DD MMM, YYYY")}
                   </p>
-                  <p className="flex items-center gap-[2rem]">
-                    {" "}
-                    Active :{" "}
-                    {isActive ? (
-                      <FaCircleCheck className="text-[#0090dd]" />
-                    ) : (
-                      <FaCircleXmark className="text-red-500" />
-                    )}
-                  </p>
+                  <span
+                    className={`mt-3 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                      isActive
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                        : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                    }`}
+                  >
+                    {isActive ? "Active" : "Inactive"}
+                  </span>
                 </button>
               ))}
             </div>
           )}
         </div>
       ) : (
-        <div>Has No permissions to View Table</div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view roles.
+        </div>
       )}
+
       <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-[100%] md:w-[50%]">
         {drawerType === "add" ? (
           <AddRoleForm isOpen={isOpen} setIsOpen={setIsOpen} />
@@ -219,8 +208,6 @@ export default function Roles() {
           <EditRoles id={editId} setIsOpen={setIsOpen} />
         )}
       </Drawer>
-    </>
+    </div>
   );
 }
-
-const tableHeaders = ["Role", "Updated At", "Is Active", "Actions"];

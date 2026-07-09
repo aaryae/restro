@@ -35,6 +35,7 @@ export default function SideMenu({
 
   const [isVisible, setIsVisible] = useState<number[]>([]);
   const [hoveredKey, setHoveredKey] = useState<number | null>(null);
+  const [showScrollBar, setShowScrollBar] = useState(false);
   const [collapsedFlyout, setCollapsedFlyout] = useState<{
     key: number;
     top: number;
@@ -43,6 +44,7 @@ export default function SideMenu({
     items: SideListMenuType[];
   } | null>(null);
   const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isActive, setIsActive] = useState<string | null>(null);
   const { data: settings } = useGetSettingQuery("");
   useEffect(() => {
@@ -77,6 +79,14 @@ export default function SideMenu({
       setHoveredKey(null);
     }
   }, [sideMenuOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollHideTimer.current) {
+        clearTimeout(scrollHideTimer.current);
+      }
+    };
+  }, []);
 
   const handleClick = (key: number) => {
     setIsVisible((prev) => {
@@ -140,6 +150,17 @@ export default function SideMenu({
       // ignore
     }
   };
+
+  const handleSidebarScroll = () => {
+    setShowScrollBar(true);
+    if (scrollHideTimer.current) {
+      clearTimeout(scrollHideTimer.current);
+    }
+    scrollHideTimer.current = setTimeout(() => {
+      setShowScrollBar(false);
+    }, 5000);
+  };
+
   return (
     <div
       className={`sidebar-shell ${!sideMenuOpen ? "sidebar-collapsed" : ""} w-full h-full px-[12px] overflow-x-hidden min-h-0 flex flex-col ${!sideMenuOpen ? "pt-[30px]" : "pt-[14px]"}`}
@@ -170,7 +191,8 @@ export default function SideMenu({
         </button>
       </div>
       <div
-        className={`sidebar-nav flex flex-col gap-[6px] mt-[2rem] ${!sideMenuOpen ? "items-center" : " "}`}
+        className={`sidebar-nav ${showScrollBar ? "sidebar-nav-scroll-active" : ""} flex flex-col gap-[6px] mt-[2rem] ${!sideMenuOpen ? "items-center" : " "}`}
+        onScroll={handleSidebarScroll}
       >
         {sideMenuOpen && !isSettingsView && (
           <p className="sidebar-section-label px-2 mb-1">Navigation</p>
@@ -195,7 +217,26 @@ export default function SideMenu({
             </button>
           </div>
         )}
-        {/* Dashboard */}
+        {!isSettingsView && viewAccess.includes("Dashboard") && (
+          <div
+            className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
+              currentPath.includes("dashboard") ? "sidebar-item-active" : ""
+            }`}
+            onClick={() => handleNavigate("Dashboard", "/admin/dashboard")}
+          >
+            <div className="flex items-center gap-[0.5rem]">
+              <div className="sidebar-item-icon">
+                <LayoutDashboard />
+              </div>
+              {sideMenuOpen && (
+                <p className="font-[500] text-[0.96rem] transition-all duration-300">
+                  {translate("Dashboard")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {!isSettingsView && viewAccess.includes("Order") && (
           <div
             className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${

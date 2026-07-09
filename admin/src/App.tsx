@@ -148,7 +148,7 @@ export default function App() {
         const decodedToken: DecodedToken = jwtDecode(token);
 
         if (decodedToken?.exp * 1000 > Date.now()) {
-          navigate("/admin/dashboard");
+          navigate("/admin/order/list");
           Toast("User Logged in Successful", "success");
         } else {
           Toast("Session Expired. Please Try Again", "error");

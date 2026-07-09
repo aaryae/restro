@@ -46,13 +46,16 @@
 
 html {
   font-size: 85%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
-  min-width: 100%;
+  width: 100%;
+  max-width: 100%;
   min-height: 100%;
+  overflow-x: hidden;
   font-family: var(--font-english);
 }
 
@@ -239,21 +242,37 @@ h3 {
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: 1rem;
+  margin-right: -12px;
+  padding-right: 12px;
+  scrollbar-width: none;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 0;
+}
+
+.sidebar-nav-scroll-active {
+  scrollbar-width: thin;
+}
+
+.sidebar-nav-scroll-active::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav-scroll-active::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav-scroll-active::-webkit-scrollbar-thumb {
+  background: #c6d3e4;
+  border-radius: 999px;
 }
 
 .sidebar-menu-group {
   position: relative;
   width: 100%;
   min-width: 0;
-}
-
-.sidebar-shell::-webkit-scrollbar {
-  width: 5px;
-}
-
-.sidebar-shell::-webkit-scrollbar-thumb {
-  background: #c6d3e4;
-  border-radius: 999px;
 }
 
 .sidebar-toggle-btn {
@@ -573,5 +592,35 @@ h3 {
     opacity: 1;
     transform: translateY(0) scaleY(1);
   }
+}
+
+@keyframes dashboard-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-chart-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dashboard-panel-enter {
+  animation: dashboard-panel-enter 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dashboard-chart-enter {
+  animation: dashboard-chart-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 

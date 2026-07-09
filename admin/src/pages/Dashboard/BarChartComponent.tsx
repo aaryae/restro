@@ -8,27 +8,32 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
-import chroma from "chroma-js";
 import { VerticalAlignmentType } from "recharts/types/component/DefaultLegendContent";
 import {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
+import {
+  CHART_PALETTE,
+  axisTickStyle,
+  chartCursorFill,
+  chartGridStroke,
+  chartMargins,
+  chartTooltipStyle,
+  formatChartValue,
+  formatCompactAxis,
+} from "./chartTheme";
 
-// Default color scale anchors for chroma-js
-const DEFAULT_COLOR_SCALE = ["#0088FE", "#FF8042"];
-
-// Interface for data shape
 interface ChartData {
   name: string;
-  [key: string]: unknown; // Allow additional properties
+  [key: string]: unknown;
 }
 
-// Props interface
 interface BarChartProps {
   data: ChartData[];
-  dataKeys: string[]; // Array of keys for multiple bars (e.g., ['uv', 'pv'])
+  dataKeys: string[];
   width?: number;
   height?: number;
   barSize?: number;
@@ -45,131 +50,143 @@ interface BarChartProps {
   margin?: { top?: number; right?: number; bottom?: number; left?: number };
 }
 
-// Utility to generate dynamic colors with WCAG contrast
-const generateColors = (
-  count: number,
-  colorScale: string[] = DEFAULT_COLOR_SCALE,
-): string[] => {
-  const colors = chroma.scale(colorScale).mode("lch").colors(count);
-  return colors.map((color) => {
-    const contrast = chroma.contrast(color, "#fff");
-    if (contrast < 4.5) {
-      return chroma(color).luminance(0.5).hex(); // Adjust luminance for better contrast
-    }
-    return color;
-  });
-};
-
 const BarChartComponent: React.FC<BarChartProps> = ({
   data,
   dataKeys,
   width = 400,
   height = 300,
-  barSize = 30,
+  barSize = 36,
   showGrid = true,
-  showLegend = true,
+  showLegend = false,
   legendPosition = "bottom",
   showTooltip = true,
   tooltipFormatter,
-  colorScale = DEFAULT_COLOR_SCALE,
+  colorScale = CHART_PALETTE,
   nameKey = "name",
-  xAxisLabel,
-  yAxisLabel,
   responsive = true,
-  margin = { top: 5, right: 30, left: 20, bottom: 5 },
+  margin = chartMargins.bar,
 }) => {
-  // Memoize colors for performance
-  const colors = useMemo(
-    () => generateColors(dataKeys.length, colorScale),
-    [dataKeys.length, colorScale],
-  );
+  const barColors = useMemo(() => {
+    if (dataKeys.length > 1) {
+      return dataKeys.map((_, i) => colorScale[i % colorScale.length]);
+    }
+    return data.map((_, i) => colorScale[i % colorScale.length]);
+  }, [data, dataKeys, colorScale]);
 
-  // Render the chart inside ResponsiveContainer if responsive is true
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
   const containerProps = responsive ? { width: "100%", height } : {};
 
-  // Validate data
   if (!data || data.length === 0) {
-    return <div>No data available</div>;
+    return (
+      <div className="flex h-[260px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white text-center">
+        <p className="text-[13px] font-medium text-slate-600">No data yet</p>
+        <p className="mt-1 text-[12px] text-slate-400">
+          Charts will appear once records are available
+        </p>
+      </div>
+    );
   }
+
   const isValidData = data.every((item) =>
     dataKeys.every((key) => typeof item[key] === "number" && item[key] >= 0),
   );
   if (!isValidData) {
-    return <div>Invalid data format</div>;
+    return (
+      <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-rose-200 bg-rose-50/50 text-[13px] text-rose-600">
+        Unable to display chart — invalid data format
+      </div>
+    );
   }
 
   return (
-    <ChartContainer
-      id="line-chart"
-      className="recharts-line-chart"
-      // className="recharts-responsive-container"
-      {...containerProps}
-    >
-      <BarChart
-        width={responsive ? undefined : width}
-        height={height}
-        data={data}
-        margin={margin}
-        role="img"
-        barGap="0"
-        barCategoryGap={"10"}
-        aria-label="Bar chart displaying eCommerce analytics"
+    <div className="min-w-0 w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-50/40 to-white p-1">
+      <ChartContainer
+        id="bar-chart"
+        className="recharts-responsive-container"
+        {...containerProps}
       >
-        {showGrid && (
-          <CartesianGrid strokeDasharray="0" opacity={0.4} vertical={false} />
-        )}
-        <XAxis
-          dataKey={nameKey}
-          label={{
-            value: xAxisLabel,
-            position: "bottom",
-            offset: -6,
-          }}
-        />
-        <YAxis
-          label={{
-            value: yAxisLabel,
-            angle: -90,
-            position: "center",
-            dx: -23, // negative value moves it further left
-            style: {
-              fontWeight: "bold", // Make the label bold
-              fill: "#444", // Optional: change text color
-              fontSize: 10, // Optional: increase size for better visibility
-            },
-          }}
-          interval="preserveStartEnd"
-        />
-        {showTooltip && (
-          <Tooltip
-            formatter={
-              tooltipFormatter
-                ? (value, name) => tooltipFormatter({ value, name })
-                : undefined
-            }
+        <BarChart
+          width={responsive ? undefined : width}
+          height={height}
+          data={data}
+          margin={margin}
+          barCategoryGap="18%"
+        >
+          {showGrid && (
+            <CartesianGrid
+              stroke={chartGridStroke}
+              strokeDasharray="4 4"
+              vertical={false}
+            />
+          )}
+          <XAxis
+            dataKey={nameKey}
+            tick={axisTickStyle}
+            tickLine={false}
+            axisLine={{ stroke: chartGridStroke }}
+            interval={0}
+            angle={data.length > 5 ? -25 : 0}
+            textAnchor={data.length > 5 ? "end" : "middle"}
+            height={data.length > 5 ? 56 : 36}
           />
-        )}
-        {showLegend && (
-          <Legend
-            verticalAlign={legendPosition}
-            align={
-              legendPosition === "bottom" || legendPosition === "top"
-                ? "center"
-                : "left"
-            }
+          <YAxis
+            tick={axisTickStyle}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={formatCompactAxis}
+            width={48}
           />
-        )}
-        {dataKeys.map((key, index) => (
-          <Bar
-            key={`bar-${key}`}
-            dataKey={key}
-            fill={colors[index]}
-            barSize={barSize}
-          />
-        ))}
-      </BarChart>
-    </ChartContainer>
+          {showTooltip && (
+            <Tooltip
+              cursor={{ fill: chartCursorFill, radius: 8 }}
+              formatter={
+                tooltipFormatter
+                  ? (value, name) => tooltipFormatter({ value, name })
+                  : (value: number, name: string) => [
+                      formatChartValue(Number(value)),
+                      name,
+                    ]
+              }
+              contentStyle={chartTooltipStyle}
+            />
+          )}
+          {showLegend && (
+            <Legend
+              verticalAlign={legendPosition}
+              align="center"
+              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+            />
+          )}
+          {dataKeys.length === 1 ? (
+            <Bar
+              dataKey={dataKeys[0]}
+              radius={[8, 8, 0, 0]}
+              barSize={barSize}
+              isAnimationActive
+              animationDuration={650}
+              animationEasing="ease-out"
+            >
+              {data.map((_, index) => (
+                <Cell key={`bar-cell-${index}`} fill={barColors[index]} />
+              ))}
+            </Bar>
+          ) : (
+            dataKeys.map((key, index) => (
+              <Bar
+                key={`bar-${key}`}
+                dataKey={key}
+                fill={barColors[index]}
+                radius={[8, 8, 0, 0]}
+                barSize={barSize}
+                isAnimationActive
+                animationDuration={650}
+                animationEasing="ease-out"
+              />
+            ))
+          )}
+        </BarChart>
+      </ChartContainer>
+    </div>
   );
 };
 

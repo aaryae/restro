@@ -1,20 +1,15 @@
-.tableBody {
-  tr:nth-child(even) {
-    background-color: rgba(209, 214, 214, 0.432);
-  }
-}
-
-/* Fallback/explicit selector for environments without CSS nesting */
 .tableBody tr:nth-child(even) {
-  background-color: rgba(249, 250, 251, 0.9); /* softer zebra */
+  background-color: #fafbfc;
 }
 
-/* Optional subtle dividers between rows */
 .tableBody tr td {
-  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  border-bottom: 1px solid #eef1f4;
 }
 
-/* Smooth hover transition (paired with Tailwind hover:bg-*) */
+.tableBody tr:last-child td {
+  border-bottom: none;
+}
+
 .row {
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.18s ease;
 }

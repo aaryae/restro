@@ -29,8 +29,17 @@ const authenticationApi = api.injectEndpoints({
       invalidatesTags: ["users"],
     }),
     getAllUser: builder.query<ApiResponse, GetAllUserRequestType>({
-      query: (query) =>
-        `auth/list?isDeleted=false&page=${query.page}&limit=${query.limit}`,
+      query: (query) => {
+        const params = new URLSearchParams({
+          isDeleted: "false",
+          page: String(query.page),
+          limit: String(query.limit),
+        });
+        if (query.username) {
+          params.append("username", query.username);
+        }
+        return `auth/list?${params.toString()}`;
+      },
       providesTags: ["users"],
     }),
     getUserById: builder.query({

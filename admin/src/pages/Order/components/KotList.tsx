@@ -8,17 +8,8 @@ import usePagination from "@/hooks/usePagination";
 import Button from "@/components/Button";
 import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
-import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
-import { CurrencySign } from "@/constants";
-
-interface Addon {
-  id: number | string;
-  name: string;
-  price: number | string;
-  quantity: number | string;
-}
 
 type OrderItem = {
   id: number | string;
@@ -29,34 +20,98 @@ type OrderItem = {
     name?: string;
     price?: number | string;
   };
-  subtotal?: number | string;
   specialInstructions?: string;
-  addons?: Addon[];
+  addons?: Array<{
+    addon?: { name?: string };
+  }>;
 };
 
-function getItemTotal(item: OrderItem): number {
-  const basePrice =
-    Number(item.product?.price || 0) * Number(item.quantity || 0);
-  const addonsTotal =
-    item.addons?.reduce((sum: number, addon: Addon) => {
-      const addonPrice = Number(addon.price || 0) * Number(addon.quantity || 1);
-      return sum + addonPrice * Number(item.quantity || 1);
-    }, 0) || 0;
-  return basePrice + addonsTotal;
+function getKotStatusTheme(status?: string) {
+  switch (status) {
+    case "all":
+      return {
+        border: "border-slate-300",
+        stripe: "bg-slate-400",
+        badge: "bg-slate-100 text-slate-700 border-slate-300",
+        tint: "bg-white",
+        label: "All",
+        dot: "bg-gradient-to-r from-amber-500 via-sky-500 to-emerald-500",
+        filterActive: "border-primaryColor bg-primaryColor text-white",
+        filterInactive:
+          "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+      };
+    case "pending":
+      return {
+        border: "border-amber-400",
+        stripe: "bg-amber-500",
+        badge: "bg-amber-100 text-amber-800 border-amber-300",
+        tint: "bg-amber-50/60",
+        label: "Pending",
+        dot: "bg-amber-500",
+        filterActive: "border-amber-500 bg-amber-500 text-white",
+        filterInactive:
+          "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
+      };
+    case "preparing":
+      return {
+        border: "border-sky-500",
+        stripe: "bg-sky-500",
+        badge: "bg-sky-100 text-sky-800 border-sky-300",
+        tint: "bg-sky-50/60",
+        label: "Preparing",
+        dot: "bg-sky-500",
+        filterActive: "border-sky-500 bg-sky-500 text-white",
+        filterInactive: "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+      };
+    case "ready":
+      return {
+        border: "border-emerald-500",
+        stripe: "bg-emerald-500",
+        badge: "bg-emerald-100 text-emerald-800 border-emerald-300",
+        tint: "bg-emerald-50/60",
+        label: "Ready · Checkout",
+        dot: "bg-emerald-500",
+        filterActive: "border-emerald-500 bg-emerald-500 text-white",
+        filterInactive:
+          "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+      };
+    case "completed":
+      return {
+        border: "border-slate-400",
+        stripe: "bg-slate-500",
+        badge: "bg-slate-100 text-slate-700 border-slate-300",
+        tint: "bg-slate-50/80",
+        label: "Completed",
+        dot: "bg-slate-500",
+        filterActive: "border-slate-500 bg-slate-500 text-white",
+        filterInactive:
+          "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+      };
+    case "cancelled":
+      return {
+        border: "border-rose-500",
+        stripe: "bg-rose-500",
+        badge: "bg-rose-100 text-rose-800 border-rose-300",
+        tint: "bg-rose-50/60",
+        label: "Cancelled",
+        dot: "bg-rose-500",
+        filterActive: "border-rose-500 bg-rose-500 text-white",
+        filterInactive: "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100",
+      };
+    default:
+      return {
+        border: "border-gray-400",
+        stripe: "bg-gray-400",
+        badge: "bg-gray-100 text-gray-700 border-gray-300",
+        tint: "bg-white",
+        label: status ?? "-",
+        dot: "bg-gray-400",
+        filterActive: "border-primaryColor bg-primaryColor text-white",
+        filterInactive:
+          "border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30",
+      };
+  }
 }
-
-type Order = {
-  id: number;
-  orderType?: string;
-  orderStartTime?: string | Date;
-  table?: { id?: number; tableNo?: string; name?: string } | null;
-  createdBy?: { name?: string; table?: { name?: string } } | null;
-  orderItems?: OrderItem[];
-  totalAmount?: number;
-  status?: string;
-  paymentStatus?: string;
-  takeAwayName?: string;
-};
 
 export default function KotList() {
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
@@ -84,106 +139,63 @@ export default function KotList() {
   }, [kots, handlePagination]);
 
   const totalPages = kots?.data?.totalPages ?? 1;
-  const offset = (query.page - 1) * query.limit;
+  const statusTabs = [
+    "all",
+    "pending",
+    "preparing",
+    "ready",
+    "completed",
+    "cancelled",
+  ];
 
   return (
     <>
-      <div className="md:flex md:gap-2 my-4 grid grid-cols-4 gap-2 pb-8">
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "all" ? "bg-blue-500 text-white" : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((prev) => ({ ...prev, status: "all" }))
-          }
-        >
-          All
-        </button>
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "pending"
-              ? "bg-blue-500 text-white"
-              : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "pending" }))
-          }
-        >
-          Pending
-        </button>
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "preparing"
-              ? "bg-blue-500 text-white"
-              : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "preparing" }))
-          }
-        >
-          Preparing
-        </button>
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "ready"
-              ? "bg-blue-500 text-white"
-              : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "ready" }))
-          }
-        >
-          Ready
-        </button>
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "completed"
-              ? "bg-blue-500 text-white"
-              : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "completed" }))
-          }
-        >
-          Completed
-        </button>
-        <button
-          className={`px-3 py-2 rounded border ${
-            queryStringOptions.status === "cancelled"
-              ? "bg-blue-500 text-white"
-              : ""
-          }`}
-          onClick={() =>
-            setQueryStringOptions((cur) => ({ ...cur, status: "cancelled" }))
-          }
-        >
-          Cancelled
-        </button>
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2">
+          {statusTabs.map((status) => {
+            const isActive = queryStringOptions.status === status;
+            const theme = getKotStatusTheme(status);
+            return (
+              <button
+                key={status}
+                type="button"
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium capitalize transition ${
+                  isActive ? theme.filterActive : theme.filterInactive
+                }`}
+                onClick={() =>
+                  setQueryStringOptions((cur) => ({ ...cur, status }))
+                }
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    isActive ? "bg-white" : theme.dot
+                  }`}
+                />
+                {status === "ready" ? "Ready" : status}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+      <div className="mt-3 grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {isSuccess && kots?.data?.data?.length > 0 ? (
-          kots?.data?.data?.map((kot, idx) => (
-            <KotCard
-              key={kot.id}
-              kot={kot}
-              // Name older KOT earlier: sequential queue number across pages
-            />
+          kots?.data?.data?.map((kot) => (
+            <KotCard key={kot.id} kot={kot} />
           ))
         ) : (
-          <div className="col-span-full text-center text-gray-500">
+          <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
             No kot found
           </div>
         )}
       </div>
 
-      {/* Pagination controls */}
       {kots?.data?.data?.length > 0 && (
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5">
           <button
-            className={`px-3 py-2 rounded border ${
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               query.page === 1
-                ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                : "bg-white hover:bg-gray-50"
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
             disabled={query.page === 1}
             onClick={() =>
@@ -192,14 +204,14 @@ export default function KotList() {
           >
             Prev
           </button>
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-slate-600">
             Page {query.page} of {totalPages}
           </div>
           <button
-            className={`px-3 py-2 rounded border ${
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
               query.page >= totalPages
-                ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                : "bg-white hover:bg-gray-50"
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
             disabled={query.page >= totalPages}
             onClick={() =>
@@ -246,216 +258,143 @@ function KotCard({ kot }) {
           .kot-print .number {margin:0 !important; }
         
         .no-print { display: none !important; }
+        .screen-compact {
+          max-height: none !important;
+          overflow: visible !important;
+        }
       }
     `,
   });
 
   const totalDish = items.length;
-  const totalQty = items.reduce((sum, item) => {
-    const itemQty = Number(item.quantity || 0);
-    const addonsQty = item.addons?.length || 0;
-    return sum + itemQty + addonsQty * itemQty;
-  }, 0);
-  const totalAmount = items.reduce((sum, item) => {
-    const itemTotal = getItemTotal(item);
-    return sum + itemTotal;
-  }, 0);
+  const totalQty = items.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0,
+  );
 
   const [openCheckout, setOpenCheckout] = useState(false);
+  const statusTheme = getKotStatusTheme(kot.status);
+
+  const tableOrCustomer =
+    kot?.order?.orderType === "dineIn"
+      ? kot?.order?.table?.tableNo || "-"
+      : kot?.order?.takeAwayName || "-";
+
+  const orderBy =
+    kot?.order?.createdBy?.table?.name ||
+    kot?.order?.table?.tableNo ||
+    kot?.order?.createdBy?.name ||
+    "-";
 
   return (
     <>
       <div
-        className={`relative bg-white border border-gray-200 rounded-xl shadow-sm ${kot.status === "preparing" ? "border-blue-600" : kot.status === "ready" ? "border-green-500" : kot.status === "pending" ? "border-yellow-500" : kot.status === "cancelled" ? "border-red-500" : "border-gray-500"}`}
+        className={`relative flex w-full max-w-[280px] flex-col overflow-hidden border border-dashed font-mono text-xs shadow-sm ${statusTheme.border} ${statusTheme.tint}`}
       >
-        {/* Status Ribbon - top right corner (screen only) */}
         <div
-          className="no-print absolute top-[1rem] -right-[0.5rem] "
-          title={`Status: ${kot.status ?? "-"}`}
-        >
-          <div
-            className={`px-3 py-1 shadow-sm border rounded-br-full ${
-              kot.status === "ready"
-                ? "bg-green-600 border-green-700 text-white"
-                : kot.status === "pending"
-                  ? "bg-yellow-400 border-yellow-500 text-black"
-                  : kot.status === "preparing"
-                    ? "bg-blue-600 border-blue-700 text-white"
-                    : kot.status === "cancelled"
-                      ? "bg-red-600 border-red-700 text-white"
-                      : "bg-gray-500 border-gray-600 text-white"
-            }`}
-          >
-            <span className="uppercase text-[10px] font-semibold tracking-wide">
-              {kot.status ?? "-"}
+          className={`no-print absolute bottom-0 left-0 top-0 w-1.5 ${statusTheme.stripe}`}
+        />
+
+        <div ref={contentRef} className="kot-print flex flex-1 flex-col p-3 pl-4">
+          <div className="flex items-start justify-between gap-2">
+            <p className="kot-title text-sm font-bold">KOT {kot.kotNumber}</p>
+            <span
+              className={`no-print shrink-0 rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${statusTheme.badge}`}
+            >
+              {statusTheme.label}
             </span>
           </div>
-        </div>
-        <div ref={contentRef} className="p-5 h-fit kot-print ">
-          <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
-            KOT {kot.kotNumber}
-          </div>
-          <div className="flex justify-between text-[12px] text-gray-800">
-            <div className="flex flex-col gap-[2px]">
-              <div className="flex">
-                <span className="font-semibold">Type:</span>{" "}
-                {formatOrderType(kot?.order?.orderType)}
-              </div>
-              <div className="flex">
-                <span className="font-semibold">Order By:</span>{" "}
-                {kot?.order?.createdBy?.table?.name ||
-                  kot?.order?.table?.tableNo ||
-                  "-"}
-              </div>
-              <div>
-                <span className="font-semibold">Order At:</span>{" "}
-                {kot?.order?.orderStartTime
-                  ? format(
-                      new Date(kot?.order?.orderStartTime),
-                      "dd LLL yyyy hh:mm a",
-                    )
-                  : "-"}
-              </div>
-            </div>
-            <div className="text-right">
-              <div>
-                <span className="font-semibold">
-                  {kot?.order?.orderType === "dineIn" ? "Table:" : "Customer:"}
-                </span>{" "}
-                {kot?.order?.orderType === "dineIn" &&
-                  kot?.order?.table?.tableNo}
-                {kot?.order?.orderType === "takeaway" &&
-                  kot?.order?.takeAwayName}
-              </div>
-            </div>
+
+          <div className="divider-dashed my-2 border-t border-dashed border-gray-400" />
+
+          <div className="space-y-0.5 text-[11px] leading-relaxed">
+            <p>
+              {kot?.order?.orderType === "dineIn" ? "Table" : "Customer"}:{" "}
+              {tableOrCustomer}
+            </p>
+            <p>Type: {formatOrderType(kot?.order?.orderType)}</p>
+            <p>Order By: {orderBy}</p>
+            <p>
+              Time:{" "}
+              {kot?.order?.orderStartTime
+                ? format(new Date(kot.order.orderStartTime), "dd MMM hh:mm a")
+                : "-"}
+            </p>
           </div>
 
-          <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
+          <div className="divider-dashed my-2 border-t border-dashed border-gray-400" />
 
-          <div className="grid grid-cols-12 text-[12px] font-semibold">
-            <div className="col-span-8 flex">S.N Dishes</div>
-            <div className="col-span-4 text-right">QTY</div>
+          <div className="grid grid-cols-12 text-[11px] font-bold">
+            <div className="col-span-8">Item</div>
+            <div className="col-span-4 text-right">Qty</div>
           </div>
 
-          <div className="my-2 border-t border-dashed border-gray-300 divider-dashed"></div>
+          <div className="divider-dashed my-1 border-t border-dashed border-gray-300" />
 
-          <div className="space-y-3 leading-[10px]">
-            {items.map((item, index) => {
-              const itemTotal = getItemTotal(item);
-              return (
-                <div key={String(item.id)} className="space-y-1">
+          <div className="screen-compact min-h-[80px] flex-1 space-y-1.5 py-1">
+            {items.length === 0 ? (
+              <p className="text-center text-gray-400">No items</p>
+            ) : (
+              items.map((item: OrderItem, index: number) => (
+                <div key={String(item.id)} className="text-[11px]">
                   <div className="grid grid-cols-12">
-                    <div className="col-span-8 flex gap-2">
-                      <span className="mt-[2.5px] number">{index + 1}.</span>
-                      <div>
-                        <div className="font-medium text-left">
-                          {item.product?.name || "-"}{" "}
-                          <span className="text-sm">(x{item.quantity})</span>
-                        </div>
-                        {item.specialInstructions && (
-                          <div className="text-xs text-gray-600 italic">
-                            Note: {item.specialInstructions}
-                          </div>
-                        )}
-                        {item.addons && item.addons.length > 0 && (
-                          <div className="mt-1">
-                            <div className="text-xs font-medium text-left">
-                              Addons:
-                            </div>
-                            <ul className="text-xs pl-4 list-disc">
-                              {item.addons.map(
-                                (addonItem: any, index: number) => (
-                                  <li key={index} className="text-left">
-                                    {addonItem?.addon?.name || "No name"}
-                                    {addonItem?.addon?.price !== undefined &&
-                                      ` (+Rs.${Number(addonItem.addon.price).toFixed(2)})(×${addonItem.quantity})`}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
+                    <div className="col-span-8">
+                      {index + 1}. {item.product?.name || "-"}
                     </div>
-                    <div className="col-span-4 text-right flex flex-col gap-2">
-                      <div>
-                        Rs.
-                        {Number(item.product?.price || 0).toFixed(2)}
-                      </div>
-                      {item.addons && item.addons.length > 0 && (
-                        <div className="text-xs text-gray-600">
-                          + Rs.
-                          {item.addons
-                            .reduce(
-                              (sum: number, addonItem: any) =>
-                                sum +
-                                Number(addonItem?.addon?.price || 0) *
-                                  addonItem.quantity,
-                              0,
-                            )
-                            .toFixed(2)}{" "}
-                          addons
-                        </div>
-                      )}
-                      {/* <div className="font-medium">
-                        Total: Rs.{itemTotal.toFixed(2)}
-                      </div> */}
-                    </div>
+                    <div className="col-span-4 text-right">{item.quantity}</div>
                   </div>
+                  {item.specialInstructions && (
+                    <p className="pl-3 text-[10px] italic text-gray-600">
+                      * {item.specialInstructions}
+                    </p>
+                  )}
+                  {item.addons?.map((addonItem, addonIndex) => (
+                    <p key={addonIndex} className="pl-3 text-[10px]">
+                      + {addonItem?.addon?.name || "Addon"}
+                    </p>
+                  ))}
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
 
-          <div className="my-3 border-t border-dashed border-gray-400 divider-dashed"></div>
-          <div className="grid grid-cols-12 font-semibold text-[12px]">
-            <div className="col-span-8 flex">Total (Dish/QTY)</div>
-            <div className="col-span-4 text-right">
+          <div className="divider-dashed my-2 border-t border-dashed border-gray-400" />
+
+          <div className="flex justify-between text-[11px] font-bold">
+            <span>Total (Dish/Qty)</span>
+            <span>
               {totalDish}/{totalQty}
-            </div>
-          </div>
-          <div className="grid grid-cols-12 font-semibold text-[12px]">
-            <div className="col-span-8 flex text-[13px]">Total:</div>
-            <div className="col-span-4 text-right text-[13px]">
-              {CurrencySign}
-              {totalAmount.toFixed(2)}
-            </div>
+            </span>
           </div>
 
-          <div className="flex mt-4">
-            <div className="flex flex-col items-start">
-              <p>
-                Printed By: {printedBy || kot?.order?.createdBy?.name || "-"}
-              </p>
-              <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
-            </div>
+          <div className="mt-2 hidden print:block">
+            <p>Printed By: {printedBy || kot?.order?.createdBy?.name || "-"}</p>
+            <p>Printed At: {format(new Date(), "dd LLL yyyy hh:mm a")}</p>
           </div>
 
-          <div className="text-center mt-6 text-gray-700">Thank You!</div>
+          <p className="mt-3 hidden text-center print:block">Thank You!</p>
         </div>
-        <div className="flex justify-center gap-3 mb-4 no-print">
+
+        <div className="no-print flex flex-wrap justify-center gap-2 border-t border-dashed border-gray-300 bg-white/80 p-2 pl-3">
           <Button
-            className="bg-primaryColor text-white px-6 py-[10px] rounded-[4px]"
+            className="submit-button px-3 py-1.5 text-[11px]"
             handleClick={reactToPrintFn}
           >
             Print
           </Button>
 
           {kot.status === "ready" && (
-            <>
-              <div></div>
-              <Button
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-[10px] rounded-[4px]"
-                handleClick={() => setOpenCheckout(true)}
-              >
-                Checkout
-              </Button>
-            </>
+            <Button
+              className="border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-700"
+              handleClick={() => setOpenCheckout(true)}
+            >
+              Checkout
+            </Button>
           )}
 
           {kot.status === "pending" && (
             <Button
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+              className="border border-sky-500 bg-sky-500 px-3 py-1.5 text-[11px] text-white hover:bg-sky-600"
               handleClick={async () => {
                 try {
                   const response = await updateKot({
@@ -468,12 +407,12 @@ function KotCard({ kot }) {
                 }
               }}
             >
-              Move to Preparing
+              Start Preparing
             </Button>
           )}
           {kot.status === "preparing" && (
             <Button
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-[10px] rounded-[4px]"
+              className="border border-emerald-500 bg-emerald-500 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-600"
               handleClick={async () => {
                 try {
                   const response = await updateKot({
@@ -486,7 +425,7 @@ function KotCard({ kot }) {
                 }
               }}
             >
-              Move to Ready
+              Mark Ready
             </Button>
           )}
         </div>

@@ -1,5 +1,6 @@
-import PageHeader from "@/components/PageHeader";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { useState } from "react";
@@ -9,7 +10,6 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PaginationType } from "@/types/commonTypes";
 import { useNavigate } from "react-router-dom";
 import { PRODUCT_VARIANT_ADD_ROUTE } from "@/routes/routeNames";
-
 import {
   useDeleteProductVariantByIdMutation,
   useListAllProductVariantQuery,
@@ -20,10 +20,7 @@ export default function ProductVariant() {
   const navigate = useNavigate();
   const accessList = checkAccess("Product Variant");
 
-  // query state
   const [query, setQuery] = useState({ page: 1, limit: 10 });
-
-  //   for delete operations
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -38,10 +35,6 @@ export default function ProductVariant() {
     id === null
       ? navigate(PRODUCT_VARIANT_ADD_ROUTE)
       : navigate(`${PRODUCT_VARIANT_ADD_ROUTE}${id}`);
-  };
-
-  const handleReload = () => {
-    refetch();
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -83,62 +76,62 @@ export default function ProductVariant() {
     "Quantity",
     "Price",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ];
+  ].filter(Boolean) as string[];
 
   const tableData =
     success && allProductVariant?.data?.data
       ? allProductVariant?.data?.data.map(({ id, name, quantity, price }) => [
-          name,
+          <span className="text-sm font-semibold text-slate-800">{name}</span>,
           quantity,
           price,
-          <div
-            key={id}
-            className="flex items-center justify-center cursor-pointer gap-[0.5rem]"
-          >
+          <TableRowActions>
             {accessList.includes("edit") && (
-              <MdEditSquare
-                size={18}
-                className="text-[#0090DD]"
+              <button
+                type="button"
                 onClick={() => handleNewUser(id)}
-              />
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit variant"
+              >
+                <MdEditSquare size={16} />
+              </button>
             )}
             {accessList.includes("delete") && (
               <DeleteModal
+                compact
                 open={open}
                 setOpen={setOpen}
                 handleDeleteTrigger={() => handleDeleteTrigger(id)}
                 handleConfirmDelete={handleDelete}
               />
             )}
-          </div>,
+          </TableRowActions>,
         ])
       : [];
 
   return (
-    <>
-      <PageHeader
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
         hasAddButton={accessList.includes("add")}
-        newButtonText={translate("Add New Product Variant")}
+        newButtonText={translate("Add Variant")}
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={handleReload}
-        hasSubText
-        subText={translate(
-          "Add Comprehensive Product Variant Information in Each Section",
-        )}
+        handleReloadButton={() => refetch()}
+        subText="Manage size and quantity variants linked to menu products."
       />
+
       {accessList.includes("view") ? (
-        <div>
-          <Table
-            isSN
-            headers={tableHeaders}
-            data={tableData}
-            pagination={pagination}
-            handlePagination={handlePagination}
-          />
-        </div>
+        <Table
+          isSN
+          headers={tableHeaders}
+          data={tableData}
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
       ) : (
-        <div>Has no Permission to View SEO</div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view product variants.
+        </div>
       )}
-    </>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
-import "react-date-range/dist/styles.css"; // Main style file
-import "react-date-range/dist/theme/default.css"; // Theme CSS file
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
 interface RevenueFilterPropsType {
   start: string;
@@ -11,6 +11,13 @@ interface RevenueFilterPropsType {
   orderStatus: string;
   cash_or_credit: string;
 }
+
+const chipClass = (active: boolean) =>
+  `h-8 rounded-lg px-2.5 text-[12px] font-medium transition ${
+    active
+      ? "bg-primaryColor text-white"
+      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+  }`;
 
 export default function RevenueFilter({
   queryStringOptions,
@@ -99,109 +106,81 @@ export default function RevenueFilter({
     !isThisWeekSelected;
 
   return (
-    <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6">
-        <div className="flex flex-col justify-between gap-3">
-          <h3 className="text-lg font-semibold text-gray-800 text-start">
-            Revenue Filter
-          </h3>
-          <div className="flex justify-between flex-col md:flex-row gap-4">
-            <div className="flex flex-wrap gap-2 items-center">
-              <button
-                type="button"
-                onClick={handleAllClick}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  isAllSelected
-                    ? "bg-primaryColor text-white"
-                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={handleTodayClick}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  isTodaySelected
-                    ? "bg-primaryColor text-white"
-                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={handleThisWeekClick}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  isThisWeekSelected
-                    ? "bg-primaryColor text-white"
-                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                This Week
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className={`px-4 py-2 rounded-md transition-colors ${
-                    isCustomSelected
-                      ? "bg-primaryColor text-white"
-                      : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-                  }`}
-                >
-                  Custom Range
-                </button>
-                {isCustomSelected && (
-                  <span className="text-sm text-gray-600">
-                    {queryStringOptions.start} - {queryStringOptions.end}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-4 ml-2">
-              <label
-                htmlFor="cash_or_credit"
-                className="text-base font-semibold text-gray-700 "
-              >
-                Payment Method
-              </label>
-              <select
-                id="cash_or_credit"
-                value={queryStringOptions.cash_or_credit}
-                onChange={handleCashOrCreditChange}
-                className="p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              >
-                <option value="">All</option>
-                <option value="cash">Cash</option>
-                <option value="credit">Credit</option>
-              </select>
-            </div>
+    <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[12px] font-medium text-slate-500">Period:</span>
+          <button
+            type="button"
+            onClick={handleAllClick}
+            className={chipClass(isAllSelected)}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={handleTodayClick}
+            className={chipClass(isTodaySelected)}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={handleThisWeekClick}
+            className={chipClass(isThisWeekSelected)}
+          >
+            This Week
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className={chipClass(Boolean(isCustomSelected))}
+          >
+            Custom Range
+          </button>
+          {isCustomSelected ? (
+            <span className="text-[12px] text-slate-500">
+              {queryStringOptions.start} – {queryStringOptions.end}
+            </span>
+          ) : null}
+        </div>
+
+        <label className="flex items-center gap-2 text-[12px] font-medium text-slate-600">
+          Payment method
+          <select
+            id="cash_or_credit"
+            value={queryStringOptions.cash_or_credit}
+            onChange={handleCashOrCreditChange}
+            className="h-8 rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 text-[12px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
+          >
+            <option value="">All</option>
+            <option value="cash">Cash</option>
+            <option value="credit">Credit</option>
+          </select>
+        </label>
+      </div>
+
+      {showDatePicker ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="relative max-w-full rounded-xl bg-white p-4 shadow-xl sm:p-6">
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(false)}
+              className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
+            >
+              ✕
+            </button>
+            <DateRangePicker
+              ranges={[dateRange]}
+              onChange={handleDateRangeSelect}
+              showSelectionPreview
+              moveRangeOnFirstSelection={false}
+              months={2}
+              direction="horizontal"
+            />
           </div>
         </div>
-        {showDatePicker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="relative bg-white p-8 rounded-lg shadow-lg">
-              <button
-                type="button"
-                onClick={() => setShowDatePicker(false)}
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-              >
-                ✕
-              </button>
-              <DateRangePicker
-                ranges={[dateRange]}
-                onChange={handleDateRangeSelect}
-                showSelectionPreview={true}
-                moveRangeOnFirstSelection={false}
-                months={2}
-                direction="horizontal"
-                className=""
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      ) : null}
     </div>
   );
 }

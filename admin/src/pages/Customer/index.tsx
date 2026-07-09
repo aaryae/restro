@@ -1,17 +1,16 @@
 import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import moment from "moment";
 import { useEffect, useMemo, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
+import { Eye } from "lucide-react";
 import ViewCustomer from "./ViewCustomer";
 import { useForm } from "react-hook-form";
 import { CustomerFilterSchema, CustomerFilterType } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import PageFilterSample from "@/components/PageFilterSample";
-import ExportToExcel from "@/components/ExportToExcel";
 import usePagination from "@/hooks/usePagination";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { FilterInput } from "@/components/Input/filterInput";
@@ -30,7 +29,7 @@ export default function Customer() {
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [customerId, setCustomerId] = useState<number | null>(null);
-  const [isExportTriggered, setIsExportTriggered] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteTable] = useDeleteApiMutation();
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
@@ -45,8 +44,6 @@ export default function Customer() {
   });
 
   const [queryString, setQueryString] = useState<Record<string, any>>({});
-
-  // No extra handlers needed since we removed User Type and Created Date filters
 
   const handleNewButton = (id: number | null) => {
     id === null
@@ -82,17 +79,16 @@ export default function Customer() {
         label: "First Name",
         Component: FilterInput,
         control,
-        icon: <UserRound className="w-4 h-4" />,
+        icon: <UserRound className="h-4 w-4" />,
       },
       {
         name: "email",
         label: "Email",
         Component: FilterInput,
         control,
-        icon: <Mail className="w-4 h-4" />,
+        icon: <Mail className="h-4 w-4" />,
       },
     ],
-
     [control],
   );
 
@@ -107,10 +103,14 @@ export default function Customer() {
     },
   );
 
+  const searchParams = searchTerm
+    ? { isCombo: "true", phone: searchTerm }
+    : queryString;
+
   const url = buildQueryString("customer-auth/list", {
     page: query.page,
     limit: query.limit,
-    search: queryString,
+    search: searchParams,
   });
 
   const {
@@ -120,32 +120,9 @@ export default function Customer() {
     refetch,
   } = useGetApiQuery({ url });
 
-  const {
-    data: allCustomersReport,
-    isSuccess: reportSuccess,
-    refetch: reportRefetch,
-  } = useGetApiQuery(
-    {
-      url: `/customer-auth/list`,
-      page: 1,
-      limit: allCustomers?.data.limit * allCustomers?.data.totalPages,
-    },
-    {
-      skip: !allCustomers?.data || !isExportTriggered,
-    },
-  );
-
   useEffect(() => {
     refetch();
-  }, [queryString]);
-
-  const handleReload = () => {
-    refetch();
-  };
-
-  useEffect(() => {
-    refetch();
-  }, [control, handleSubmit]);
+  }, [queryString, searchTerm]);
 
   const handleViewCustomer = (id: number) => {
     setCustomerId(id);
@@ -171,111 +148,58 @@ export default function Customer() {
     success && allCustomers?.data?.data
       ? allCustomers?.data?.data.map(
           ({ id, firstName, lastName, email, mobileNo, createdAt }) => [
-            `${firstName} ${lastName}`,
-            email,
-            mobileNo,
-            moment(createdAt).format("MMM DD, YYYY"),
-            <div
-              key={id}
-              className="flex items-center justify-center gap-[0.5rem]"
-            >
-              <div className="relative group">
-                <FaEye
-                  size={18}
-                  className="text-[#0090DD] cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleViewCustomer(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  View Details
-                </span>
-              </div>
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD] cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleNewButton(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Edit Customer
-                </span>
-              </div>
-              <div className="relative group">
-                <DeleteModal
-                  open={deleteModelOpen}
-                  setOpen={setDeleteModelOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Delete Customer
-                </span>
-              </div>
-            </div>,
-          ],
-        )
-      : [];
-
-  const tableDataReport =
-    reportSuccess && allCustomersReport?.data?.data
-      ? allCustomersReport?.data?.data.map(
-          ({ id, username, email, mobileNo, isEmailVerified, createdAt }) => [
-            username,
-            email,
-            mobileNo,
-
-            <span className="flex justify-center">
-              {isEmailVerified ? (
-                <FaCircleCheck className="text-[#0090dd]" />
-              ) : (
-                <FaCircleXmark className="text-red-500" />
-              )}
+            <span className="text-sm font-semibold text-slate-800">
+              {`${firstName} ${lastName}`}
             </span>,
+            email,
+            mobileNo,
             moment(createdAt).format("MMM DD, YYYY"),
-            <div
-              key={id}
-              className="flex items-center justify-center gap-[0.5rem]"
-            >
-              <div className="relative group">
-                <FaEye
-                  size={18}
-                  className="text-[#0090DD] cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleViewCustomer(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  View Details
-                </span>
-              </div>
-            </div>,
+            <TableRowActions>
+              <button
+                type="button"
+                onClick={() => handleViewCustomer(id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                title="View customer"
+              >
+                <Eye size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNewButton(id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit customer"
+              >
+                <MdEditSquare size={16} />
+              </button>
+              <DeleteModal
+                compact
+                open={deleteModelOpen}
+                setOpen={setDeleteModelOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
+              />
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (customerDataLoading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <div>
-      <PageHeader
-        hasAddButton={true}
-        newButtonText="Add New Customer"
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search by name, email, or phone..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton
+        newButtonText="Add Customer"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={handleReload}
-      >
-        {/* {success && (
-          <ExportToExcel
-            title="Customer Report"
-            headers={tableHeaders}
-            data={tableDataReport}
-            success={reportSuccess}
-            refetch={reportRefetch}
-            setIsExportTriggered={setIsExportTriggered}
-          />
-        )} */}
-      </PageHeader>
-      <PageFilterWrapper title="Customer Filters">
-        {Component}
-      </PageFilterWrapper>
+        handleReloadButton={() => refetch()}
+        subText="Manage guest profiles, contact details, and membership records."
+      />
+      <PageFilterWrapper title="Customer Filters">{Component}</PageFilterWrapper>
       <Table
         headers={tableHeaders}
         data={tableData}

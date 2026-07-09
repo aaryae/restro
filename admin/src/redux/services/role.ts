@@ -13,7 +13,16 @@ const roleApi = api.injectEndpoints({
       invalidatesTags: ["role"],
     }),
     getRole: builder.query<RolesResponse, PaginationQueryParams>({
-      query: (query) => `roles/list?page=${query?.page}&limit=${query.limit}`,
+      query: (query) => {
+        const params = new URLSearchParams({
+          page: String(query?.page),
+          limit: String(query.limit),
+        });
+        if (query.title) {
+          params.append("title", query.title);
+        }
+        return `roles/list?${params.toString()}`;
+      },
       providesTags: ["role"],
     }),
     getRoleById: builder.query({

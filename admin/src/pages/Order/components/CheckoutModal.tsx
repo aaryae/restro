@@ -19,6 +19,7 @@ import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIn
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Contact, Mail, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FaPlus } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
@@ -783,7 +784,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       <div className={styles.modalOverlay}>
         <div className={styles.modalContent}>
@@ -1627,7 +1628,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }}
         className="bill-print"
       />
-    </>
+    </>,
+    document.body,
   );
 };
 

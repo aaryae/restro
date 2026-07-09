@@ -5,11 +5,17 @@ import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import styles from "./index.module.css";
 
 interface TableProps {
-  headers: string[] | any; // Table header titles
-  data: any[][]; // Array of table data
+  headers: string[] | any;
+  data: any[][];
   pagination: PaginationType;
   isSN?: boolean;
   handlePagination: (pagination: PaginationType) => void;
+}
+
+function isActionsHeader(header: string, index: number, total: number) {
+  return (
+    index === total - 1 && String(header).toLowerCase().includes("action")
+  );
 }
 
 const Table: React.FC<TableProps> = ({
@@ -21,43 +27,70 @@ const Table: React.FC<TableProps> = ({
 }) => {
   const translate = useTranslation();
   return (
-    <div>
-      {/* Card Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        {/* Table (horizontal scroll only for table) */}
-        <div className="w-full overflow-x-auto">
-          <table className="min-w-full text-[12px] text-gray-800">
-            <thead className="bg-primaryColor">
-              <tr>
+    <div className="min-w-0 max-w-full">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full border-collapse text-[13px] text-slate-700">
+            <colgroup>
+              {isSN && <col className="w-12" />}
+              {headers.map((header: string, index: number) => (
+                <col
+                  key={index}
+                  className={
+                    isActionsHeader(header, index, headers.length)
+                      ? "w-32"
+                      : undefined
+                  }
+                />
+              ))}
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/90">
                 {isSN && (
-                  <th className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap">
+                  <th className="w-12 px-3 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     S.N.
                   </th>
                 )}
-                {headers.map((header, index) => (
+                {headers.map((header: string, index: number) => (
                   <th
                     key={index}
-                    className="px-6 py-4 text-center text-white font-medium text-[1rem] whitespace-nowrap"
+                    className={`px-3 py-3.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:px-4 ${
+                      isActionsHeader(header, index, headers.length)
+                        ? "pr-6 text-center"
+                        : "text-center"
+                    }`}
                   >
                     {translate(header)}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className={`${styles.tableBody}`}>
+            <tbody className={styles.tableBody}>
               {data.length > 0 ? (
                 data.map((row, index) => (
                   <tr
                     key={index}
-                    className={`${styles.row} hover:bg-gray-50 transition-colors`}
+                    className={`${styles.row} transition-colors hover:bg-primaryColor/[0.03]`}
                   >
                     {isSN && (
-                      <td className="px-6 py-3 text-center">{index + 1}</td>
+                      <td className="px-4 py-3.5 text-center text-slate-500">
+                        {(pagination?.page - 1) * (pagination?.limit || 10) +
+                          index +
+                          1}
+                      </td>
                     )}
                     {row.map((cell, cellIndex) => (
                       <td
                         key={cellIndex}
-                        className="md:px-4 px-2 py-3 text-center"
+                        className={`px-3 py-3.5 align-middle break-words whitespace-normal md:px-4 ${
+                          isActionsHeader(
+                            headers[cellIndex],
+                            cellIndex,
+                            headers.length,
+                          )
+                            ? "pr-6 text-center"
+                            : "text-center"
+                        }`}
                       >
                         {React.isValidElement(cell) ? cell : `${cell}`}
                       </td>
@@ -68,7 +101,7 @@ const Table: React.FC<TableProps> = ({
                 <tr>
                   <td
                     colSpan={isSN ? headers.length + 1 : headers.length}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-12 text-center text-slate-400"
                   >
                     {translate("No data available")}
                   </td>
@@ -77,40 +110,39 @@ const Table: React.FC<TableProps> = ({
             </tbody>
           </table>
         </div>
-        {/* Pagination */}
+
         {pagination && (
-          <div className="sticky bottom-0 sm:static flex sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 bg-white">
-            <div>
-              <label className="inline-flex items-center gap-2 text-[12px] font-medium text-gray-700">
-                Show:
-                <select
-                  name="pagination"
-                  id="pagination"
-                  value={pagination.limit}
-                  className="bg-white border border-gray-300 rounded-md px-2 py-1 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  onChange={(e) =>
-                    handlePagination &&
-                    handlePagination({
-                      ...pagination,
-                      limit: Number(e.target.value),
-                    })
-                  }
-                >
-                  {[10, 25, 50, 100].map((each) => (
-                    <option key={each} value={each}>
-                      {each}
-                    </option>
-                  ))}
-                </select>
-                entries
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="inline-flex items-center gap-2 text-[12px] font-medium text-slate-600">
+              Show
+              <select
+                name="pagination"
+                id="pagination"
+                value={pagination.limit}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
+                onChange={(e) =>
+                  handlePagination &&
+                  handlePagination({
+                    ...pagination,
+                    limit: Number(e.target.value),
+                  })
+                }
+              >
+                {[10, 25, 50, 100].map((each) => (
+                  <option key={each} value={each}>
+                    {each}
+                  </option>
+                ))}
+              </select>
+              entries
+            </label>
+
+            <div className="flex items-center gap-1.5">
               <button
-                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-white ${
                   pagination.page === 1 || pagination.total === 0
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
+                    ? "cursor-not-allowed opacity-40"
+                    : "hover:text-primaryColor"
                 }`}
                 disabled={pagination.page === 1 || pagination.total === 0}
                 onClick={() =>
@@ -118,29 +150,35 @@ const Table: React.FC<TableProps> = ({
                 }
                 aria-label="Previous Page"
               >
-                <FaAngleLeft size={18} />
+                <FaAngleLeft size={14} />
               </button>
+              <span className="min-w-[88px] text-center text-[12px] font-medium text-slate-600">
+                {pagination.page} / {Math.max(pagination.totalPages, 1)}
+              </span>
               <button
-                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
-                  pagination.page === pagination.totalPages
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-white ${
+                  pagination.page === pagination.totalPages ||
+                  pagination.total === 0
+                    ? "cursor-not-allowed opacity-40"
+                    : "hover:text-primaryColor"
                 }`}
-                disabled={pagination.page === pagination.totalPages}
+                disabled={
+                  pagination.page === pagination.totalPages ||
+                  pagination.total === 0
+                }
                 onClick={() =>
                   handlePagination({ ...pagination, page: pagination.page + 1 })
                 }
                 aria-label="Next Page"
               >
-                <FaAngleRight size={18} />
+                <FaAngleRight size={14} />
               </button>
             </div>
-            <div className="flex gap-2 text-[12px]">
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-gray-700">
-                Total: {pagination.total}
+
+            <div className="text-[12px] font-medium text-slate-500">
+              Total{" "}
+              <span className="rounded-md bg-white px-2 py-1 text-slate-700 border border-slate-200">
+                {pagination.total}
               </span>
             </div>
           </div>
@@ -149,4 +187,5 @@ const Table: React.FC<TableProps> = ({
     </div>
   );
 };
+
 export default Table;

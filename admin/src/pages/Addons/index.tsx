@@ -1,9 +1,11 @@
-import PageHeader from "@/components/PageHeader";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { useState } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { ADDONS_ADD_ROUTE } from "@/routes/routeNames";
@@ -12,23 +14,17 @@ import usePagination from "@/hooks/usePagination";
 import {
   useDeleteApiMutation,
   useGetApiQuery,
-  useUpdateApiMutation,
 } from "@/redux/services/crudApi";
 import { ADDON_URL } from "@/constants/apiUrlConstants";
 import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
-import Input from "@/components/Input";
-import DishPlaceHolder from "@/assets/product_placeholder.jpg";
-import DraggableTable from "@/components/Table/dragableTable";
 import Table from "@/components/Table";
 
 const Addons = () => {
   const translate = useTranslation();
   const navigate = useNavigate();
   const accessList = checkAccess("Addons");
-
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -36,16 +32,11 @@ const Addons = () => {
   const url = buildQueryString(`${ADDON_URL}`, {
     page: query.page,
     limit: query.limit,
-    search: {
-      search: searchTerm,
-    },
+    search: { search: searchTerm },
   });
 
-  const { data, isSuccess, refetch, isLoading, isFetching } = useGetApiQuery({
-    url,
-  });
+  const { data, isSuccess, refetch, isLoading } = useGetApiQuery({ url });
   const [deleteApi] = useDeleteApiMutation();
-  const [updateOrder] = useUpdateApiMutation();
 
   const handleNewAddon = (id: number | null) => {
     id === null
@@ -61,10 +52,7 @@ const Addons = () => {
   const handleDelete = async () => {
     try {
       const res = await deleteApi(`${ADDON_URL}${deleteId}`).unwrap();
-      handleResponse({
-        res,
-        onSuccess: () => {},
-      });
+      handleResponse({ res, onSuccess: () => {} });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -81,105 +69,83 @@ const Addons = () => {
   };
 
   const headers = [
-    "Items",
+    "Addon",
     "Price",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
   ].filter(Boolean) as string[];
 
+  const getAddonImage = (item: any) => {
+    if (item.imageUrl) {
+      return item.imageUrl.startsWith("http")
+        ? item.imageUrl
+        : `${IMAGE_BASE_URL}${item.imageUrl}`;
+    }
+    if (item.mediaArr?.[0]?.imageUrl) {
+      return `${IMAGE_BASE_URL}${item.mediaArr[0].imageUrl}`;
+    }
+    return null;
+  };
+
   const tableData =
     isSuccess && data?.data?.data
-      ? data?.data?.data.map((item: any) => [
-          <div className="flex items-center justify-center gap-[1rem] md:w-full w-[20rem]">
-            <img
-              src={
-                item.imageUrl
-                  ? item.imageUrl.startsWith("http")
-                    ? item.imageUrl
-                    : `${IMAGE_BASE_URL}${item.imageUrl}`
-                  : item.mediaArr?.[0]?.imageUrl
-                    ? `${IMAGE_BASE_URL}${item.mediaArr[0].imageUrl}`
-                    : DishPlaceHolder
-              }
-              alt="Addon Image"
-              className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
-            />
-            <p>{item.name}</p>
-          </div>,
-          `${CurrencySign} ${item.price}`,
-          <div
-            key={item.id}
-            className="flex items-center justify-center gap-[0.5rem]"
-          >
+      ? data.data.data.map((item: any) => [
+          <MenuItemCell name={item.name} imageUrl={getAddonImage(item)} />,
+          <span className="font-semibold text-slate-800">
+            {CurrencySign} {item.price}
+          </span>,
+          <TableRowActions>
             {accessList.includes("edit") && (
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-                  onClick={() => handleNewAddon(item.id)}
-                  title="Edit"
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap z-50">
-                  Edit Addon
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleNewAddon(item.id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit addon"
+              >
+                <MdEditSquare size={16} />
+              </button>
             )}
             {accessList.includes("delete") && (
-              <div className="relative group">
-                <DeleteModal
-                  open={deleteModelOpen}
-                  setOpen={setDeleteModelOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap z-50">
-                  Delete Addon
-                </span>
-              </div>
+              <DeleteModal
+                compact
+                open={deleteModelOpen}
+                setOpen={setDeleteModelOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
+                handleConfirmDelete={handleDelete}
+              />
             )}
-          </div>,
+          </TableRowActions>,
         ])
       : [];
 
   return (
-    <>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
-          <Input
-            placeholder="Search addons"
-            className="w-full md:w-[25rem]"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              // Optionally reset to first page when searching
-              // handlePagination({ page: 1, limit: query.limit });
-            }}
-          />
-        </div>
-        <div className="w-full ">
-          <PageHeader
-            hasAddButton={accessList.includes("add")}
-            newButtonText={translate("Add New Addon")}
-            handleNewButton={() => handleNewAddon(null)}
-            handleReloadButton={() => refetch()}
-          />
-        </div>
-      </div>
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search addons..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton={accessList.includes("add")}
+        newButtonText={translate("Add New Addon")}
+        handleNewButton={() => handleNewAddon(null)}
+        handleReloadButton={() => refetch()}
+        subText="Extras and add-ons that can be linked to menu items."
+      />
+
       {isLoading ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <div className="overflow-x-auto -mx-3 sm:mx-0">
-          <Table
-            isSN
-            headers={headers}
-            data={tableData}
-            pagination={pagination}
-            handlePagination={handlePagination}
-          />
-        </div>
+        <Table
+          isSN
+          headers={headers}
+          data={tableData}
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
       ) : (
-        <div>Has no Permission to View Addons</div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view addons.
+        </div>
       )}
-    </>
+    </div>
   );
 };
 

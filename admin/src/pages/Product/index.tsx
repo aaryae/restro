@@ -1,9 +1,11 @@
-import PageHeader from "@/components/PageHeader";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { useState, useMemo } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { PRODUCT_ADD_ROUTE } from "@/routes/routeNames";
@@ -15,26 +17,18 @@ import { PRODUCT_URL } from "@/constants/apiUrlConstants";
 import { buildQueryString } from "@/utils/generalHelper";
 import DraggableTable from "@/components/Table/dragableTable";
 import Loader from "@/components/Loader";
-import Input from "@/components/Input";
-import Select from "@/components/Select";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
-import DishPlaceHolder from "@/assets/product_placeholder.jpg";
+
 export default function Product() {
   const translate = useTranslation();
   const navigate = useNavigate();
   const accessList = checkAccess("Product");
-
-  // query state
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-
-  //   for delete operations
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  // fetch categories for filter dropdown
   const { data: categoriesData } = useListAllProductCategoryQuery({
     page: 1,
     limit: 100,
@@ -66,17 +60,12 @@ export default function Product() {
     refetch,
   } = useGetApiQuery({ url });
   const [deleteProduct] = useDeleteProductByIdMutation();
-
   const [updateOrder] = useUpdateApiMutation();
 
   const handleNewUser = (id: number | null) => {
     id === null
       ? navigate(PRODUCT_ADD_ROUTE)
       : navigate(`${PRODUCT_ADD_ROUTE}${id}`);
-  };
-
-  const handleReload = () => {
-    refetch();
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -87,10 +76,7 @@ export default function Product() {
   const handleDelete = async () => {
     try {
       const response = await deleteProduct(deleteId).unwrap();
-      handleResponse({
-        res: response,
-        onSuccess: () => {},
-      });
+      handleResponse({ res: response, onSuccess: () => {} });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -108,88 +94,70 @@ export default function Product() {
   const tableHeaders = [
     "Items",
     "Price",
-    // "Order",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
   ].filter(Boolean) as string[];
 
   const tableData =
     success && allProduct?.data?.data
-      ? allProduct?.data?.data.map((item: any) => [
+      ? allProduct.data.data.map((item: any) => [
           item.id,
-          <div className="flex items-center gap-[1rem] md:w-[8rem] w-[20rem]">
-            <img
-              src={`${item.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + item.mediaArr[0].imageUrl : DishPlaceHolder}`}
-              alt="Product Image"
-              className="object-cover w-[5.5rem] h-[4rem] sm:w-[7rem] sm:h-[5rem] md:w-[8rem] md:h-[6rem] rounded"
-              // crossOrigin="anonymous"
-            />
-            <div className="flex items-center gap-2">
-              <p>{item.name}</p>
-              {item.addons?.length || item.addonIds?.length ? (
-                <span className="text-[10px] px-2 py-[2px] rounded bg-gray-100 border">
+          <MenuItemCell
+            name={item.name}
+            imageUrl={
+              item.mediaArr?.[0]?.imageUrl
+                ? `${IMAGE_BASE_URL}${item.mediaArr[0].imageUrl}`
+                : null
+            }
+            badge={
+              item.addons?.length || item.addonIds?.length ? (
+                <span className="mt-1 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                   {(item.addons?.length || 0) + (item.addonIds?.length || 0)}{" "}
                   addons
                 </span>
-              ) : null}
-            </div>
-          </div>,
-          `${CurrencySign} ${item.price}`,
-          // order,
-          <div
-            key={item.id}
-            className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
-          >
+              ) : null
+            }
+          />,
+          <span className="font-semibold text-slate-800">
+            {CurrencySign} {item.price}
+          </span>,
+          <TableRowActions>
             {accessList.includes("edit") && (
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD]"
-                  onClick={() => handleNewUser(item.id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap z-50">
-                  Edit Product
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleNewUser(item.id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit item"
+              >
+                <MdEditSquare size={16} />
+              </button>
             )}
             {accessList.includes("delete") && (
-              <div className="relative group">
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap ">
-                  Delete Product
-                </span>
-              </div>
+              <DeleteModal
+                compact
+                open={open}
+                setOpen={setOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
+                handleConfirmDelete={handleDelete}
+              />
             )}
-          </div>,
+          </TableRowActions>,
         ])
       : [];
+
   return (
-    <>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full">
-          <Input
-            placeholder="Search items"
-            className="w-full md:w-[25rem]"
-            value={productSearchTerm}
-            onChange={(e) => {
-              setProductSearchTerm(e.target.value);
-              // optional: reset to first page when searching
-              // handlePagination({ page: 1, limit: query.limit });
-            }}
-          />
-          {/* <div className="min-w-0 sm:min-w-[220px] w-full sm:w-auto"> */}
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search items..."
+        searchValue={productSearchTerm}
+        onSearchChange={setProductSearchTerm}
+        filters={
           <select
             value={selectedCategory}
-            className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full min-w-[120px] max-w-[180px]"
             onChange={(e) => {
               setSelectedCategory(e.target.value);
-              // reset to first page when category changes
               handlePagination({ page: 1, limit: query.limit });
             }}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15 sm:w-auto sm:min-w-[160px]"
           >
             {categoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -197,36 +165,32 @@ export default function Product() {
               </option>
             ))}
           </select>
-          {/* </div> */}
-        </div>
-        <div className="w-full ">
-          <PageHeader
-            hasAddButton={accessList.includes("add")}
-            newButtonText={translate("Add New Items")}
-            handleNewButton={() => handleNewUser(null)}
-            handleReloadButton={handleReload}
-          />
-        </div>
-      </div>
+        }
+        hasAddButton={accessList.includes("add")}
+        newButtonText={translate("Add New Items")}
+        handleNewButton={() => handleNewUser(null)}
+        handleReloadButton={() => refetch()}
+      />
+
       {!success ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <div className="overflow-x-auto -mx-3 sm:mx-0">
-          <DraggableTable
-            headers={tableHeaders}
-            data={tableData}
-            success={success}
-            loading={loading}
-            fetching={fetching}
-            url="product/update-order"
-            action={updateOrder}
-            pagination={pagination}
-            handlePagination={handlePagination}
-          />
-        </div>
+        <DraggableTable
+          headers={tableHeaders}
+          data={tableData}
+          success={success}
+          loading={loading}
+          fetching={fetching}
+          url="product/update-order"
+          action={updateOrder}
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
       ) : (
-        <div>Has no Permission to View SEO</div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view items.
+        </div>
       )}
-    </>
+    </div>
   );
 }

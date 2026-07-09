@@ -1,19 +1,17 @@
-import React from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useMemo, useEffect, useState } from "react";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import { PaginationType } from "@/types/commonTypes";
 import usePagination from "@/hooks/usePagination";
-import PageHeader from "@/components/PageHeader";
 import { CurrencySign } from "@/constants";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import Button from "@/components/Button";
 import TransactionModal from "./TransactionModal";
+import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 
 const Transaction: React.FC = () => {
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
@@ -106,48 +104,68 @@ const Transaction: React.FC = () => {
           new Date(row?.transactionDate).toLocaleDateString(),
           row?.account?.name,
           <span
-            className={`px-2 py-1 rounded text-xs font-medium ${
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${
               row?.type === "deposit"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
             }`}
           >
-            {row?.type?.charAt(0).toUpperCase() + row?.type?.slice(1)}
+            {row?.type}
           </span>,
-          `${CurrencySign}${Number(row?.amount || 0).toFixed(2)}`,
+          <span className="font-semibold text-slate-800">
+            {CurrencySign}
+            {Number(row?.amount || 0).toFixed(2)}
+          </span>,
           row?.user?.username,
-          row?.remarks,
+          <span className="block max-w-full truncate" title={row?.remarks ?? ""}>
+            {row?.remarks}
+          </span>,
         ])
       : [];
 
   return (
-    <>
-      <PageTitle title="Transactions" />
-      <div className="flex justify-end items-center gap-[1rem]">
-        <Button
-          className="flex gap-2 bg-red-600 text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
-          handleClick={() => handleNewTransaction("withdraw")}
-        >
-          New Withdrawal
-        </Button>
-        <Button
-          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
-          handleClick={() => handleNewTransaction("deposit")}
-        >
-          New Deposit
-        </Button>
-        <PageHeader hasAddButton={false} handleReloadButton={() => refetch()} />
-      </div>
-      <PageFilterWrapper title="Transaction Filters">
-        {Component}
-      </PageFilterWrapper>
-      <Table
-        headers={headers}
-        data={data}
-        pagination={pagination}
-        handlePagination={handlePagination}
-        isLoading={isFetching}
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
+        handleReloadButton={() => refetch()}
+        subText="Record deposits and withdrawals across cash and bank accounts."
+        extraActions={
+          <>
+            <button
+              type="button"
+              onClick={() => handleNewTransaction("withdraw")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[13px] font-medium text-rose-700 transition hover:bg-rose-100"
+            >
+              <ArrowDownCircle size={15} />
+              Withdrawal
+            </button>
+            <button
+              type="button"
+              onClick={() => handleNewTransaction("deposit")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+            >
+              <ArrowUpCircle size={15} />
+              Deposit
+            </button>
+          </>
+        }
       />
+
+      <PageFilterWrapper title="Transaction Filters">{Component}</PageFilterWrapper>
+
+      {isFetching ? (
+        <div className="py-12 text-center text-sm text-slate-500">
+          Loading transactions...
+        </div>
+      ) : (
+        <Table
+          headers={headers}
+          data={data}
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
+      )}
+
       <TransactionModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -157,7 +175,7 @@ const Transaction: React.FC = () => {
           handleCloseModal();
         }}
       />
-    </>
+    </div>
   );
 };
 

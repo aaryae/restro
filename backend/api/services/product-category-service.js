@@ -1,4 +1,4 @@
-const { where } = require("sequelize");
+const { where, Op } = require("sequelize");
 const generalConstant = require("../../constants/general-constant");
 const {
   productCategoryModel,
@@ -34,10 +34,16 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    let { limit, page } = req.query;
+    let { limit, page, name } = req.query;
     const filters = {};
     const include = [];
     const order = [["order", "ASC"]];
+
+    if (name) {
+      filters.name = {
+        [Op.like]: `%${name}%`,
+      };
+    }
 
     const result = await paginate(productCategoryModel, {
       limit,

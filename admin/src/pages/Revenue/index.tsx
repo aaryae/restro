@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageTitle from "@/components/PageTitle";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
@@ -11,9 +12,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
 import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
-import { FiEdit2 } from "react-icons/fi";
 import { MdEditSquare } from "react-icons/md";
-import PageHeader from "@/components/PageHeader";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
@@ -124,68 +123,75 @@ const Revenue: React.FC = () => {
               bsDisplay,
               customer ? customer.firstName : "Guest",
               paymentMethod,
-              CurrencySign + amount,
-              remarks ?? "",
+              <span className="font-semibold text-slate-800">
+                {CurrencySign}
+                {amount}
+              </span>,
+              <span
+                className="mx-auto block max-w-full truncate"
+                title={remarks ?? ""}
+              >
+                {remarks ?? ""}
+              </span>,
               cash_or_credit,
               user?.username ?? "",
-              <div className="flex items-center justify-center gap-3">
-                <div className="relative group">
-                  <MdEditSquare
-                    size={18}
-                    className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-                    onClick={() => handleNewUser(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Edit Revenue
-                  </span>
-                </div>
-                <div className="relative group">
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                    handleConfirmDelete={handleDelete}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Delete Revenue
-                  </span>
-                </div>
-              </div>,
+              <TableRowActions>
+                <button
+                  type="button"
+                  onClick={() => handleNewUser(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                  title="Edit revenue"
+                >
+                  <MdEditSquare size={16} />
+                </button>
+                <DeleteModal
+                  compact
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
+              </TableRowActions>,
             ];
           },
         )
       : [];
 
   return (
-    <>
-      <PageTitle title="Revenue" />
-      <PageHeader
-        hasAddButton={true}
+    <div className="min-w-0 max-w-full overflow-x-hidden">
+      <MenuPageToolbar
+        showSearch={false}
+        hasAddButton
         newButtonText="Add Revenue"
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
+        subText="Track income, payment methods, and cash vs credit entries."
       />
 
       <RevenueFilter
         queryStringOptions={queryStringOptions}
         setQueryStringOptions={setQueryStringOptions}
       />
+
       <Table
         headers={headers}
         data={data}
         pagination={pagination}
         handlePagination={handlePagination}
       />
-      <div className="flex justify-end mt-4 ">
-        <h1 className="text-2xl font-semibold border-b-[2px] border-[#E5E7EB] pb-2">
-          Grand Total:
-          <span className="text-green-600">
-            {CurrencySign}
-            {allRevenue?.data?.grandTotal ?? "###"}
+
+      <div className="mt-4 flex justify-end">
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <span className="text-[13px] font-medium text-slate-600">
+            Grand Total:{" "}
           </span>
-        </h1>
+          <span className="text-lg font-semibold text-emerald-600">
+            {CurrencySign}
+            {allRevenue?.data?.grandTotal ?? "0"}
+          </span>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

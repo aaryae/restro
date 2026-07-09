@@ -1,107 +1,116 @@
-import { ChartPie } from "lucide-react";
+import { useMemo, useState } from "react";
+import { TrendingUp } from "lucide-react";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import BarChartComponent from "../BarChartComponent";
+import PieChartComponent from "../PieChartComponent";
+import LineChartComponent from "../LineChartComponent";
+import DashboardChartCard from "./DashboardChartCard";
+import { type ChartType } from "./ChartTypeTabs";
+import { buildQueryString } from "@/utils/generalHelper";
+import { CHART_BRAND, CHART_PALETTE } from "../chartTheme";
 
 function RevenueSection() {
-  const { data: orderCategoryData } = useGetApiQuery({
-    url: `${ORDER_URL}category-sales-summary`,
-    skip: !checkAccess("Order").includes("view-category-sales-summary"),
+  const orderAccess = checkAccess("Order");
+  const [chartType, setChartType] = useState<ChartType>("bar");
+
+  const { data: orderCategoryData, isLoading: loadingCategories } =
+    useGetApiQuery({
+      url: `${ORDER_URL}category-sales-summary`,
+      skip: !orderAccess.includes("view-category-sales-summary"),
+    });
+
+  const { data: orderTopSalesData, isLoading: loadingTopSales } =
+    useGetApiQuery({
+      url: `${ORDER_URL}product-top-sales`,
+      skip: !orderAccess.includes("view-product-top-sales"),
+    });
+
+  const { data: ordersData, isLoading: loadingOrders } = useGetApiQuery({
+    url: buildQueryString(`${ORDER_URL}list`, { page: 1, limit: 300 }),
+    skip: !orderAccess.includes("view"),
   });
 
-  const { data: orderTopSalesData } = useGetApiQuery({
-    url: `${ORDER_URL}product-top-sales`,
-    skip: !checkAccess("Order").includes("view-product-top-sales"),
-  });
+  const categoryPie = useMemo(
+    () =>
+      (orderCategoryData?.data || []).map((item: any) => ({
+        name: item.name || item.category,
+        value: Number(item.amount || 0),
+      })),
+    [orderCategoryData],
+  );
+
+  const salesTrend = useMemo(() => {
+    const rows: any[] = ordersData?.data?.data || [];
+    const buckets = new Map<string, number>();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    rows.forEach((order) => {
+      const date = String(order?.createdAt || "").slice(0, 10);
+      if (!buckets.has(date)) return;
+      const amount = Number(order?.totalAmount ?? order?.total ?? 0);
+      buckets.set(date, (buckets.get(date) || 0) + amount);
+    });
+    return Array.from(buckets.entries()).map(([name, Sales]) => ({
+      name: name.slice(5),
+      Sales,
+    }));
+  }, [ordersData]);
+
+  const loading =
+    chartType === "line"
+      ? loadingOrders
+      : chartType === "pie"
+        ? loadingCategories
+        : loadingCategories || loadingTopSales;
 
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <ChartPie className="text-blue-600" />
-          <h3 className="text-base font-semibold text-gray-900">
-            Fiscal Year Summary
-          </h3>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <BarChartComponent
-            data={orderCategoryData?.data || []}
-            dataKeys={["amount"]}
+    <DashboardChartCard
+      title="Revenue"
+      icon={TrendingUp}
+      chartType={chartType}
+      onChartTypeChange={setChartType}
+      loading={loading}
+    >
+      <div className="min-w-0 overflow-hidden">
+        {chartType === "pie" && (
+          <PieChartComponent
+            data={categoryPie}
+            responsive
             height={300}
-            xAxisLabel="category"
-            yAxisLabel="Amount"
-            showLegend={false}
-            colorScale={["#f97316"]}
-          />
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <BarChartComponent
-            data={orderTopSalesData?.data || []}
-            dataKeys={["amount"]}
-            height={300}
-            xAxisLabel="Item"
-            yAxisLabel="Amount"
-            showLegend={false}
-            colorScale={["#f97316"]}
-          />
-        </div>
-      </div>
-
-      {/* <div className="mt-6 w-full max-w-md bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <h3 className="text-base font-semibold text-gray-900">
-            Top Selling Items
-          </h3>
-          <div className="flex items-center gap-2">
-            <select
-              value={topRange}
-              onChange={(e) => setTopRange(e.target.value as any)}
-              className="border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              title="Range"
-            >
-              <option value="fy">Fiscal Year</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-            </select>
-            <div className="flex items-center gap-1">
-              <label htmlFor="topN" className="text-xs text-gray-600">
-                Top
-              </label>
-              <input
-                id="topN"
-                type="number"
-                min={1}
-                max={15}
-                value={topN}
-                onChange={(e) =>
-                  setTopN(
-                    Math.max(1, Math.min(15, Number(e.target.value) || 5)),
-                  )
-                }
-                className="w-14 border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              />
-            </div>
-          </div>
-        </div>
-        {ordersLoading ? (
-          <div className="h-[220px] animate-pulse bg-gray-100 rounded" />
-        ) : (
-          <BarChartComponent
-            data={topItemsBarData}
-            dataKeys={["Quantity"]}
-            height={220}
-            xAxisLabel="Item"
-            yAxisLabel="Qty"
-            showLegend={false}
-            colorScale={["#6366f1"]}
+            showLegend
+            colorScale={CHART_PALETTE}
           />
         )}
-      </div> */}
-    </div>
+        {chartType === "bar" && (
+          <BarChartComponent
+            data={orderTopSalesData?.data || orderCategoryData?.data || []}
+            dataKeys={["amount"]}
+            height={300}
+            xAxisLabel="Item"
+            yAxisLabel="Amount"
+            showLegend={false}
+            colorScale={CHART_PALETTE}
+          />
+        )}
+        {chartType === "line" && (
+          <LineChartComponent
+            data={salesTrend}
+            dataKeys={["Sales"]}
+            height={300}
+            xAxisLabel="Date"
+            yAxisLabel="Sales"
+            showLegend={false}
+            colorScale={[CHART_BRAND]}
+          />
+        )}
+      </div>
+    </DashboardChartCard>
   );
 }
+
 export default RevenueSection;

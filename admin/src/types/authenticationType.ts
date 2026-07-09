@@ -42,4 +42,5 @@ export interface ApiResponse {
 export interface GetAllUserRequestType {
   limit: number;
   page: number;
+  username?: string;
 }

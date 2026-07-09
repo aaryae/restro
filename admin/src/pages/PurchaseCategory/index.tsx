@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import PageHeader from "@/components/PageHeader";
-import DraggableTable from "@/components/Table/dragableTable";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import useTranslation from "@/locale/useTranslation";
@@ -12,19 +13,13 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
-import Table from "@/components/Table";
-
-// type PurchaseCategoryRow = {
-//   id: number;
-//   title: string;
-//   description: string;
-// };
 
 const PurchaseCategory: React.FC = () => {
   const translate = useTranslation();
   const navigate = useNavigate();
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleDeleteTrigger = (id: number) => {
     setDeleteId(id);
@@ -50,15 +45,16 @@ const PurchaseCategory: React.FC = () => {
       setDeleteId(null);
     }
   };
+
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const url = buildQueryString("purchase-category/list", {
     page: query.page,
     limit: query.limit,
+    search: { name: searchTerm },
   });
   const {
     data: apiData,
     isSuccess: success,
-    isFetching,
     refetch,
   } = useGetApiQuery({ url });
   const [deleteApi] = useDeleteApiMutation();
@@ -72,56 +68,47 @@ const PurchaseCategory: React.FC = () => {
     totalPages: apiData?.data?.totalPages,
   };
 
-  const headers = [
-    "Purchase Category Title",
-    "Purchase Category Description",
-    "Action",
-  ];
+  const headers = ["Title", "Description", "Actions"];
 
   const handleNewUser = (id: number | null) => {
     id === null
       ? navigate(PURCHASE_CATEGORY_ADD_ROUTE)
       : navigate(`${PURCHASE_CATEGORY_ADD_ROUTE}${id}`);
   };
-  // For DraggableTable, the first array element is the row identifier and is not rendered.
+
   const data = rows.map((r: any) => [
-    r.name,
-    r.description,
-    <div key={r.id} className="flex items-center justify-center gap-[0.5rem]">
-      <div className="relative group">
-        <MdEditSquare
-          size={18}
-          className="text-[#0090DD] hover:text-blue-800 cursor-pointer"
-          onClick={() => handleNewUser(r.id)}
-          title="Edit"
-        />
-        <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-          Edit Purchase Category
-        </span>
-      </div>
-      <div className="relative group">
-        <DeleteModal
-          open={deleteModelOpen}
-          setOpen={setDeleteModelOpen}
-          handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
-          handleConfirmDelete={handleDelete}
-        />
-        <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-          Delete Purchase Category
-        </span>
-      </div>
-    </div>,
+    <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
+    <span className="text-slate-600">{r.description || "—"}</span>,
+    <TableRowActions>
+      <button
+        type="button"
+        onClick={() => handleNewUser(r.id)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+        title="Edit purchase category"
+      >
+        <MdEditSquare size={16} />
+      </button>
+      <DeleteModal
+        compact
+        open={deleteModelOpen}
+        setOpen={setDeleteModelOpen}
+        handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
+        handleConfirmDelete={handleDelete}
+      />
+    </TableRowActions>,
   ]);
 
   return (
-    <>
-      <PageHeader
-        hasAddButton={true}
-        newButtonText={translate("Add New Purchase Category")}
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search purchase categories..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton
+        newButtonText={translate("Add Purchase Category")}
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
-        hasSubText
-        subText="This module allows dynamically adding various types of categories related to purchase entry."
+        subText="Organize purchase entries into categories."
       />
       <Table
         data={data}
@@ -129,7 +116,7 @@ const PurchaseCategory: React.FC = () => {
         handlePagination={handlePagination}
         pagination={pagination}
       />
-    </>
+    </div>
   );
 };
 

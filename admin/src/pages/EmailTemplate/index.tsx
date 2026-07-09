@@ -1,8 +1,8 @@
 import DeleteModal from "@/components/DeleteModal";
-import PageHeader from "@/components/PageHeader";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Spinner from "@/components/Spinner";
-import ToggleSwitch from "@/components/Switch";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import useTranslation from "@/locale/useTranslation";
 import {
@@ -49,10 +49,6 @@ export default function EmailTemplate() {
     setOpen(true);
   };
 
-  const handleReload = () => {
-    refetch();
-  };
-
   const handleDelete = async () => {
     try {
       const response = await deleteEmailTemplate(deletedId).unwrap();
@@ -69,7 +65,7 @@ export default function EmailTemplate() {
     "Key",
     "Status",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ];
+  ].filter(Boolean) as string[];
 
   const pagination = {
     page:
@@ -81,16 +77,16 @@ export default function EmailTemplate() {
 
   const handleToggleSwitch = async (
     actionKey: string,
-    templateId: id,
+    templateId: number,
     activeTemplate: any,
   ) => {
     const body = { actionKey, templateId };
     const body1 = { actionKey };
     try {
-      const response =
-        activeTemplate === null
-          ? await activateEmail(body).unwrap()
-          : await activateEmail(body1).unwrap();
+      await (activeTemplate === null
+        ? activateEmail(body).unwrap()
+        : activateEmail(body1).unwrap());
+      refetch();
     } catch (error) {
       handleError({ error });
     }
@@ -100,77 +96,71 @@ export default function EmailTemplate() {
     success && allEmailTemplate?.data?.data
       ? allEmailTemplate?.data?.data?.map(
           ({ id, templateName, templateKey, activeTemplate }) => [
-            activeTemplate === null ? (
-              <div className="flex items-center  justify-center gap-[1rem]">
-                <div className="h-[1rem] w-[1rem] rounded-full bg-red-500" />
+            <div className="flex items-center justify-center gap-2">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  activeTemplate === null ? "bg-rose-400" : "bg-primaryColor"
+                }`}
+              />
+              <span className="text-sm font-medium text-slate-800">
                 {templateName}
-              </div>
-            ) : (
-              <div className="flex items-center  justify-center gap-[1rem]">
-                <div className="h-[1rem] w-[1rem] rounded-full bg-primaryColor" />
-                {templateName}
-              </div>
-            ),
-
+              </span>
+            </div>,
             templateKey,
-            <div key={id} className="flex justify-center">
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div key={`toggle-${id}`} className="flex justify-center">
+              <label className="relative inline-flex cursor-pointer items-center">
                 <input
                   type="checkbox"
-                  className="sr-only peer"
+                  className="peer sr-only"
                   checked={activeTemplate !== null}
-                  onChange={(e) =>
+                  onChange={() =>
                     handleToggleSwitch(templateKey, id, activeTemplate)
                   }
                 />
-                <div
-                  className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 
-      rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full 
-      peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
-      after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full 
-      after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-                ></div>
+                <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all peer-checked:bg-primaryColor peer-checked:after:translate-x-full peer-checked:after:border-white" />
               </label>
             </div>,
-            <div
-              key={id}
-              className="flex items-center justify-center cursor-pointer gap-[0.5rem]"
-            >
+            <TableRowActions>
               {accessList.includes("edit") && (
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD]"
+                <button
+                  type="button"
                   onClick={() => handleAddEditButton(id)}
-                />
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                  title="Edit template"
+                >
+                  <MdEditSquare size={16} />
+                </button>
               )}
               {accessList.includes("delete") && (
                 <DeleteModal
+                  compact
                   open={open}
                   setOpen={setOpen}
                   handleDeleteTrigger={() => handleDeleteTrigger(id)}
                   handleConfirmDelete={handleDelete}
                 />
               )}
-            </div>,
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <>
-      <PageHeader
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
         hasAddButton={accessList.includes("add")}
-        newButtonText={translate("Add New Email Template")}
+        newButtonText={translate("Add Template")}
         handleNewButton={() => handleAddEditButton(null)}
-        handleReloadButton={handleReload}
-        hasSubText
-        subText={translate("Add Email Template")}
+        handleReloadButton={() => refetch()}
+        subText="Manage email templates and activate the ones sent to customers."
       />
-      {accessList.includes("view") && (
+
+      {accessList.includes("view") ? (
         <Table
           isSN
           headers={tableHeaders}
@@ -181,7 +171,11 @@ export default function EmailTemplate() {
             refetch();
           }}
         />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view email templates.
+        </div>
       )}
-    </>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Main style file
@@ -135,18 +136,18 @@ export default function OrderFilter({
   const isCustomSelected = selectedQuick === "custom";
 
   return (
-    <div className="p-6 mb-6 border border-gray-200 bg-white rounded-lg shadow-sm">
-      <div className="space-y-6 flex justify-between flex-col md:flex-row">
-        <div className="flex flex-col justify-between items-start gap-3">
-          <h3 className="text-lg font-semibold text-gray-800">Order Filter</h3>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="flex flex-col items-start gap-2.5">
+          <h3 className="text-sm font-semibold text-slate-700">Order Filter</h3>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={handleAllClick}
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
                 isAllSelected
                   ? "bg-primaryColor text-white"
-                  : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
               }`}
             >
               All
@@ -154,10 +155,10 @@ export default function OrderFilter({
             <button
               type="button"
               onClick={handleTodayClick}
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
                 isTodaySelected
                   ? "bg-primaryColor text-white"
-                  : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
               }`}
             >
               Today
@@ -165,10 +166,10 @@ export default function OrderFilter({
             <button
               type="button"
               onClick={handleThisWeekClick}
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
                 isThisWeekSelected
                   ? "bg-primaryColor text-white"
-                  : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
               }`}
             >
               This Week
@@ -177,59 +178,58 @@ export default function OrderFilter({
               <button
                 type="button"
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                className={`px-4 py-2 rounded-md transition-colors ${
+                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
                   isCustomSelected
                     ? "bg-primaryColor text-white"
-                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
                 }`}
               >
                 Custom Range
               </button>
               {isCustomSelected && (
-                <span className="text-sm text-gray-600">
+                <span className="text-xs text-slate-500">
                   {queryStringOptions.start} - {queryStringOptions.end}
                 </span>
               )}
             </div>
           </div>
         </div>
-        {showDatePicker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div
-              className={`relative bg-white rounded-lg shadow-lg ${
-                mobileView
-                  ? "w-[95%] p-8 max-h-[85vh] overflow-x-scroll"
-                  : "p-8"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setShowDatePicker(false)}
-                className={`text-red-500 hover:text-red-700 ${mobileView ? "absolute top-2 left-[36rem]" : "absolute top-2 right-2"}`}
+        {showDatePicker &&
+          createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+              <div
+                className={`relative rounded-xl bg-white shadow-lg ${
+                  mobileView
+                    ? "max-h-[85vh] w-[95%] overflow-x-scroll p-8"
+                    : "p-8"
+                }`}
               >
-                ✕
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(false)}
+                  className={`text-red-500 hover:text-red-700 ${mobileView ? "absolute left-[36rem] top-2" : "absolute right-2 top-2"}`}
+                >
+                  ✕
+                </button>
 
-              <DateRangePicker
-                ranges={[dateRange]}
-                onChange={handleDateRangeSelect}
-                showSelectionPreview={true}
-                moveRangeOnFirstSelection={false}
-                months={mobileView ? 1 : 2}
-                direction={mobileView ? "vertical" : "horizontal"}
-                className={mobileView ? "w-full" : ""}
-              />
-            </div>
-          </div>
-        )}
-        <div className="flex gap-4">
-          <div
-            className="flex flex-col items-start
-          "
-          >
+                <DateRangePicker
+                  ranges={[dateRange]}
+                  onChange={handleDateRangeSelect}
+                  showSelectionPreview={true}
+                  moveRangeOnFirstSelection={false}
+                  months={mobileView ? 1 : 2}
+                  direction={mobileView ? "vertical" : "horizontal"}
+                  className={mobileView ? "w-full" : ""}
+                />
+              </div>
+            </div>,
+            document.body,
+          )}
+        <div className="flex gap-3">
+          <div className="flex flex-col items-start">
             <label
               htmlFor="paymentStatus"
-              className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
+              className="mb-1.5 text-xs font-medium text-slate-500"
             >
               Payment Status
             </label>
@@ -237,7 +237,7 @@ export default function OrderFilter({
               id="paymentStatus"
               value={queryStringOptions.paymentStatus}
               onChange={handlePaymentStatusChange}
-              className="md:w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
             >
               <option value="">All</option>
               <option value="paid">Paid</option>
@@ -248,7 +248,7 @@ export default function OrderFilter({
           <div className="flex flex-col items-start">
             <label
               htmlFor="orderStatus"
-              className="block text-sm font-medium text-gray-700 mb-2 tracking-wide"
+              className="mb-1.5 text-xs font-medium text-slate-500"
             >
               Order Status
             </label>
@@ -256,7 +256,7 @@ export default function OrderFilter({
               id="orderStatus"
               value={queryStringOptions.orderStatus}
               onChange={handleOrderStatusChange}
-              className="md:w-full p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
             >
               <option value="">All</option>
               <option value="pending">Pending</option>

@@ -15,6 +15,7 @@ type DeleteModalProps = {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleDeleteTrigger: (id: number, isDeleted?: boolean) => void;
   handleConfirmDelete: () => void;
+  compact?: boolean;
 };
 
 export default function DeleteModal({
@@ -22,6 +23,7 @@ export default function DeleteModal({
   setOpen,
   handleDeleteTrigger,
   handleConfirmDelete,
+  compact = false,
 }: DeleteModalProps) {
   const translate = useTranslation();
 
@@ -32,8 +34,20 @@ export default function DeleteModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger onClick={handleDeleteTrigger}>
-        <TbTrashXFilled size={22} className="text-red-500 cursor-pointer" />
+      <DialogTrigger onClick={handleDeleteTrigger} asChild>
+        {compact ? (
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+            title="Delete"
+          >
+            <TbTrashXFilled size={16} />
+          </button>
+        ) : (
+          <button type="button" className="inline-flex cursor-pointer items-center">
+            <TbTrashXFilled size={22} className="text-red-500" />
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="w-[25rem] p-[3rem] md:w-fit">
         <DialogHeader>

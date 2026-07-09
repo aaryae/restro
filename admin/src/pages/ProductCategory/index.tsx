@@ -1,33 +1,34 @@
-import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
-import Table from "@/components/Table";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { useState } from "react";
-import { MdEditSquare, MdNearMe } from "react-icons/md";
+import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { PaginationType } from "@/types/commonTypes";
-import {
-  useDeleteProductCategoryByIdMutation,
-  useListAllProductCategoryQuery,
-} from "@/redux/services/productCategory";
 import { useNavigate } from "react-router-dom";
 import { PRODUCT_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 import DraggableTable from "@/components/Table/dragableTable";
-import { useUpdateApiMutation } from "@/redux/services/crudApi";
+import { useDeleteProductCategoryByIdMutation } from "@/redux/services/productCategory";
+import usePagination from "@/hooks/usePagination";
+import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
+import { buildQueryString } from "@/utils/generalHelper";
+import Loader from "@/components/Loader";
 
 export default function ProductCategory() {
   const translate = useTranslation();
   const navigate = useNavigate();
   const accessList = checkAccess("Product Category");
-
-  // query state
-  const [query, setQuery] = useState({ page: 1, limit: 10 });
-
-  //   for delete operations
+  const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const url = buildQueryString("product-category/list", {
+    page: query.page,
+    limit: query.limit,
+    search: { name: searchTerm },
+  });
 
   const {
     data: allProductCategory,
@@ -35,17 +36,14 @@ export default function ProductCategory() {
     isLoading: loading,
     isFetching: fetching,
     refetch,
-  } = useListAllProductCategoryQuery(query);
+  } = useGetApiQuery({ url });
   const [deleteProductCategory] = useDeleteProductCategoryByIdMutation();
   const [updateOrder] = useUpdateApiMutation();
+
   const handleNewUser = (id: number | null) => {
     id === null
       ? navigate(PRODUCT_CATEGORY_ADD_ROUTE)
       : navigate(`${PRODUCT_CATEGORY_ADD_ROUTE}${id}`);
-  };
-
-  const handleReload = () => {
-    refetch();
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -56,10 +54,7 @@ export default function ProductCategory() {
   const handleDelete = async () => {
     try {
       const response = await deleteProductCategory(deleteId).unwrap();
-      handleResponse({
-        res: response,
-        onSuccess: () => {},
-      });
+      handleResponse({ res: response, onSuccess: () => {} });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -77,93 +72,72 @@ export default function ProductCategory() {
     totalPages: allProductCategory?.data?.totalPages,
   };
 
-  const handlePagination = (pagination: PaginationType) => {
-    setQuery((prev) => ({
-      ...prev,
-      ...pagination,
-    }));
-    refetch();
-  };
-
   const tableHeaders = [
-    "Product Category",
+    "Category",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ];
+  ].filter(Boolean) as string[];
 
   const tableData =
     success && allProductCategory?.data?.data
-      ? allProductCategory?.data?.data.map(({ id, name }) => [
+      ? allProductCategory.data.data.map(({ id, name }: { id: number; name: string }) => [
           id,
-          name,
-          <div
-            key={id}
-            className="flex items-center justify-start cursor-pointer gap-[0.5rem]"
-          >
+          <span className="text-sm font-semibold text-slate-800">{name}</span>,
+          <TableRowActions>
             {accessList.includes("edit") && (
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD]"
-                  onClick={() => handleNewUser(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap z-50">
-                  Edit Product Category
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleNewUser(id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit category"
+              >
+                <MdEditSquare size={16} />
+              </button>
             )}
             {accessList.includes("delete") && (
-              <div className="relative group">
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap z-50">
-                  Delete Product Category
-                </span>
-              </div>
+              <DeleteModal
+                compact
+                open={open}
+                setOpen={setOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
+              />
             )}
-          </div>,
+          </TableRowActions>,
         ])
       : [];
 
   return (
-    <>
-      <PageHeader
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search categories..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
         hasAddButton={accessList.includes("add")}
-        newButtonText={translate("Add New Product Category")}
+        newButtonText={translate("Add New Category")}
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={handleReload}
-        hasSubText
-        subText={translate(
-          "Add Comprehensive Product Category Information in Each Section",
-        )}
+        handleReloadButton={() => refetch()}
+        subText="Organize your menu items into categories."
       />
-      {accessList.includes("view") ? (
-        <div>
-          <DraggableTable
-            headers={tableHeaders}
-            data={tableData}
-            loading={loading}
-            fetching={fetching}
-            url="product-category/update-order"
-            action={updateOrder}
-            success={success}
-            pagination={pagination}
-            handlePagination={handlePagination}
-          />
-          {/* <Table
-            isSN
-            headers={tableHeaders}
-            data={tableData}
-            pagination={pagination}
-            handlePagination={handlePagination}
-          /> */}
-        </div>
+
+      {loading && !success ? (
+        <Loader />
+      ) : accessList.includes("view") ? (
+        <DraggableTable
+          headers={tableHeaders}
+          data={tableData}
+          loading={loading}
+          fetching={fetching}
+          url="product-category/update-order"
+          action={updateOrder}
+          success={success}
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
       ) : (
-        <div>Has no Permission to View SEO</div>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view categories.
+        </div>
       )}
-    </>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { RxCross2 } from "react-icons/rx";
 
 interface DrawerType {
@@ -8,6 +9,7 @@ interface DrawerType {
   width?: string;
   position?: "left" | "right";
   className?: string;
+  contentClassName?: string;
 }
 
 export default function Drawer({
@@ -17,12 +19,12 @@ export default function Drawer({
   width = "50%",
   position = "right",
   className,
+  contentClassName = "p-4",
 }: Readonly<DrawerType>) {
-  // Close drawer on pressing 'Esc' key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false); // Close the drawer
+        setIsOpen(false);
       }
     };
 
@@ -30,38 +32,61 @@ export default function Drawer({
       window.addEventListener("keydown", handleKeyDown);
     }
 
-    // Cleanup event listener
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, setIsOpen]); // Re-run effect when `isOpen` changes
+  }, [isOpen, setIsOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   const toggleDrawer = () => {
     setIsOpen(false);
   };
 
-  return (
-    <div
-      className={`fixed top-0 ${
-        position === "right" ? "right-0" : "left-0"
-      } h-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-        isOpen
-          ? "transform translate-x-0"
-          : position === "right"
-            ? "transform translate-x-full"
-            : "transform -translate-x-full"
-      } ${width} ${className}`}
-    >
-      {/* Close button inside the drawer */}
-      <button
-        onClick={toggleDrawer}
-        className="absolute top-4 right-4 text-xl text-gray-500"
+  return createPortal(
+    <>
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="Close drawer backdrop"
+          className="fixed inset-0 z-[60] bg-slate-900/25 backdrop-blur-[1px]"
+          onClick={toggleDrawer}
+        />
+      )}
+      <div
+        className={`fixed inset-y-0 z-[70] ${
+          position === "right" ? "right-0" : "left-0"
+        } h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+          isOpen
+            ? "visible translate-x-0 pointer-events-auto"
+            : position === "right"
+              ? "invisible translate-x-full pointer-events-none"
+              : "invisible -translate-x-full pointer-events-none"
+        } ${width} ${className}`}
       >
-        <RxCross2 size={22} />
-      </button>
+        <button
+          onClick={toggleDrawer}
+          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-700"
+        >
+          <RxCross2 size={18} />
+        </button>
 
-      {/* Drawer content */}
-      <div className="p-4 h-full overflow-y-auto">{children}</div>
-    </div>
+        <div
+          className={`drawer-content flex h-full flex-col overflow-y-auto ${contentClassName}`}
+        >
+          {children}
+        </div>
+      </div>
+    </>,
+    document.body,
   );
 }

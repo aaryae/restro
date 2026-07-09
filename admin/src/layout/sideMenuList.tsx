@@ -10,7 +10,6 @@ import { FaMoneyBillWave } from "react-icons/fa";
 import { CircleDollarSign, ClipboardList } from "lucide-react";
 import { AiFillBank } from "react-icons/ai";
 import { FiShoppingCart } from "react-icons/fi";
-import { MdDashboard } from "react-icons/md";
 
 import { GiExpense } from "react-icons/gi";
 
@@ -192,19 +191,6 @@ export const SideMenuList: SideListMenuType[] = [
         label: "Permission",
         icon: <LandmarkIcon size={12} />,
         path: "/admin/account-permission/list",
-      },
-      // {
-      //   key: 8.4,
-      //   name: "Reports",
-      //   icon: <ClipboardPlus size={12} />,
-      //   path: "/admin/daily-report",
-      // },
-      {
-        key: 8.5,
-        name: "Dashboard",
-        label: "Dashboard",
-        icon: <MdDashboard size={12} />,
-        path: "/admin/dashboard",
       },
     ],
   },

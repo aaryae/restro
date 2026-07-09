@@ -23,7 +23,13 @@ import EnglishFlag from "@/assets/english.png";
 import JapanFlag from "@/assets/japan.png";
 import Notification from "@/components/notification";
 import { useState } from "react";
-export default function TopMenu({ sideMenuOpen, setSideMenuOpen }) {
+export default function TopMenu({
+  sideMenuOpen,
+  setSideMenuOpen,
+}: {
+  sideMenuOpen: boolean;
+  setSideMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const location = useLocation();
   const currentPath = location.pathname.split("/");
   const translate = useTranslation();
@@ -60,11 +66,12 @@ export default function TopMenu({ sideMenuOpen, setSideMenuOpen }) {
   };
 
   return (
-    <div className="w-full px-[1.5rem] py-[1rem]">
-      <div className="bg-white h-full w-full shadow-lg pt-[10px] pb-[0.5rem] px-[0.5rem] rounded-full">
+    <div className="w-full min-w-0 px-[1.5rem] py-[1rem]">
+      <div className="h-full w-full min-w-0 rounded-full bg-white px-[0.5rem] pb-[0.5rem] pt-[10px] shadow-lg">
         <div className="flex justify-between">
-          {/* <button onClick={() => setSideMenuOpen(!sideMenuOpen)}>Toggle</button> */}
-          <SearchBox />
+          <div className="flex items-center gap-2 grow">
+            <SearchBox />
+          </div>
           <div className="flex items-center gap-[1rem] pr-[1.5rem]">
             {/* <DropdownMenu>
               <DropdownMenuTrigger>

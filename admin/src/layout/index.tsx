@@ -7,12 +7,6 @@ import { useGetSettingQuery } from "@/redux/services/settings";
 import { IMAGE_BASE_URL } from "@/constants";
 
 export default function Layout() {
-  // notification system disabled
-  // const { connect } = useWebSocket();
-  // useEffect(() => {
-  //   connect();
-  // }, []);
-
   const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(true);
   const { data: settings } = useGetSettingQuery("");
 
@@ -37,38 +31,42 @@ export default function Layout() {
   return (
     <>
       {/* For Desktop View */}
-      <div className="hidden lg:flex bg-[#f2f6fa]">
+      <div className="hidden min-h-screen w-full overflow-x-hidden bg-[#f2f6fa] lg:block">
         {/* Side Menu */}
         <div
-          className={`h-screen fixed shadow-lg shadow-gray-400 z-50 transition-all duration-300 overflow-visible ${sideMenuOpen ? "w-[18%]" : "w-20"}`}
+          className={`fixed z-50 h-screen overflow-visible shadow-lg shadow-gray-400 transition-all duration-300 ${
+            sideMenuOpen ? "w-[18%]" : "w-20"
+          }`}
         >
           <SideMenu
             setToggleState={setSideMenuOpen}
             sideMenuOpen={sideMenuOpen}
           />
         </div>
+
         <div
-          className={`flex-1 flex flex-col h-screen w-screen  ${sideMenuOpen ? "ml-[18%]" : "ml-16"}`}
+          className={`min-h-screen min-w-0 transition-all duration-300 ${
+            sideMenuOpen
+              ? "ml-[18%] w-[82%]"
+              : "ml-20 w-[calc(100%-5rem)]"
+          }`}
         >
-          {/* Main Content */}
-          <div>
+          <div className="min-w-0">
             <TopMenu
               sideMenuOpen={sideMenuOpen}
               setSideMenuOpen={setSideMenuOpen}
             />
           </div>
-          {/* Page content */}
-          <div className="flex-1 px-[1.5rem] py-[1rem] overflow-auto">
+          <div className="min-w-0 overflow-x-hidden overflow-y-auto px-[1.5rem] py-[1rem]">
             <Outlet />
           </div>
         </div>
       </div>
       {/* for Mobile View */}
-      <div className="block lg:hidden ">
+      <div className="block overflow-x-hidden lg:hidden">
         <TopMenuMobile />
 
-        {/* Page content */}
-        <div className="flex-1 p-4 overflow-auto min-h-[87vh]">
+        <div className="min-h-[87vh] overflow-x-hidden overflow-y-auto p-4">
           <Outlet />
         </div>
       </div>

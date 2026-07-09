@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import PageHeader from "@/components/PageHeader";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import FinanceQuickDateChips from "@/components/FinanceQuickDateChips";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
@@ -11,14 +12,13 @@ import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import PageFilterSample from "@/components/PageFilterSample";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import DateInput from "@/components/DateInput";
 import { FilterSelect } from "@/components/Select/FilterSelect";
-import { subDays } from "date-fns";
 import { ExpenseFilterSchema, type ExpenseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,7 +31,6 @@ const Expenses: React.FC = () => {
     null,
   );
 
-  // Filters form
   const { control, handleSubmit, reset, setValue, getValues } =
     useForm<ExpenseFilterInput>({
       resolver: zodResolver(ExpenseFilterSchema),
@@ -144,7 +143,7 @@ const Expenses: React.FC = () => {
     "Category",
     "Amount",
     "Cash or Credit",
-    "Payment Source ID",
+    "Payment Source",
     "Actions",
   ];
 
@@ -178,90 +177,60 @@ const Expenses: React.FC = () => {
   };
 
   const data = success
-    ? apiData?.data?.data?.map((expense) => [
+    ? apiData?.data?.data?.map((expense: any) => [
         expense?.id,
         format(expense.createdAt, "yyyy-MM-dd"),
         ADToBS(expense.createdAt),
-        expense?.remarks,
+        <span className="block max-w-full truncate" title={expense?.remarks ?? ""}>
+          {expense?.remarks}
+        </span>,
         expense?.category?.name,
-        CurrencySign + expense?.amount,
+        <span className="font-semibold text-slate-800">
+          {CurrencySign}
+          {expense?.amount}
+        </span>,
         expense?.cash_or_credit,
         expense?.account?.name,
-        <div
-          className="flex items-center justify-center gap-3"
-          key={`act-${expense?.id}`}
-        >
-          <div className="relative group">
-            <MdEditSquare
-              size={18}
-              className="text-[#0090DD] hover:text-blue-800 hover:cursor-pointer"
-              onClick={() => handleNewExpense(expense?.id)}
-            />
-            <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-              Edit Expense
-            </span>
-          </div>
-          <div className="relative group">
-            <DeleteModal
-              open={open}
-              setOpen={setOpen}
-              handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
-              handleConfirmDelete={handleDelete}
-            />
-            <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-              Delete Expense
-            </span>
-          </div>
-        </div>,
+        <TableRowActions>
+          <button
+            type="button"
+            onClick={() => handleNewExpense(expense?.id)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+            title="Edit expense"
+          >
+            <MdEditSquare size={16} />
+          </button>
+          <DeleteModal
+            compact
+            open={open}
+            setOpen={setOpen}
+            handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
+            handleConfirmDelete={handleDelete}
+          />
+        </TableRowActions>,
       ])
     : [];
 
   return (
-    <>
-      <PageTitle title="Expenses" />
-      <PageHeader
-        hasAddButton={true}
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
+        hasAddButton
         newButtonText="Add Expense"
         handleNewButton={() => handleNewExpense(null)}
         handleReloadButton={() => refetch()}
-        hasSubText={false}
-      />
-
-      {/* Quick Date Filters */}
-      <div className="flex items-center gap-2 px-4 py-2">
-        <span className="text-sm font-medium text-gray-700">Quick Date:</span>
-        {[
-          { label: "Yesterday", value: "yesterday" },
-          { label: "Today", value: "today" },
-        ].map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => {
-              setSelectedDateFilter(item.value);
+        subText="Record and filter daily operating expenses."
+        filters={
+          <FinanceQuickDateChips
+            selected={selectedDateFilter}
+            onSelect={(value) => {
+              setSelectedDateFilter(value);
               setValue("date", undefined as any);
             }}
-            className={`px-3 py-1.5 rounded text-sm transition-colors ${
-              selectedDateFilter === item.value
-                ? "bg-primaryColor text-white"
-                : "border border-primaryColor text-primaryColor bg-white hover:bg-blue-50"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-        {selectedDateFilter && (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDateFilter(null);
-            }}
-            className="px-2 py-1 text-sm text-red-500 hover:underline"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+            onClear={() => setSelectedDateFilter(null)}
+          />
+        }
+      />
 
       <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
@@ -273,7 +242,7 @@ const Expenses: React.FC = () => {
           handlePagination({ ...p, total: apiData?.data?.total ?? 0 })
         }
       />
-    </>
+    </div>
   );
 };
 

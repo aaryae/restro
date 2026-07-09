@@ -10,6 +10,33 @@
   cursor: pointer;
 }
 
+.button.submit-button,
+.submit-button {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.button.submit-button:hover:not(:disabled),
+.submit-button:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--primary-color) 88%, black 12%);
+  box-shadow: 0 4px 12px rgba(3, 39, 104, 0.2);
+}
+
+.button.submit-button:active:not(:disabled),
+.submit-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button.submit-button:disabled,
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .button-left-section,
 .button-right-section {
   margin: 0 0.5rem;

@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import { useForm } from "react-hook-form";
 import Spinner from "@/components/Spinner";
 import { MdEditSquare } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/PageHeader";
 import usePagination from "@/hooks/usePagination";
 import DeleteModal from "@/components/DeleteModal";
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import ExportToExcel from "@/components/ExportToExcel";
 import { buildQueryString } from "@/utils/generalHelper";
 import { SUPPLIER_ADD_ROUTE } from "@/routes/routeNames";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
@@ -27,9 +27,7 @@ import {
 export default function Supplier() {
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
-  const [isExportTriggered, setIsExportTriggered] = useState<boolean>(false);
-  // const [isOpen, setIsOpen] = useState<boolean>(false);
-  // const [customerId, setCustomerId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [deleteData] = useDeleteSupplierByIdMutation();
 
@@ -50,14 +48,6 @@ export default function Supplier() {
   });
 
   const [queryString, setQueryString] = useState<Record<string, any>>({});
-
-  // const handleChange = (value: boolean) => {
-  //   setValue("userType", value);
-  // };
-
-  // const handleDateInput = (value: Date) => {
-  //   setValue("createdAt", value);
-  // };
 
   const handleNewButton = (id: number | null) => {
     if (id === null) {
@@ -100,38 +90,37 @@ export default function Supplier() {
         label: "Name of Entity",
         Component: FilterInput,
         control,
-        icon: <UserRound className="w-4 h-4" />,
+        icon: <UserRound className="h-4 w-4" />,
       },
       {
         name: "address",
         label: "Address",
         Component: FilterInput,
         control,
-        icon: <MapPin className="w-4 h-4" />,
+        icon: <MapPin className="h-4 w-4" />,
       },
       {
         name: "pan_vat_number",
         label: "PAN Number",
         Component: FilterInput,
         control,
-        icon: <IdCard className="w-4 h-4" />,
+        icon: <IdCard className="h-4 w-4" />,
       },
       {
         name: "contact_person",
         label: "Name of Supplier",
         Component: FilterInput,
         control,
-        icon: <IdCard className="w-4 h-4" />,
+        icon: <IdCard className="h-4 w-4" />,
       },
       {
         name: "contact_number",
         label: "Contact Number",
         Component: FilterInput,
         control,
-        icon: <Phone className="w-4 h-4" />,
+        icon: <Phone className="h-4 w-4" />,
       },
     ],
-
     [control],
   );
 
@@ -145,7 +134,10 @@ export default function Supplier() {
   const url = buildQueryString("supplier/list", {
     page: query.page,
     limit: query.limit,
-    search: queryString,
+    search: {
+      ...queryString,
+      ...(searchTerm ? { name: searchTerm } : {}),
+    },
   });
 
   const {
@@ -154,24 +146,10 @@ export default function Supplier() {
     isLoading: supplierDataLoading,
     refetch,
   } = useGetListAllSupplierQuery({ url });
-  console.log("allSupplier", allSupplier);
 
   useEffect(() => {
     refetch();
-  }, [queryString]);
-
-  const handleReload = () => {
-    refetch();
-  };
-
-  useEffect(() => {
-    refetch();
-  }, [control, handleSubmit]);
-
-  // const handleViewSupplier = (id: number) => {
-  //   setCustomerId(id);
-  //   setIsOpen(true);
-  // };
+  }, [queryString, searchTerm]);
 
   const pagination = {
     page: allSupplier?.data?.total === 0 ? 0 : allSupplier?.data?.page,
@@ -181,12 +159,12 @@ export default function Supplier() {
   };
 
   const tableHeaders = [
-    "Name of Entity",
-    "Address of Entity",
-    "PAN/VAT Number",
+    "Entity Name",
+    "Address",
+    "PAN/VAT",
     "Contact Person",
     "Contact Number",
-    "Action",
+    "Actions",
   ];
 
   const tableData =
@@ -200,62 +178,49 @@ export default function Supplier() {
             contact_person,
             contact_number,
           }: any) => [
-            name,
+            <span className="text-sm font-semibold text-slate-800">{name}</span>,
             address,
             pan_vat_number,
             contact_person,
             contact_number,
-
-            <div
-              key={id}
-              className="flex items-center justify-center gap-[0.5rem]"
-            >
-              {/* <FaEye
-                size={18}
-                className="text-[#0090DD] cursor-pointer"
-                onClick={() => handleViewSupplier(id)}
-              /> */}
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD]"
-                  onClick={() => handleNewButton(id)}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Edit Supplier
-                </span>
-              </div>
-              <div className="relative group">
-                <DeleteModal
-                  open={deleteModelOpen}
-                  setOpen={setDeleteModelOpen}
-                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Delete Supplier
-                </span>
-              </div>
-            </div>,
+            <TableRowActions>
+              <button
+                type="button"
+                onClick={() => handleNewButton(id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                title="Edit supplier"
+              >
+                <MdEditSquare size={16} />
+              </button>
+              <DeleteModal
+                compact
+                open={deleteModelOpen}
+                setOpen={setDeleteModelOpen}
+                handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                handleConfirmDelete={handleDelete}
+              />
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (supplierDataLoading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <div>
-      <PageHeader
-        hasAddButton={true}
-        newButtonText="Add New Supplier"
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search suppliers..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton
+        newButtonText="Add Supplier"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={handleReload}
-      ></PageHeader>
-      <PageFilterWrapper title="Supplier Filters">
-        {Component}
-      </PageFilterWrapper>
+        handleReloadButton={() => refetch()}
+        subText="Manage vendor details for purchase entries."
+      />
+      <PageFilterWrapper title="Supplier Filters">{Component}</PageFilterWrapper>
       <Table
         headers={tableHeaders}
         data={tableData}
@@ -263,9 +228,6 @@ export default function Supplier() {
         pagination={pagination}
         handlePagination={handlePagination}
       />
-      {/* <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-full lg:w-[70%]">
-        <ViewSupplier id={customerId} isOpen={isOpen} setIsOpen={setIsOpen} />
-      </Drawer> */}
     </div>
   );
 }

@@ -1,11 +1,9 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { useMemo, useState } from "react";
-import PageTitle from "@/components/PageTitle";
+import React, { useMemo, useState } from "react";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { PaginationType } from "@/types/commonTypes";
 import usePagination from "@/hooks/usePagination";
-import PageHeader from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { BANK_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign } from "@/constants";
@@ -22,7 +20,6 @@ import {
   useDeleteApiMutation,
 } from "@/redux/services/crudApi";
 import Spinner from "@/components/Spinner";
-import { Button } from "react-aria-components";
 import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -30,11 +27,13 @@ import TransferModel from "./TransferModel";
 import PaymentIntegrationsPanel from "./PaymentIntegrationsPanel";
 import { AccountFilterSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { CreditCard } from "lucide-react";
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
-  // delete supported
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+  const [searchTerm, setSearchTerm] = useState("");
   const [patchApi] = usePatchApiMutation();
   const [deleteAccount] = useDeleteApiMutation();
   const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
@@ -93,7 +92,6 @@ const Account: React.FC = () => {
   });
   const [filters, setFilters] = useState<Record<string, any>>({});
 
-  // Adapter to bridge react-hook-form's onChange to FilterSelect's handleChange
   const AccountTypeFilter: React.FC<any> = ({ value, onChange }) => (
     <FilterSelect
       label="Account Type"
@@ -115,7 +113,6 @@ const Account: React.FC = () => {
         Component: FilterInput,
         control,
       },
-      // Placed Account Type as the last field so it appears at the far right on large screens
       {
         name: "accountType",
         label: "Account Type",
@@ -126,11 +123,6 @@ const Account: React.FC = () => {
     ],
     [control],
   );
-
-  // const handleReset = () => {
-  //   reset({ accountName: "", accountType: "" });
-  //   setFilters({});
-  // };
 
   const { Component } = PageFilterSample(
     filterField,
@@ -144,14 +136,16 @@ const Account: React.FC = () => {
         ),
       );
     },
-
     reset,
   );
 
   const url = buildQueryString("account/list", {
     page: query.page,
     limit: query.limit,
-    search: filters,
+    search: {
+      ...filters,
+      ...(searchTerm ? { name: searchTerm } : {}),
+    },
   });
 
   const {
@@ -168,138 +162,145 @@ const Account: React.FC = () => {
     totalPages: allAccount?.data?.totalPages,
   };
 
-  const headers = [
-    "S.N",
-    "Name",
-    "Type",
-    "Balance",
-    "Status",
-    "Default",
-    "Actions",
-  ];
+  const headers = ["Name", "Type", "Balance", "Status", "Default", "Actions"];
 
   const [transferOpen, setTransferOpen] = useState<boolean>(false);
   const [integrationsOpen, setIntegrationsOpen] = useState<boolean>(false);
 
   const data =
     success && allAccount?.data?.data
-      ? (allAccount?.data?.data as any[]).map((row: any, idx: number) => {
-          const sn =
-            (allAccount?.data?.page - 1) * (allAccount?.data?.limit || 10) +
-            idx +
-            1;
-          return [
-            sn,
-            row?.name || "-",
-            row?.accountType || "-",
-            row?.currentBalance != null
+      ? (allAccount?.data?.data as any[]).map((row: any) => [
+          <span className="text-sm font-semibold text-slate-800">
+            {row?.name || "-"}
+          </span>,
+          <span className="capitalize text-slate-600">
+            {row?.accountType || "-"}
+          </span>,
+          <span className="font-semibold text-slate-800">
+            {row?.currentBalance != null
               ? `${CurrencySign}${Number(row.currentBalance)}`
-              : "-",
-            row?.status || "-",
-            row?.isDefault ? (
-              <span className="px-2 py-0.5 text-[12px] rounded bg-green-50 text-green-700 border border-green-300">
-                Default
-              </span>
-            ) : (
-              <button
-                type="button"
-                className={`px-2 py-0.5 text-[12px] rounded border ${row?.status !== "active" ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
-                onClick={() =>
-                  row?.status === "active" && handleMakeDefault(row?.id)
-                }
-                title={
-                  row?.status !== "active"
-                    ? "Activate this account first to set it as default"
-                    : "Make Default"
-                }
-                disabled={row?.status !== "active"}
-              >
-                Make Default
-              </button>
-            ),
-            <div
-              className="flex items-center justify-center gap-3"
-              key={`actions-${row?.id || idx}`}
+              : "-"}
+          </span>,
+          <span
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${
+              row?.status === "active"
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+            }`}
+          >
+            {row?.status || "-"}
+          </span>,
+          row?.isDefault ? (
+            <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-sky-200">
+              Default
+            </span>
+          ) : (
+            <button
+              type="button"
+              className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                row?.status !== "active"
+                  ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+              onClick={() =>
+                row?.status === "active" && handleMakeDefault(row?.id)
+              }
+              title={
+                row?.status !== "active"
+                  ? "Activate this account first to set it as default"
+                  : "Make default"
+              }
+              disabled={row?.status !== "active"}
             >
-              <div className="relative group">
-                <MdEditSquare
-                  size={18}
-                  className="text-[#0090DD] hover:text-blue-800 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleNewBank(row?.id || idx)}
-                  title="Edit"
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Edit Account
-                </span>
-              </div>
-              <button
-                type="button"
-                className={`px-2 py-1 text-xs rounded border ${row?.isDefault ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
-                onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
-                title={
-                  row?.isDefault
-                    ? "Default account cannot be deactivated"
-                    : "Toggle Status"
-                }
-                disabled={row?.isDefault}
-              >
-                {row?.status === "active" ? "Deactivate" : "Activate"}
-              </button>
-              <div className="relative group">
-                <DeleteModal
-                  open={deleteModelOpen}
-                  setOpen={setDeleteModelOpen}
-                  handleDeleteTrigger={() =>
-                    handleDeleteTrigger(row?.id || idx)
-                  }
-                  handleConfirmDelete={handleDelete}
-                />
-                <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                  Delete Account
-                </span>
-              </div>
-            </div>,
-          ];
-        })
+              Make Default
+            </button>
+          ),
+          <TableRowActions>
+            <button
+              type="button"
+              onClick={() => handleNewBank(row?.id)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+              title="Edit account"
+            >
+              <MdEditSquare size={16} />
+            </button>
+            <button
+              type="button"
+              className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                row?.isDefault
+                  ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                  : row?.status === "active"
+                    ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              }`}
+              onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
+              title={
+                row?.isDefault
+                  ? "Default account cannot be deactivated"
+                  : "Toggle status"
+              }
+              disabled={row?.isDefault}
+            >
+              {row?.status === "active" ? "Deactivate" : "Activate"}
+            </button>
+            <DeleteModal
+              compact
+              open={deleteModelOpen}
+              setOpen={setDeleteModelOpen}
+              handleDeleteTrigger={() => handleDeleteTrigger(row?.id)}
+              handleConfirmDelete={handleDelete}
+            />
+          </TableRowActions>,
+        ])
       : [];
 
   return (
-    <>
-      <PageTitle title="Cash & Banks" />
-      <div className="flex justify-end items-center gap-[1rem]">
-        <PageHeader
-          hasAddButton={true}
-          newButtonText="Add Account"
-          handleNewButton={() => handleNewBank(null)}
-          handleReloadButton={() => refetch()}
-        />
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search accounts..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton
+        newButtonText="Add Account"
+        handleNewButton={() => handleNewBank(null)}
+        handleReloadButton={() => refetch()}
+        subText="Manage cash drawers, bank accounts, and wallet balances."
+        extraActions={
+          <>
+            <button
+              type="button"
+              onClick={() => setTransferOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+            >
+              <BiTransfer size={16} />
+              Transfer
+            </button>
+            <button
+              type="button"
+              onClick={() => setIntegrationsOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-[13px] font-medium text-sky-700 transition hover:bg-sky-100"
+            >
+              <CreditCard size={15} />
+              Integrations
+            </button>
+          </>
+        }
+      />
 
-        <Button
-          className="flex gap-2 bg-[#36a77d] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
-          onPress={() => setTransferOpen(true)}
-        >
-          <BiTransfer size={20} />
-          Transfer
-        </Button>
+      <PageFilterWrapper title="Account Filters">{Component}</PageFilterWrapper>
 
-        <Button
-          className="flex gap-2 bg-[#0090DD] text-white rounded-[0.25rem] px-[1.25rem] py-[0.5rem] mt-[4px]"
-          onPress={() => setIntegrationsOpen(true)}
-        >
-          Payment Integrations
-        </Button>
-      </div>
-      <PageFilterWrapper title="Bank Filters">{Component}</PageFilterWrapper>
       {isFetching ? (
-        <Spinner className="flex justify-center items-center h-full" />
+        <Spinner className="flex h-full items-center justify-center" />
       ) : (
         <Table
+          isSN
           headers={headers}
           data={data}
           pagination={pagination}
           handlePagination={handlePagination}
         />
       )}
+
       <TransferModel
         isOpen={transferOpen}
         onClose={() => setTransferOpen(false)}
@@ -312,7 +313,7 @@ const Account: React.FC = () => {
         isOpen={integrationsOpen}
         onClose={() => setIntegrationsOpen(false)}
       />
-    </>
+    </div>
   );
 };
 

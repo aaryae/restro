@@ -1,8 +1,8 @@
 import DeleteModal from "@/components/DeleteModal";
 import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { FLOOR_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
 import {
@@ -11,9 +11,10 @@ import {
   usePatchApiMutation,
 } from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
+import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
-import { FaEye } from "react-icons/fa";
+import { Eye } from "lucide-react";
 import ViewFloor from "./ViewFloor";
 import Spinner from "@/components/Spinner";
 import { FLOOR_ADD_ROUTE } from "@/routes/routeNames";
@@ -32,6 +33,7 @@ export default function Floor() {
   const accessList = checkAccess("Floor");
   const [patchApi] = usePatchApiMutation();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
@@ -41,17 +43,19 @@ export default function Floor() {
 
   const navigate = useNavigate();
 
+  const url = buildQueryString(`${FLOOR_URL}list`, {
+    page: query.page,
+    limit: query.limit,
+    search: { name: searchTerm },
+  });
+
   const {
     data: allFloor,
     isSuccess: success,
     isLoading: loading,
     refetch,
-  } = useGetApiQuery({ url: `${FLOOR_URL}list`, ...query });
+  } = useGetApiQuery({ url });
   const [deleteFloor] = useDeleteApiMutation();
-
-  const handleReload = () => {
-    refetch();
-  };
 
   const handleDrawerOpen = (id: number) => {
     setOpenDrawerId(id);
@@ -114,91 +118,88 @@ export default function Floor() {
     "Name",
     "Status",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   const tableData =
     success && allFloor?.data?.data
       ? allFloor?.data?.data.map(
           ({ id, floorNo, name, isActive }: FloorResponseType) => [
-            floorNo,
-            name,
+            <span className="font-medium text-slate-700">{floorNo}</span>,
+            <span className="text-sm font-semibold text-slate-800">{name}</span>,
             <span
-              key={`status-${id}`}
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
+              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
                 isActive
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
+                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                  : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
               }`}
             >
               {isActive ? "Active" : "Inactive"}
             </span>,
-            <div
-              key={id}
-              className="flex items-center justify-center cursor-pointer gap-[0.5rem]"
-            >
+            <TableRowActions>
               {accessList.includes("view") && (
-                <div className="relative group">
-                  <FaEye
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                    onClick={() => handleDrawerOpen(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    View Floor
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDrawerOpen(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                  title="View floor"
+                >
+                  <Eye size={16} />
+                </button>
               )}
               {accessList.includes("edit") && (
-                <div className="relative group">
-                  <MdEditSquare
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
+                <>
+                  <button
+                    type="button"
                     onClick={() => handleNewButton(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Edit Floor
-                  </span>
-                </div>
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                    title="Edit floor"
+                  >
+                    <MdEditSquare size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFloorStatus(id, isActive)}
+                    className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                      isActive
+                        ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    }`}
+                  >
+                    {isActive ? "Deactivate" : "Activate"}
+                  </button>
+                </>
               )}
               {accessList.includes("delete") && (
-                <div className="relative group">
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                    handleConfirmDelete={handleDelete}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Delete Floor
-                  </span>
-                </div>
+                <DeleteModal
+                  compact
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
               )}
-              <button
-                type="button"
-                className={`px-2 py-1 text-xs rounded border`}
-                onClick={() => handleFloorStatus(id, isActive)}
-              >
-                {isActive ? "Inactive" : "Active"}
-              </button>
-            </div>,
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <>
-      <PageTitle title="Floor Management" />
-      <PageHeader
-        hasAddButton={true}
-        newButtonText="Add New Floor"
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search floors..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton={accessList.includes("add")}
+        newButtonText="Add Floor"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={handleReload}
-        hasSubText={false}
+        handleReloadButton={() => refetch()}
+        subText="Define dining floors and control which ones are active."
       />
+
       {accessList.includes("view") ? (
         <Table
           isSN
@@ -208,8 +209,11 @@ export default function Floor() {
           handlePagination={handlePagination}
         />
       ) : (
-        <p>You don't have Permission to view this table</p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view floors.
+        </div>
       )}
+
       <Drawer
         isOpen={openDrawer}
         setIsOpen={setOpenDrawer}
@@ -217,6 +221,6 @@ export default function Floor() {
       >
         <ViewFloor id={drawerId} />
       </Drawer>
-    </>
+    </div>
   );
 }

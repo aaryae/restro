@@ -7,6 +7,7 @@ import Button from "@/components/Button";
 import { z } from "zod";
 import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useReactToPrint } from "react-to-print";
 import Kot, { type KotData } from "@/components/Kot";
 import PageTitle from "@/components/PageTitle";
@@ -945,8 +946,9 @@ export default function AddEditOrder({
         </form>
       </div>
 
-      {isConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50">
+      {isConfirmOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="bg-white w-[95%] max-w-md sm:max-w-2xl rounded-lg shadow-lg">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b relative">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -1081,8 +1083,9 @@ export default function AddEditOrder({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
       {/* Hidden Kot printable content */}
       <div className="hidden">
         {kotPreviewData && <Kot ref={kotRef} data={kotPreviewData} />}

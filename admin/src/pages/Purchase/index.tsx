@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
+import FinanceQuickDateChips from "@/components/FinanceQuickDateChips";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
-import PageHeader from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
 import { MdEditSquare } from "react-icons/md";
@@ -15,11 +16,10 @@ import { FilterInput } from "@/components/Input/filterInput";
 import { FilterSelect } from "@/components/Select/FilterSelect";
 import DateInput from "@/components/DateInput";
 import { useForm } from "react-hook-form";
-import { UserRound } from "lucide-react";
+import { UserRound, Eye } from "lucide-react";
 import { buildQueryString } from "@/utils/generalHelper";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
-import { FaEye } from "react-icons/fa";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ADToBS } from "bikram-sambat-js";
 import { PurchaseFilterSchema, type PurchaseFilterInput } from "./schema";
@@ -37,7 +37,6 @@ const Purchase: React.FC = () => {
     null,
   );
 
-  // Filters (client-side for now)
   const { control, handleSubmit, reset, setValue, getValues } =
     useForm<PurchaseFilterInput>({
       resolver: zodResolver(PurchaseFilterSchema),
@@ -74,7 +73,7 @@ const Purchase: React.FC = () => {
         label: "Supplier Name",
         Component: FilterInput,
         control,
-        icon: <UserRound className="w-4 h-4" />,
+        icon: <UserRound className="h-4 w-4" />,
       },
       {
         name: "status",
@@ -103,26 +102,28 @@ const Purchase: React.FC = () => {
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
-  // Build server-side query with filters
   const serverUrl = useMemo(() => {
     const search: Record<string, any> = {};
     if (filters?.date) {
       const iso = new Date(filters.date).toISOString().slice(0, 10);
       search.date = iso;
+    } else if (selectedDateFilter) {
+      const today = new Date();
+      const date =
+        selectedDateFilter === "yesterday" ? subDays(today, 1) : today;
+      search.date = date.toISOString().slice(0, 10);
     }
     if (filters?.status) {
-      const s = String(filters.status).toLowerCase();
-      search.status = s;
+      search.status = String(filters.status).toLowerCase();
     }
     return buildQueryString("purchase/list", {
       page: query.page,
       limit: query.limit,
       search,
     });
-  }, [filters, query.page, query.limit]);
+  }, [filters, query.page, query.limit, selectedDateFilter]);
 
   const { data: apiData, refetch } = useGetApiQuery({ url: serverUrl });
-  // Fetch single purchase when drawer is open
   const { data: purchaseDetailResp } = useGetApiQuery(
     { url: selectedId ? `${PURCHASE_URL}${selectedId}` : "" },
     { skip: !openDrawer || !selectedId },
@@ -309,109 +310,72 @@ const Purchase: React.FC = () => {
       index + 1 + (pagination.page - 1) * pagination.limit,
       dateAD,
       dateBS,
-      particulars,
+      <span className="block max-w-full truncate" title={particulars}>
+        {particulars}
+      </span>,
       categoryName,
       supplierName,
-      `${CurrencySign}${Number(amount).toFixed(2)}`,
+      <span className="font-semibold text-slate-800">
+        {CurrencySign}
+        {Number(amount).toFixed(2)}
+      </span>,
       paymentTermsDisplay,
       statusDisplay,
       paymentSourceName,
-      <div className="flex items-center justify-center gap-3" key={`act-${id}`}>
-        <div className="relative group">
-          <FaEye
-            size={18}
-            className="text-[#0090DD] cursor-pointer"
-            onClick={() => handleViewPurchase(id)}
-          />
-          <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-            View Purchase
-          </span>
-        </div>
-
+      <TableRowActions>
+        <button
+          type="button"
+          onClick={() => handleViewPurchase(id)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+          title="View purchase"
+        >
+          <Eye size={16} />
+        </button>
         <button
           type="button"
           onClick={() => !isCompleted && handleNewUser(id)}
           title={isCompleted ? "Completed purchases cannot be edited" : "Edit"}
           disabled={isCompleted}
-          className={`${isCompleted ? "opacity-50 cursor-not-allowed" : "hover:text-blue-800"}`}
-          aria-disabled={isCompleted}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100 ${
+            isCompleted ? "cursor-not-allowed opacity-50" : ""
+          }`}
         >
-          <div className="relative group">
-            <MdEditSquare size={18} className="text-[#0090DD]" />
-            <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-              Edit Purchase
-            </span>
-          </div>
+          <MdEditSquare size={16} />
         </button>
-        <div className="relative group">
-          <DeleteModal
-            open={open}
-            setOpen={setOpen}
-            handleDeleteTrigger={() => handleDeleteTrigger(id)}
-            handleConfirmDelete={handleDelete}
-          />
-          <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-            Delete Purchase
-          </span>
-        </div>
-      </div>,
+        <DeleteModal
+          compact
+          open={open}
+          setOpen={setOpen}
+          handleDeleteTrigger={() => handleDeleteTrigger(id)}
+          handleConfirmDelete={handleDelete}
+        />
+      </TableRowActions>,
     ];
   });
 
   return (
-    <>
-      <PageTitle title="Purchase" />
-      <PageHeader
-        hasAddButton={true}
-        newButtonText="Add New Purchase"
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
+        hasAddButton
+        newButtonText="Add Purchase"
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
-        hasSubText={false}
+        subText="Manage supplier purchases, invoices, and payment status."
+        filters={
+          <FinanceQuickDateChips
+            selected={selectedDateFilter}
+            onSelect={(value) => {
+              setSelectedDateFilter(value);
+              setValue("date", undefined as any);
+            }}
+            onClear={() => setSelectedDateFilter(null)}
+          />
+        }
       />
-      <div className="flex items-center gap-2 px-4 py-2">
-        <span className="text-sm font-medium text-gray-700">Quick Date:</span>
-        {[
-          { label: "Yesterday", value: "yesterday" },
-          { label: "Today", value: "today" },
-        ].map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              const date =
-                item.value === "yesterday" ? subDays(today, 1) : today;
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, "0");
-              const day = String(date.getDate()).padStart(2, "0");
-              setFilters({ ...filters, date: `${year}-${month}-${day}` });
-              setSelectedDateFilter(item.value);
-            }}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              selectedDateFilter === item.value
-                ? "bg-primaryColor text-white"
-                : "border border-primaryColor text-primaryColor bg-white hover:bg-blue-50"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-        {selectedDateFilter && (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDateFilter(null);
-              window.location.reload();
-            }}
-            className="px-2 py-1 text-sm text-red-500 hover:underline"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-      <PageFilterWrapper title="Purchase Filters">
-        {Component}
-      </PageFilterWrapper>
+
+      <PageFilterWrapper title="Purchase Filters">{Component}</PageFilterWrapper>
+
       <Table
         headers={headers}
         data={data}
@@ -419,8 +383,7 @@ const Purchase: React.FC = () => {
         handlePagination={(p) => handlePagination({ ...p, total })}
       />
 
-      {/* Drawer */}
-      {openDrawer && (
+      {openDrawer ? (
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black/40"
@@ -429,11 +392,14 @@ const Purchase: React.FC = () => {
               setSelectedId(null);
             }}
           />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white shadow-xl border-l border-gray-200 overflow-y-auto">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Purchase Details</h3>
+          <div className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-slate-200 bg-white shadow-xl sm:w-[480px]">
+            <div className="flex items-center justify-between border-b border-slate-200 p-4">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Purchase Details
+              </h3>
               <button
-                className="px-3 py-1 rounded border hover:bg-gray-50"
+                type="button"
+                className="h-8 rounded-lg border border-slate-200 px-3 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
                 onClick={() => {
                   setOpenDrawer(false);
                   setSelectedId(null);
@@ -442,9 +408,9 @@ const Purchase: React.FC = () => {
                 Close
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="space-y-4 p-4">
               {!purchaseDetailResp ? (
-                <div className="text-sm text-gray-500">Loading...</div>
+                <div className="text-sm text-slate-500">Loading...</div>
               ) : (
                 (() => {
                   const d: any = (purchaseDetailResp as any)?.data || {};
@@ -454,18 +420,18 @@ const Purchase: React.FC = () => {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             Invoice Date
                           </div>
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium text-slate-800">
                             {(d?.invoiceDate || d?.date || "")
                               .toString()
                               .slice(0, 10) || "-"}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">Supplier</div>
-                          <div className="text-sm font-medium">
+                          <div className="text-xs text-slate-500">Supplier</div>
+                          <div className="text-sm font-medium text-slate-800">
                             {supplier?.name ||
                               d?.supplierName ||
                               d?.vendorName ||
@@ -473,41 +439,53 @@ const Purchase: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             Invoice No.
                           </div>
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium text-slate-800">
                             {d?.invoiceNumber || "-"}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             Payment Terms
                           </div>
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium text-slate-800">
                             {d?.paymentTerms || d?.paymentStatus || "-"}
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <div className="text-sm font-semibold mb-2">Items</div>
-                        <div className="rounded border border-gray-200 overflow-hidden">
+                        <div className="mb-2 text-sm font-semibold text-slate-700">
+                          Items
+                        </div>
+                        <div className="overflow-hidden rounded-lg border border-slate-200">
                           <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-slate-50">
                               <tr>
-                                <th className="p-2 border">#</th>
-                                <th className="p-2 border">Particulars</th>
-                                <th className="p-2 border">Qty</th>
-                                <th className="p-2 border">Rate</th>
-                                <th className="p-2 border">Amount</th>
+                                <th className="border-b border-slate-200 p-2">
+                                  #
+                                </th>
+                                <th className="border-b border-slate-200 p-2">
+                                  Particulars
+                                </th>
+                                <th className="border-b border-slate-200 p-2">
+                                  Qty
+                                </th>
+                                <th className="border-b border-slate-200 p-2">
+                                  Rate
+                                </th>
+                                <th className="border-b border-slate-200 p-2">
+                                  Amount
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {items.length === 0 ? (
                                 <tr>
                                   <td
-                                    className="p-3 text-center text-gray-500"
+                                    className="p-3 text-center text-slate-500"
                                     colSpan={5}
                                   >
                                     No items
@@ -516,19 +494,19 @@ const Purchase: React.FC = () => {
                               ) : (
                                 items.map((it: any, i: number) => (
                                   <tr key={i}>
-                                    <td className="p-2 border text-center">
+                                    <td className="border-b border-slate-100 p-2 text-center">
                                       {i + 1}
                                     </td>
-                                    <td className="p-2 border">
+                                    <td className="border-b border-slate-100 p-2">
                                       {it.particulars || "-"}
                                     </td>
-                                    <td className="p-2 border text-right">
+                                    <td className="border-b border-slate-100 p-2 text-right">
                                       {it.quantity ?? it.qty ?? 0}
                                     </td>
-                                    <td className="p-2 border text-right">
+                                    <td className="border-b border-slate-100 p-2 text-right">
                                       {Number(it.rate ?? 0).toFixed(2)}
                                     </td>
-                                    <td className="p-2 border text-right">
+                                    <td className="border-b border-slate-100 p-2 text-right">
                                       {Number(
                                         (it.quantity ?? it.qty ?? 0) *
                                           (it.rate ?? 0),
@@ -544,16 +522,16 @@ const Purchase: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <div className="text-xs text-gray-500">Status</div>
-                          <div className="text-sm font-medium">
+                          <div className="text-xs text-slate-500">Status</div>
+                          <div className="text-sm font-medium text-slate-800">
                             {d?.status || d?.purchaseStatus || "-"}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             Total Amount
                           </div>
-                          <div className="text-sm font-semibold">
+                          <div className="text-sm font-semibold text-slate-800">
                             {CurrencySign}
                             {Number(d?.totalAmount ?? d?.total ?? 0).toFixed(2)}
                           </div>
@@ -566,8 +544,8 @@ const Purchase: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-    </>
+      ) : null}
+    </div>
   );
 };
 

@@ -1,21 +1,17 @@
 import useTranslation from "@/locale/useTranslation";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { EmailSmtpSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import Input from "@/components/Input";
-import Button from "@/components/Button";
-import PageHeader from "@/components/PageHeaders";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import {
   useCreateSmtpMutation,
   useGetSmtpQuery,
   useUpdateSmtpMutation,
 } from "@/redux/services/smtp";
-import Select from "@/components/Select";
-import PageTitle from "@/components/PageTitle";
 
 type EmailSmtpFormType = z.infer<typeof EmailSmtpSchema>;
 
@@ -33,7 +29,7 @@ export default function EmailSmtp() {
     resolver: zodResolver(EmailSmtpSchema),
   });
 
-  const { data: emailSmtp, isSuccess: success } = useGetSmtpQuery("");
+  const { data: emailSmtp, isSuccess: success, refetch } = useGetSmtpQuery("");
   const [createSmtp] = useCreateSmtpMutation();
   const [updateSmtp] = useUpdateSmtpMutation();
 
@@ -63,10 +59,14 @@ export default function EmailSmtp() {
   };
 
   return (
-    <>
-      <PageTitle title="Email Smtp" />
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        showSearch={false}
+        handleReloadButton={() => refetch()}
+        subText="Configure outgoing mail server settings for system emails."
+      />
       <form
-        className="w-1/2 space-y-[1rem] form-container mt-4"
+        className="mt-4 max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
         onSubmit={handleSubmit(onSubmit)}
       >
         <Input
@@ -119,17 +119,15 @@ export default function EmailSmtp() {
             </div>
           )}
         />
-        <div className="flex justify-end">
-          <Button type="submit" className="submit-button w-[5rem]">
-            {" "}
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
-              {translate("Submit")}
-            </div>
-          </Button>
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            className="submit-button inline-flex h-9 items-center rounded-lg px-4 text-[13px] font-medium"
+          >
+            {translate("Submit")}
+          </button>
         </div>
       </form>
-    </>
+    </div>
   );
 }
-
-const HostOption = [{ label: "Gmail", value: "smtp.gmail.com" }];

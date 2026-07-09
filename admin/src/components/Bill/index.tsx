@@ -1,4 +1,5 @@
 import React, { forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { format } from "date-fns";
 import { Printer } from "lucide-react";
@@ -80,10 +81,12 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
     const companyAddress = (settingResp as any)?.data?.address ?? "";
     const panNumber = (settingResp as any)?.data?.pan_vat_number ?? "";
 
-    return (
-      <div
-        className={`max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto mx-auto bg-white p-6 fixed z-[50] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-gray-200 shadow-lg rounded-lg ${className ?? ""}`}
-      >
+    return createPortal(
+      <>
+        <div className="fixed inset-0 z-[100] bg-black/50" onClick={onClose} />
+        <div
+          className={`max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto mx-auto bg-white p-6 fixed z-[101] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-gray-200 shadow-lg rounded-lg ${className ?? ""}`}
+        >
         {/* Action Buttons */}
         <div className="flex justify-between items-center mb-4 no-print">
           <button
@@ -242,6 +245,8 @@ const Bill = forwardRef<HTMLDivElement, BillProps>(
           </p>
         </div>
       </div>
+      </>,
+      document.body,
     );
   },
 );

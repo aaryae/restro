@@ -1,6 +1,5 @@
-import { buildQueryString } from "@/utils/generalHelper";
-import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useMemo, useState } from "react";
+import { useGetApiQuery } from "@/redux/services/crudApi";
 import { CurrencySign } from "@/constants";
 import {
   PiggyBank,
@@ -11,24 +10,32 @@ import {
   IndianRupee,
   TrendingUp,
 } from "lucide-react";
-import BarChartComponent from "../BarChartComponent";
 import PieChartComponent from "../PieChartComponent";
+import BarChartComponent from "../BarChartComponent";
+import LineChartComponent from "../LineChartComponent";
 import {
   ACCOUNT_URL,
   EXPENSE_URL,
+  ORDER_URL,
   PURCHASE_URL,
   REVENUE_URL,
+  TRANSACTION_URL,
 } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import SummaryCard from "@/components/SummaryCard";
-import { TRANSACTION_URL } from "@/constants/apiUrlConstants";
+import DashboardChartCard from "./DashboardChartCard";
+import { type ChartType } from "./ChartTypeTabs";
+import { buildQueryString } from "@/utils/generalHelper";
+import { CHART_BRAND, CHART_FISCAL_COLORS } from "../chartTheme";
 
 function OverviewCards() {
   const revenueAccessList = checkAccess("Revenue");
   const purchaseAccessList = checkAccess("Purchase");
   const expenseAccessList = checkAccess("Expense");
   const withdrawAccessList = checkAccess("Withdraw");
+  const orderAccessList = checkAccess("Order");
+
   const { data: totalRevenueData } = useGetApiQuery({
     url: `${REVENUE_URL}total-revenue`,
     skip: !revenueAccessList.includes("view-total"),
@@ -46,160 +53,118 @@ function OverviewCards() {
     skip: !withdrawAccessList.includes("view"),
   });
   const { data: settings } = useGetSettingQuery("");
+  const { data: ordersData } = useGetApiQuery({
+    url: buildQueryString(`${ORDER_URL}list`, { page: 1, limit: 300 }),
+    skip: !orderAccessList.includes("view"),
+  });
 
-  const url = buildQueryString("account/list", { page: 1, limit: 1000 });
-  const { data, isLoading } = useGetApiQuery({ url });
-  const { data: totalAndBalancesData } = useGetApiQuery({
+  const { data: totalAndBalancesData, isLoading } = useGetApiQuery({
     url: `${ACCOUNT_URL}total-and-balances`,
   });
 
-  const totals = useMemo(() => {
-    const rows: any[] = data?.data?.data || [];
-    const cash = rows.filter(
-      (r) => (r?.accountType || "").toLowerCase() === "cash",
-    );
-    const bank = rows.filter(
-      (r) => (r?.accountType || "").toLowerCase() === "bank",
-    );
-    const sum = (arr: any[]) =>
-      arr.reduce((acc, r) => acc + (Number(r?.currentBalance) || 0), 0);
-    return {
-      cash: sum(cash),
-      bank: sum(bank),
-      all: sum(rows),
-    };
-  }, [data]);
-
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div className="mt-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="h-24 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-            >
-              <div className="h-full w-full animate-pulse bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100" />
-            </div>
+              className="h-[76px] animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+            />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="h-28 bg-white rounded-xl border border-gray-200 shadow-sm"
-            >
-              <div className="h-full w-full animate-pulse bg-gray-100" />
-            </div>
-          ))}
-        </div>
+        <div className="h-[300px] animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
       </div>
     );
+  }
 
   const profit =
     totalRevenueData?.data?.total -
     (totalPurchaseData?.data?.total + totalExpenseData?.data?.total);
 
   return (
-    <>
-      <div className="mt-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {totalRevenueData && (
+    <div className="min-w-0 space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {totalRevenueData && (
+          <SummaryCard
+            title="Total Revenue"
+            value={`${CurrencySign}${totalRevenueData?.data?.total.toLocaleString()}`}
+            tone="violet"
+            Icon={PiggyBank}
+          />
+        )}
+        {totalPurchaseData && (
+          <SummaryCard
+            title="Total Purchase"
+            value={`${CurrencySign}${totalPurchaseData?.data?.total.toLocaleString()}`}
+            tone="emerald"
+            Icon={ShoppingCart}
+          />
+        )}
+        {totalExpenseData && (
+          <SummaryCard
+            title="Total Expense"
+            value={`${CurrencySign}${totalExpenseData?.data?.total.toLocaleString()}`}
+            tone="sky"
+            Icon={IndianRupee}
+          />
+        )}
+        {totalRevenueData && totalPurchaseData && totalExpenseData && (
+          <SummaryCard
+            title="Profit"
+            value={`${CurrencySign}${profit.toLocaleString()}`}
+            tone="amber"
+            Icon={TrendingUp}
+          />
+        )}
+        {totalTransactionData && (
+          <SummaryCard
+            title="Total Withdrawn"
+            value={`${CurrencySign}${totalTransactionData?.data?.totalWithdraw?.toLocaleString()}`}
+            tone="rose"
+            Icon={Wallet}
+          />
+        )}
+        {totalTransactionData && (
+          <SummaryCard
+            title="Total Deposits"
+            value={`${CurrencySign}${totalTransactionData?.data?.totalDeposit?.toLocaleString()}`}
+            tone="green"
+            Icon={PiggyBank}
+          />
+        )}
+        {totalRevenueData &&
+          totalPurchaseData &&
+          totalExpenseData &&
+          totalTransactionData?.success && (
             <SummaryCard
-              title="Total Revenue"
-              value={`${CurrencySign}${totalRevenueData?.data?.total.toLocaleString()}`}
-              gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-              Icon={PiggyBank}
-            />
-          )}
-          {totalPurchaseData && (
-            <SummaryCard
-              title="Total Purchase"
-              value={`${CurrencySign}${totalPurchaseData?.data?.total.toLocaleString()}`}
-              gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-              Icon={ShoppingCart}
-            />
-          )}
-          {totalExpenseData && (
-            <SummaryCard
-              title="Total Expense"
-              value={`${CurrencySign}${totalExpenseData?.data?.total.toLocaleString()}`}
-              gradient="from-blue-500 via-blue-600 to-blue-500"
-              Icon={IndianRupee}
-            />
-          )}
-          {totalRevenueData && totalPurchaseData && totalExpenseData && (
-            <SummaryCard
-              title="Profit"
-              value={`${CurrencySign}${profit.toLocaleString()}`}
-              gradient="from-amber-500 via-amber-600 to-amber-500"
-              Icon={TrendingUp}
-            />
-          )}
-          {totalTransactionData && (
-            <SummaryCard
-              title="Total Withdrawn"
-              value={`${CurrencySign}${totalTransactionData?.data?.totalWithdraw?.toLocaleString()}`}
-              gradient="from-rose-500 via-rose-600 to-rose-500"
-              Icon={Wallet}
-            />
-          )}
-          {totalTransactionData && (
-            <SummaryCard
-              title="Total Deposits"
-              value={`${CurrencySign}${totalTransactionData?.data?.totalDeposit?.toLocaleString()}`}
-              gradient="from-green-500 via-green-600 to-green-500"
-              Icon={PiggyBank}
-            />
-          )}
-          {totalRevenueData &&
-            totalPurchaseData &&
-            totalExpenseData &&
-            totalTransactionData?.success && (
-              <SummaryCard
-                title="Remaining Balance"
-                value={`${CurrencySign}${(profit + totalTransactionData?.data?.totalDeposit - (totalTransactionData?.data?.totalWithdraw || 0)).toLocaleString()}`}
-                gradient="from-teal-500 via-teal-600 to-teal-500"
-                Icon={PiggyBank}
-              />
-            )}
-          {totalAndBalancesData?.success && (
-            <SummaryCard
-              title="Total Collection Till Date"
-              value={`${CurrencySign}${Number(totalAndBalancesData?.data?.totalBalance).toLocaleString()}`}
-              gradient="from-purple-500 via-fuchsia-600 to-purple-500"
+              title="Remaining Balance"
+              value={`${CurrencySign}${(profit + totalTransactionData?.data?.totalDeposit - (totalTransactionData?.data?.totalWithdraw || 0)).toLocaleString()}`}
+              tone="teal"
               Icon={Landmark}
             />
           )}
-          {/* <SummaryCard
-            title="Total Balance (All)"
-            value={`${CurrencySign}${totals.all.toLocaleString()}`}
-            gradient="from-purple-500 via-fuchsia-600 to-purple-500"
-            Icon={PiggyBank}
-          />
+        {totalAndBalancesData?.success && (
           <SummaryCard
-            title="Total Cash Balance"
-            value={`${CurrencySign}${totals.cash.toLocaleString()}`}
-            gradient="from-emerald-500 via-emerald-600 to-emerald-500"
-            Icon={Wallet}
-          />
-          <SummaryCard
-            title="Total Bank Balance"
-            value={`${CurrencySign}${totals.bank.toLocaleString()}`}
-            gradient="from-blue-500 via-blue-600 to-blue-500"
+            title="Total Collection Till Date"
+            value={`${CurrencySign}${Number(totalAndBalancesData?.data?.totalBalance).toLocaleString()}`}
+            tone="indigo"
             Icon={Landmark}
-          /> */}
-        </div>
+          />
+        )}
       </div>
+
       {totalRevenueData && totalPurchaseData && totalExpenseData && (
         <FiscalYearSummary
           totalRevenue={totalRevenueData?.data?.total}
           totalPurchase={totalPurchaseData?.data?.total}
           totalExpense={totalExpenseData?.data?.total}
           openingBalance={settings?.data?.openingBalance}
+          ordersData={ordersData}
+          showSalesTrend={orderAccessList.includes("view")}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -208,109 +173,127 @@ function FiscalYearSummary({
   totalPurchase,
   totalExpense,
   openingBalance,
+  ordersData,
+  showSalesTrend,
 }: {
   totalRevenue: number;
   totalPurchase: number;
   totalExpense: number;
   openingBalance: number | undefined;
+  ordersData: any;
+  showSalesTrend: boolean;
 }) {
+  const [chartType, setChartType] = useState<ChartType>("pie");
   const profit = totalRevenue - (totalPurchase + totalExpense);
+  const collectedAmount = profit + Number(openingBalance || 0);
+
   const pieData = [
-    { name: "Profit", value: profit },
+    { name: "Profit", value: Math.max(profit, 0) },
     { name: "Purchases", value: totalPurchase },
     { name: "Expense", value: totalExpense },
   ];
 
+  const barData = [
+    { name: "Revenue", amount: totalRevenue },
+    { name: "Purchase", amount: totalPurchase },
+    { name: "Expense", amount: totalExpense },
+    { name: "Profit", amount: profit },
+  ];
+
+  const lineData = useMemo(() => {
+    const rows: any[] = ordersData?.data?.data || [];
+    const buckets = new Map<string, number>();
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      buckets.set(d.toISOString().slice(0, 10), 0);
+    }
+    rows.forEach((order) => {
+      const date = String(order?.createdAt || "").slice(0, 10);
+      if (!buckets.has(date)) return;
+      const amount = Number(order?.totalAmount ?? order?.total ?? 0);
+      buckets.set(date, (buckets.get(date) || 0) + amount);
+    });
+    return Array.from(buckets.entries()).map(([name, Sales]) => ({
+      name: name.slice(5),
+      Sales,
+    }));
+  }, [ordersData]);
+
+  const allowedTypes: ChartType[] = showSalesTrend
+    ? ["pie", "bar", "line"]
+    : ["pie", "bar"];
+
   return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <ChartPie className="text-blue-600" />
-          <h3 className="text-base font-semibold text-gray-900">
-            Fiscal Year Summary
-          </h3>
+    <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
+      <DashboardChartCard
+        title="Fiscal Year Summary"
+        icon={ChartPie}
+        chartType={chartType}
+        onChartTypeChange={setChartType}
+        allowedChartTypes={allowedTypes}
+        className="lg:col-span-2"
+      >
+        <div className="min-w-0 overflow-hidden">
+          {chartType === "pie" && (
+            <PieChartComponent
+              data={pieData}
+              responsive
+              height={280}
+              showLegend
+              colors={CHART_FISCAL_COLORS}
+            />
+          )}
+          {chartType === "bar" && (
+            <BarChartComponent
+              data={barData}
+              dataKeys={["amount"]}
+              height={280}
+              xAxisLabel="Metric"
+              yAxisLabel="Amount"
+              showLegend={false}
+            />
+          )}
+          {chartType === "line" && (
+            <LineChartComponent
+              data={lineData}
+              dataKeys={["Sales"]}
+              height={280}
+              xAxisLabel="Date"
+              yAxisLabel="Sales"
+              showLegend={false}
+              colorScale={[CHART_BRAND]}
+            />
+          )}
+        </div>
+      </DashboardChartCard>
+
+      <div className="flex min-w-0 flex-col gap-3">
+        <SummaryCard
+          title="Total Collected Amount"
+          value={`${CurrencySign}${collectedAmount.toLocaleString()}`}
+          tone="indigo"
+          Icon={PiggyBank}
+        />
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[12px] font-medium text-slate-500">
+            Opening Balance
+          </p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-slate-800">
+            {CurrencySign}
+            {Number(openingBalance || 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+          <p className="text-[12px] font-medium text-slate-500">Net Profit</p>
+          <p
+            className={`mt-1 text-xl font-semibold tabular-nums ${profit >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+          >
+            {CurrencySign}
+            {profit.toLocaleString()}
+          </p>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 lg:col-span-2">
-          <PieChartComponent
-            data={pieData}
-            responsive
-            height={260}
-            showLegend
-            legendPosition="bottom"
-            colors={["#22c55e", "#8B0000", "#FF7F7F"]}
-          />
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <h3 className="text-base font-semibold text-gray-900 mb-4">
-            Total Collected Amount
-          </h3>
-          <SummaryCard
-            title="Total Collected Amount"
-            value={`${CurrencySign}${profit + Number(openingBalance || 0)}`}
-            gradient="from-blue-500 via-blue-600 to-blue-500"
-            Icon={PiggyBank}
-          />
-          <h3 className="text-2xl text-left font-semibold text-gray-900 my-4">
-            Opening Balance {CurrencySign}
-            {openingBalance}
-          </h3>
-        </div>
-      </div>
-
-      {/* <div className="mt-6 w-full max-w-md bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <h3 className="text-base font-semibold text-gray-900">
-            Top Selling Items
-          </h3>
-          <div className="flex items-center gap-2">
-            <select
-              value={topRange}
-              onChange={(e) => setTopRange(e.target.value as any)}
-              className="border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              title="Range"
-            >
-              <option value="fy">Fiscal Year</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-            </select>
-            <div className="flex items-center gap-1">
-              <label htmlFor="topN" className="text-xs text-gray-600">
-                Top
-              </label>
-              <input
-                id="topN"
-                type="number"
-                min={1}
-                max={15}
-                value={topN}
-                onChange={(e) =>
-                  setTopN(
-                    Math.max(1, Math.min(15, Number(e.target.value) || 5)),
-                  )
-                }
-                className="w-14 border border-gray-300 rounded-md text-xs px-2 py-1 bg-white"
-              />
-            </div>
-          </div>
-        </div>
-        {ordersLoading ? (
-          <div className="h-[220px] animate-pulse bg-gray-100 rounded" />
-        ) : (
-          <BarChartComponent
-            data={topItemsBarData}
-            dataKeys={["Quantity"]}
-            height={220}
-            xAxisLabel="Item"
-            yAxisLabel="Qty"
-            showLegend={false}
-            colorScale={["#6366f1"]}
-          />
-        )}
-      </div> */}
     </div>
   );
 }

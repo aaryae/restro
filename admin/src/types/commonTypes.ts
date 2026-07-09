@@ -1,6 +1,7 @@
 export interface PaginationQueryParams {
   page: number;
   limit: number;
+  title?: string;
 }
 
 export interface PaginationType {

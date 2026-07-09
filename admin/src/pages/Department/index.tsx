@@ -1,19 +1,20 @@
 import DeleteModal from "@/components/DeleteModal";
 import Drawer from "@/components/Drawer";
-import PageHeader from "@/components/PageHeader";
-import PageTitle from "@/components/PageTitle";
+import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
+import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
+import { Eye } from "lucide-react";
 import Spinner from "@/components/Spinner";
 import { DEPARTMENT_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
 import { MdEditSquare } from "react-icons/md";
-import { FaEye } from "react-icons/fa";
 import ViewDepartment from "./ViewDepartment";
 
 interface DepartmentResponseType {
@@ -29,8 +30,8 @@ interface DepartmentResponseType {
 
 export default function Department() {
   const accessList = checkAccess("Department");
-
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
@@ -40,17 +41,19 @@ export default function Department() {
 
   const navigate = useNavigate();
 
+  const url = buildQueryString(`${DEPARTMENT_URL}list`, {
+    page: query.page,
+    limit: query.limit,
+    search: { name: searchTerm },
+  });
+
   const {
     data: allDepartment,
     isSuccess: success,
     isLoading: loading,
     refetch,
-  } = useGetApiQuery({ url: `${DEPARTMENT_URL}list`, ...query });
+  } = useGetApiQuery({ url });
   const [deleteBanner] = useDeleteApiMutation();
-
-  const handleReload = () => {
-    refetch();
-  };
 
   const handleDrawerOpen = (id: number) => {
     setOpenDrawerId(id);
@@ -93,76 +96,70 @@ export default function Department() {
 
   const tableHeaders = [
     "Name",
-    "Average Preparation Time",
+    "Avg. Prep Time",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
-  ];
+  ].filter(Boolean) as string[];
 
   const tableData =
     success && allDepartment?.data?.data
       ? allDepartment?.data?.data.map(
           ({ id, name, AvgPreparationTime }: DepartmentResponseType) => [
-            name,
-            AvgPreparationTime,
-            <div
-              key={id}
-              className="flex items-center justify-center cursor-pointer gap-[0.5rem]"
-            >
+            <span className="text-sm font-semibold text-slate-800">{name}</span>,
+            <span className="text-slate-600">
+              {AvgPreparationTime != null ? `${AvgPreparationTime} min` : "—"}
+            </span>,
+            <TableRowActions>
               {accessList.includes("view") && (
-                <div className="relative group">
-                  <FaEye
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                    onClick={() => handleDrawerOpen(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    View Department
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDrawerOpen(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                  title="View department"
+                >
+                  <Eye size={16} />
+                </button>
               )}
               {accessList.includes("edit") && (
-                <div className="relative group">
-                  <MdEditSquare
-                    size={18}
-                    className="text-[#0090DD] cursor-pointer hover:text-blue-800 hover:opacity-80 transition-opacity"
-                    onClick={() => handleNewButton(id)}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Edit Department
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleNewButton(id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                  title="Edit department"
+                >
+                  <MdEditSquare size={16} />
+                </button>
               )}
               {accessList.includes("delete") && (
-                <div className="relative group">
-                  <DeleteModal
-                    open={open}
-                    setOpen={setOpen}
-                    handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                    handleConfirmDelete={handleDelete}
-                  />
-                  <span className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap">
-                    Delete Department
-                  </span>
-                </div>
+                <DeleteModal
+                  compact
+                  open={open}
+                  setOpen={setOpen}
+                  handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                  handleConfirmDelete={handleDelete}
+                />
               )}
-            </div>,
+            </TableRowActions>,
           ],
         )
       : [];
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
-    <>
-      <PageTitle title="Department" />
-      <PageHeader
-        hasAddButton={true}
-        newButtonText="Add New Department"
+    <div className="min-w-0 max-w-full">
+      <MenuPageToolbar
+        searchPlaceholder="Search departments..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        hasAddButton={accessList.includes("add")}
+        newButtonText="Add Department"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={handleReload}
-        hasSubText={false}
+        handleReloadButton={() => refetch()}
+        subText="Kitchen and bar departments used for KOT routing and prep times."
       />
+
       {accessList.includes("view") ? (
         <Table
           isSN
@@ -172,8 +169,11 @@ export default function Department() {
           handlePagination={handlePagination}
         />
       ) : (
-        <p>You don't have Permission to view this table</p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view departments.
+        </div>
       )}
+
       <Drawer
         isOpen={openDrawer}
         setIsOpen={setOpenDrawer}
@@ -181,6 +181,6 @@ export default function Department() {
       >
         <ViewDepartment id={drawerId} />
       </Drawer>
-    </>
+    </div>
   );
 }

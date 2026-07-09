@@ -5,6 +5,7 @@ const {
 } = require("../../models");
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
+const { Op } = require("sequelize");
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -47,9 +48,12 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    const { limit, page, isActive } = req.query;
+    const { limit, page, isActive, name } = req.query;
     const filters = {};
     if (isActive !== undefined) filters.isActive = isActive === "true";
+    if (name) {
+      filters.name = { [Op.like]: `%${name}%` };
+    }
 
     const result = await paginate(expenseCategoryModel, {
       limit,
