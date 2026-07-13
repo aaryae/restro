@@ -24,11 +24,9 @@ import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import TransferModel from "./TransferModel";
-import PaymentIntegrationsPanel from "./PaymentIntegrationsPanel";
 import { AccountFilterSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { CreditCard } from "lucide-react";
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +36,7 @@ const Account: React.FC = () => {
   const [deleteAccount] = useDeleteApiMutation();
   const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
+  const [transferOpen, setTransferOpen] = useState<boolean>(false);
 
   const handleNewBank = (id: number | null) => {
     id === null ? navigate(BANK_ADD_ROUTE) : navigate(`${BANK_ADD_ROUTE}${id}`);
@@ -55,7 +54,7 @@ const Account: React.FC = () => {
     }
   };
 
-  const handleMakeDefault = async (id: number) => {
+  const handleTogglePrimary = async (id: number) => {
     try {
       const res = await patchApi({
         url: `${ACCOUNT_URL}${id}/default`,
@@ -162,16 +161,18 @@ const Account: React.FC = () => {
     totalPages: allAccount?.data?.totalPages,
   };
 
-  const headers = ["Name", "Type", "Balance", "Status", "Default", "Actions"];
-
-  const [transferOpen, setTransferOpen] = useState<boolean>(false);
-  const [integrationsOpen, setIntegrationsOpen] = useState<boolean>(false);
+  const headers = ["Name", "Type", "Balance", "Status", "Primary", "Actions"];
 
   const data =
     success && allAccount?.data?.data
       ? (allAccount?.data?.data as any[]).map((row: any) => [
-          <span className="text-sm font-semibold text-slate-800">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
             {row?.name || "-"}
+            {row?.isDefault ? (
+              <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-sky-200">
+                Primary
+              </span>
+            ) : null}
           </span>,
           <span className="capitalize text-slate-600">
             {row?.accountType || "-"}
@@ -190,31 +191,29 @@ const Account: React.FC = () => {
           >
             {row?.status || "-"}
           </span>,
-          row?.isDefault ? (
-            <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-sky-200">
-              Default
-            </span>
-          ) : (
-            <button
-              type="button"
-              className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
-                row?.status !== "active"
-                  ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+          <button
+            type="button"
+            className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
+              row?.status !== "active"
+                ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                : row?.isDefault
+                  ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-              }`}
-              onClick={() =>
-                row?.status === "active" && handleMakeDefault(row?.id)
-              }
-              title={
-                row?.status !== "active"
-                  ? "Activate this account first to set it as default"
-                  : "Make default"
-              }
-              disabled={row?.status !== "active"}
-            >
-              Make Default
-            </button>
-          ),
+            }`}
+            onClick={() =>
+              row?.status === "active" && handleTogglePrimary(row?.id)
+            }
+            title={
+              row?.status !== "active"
+                ? "Activate this account first to mark it as primary"
+                : row?.isDefault
+                  ? "Remove from checkout payment options"
+                  : "Show in checkout payment options"
+            }
+            disabled={row?.status !== "active"}
+          >
+            {row?.isDefault ? "Primary" : "Make Primary"}
+          </button>,
           <TableRowActions>
             <button
               type="button"
@@ -236,7 +235,7 @@ const Account: React.FC = () => {
               onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
               title={
                 row?.isDefault
-                  ? "Default account cannot be deactivated"
+                  ? "Primary account cannot be deactivated"
                   : "Toggle status"
               }
               disabled={row?.isDefault}
@@ -266,24 +265,14 @@ const Account: React.FC = () => {
         handleReloadButton={() => refetch()}
         subText="Manage cash drawers, bank accounts, and wallet balances."
         extraActions={
-          <>
-            <button
-              type="button"
-              onClick={() => setTransferOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
-            >
-              <BiTransfer size={16} />
-              Transfer
-            </button>
-            <button
-              type="button"
-              onClick={() => setIntegrationsOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 text-[13px] font-medium text-sky-700 transition hover:bg-sky-100"
-            >
-              <CreditCard size={15} />
-              Integrations
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => setTransferOpen(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+          >
+            <BiTransfer size={16} />
+            Transfer
+          </button>
         }
       />
 
@@ -308,10 +297,6 @@ const Account: React.FC = () => {
           setTransferOpen(false);
           refetch();
         }}
-      />
-      <PaymentIntegrationsPanel
-        isOpen={integrationsOpen}
-        onClose={() => setIntegrationsOpen(false)}
       />
     </div>
   );

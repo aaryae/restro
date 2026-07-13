@@ -1,7 +1,6 @@
 import QR_IMAGE from "@/assets/qr-code.png";
 import Bill from "@/components/Bill";
 import CustomDialog from "@/components/Dialog";
-import Drawer from "@/components/Drawer";
 import Input from "@/components/Input";
 import { CurrencySign } from "@/constants";
 import { ACCOUNT_URL, ORDER_URL } from "@/constants/apiUrlConstants";
@@ -9,15 +8,24 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
 import {
   PaymentIntentData,
+  useCancelQrPaymentMutation,
   useInitiateQrPaymentMutation,
   useLazyGetQrPaymentStatusQuery,
 } from "@/redux/services/payment";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
+import {
+  amountsMatchWithinEpsilon,
+  buildSplitCheckoutBody,
+  CHECKOUT_ROUND_EPS,
+  resolvePositiveId,
+  roundMoney,
+  sanitizeSplitPayments,
+} from "@/utils/checkoutPayload";
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Contact, Mail, X } from "lucide-react";
+import { Banknote, Contact, Mail, Printer, QrCode, Split, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaPlus } from "react-icons/fa";
@@ -26,6 +34,13 @@ import AddEditCustomer from "../../Customer/AddEditCustomer";
 import styles from "./CheckoutModal.module.css";
 import DynamicQrDisplay from "./DynamicQrDisplay";
 import SplitPayment from "./SplitPayment";
+
+interface PaymentSource {
+  id: number;
+  name: string;
+  accountType: "cash" | "bank" | "wallet";
+  supportsDynamicQr: boolean;
+}
 
 // Define interfaces
 interface OrderItem {
@@ -93,37 +108,34 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   orderId,
   selectedItemIds,
 }) => {
-  const [paymentType, setPaymentType] = useState<
-    "cash" | "qr" | "bank" | "split"
-  >("cash");
+  const [paymentType, setPaymentType] = useState<"cash" | "qr" | "split">(
+    "cash",
+  );
   const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
   const [checkoutType, setCheckoutType] = useState<"guest" | "member">("guest");
   const [selectedMember, setSelectedMember] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedQrCategory, setSelectedQrCategory] = useState<
-    "bank" | "wallet"
-  >("bank");
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
-  const [selectedWalletId, setSelectedWalletId] = useState<number | null>(null);
-  const [qrMode, setQrMode] = useState<"static" | "dynamic">("static");
+  const [selectedCashId, setSelectedCashId] = useState<number | null>(null);
   const [dynamicIntent, setDynamicIntent] =
     useState<PaymentIntentData | null>(null);
   const [dynamicQrError, setDynamicQrError] = useState<string | null>(null);
   const [tenderAmount, setTenderAmount] = useState<string>("");
 
   const [checkoutOrderApi] = useCheckoutOrderMutation();
-  const [initiateQrPayment, { isLoading: isInitiatingQr }] =
-    useInitiateQrPaymentMutation();
+  const [initiateQrPayment] = useInitiateQrPaymentMutation();
+  const [cancelQrPayment] = useCancelQrPaymentMutation();
   const [fetchQrStatus] = useLazyGetQrPaymentStatusQuery();
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
-  const [splitOpen, setSplitOpen] = useState<boolean>(false);
   const [splitPaymentData, setSplitPaymentData] = useState<any>(null);
 
   // Placeholder for Bill ref; print handler defined after data hooks
   const billRef = useRef<HTMLDivElement>(null);
+  const dynamicIntentRef = useRef<PaymentIntentData | null>(null);
+  const qrRefreshSeqRef = useRef(0);
 
   const customerUrl = buildQueryString("customer-auth/list", {
     page: 1,
@@ -206,28 +218,44 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     url: buildQueryString("account/list", { page: 1, limit: 100 }),
   });
 
-  const bankAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
-    ? accountsResp?.data?.data.filter((a: any) => a?.accountType === "bank")
+  const allActiveAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
+    ? accountsResp?.data?.data.filter((a: any) => a?.status === "active")
     : [];
-  const walletAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
-    ? accountsResp?.data?.data.filter((a: any) => a?.accountType === "wallet")
-    : [];
+  // Primary (isDefault) accounts are the ones shown in checkout payment options
+  const primaryAccounts: Array<any> = allActiveAccounts.filter((a: any) =>
+    Boolean(a?.isDefault),
+  );
+  const cashAccounts: Array<any> = primaryAccounts.filter(
+    (a: any) => a?.accountType === "cash",
+  );
+  const qrAccounts: Array<any> = primaryAccounts.filter((a: any) =>
+    ["bank", "wallet"].includes(a?.accountType),
+  );
+
+  useEffect(() => {
+    if (!selectedCashId && cashAccounts.length > 0) {
+      setSelectedCashId(Number(cashAccounts[0].id));
+    }
+  }, [cashAccounts, selectedCashId]);
+
+  useEffect(() => {
+    if (!selectedBankId && qrAccounts.length > 0) {
+      setSelectedBankId(Number(qrAccounts[0].id));
+    }
+  }, [qrAccounts, selectedBankId]);
 
   // Fetch selected account details to fetch staticQr
   const { data: selectedBankDetail } = useGetApiQuery(
     selectedBankId ? { url: `${ACCOUNT_URL}${selectedBankId}` } : ({} as any),
     { skip: !selectedBankId },
   );
-  const { data: selectedWalletDetail } = useGetApiQuery(
-    selectedWalletId
-      ? { url: `${ACCOUNT_URL}${selectedWalletId}` }
-      : ({} as any),
-    { skip: !selectedWalletId },
-  );
 
-  const selectedBankAccount = useMemo(
-    () => bankAccounts.find((a: any) => a.id === selectedBankId) ?? null,
-    [bankAccounts, selectedBankId],
+  const selectedQrAccount = useMemo(
+    () =>
+      primaryAccounts.find(
+        (a: any) => Number(a.id) === Number(selectedBankId),
+      ) ?? null,
+    [primaryAccounts, selectedBankId],
   );
 
   // Accounts linked to an active NepalPay integration drive the dynamic-QR flow.
@@ -235,9 +263,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const { data: nepalPayAccountsResp } = useGetActiveIntegrationAccountsQuery();
   const nepalPayAccountIds: number[] = nepalPayAccountsResp?.data || [];
   const isNepalPaySelected =
-    (!!selectedBankAccount &&
-      nepalPayAccountIds.includes(selectedBankAccount.id)) ||
-    isNepalPayAccount(selectedBankAccount);
+    !!selectedQrAccount &&
+    (nepalPayAccountIds.includes(Number(selectedQrAccount.id)) ||
+      isNepalPayAccount(selectedQrAccount));
 
   const checkoutOrderId = useMemo(() => {
     if (Array.isArray(orderId)) {
@@ -253,11 +281,28 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     (selectedBankDetail?.data as any)?.bankAccount?.staticQrUrl ||
     (selectedBankDetail?.data as any)?.walletAccount?.staticQrUrl ||
     null;
-  const walletQrUrl =
-    (selectedWalletDetail?.data as any)?.mediaArr?.[0]?.imageUrl ||
-    (selectedWalletDetail?.data as any)?.walletAccount?.staticQrUrl ||
-    (selectedWalletDetail?.data as any)?.bankAccount?.staticQrUrl ||
-    null;
+
+  const paymentSources = useMemo<PaymentSource[]>(
+    () =>
+      primaryAccounts
+        .filter((a: any) => ["cash", "bank", "wallet"].includes(a?.accountType))
+        .map((a: any) => ({
+          id: Number(a.id),
+          name: String(a.name || "Unnamed account"),
+          accountType: a.accountType,
+          supportsDynamicQr:
+            a.accountType !== "cash" &&
+            (nepalPayAccountIds.includes(Number(a.id)) || isNepalPayAccount(a)),
+        })),
+    [primaryAccounts, nepalPayAccountIds],
+  );
+  const selectedPaymentSource = useMemo(
+    () =>
+      paymentType === "cash"
+        ? paymentSources.find((s) => s.id === selectedCashId) ?? null
+        : paymentSources.find((s) => s.id === selectedBankId) ?? null,
+    [paymentSources, paymentType, selectedCashId, selectedBankId],
+  );
 
   const {
     data: allCustomers,
@@ -279,6 +324,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePayment = async () => {
     try {
+      if (paymentType === "cash") {
+        const tendered = parseFloat(tenderAmount) || 0;
+        if (tendered + CHECKOUT_ROUND_EPS < selectedSubtotal) {
+          handleError({
+            error: {
+              data: {
+                message: `Cash received must be at least ${CurrencySign}${selectedSubtotal.toFixed(2)}`,
+              },
+            },
+          });
+          return;
+        }
+        if (tendered > selectedSubtotal + CHECKOUT_ROUND_EPS) {
+          handleError({
+            error: {
+              data: {
+                message: `Cash received cannot exceed ${CurrencySign}${selectedSubtotal.toFixed(2)}`,
+              },
+            },
+          });
+          return;
+        }
+      }
+
       // Expand selected orderItemIds to include child addon item IDs
       const selectedSet = new Set(selectedIds);
       const addonIdsForSelected = (previewData.items || [])
@@ -293,7 +362,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       ): "cash" | "card" | "online" => {
         if (t === "cash") return "cash";
         if (t === "qr") return "online";
-        if (t === "bank") return "card";
         return "cash"; // fallback, split handled separately
       };
 
@@ -303,68 +371,86 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         !Array.isArray(orderId) &&
         (order?.data?.orderType === "takeaway" || !tableId);
 
+      const selectedPaymentAccountId =
+        paymentType === "cash" ? selectedCashId : selectedBankId;
+
+      const withAccountId = (body: Record<string, unknown>) =>
+        selectedPaymentAccountId
+          ? { ...body, accountId: selectedPaymentAccountId }
+          : body;
+
+      const memberFields =
+        checkoutType === "member" && selectedMember
+          ? { customerId: selectedMember.id }
+          : {};
+
       // Selective checkout
       let payload: any;
       if (isSelective) {
         if (isTakeaway) {
-          payload = {
+          payload = withAccountId({
             paymentMethod: mapPaymentMethod(paymentType),
             orderId,
-            ...(checkoutType === "member" && selectedMember
-              ? { customerId: selectedMember.id }
-              : {}),
-          };
+            ...memberFields,
+          });
         } else {
-          payload = {
+          payload = withAccountId({
             paymentMethod: mapPaymentMethod(paymentType),
             orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
-            ...(checkoutType === "member" && selectedMember
-              ? { customerId: selectedMember.id }
-              : {}),
-          };
+            ...memberFields,
+          });
         }
-      } else if (
-        !Array.isArray(orderId) &&
-        orderId &&
-        isTakeaway
-      ) {
-        payload = {
+      } else if (!Array.isArray(orderId) && orderId && isTakeaway) {
+        payload = withAccountId({
           paymentMethod: mapPaymentMethod(paymentType),
           orderId,
-          ...(checkoutType === "member" && selectedMember
-            ? { customerId: selectedMember.id }
-            : {}),
-        };
+          ...memberFields,
+        });
       }
 
       // Checkout all:
-      if (!
-        isSelective && isCheckoutAll) {
-        payload = {
+      if (!isSelective && isCheckoutAll) {
+        payload = withAccountId({
           checkoutAll: true,
           sessionId: table?.data?.sessionId,
-          paymentMethod: mapPaymentMethod(
-            paymentType === "bank" ? "qr" : paymentType,
-          ), // only cash|online allowed
+          paymentMethod: mapPaymentMethod(paymentType),
           cashOrCredit: paymentType === "cash" ? "cash" : "credit",
-          ...(checkoutType === "member" && selectedMember
-            ? { customerId: selectedMember.id }
-            : {}),
-        };
+          ...memberFields,
+        });
       }
 
       // Fallback:
       if (!payload && Array.isArray(items) && items.length > 0) {
-        payload = {
+        payload = withAccountId({
           paymentMethod: mapPaymentMethod(paymentType),
           orderItemIds: items.map((it: any) => Number(it.id)),
-          ...(checkoutType === "member" && selectedMember
-            ? { customerId: selectedMember.id }
-            : {}),
-        };
+          ...memberFields,
+        });
       }
 
       if (paymentType === "cash") {
+        if (!selectedCashId) {
+          handleError({
+            error: {
+              data: {
+                message:
+                  "Select a primary cash account, or mark a cash account as primary in Cash & Banks.",
+              },
+            },
+          });
+          return;
+        }
+        if (!payload) {
+          handleError({
+            error: {
+              data: {
+                message:
+                  "Unable to prepare payment. Select items and try again.",
+              },
+            },
+          });
+          return;
+        }
         const response = await checkoutOrderApi({
           id: tableId,
           body: payload,
@@ -377,7 +463,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (paymentType === "qr") {
-        if (isNepalPaySelected && qrMode === "dynamic") {
+        if (isNepalPaySelected) {
           if (dynamicIntent?.status === "paid") {
             setIsPaymentSuccess(true);
             setTimeout(() => {
@@ -404,20 +490,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             paymentMethod: "online",
             orderId,
             accountId: selectedBankId,
-            ...(checkoutType === "member" && selectedMember
-              ? { customerId: selectedMember.id }
-              : {}),
+            ...memberFields,
           };
+        } else if (isSelective) {
+          qrPayload = withAccountId({
+            paymentMethod: "online",
+            orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
+            ...memberFields,
+          });
         } else {
           qrPayload = {
             checkoutAll: true,
             sessionId: table?.data?.sessionId,
             paymentMethod: "online",
             cashOrCredit: "cash",
-            accountId: selectedBankId || selectedWalletId,
-            ...(checkoutType === "member" && selectedMember
-              ? { customerId: selectedMember.id }
-              : {}),
+            accountId: selectedBankId,
+            ...memberFields,
           };
         }
 
@@ -433,9 +521,66 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
 
       if (paymentType === "split") {
+        const payments = sanitizeSplitPayments(splitPaymentData);
+        if (!payments) {
+          handleError({
+            error: {
+              data: {
+                message:
+                  "Set up split payment before completing the sale. Each line needs a valid account and amount.",
+              },
+            },
+          });
+          return;
+        }
+
+        const splitTotal = roundMoney(
+          payments.reduce((sum, payment) => sum + payment.amount, 0),
+        );
+        if (!amountsMatchWithinEpsilon(splitTotal, selectedSubtotal)) {
+          handleError({
+            error: {
+              data: {
+                message: `Split payments (${splitTotal.toFixed(2)}) must equal the amount due (${selectedSubtotal.toFixed(2)}).`,
+              },
+            },
+          });
+          return;
+        }
+
+        const memberCustomerId =
+          checkoutType === "member" && selectedMember?.id != null
+            ? Number(selectedMember.id)
+            : null;
+
+        const resolvedOrderId = resolvePositiveId(
+          !Array.isArray(orderId) ? orderId : null,
+          Array.isArray(orderId) && orderId.length === 1 ? orderId[0] : null,
+          checkoutOrderId,
+        );
+
+        const splitBody = buildSplitCheckoutBody({
+          payments,
+          orderId: isSelective && !isTakeaway ? null : resolvedOrderId,
+          orderItemIds:
+            isSelective && !isTakeaway
+              ? [...selectedIds.map(Number), ...addonIdsForSelected]
+              : undefined,
+          checkoutAll: !isSelective && (isCheckoutAll || !resolvedOrderId),
+          customerId: memberCustomerId,
+          sessionId: table?.data?.sessionId ?? null,
+        });
+
+        // Takeaway selective / full order uses orderId path
+        if (isTakeaway && resolvedOrderId) {
+          splitBody.orderId = resolvedOrderId;
+          delete splitBody.orderItemIds;
+          delete splitBody.checkoutAll;
+        }
+
         const response = await checkoutOrderApi({
           id: tableId,
-          body: { checkoutAll: true, payments: splitPaymentData },
+          body: splitBody,
         }).unwrap();
 
         if (response?.success) {
@@ -675,68 +820,161 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     isNepalPaySelected &&
     selectedSubtotal > 0 &&
     paymentType === "qr" &&
-    selectedQrCategory === "bank" &&
+    !!selectedBankId &&
     (checkoutOrderId != null || canDynamicCheckoutAll);
 
+  const tenderValue = parseFloat(tenderAmount) || 0;
+  const changeDue = Math.max(0, tenderValue - selectedSubtotal);
+  const amountDue = Math.max(0, selectedSubtotal - tenderValue);
+  const cashTenderShort =
+    paymentType === "cash" &&
+    tenderAmount.trim() !== "" &&
+    tenderValue + CHECKOUT_ROUND_EPS < selectedSubtotal;
+  const cashTenderExcessive =
+    paymentType === "cash" &&
+    tenderValue > selectedSubtotal + CHECKOUT_ROUND_EPS;
+
+  const handleTenderAmountChange = (value: string) => {
+    if (value === "" || value === ".") {
+      setTenderAmount(value);
+      return;
+    }
+
+    const parsed = parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+
+    if (parsed > selectedSubtotal) {
+      setTenderAmount(selectedSubtotal.toFixed(2));
+      return;
+    }
+
+    setTenderAmount(value);
+  };
+
   useEffect(() => {
-    setQrMode("static");
+    if (paymentType === "cash") {
+      setTenderAmount(selectedSubtotal.toFixed(2));
+    }
+  }, [paymentType, selectedSubtotal]);
+
+  useEffect(() => {
+    dynamicIntentRef.current = dynamicIntent;
+  }, [dynamicIntent]);
+
+  useEffect(() => {
     setDynamicIntent(null);
     setDynamicQrError(null);
-  }, [selectedBankId, selectedWalletId, selectedQrCategory]);
+  }, [selectedBankId]);
 
   useEffect(() => {
-    if (!isOpen || qrMode !== "dynamic" || !canUseDynamicQr) return;
+    if (!isOpen || !canUseDynamicQr) return;
 
-    let cancelled = false;
-    const run = async () => {
-      setDynamicQrError(null);
-      try {
-        const body =
-          checkoutOrderId != null
-            ? {
-                orderId: checkoutOrderId,
-                amount: selectedSubtotal,
-                accountId: selectedBankId ?? undefined,
-              }
-            : {
-                tableId: tableId!,
-                checkoutAll: true,
-                amount: selectedSubtotal,
-                accountId: selectedBankId ?? undefined,
-              };
-        const res = await initiateQrPayment(body).unwrap();
-        if (!cancelled && res.success && res.data) {
-          setDynamicIntent(res.data);
-        }
-      } catch (error: any) {
-        if (!cancelled) {
+    const seq = ++qrRefreshSeqRef.current;
+    setDynamicQrError(null);
+
+    const timer = setTimeout(() => {
+      const refreshQr = async () => {
+        const previous = dynamicIntentRef.current;
+
+        if (
+          previous?.status === "pending" &&
+          Math.abs(Number(previous.amount) - selectedSubtotal) >= 0.01
+        ) {
+          try {
+            await cancelQrPayment(previous.id).unwrap();
+          } catch {
+            /* backend may already have replaced it */
+          }
+          if (seq !== qrRefreshSeqRef.current) return;
           setDynamicIntent(null);
-          const userMsg =
-            error?.data?.msg ||
-            error?.data?.message ||
-            "Unable to generate dynamic QR. Try again or use static QR.";
-          setDynamicQrError(userMsg);
         }
-      }
-    };
 
-    run();
+        const fetchFreshQr = async (attempt = 0): Promise<void> => {
+          const body =
+            checkoutOrderId != null
+              ? {
+                  orderId: checkoutOrderId,
+                  amount: selectedSubtotal,
+                  accountId: selectedBankId ?? undefined,
+                }
+              : {
+                  tableId: tableId!,
+                  checkoutAll: true,
+                  amount: selectedSubtotal,
+                  accountId: selectedBankId ?? undefined,
+                };
+
+          const res = await initiateQrPayment(body).unwrap();
+
+          if (seq !== qrRefreshSeqRef.current) return;
+
+          if (!res.success || !res.data) {
+            setDynamicIntent(null);
+            setDynamicQrError(
+              res.message || "Unable to generate dynamic QR. Try again.",
+            );
+            return;
+          }
+
+          const intent = res.data;
+          const amountMatches =
+            Math.abs(Number(intent.amount) - selectedSubtotal) < 0.01;
+
+          if (!amountMatches) {
+            if (intent.status === "pending" && attempt < 2) {
+              try {
+                await cancelQrPayment(intent.id).unwrap();
+              } catch {
+                /* retry initiate anyway */
+              }
+              if (seq !== qrRefreshSeqRef.current) return;
+              return fetchFreshQr(attempt + 1);
+            }
+
+            setDynamicIntent(null);
+            setDynamicQrError(
+              "QR amount is out of date. Change the total and try again.",
+            );
+            return;
+          }
+
+          setDynamicIntent(intent);
+          setDynamicQrError(null);
+        };
+
+        try {
+          await fetchFreshQr();
+        } catch (error: any) {
+          if (seq !== qrRefreshSeqRef.current) return;
+          setDynamicIntent(null);
+          setDynamicQrError(
+            error?.data?.msg ||
+              error?.data?.message ||
+              "Unable to generate dynamic QR. Try again or use static QR.",
+          );
+        }
+      };
+
+      void refreshQr();
+    }, 500);
+
     return () => {
-      cancelled = true;
+      clearTimeout(timer);
     };
   }, [
     isOpen,
-    qrMode,
     canUseDynamicQr,
     checkoutOrderId,
     tableId,
     selectedSubtotal,
     selectedBankId,
+    cancelQrPayment,
+    initiateQrPayment,
   ]);
 
   useEffect(() => {
     if (!dynamicIntent || dynamicIntent.status !== "pending") return;
-//indicator
+
     const poll = async () => {
       try {
         const res = await fetchQrStatus(dynamicIntent.id).unwrap();
@@ -767,6 +1005,30 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     poll();
     return () => clearInterval(interval);
   }, [dynamicIntent?.id, dynamicIntent?.status, fetchQrStatus, onClose]);
+
+  const paymentSubmitDisabled =
+    selectedSubtotal <= CHECKOUT_ROUND_EPS ||
+    (paymentType === "split" && splitPaymentData === null) ||
+    (paymentType === "cash" && !selectedCashId) ||
+    (paymentType === "cash" &&
+      (cashTenderShort ||
+        cashTenderExcessive ||
+        tenderValue + CHECKOUT_ROUND_EPS < selectedSubtotal)) ||
+    (paymentType === "qr" && !selectedBankId) ||
+    (paymentType === "qr" &&
+      isNepalPaySelected &&
+      dynamicIntent?.status !== "paid");
+
+  const paymentSubmitLabel =
+    paymentType === "cash" || paymentType === "split"
+      ? `Complete Sale · ${CurrencySign}${selectedSubtotal.toFixed(2)}`
+      : paymentType === "qr" &&
+          isNepalPaySelected &&
+          dynamicIntent?.status === "paid"
+        ? "Done"
+        : paymentType === "qr" && isNepalPaySelected
+          ? "Waiting for QR payment…"
+          : "Confirm QR Payment";
 
   const orderIdForBill = Array.isArray(orderId) ? null : orderId;
 
@@ -1105,503 +1367,254 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 {/* Right column: Payment Method panel */}
                 <div className="mt-4 lg:mt-4">
-                  <div className="border border-1 rounded px-4 py-6 sm:py-8 md:sticky md:top-4">
-                    <h2 className="font-semibold mb-4 text-[17px]">
-                      Payment Method
-                    </h2>
-                    <div className="grid grid-cols-3 gap-3">
+                  <div className={styles.payPanel}>
+                    <div className={styles.payPanelHeader}>
+                      <h3 className={styles.paySectionTitle}>
+                        {paymentType === "split"
+                          ? "Split payment"
+                          : "How are they paying?"}
+                      </h3>
                       <button
                         type="button"
-                        onClick={() => setPaymentType("cash")}
-                        className={`border rounded-md p-3 text-[14px] font-medium transition ${
-                          paymentType === "cash"
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-                            : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
+                        className={`${styles.splitLinkBtn} ${
+                          paymentType === "split" ? styles.splitLinkBtnActive : ""
                         }`}
+                        onClick={() =>
+                          setPaymentType((prev) =>
+                            prev === "split" ? "cash" : "split",
+                          )
+                        }
                       >
-                        Cash
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentType("qr")}
-                        className={`border rounded-md p-3 text-[14px] font-medium transition ${
-                          paymentType === "qr"
-                            ? "bg-blue-50 border-blue-300 text-blue-700"
-                            : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
-                        }`}
-                      >
-                        QR / E-Payment
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentType("split");
-                          setSplitOpen(true);
-                        }}
-                        className={`border rounded-md p-3 text-[14px] font-medium transition ${
-                          paymentType === "split"
-                            ? "bg-yellow-50 border-yellow-300 text-yellow-700"
-                            : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
-                        }`}
-                      >
-                        Split payment
+                        <Split size={14} />
+                        {paymentType === "split" ? "Single payment" : "Split"}
                       </button>
                     </div>
 
-                    {paymentType === "cash" && (
-                      <div className="mt-4 flex flex-col gap-8">
-                        <div>
-                          <label className="text-[14px] flex items-center font-medium mb-2 block">
-                            Tender Amount:
-                          </label>
-                          <input
-                            type="number"
-                            value={tenderAmount}
-                            onChange={(e) => setTenderAmount(e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-white px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-
-                        <div>
-                          <p className="text-[14px] flex font-medium mb-2">
-                            Quick Amount:
-                          </p>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[100, 500, 1000, 2000, 5000, "Exact"].map(
-                              (amount) => (
+                    {paymentType === "split" ? (
+                      <SplitPayment
+                        key={selectedSubtotal.toFixed(2)}
+                        grandTotal={selectedSubtotal}
+                        setSplitPaymentData={setSplitPaymentData}
+                        isMemberAssigned={
+                          checkoutType === "member" && !!selectedMember
+                        }
+                      />
+                    ) : (
+                      <>
+                        <div className={styles.paymentSourceGrid}>
+                          {paymentSources.length === 0 ? (
+                            <p className={styles.payHintError}>
+                              No active payment accounts found.
+                            </p>
+                          ) : (
+                            paymentSources.map((source) => {
+                              const isCash = source.accountType === "cash";
+                              const isActive =
+                                (isCash &&
+                                  paymentType === "cash" &&
+                                  selectedCashId === source.id) ||
+                                (!isCash &&
+                                  paymentType === "qr" &&
+                                  selectedBankId === source.id);
+                              return (
                                 <button
-                                  key={amount}
+                                  key={source.id}
                                   type="button"
+                                  className={`${styles.paymentSourceBtn} ${
+                                    isActive
+                                      ? styles.paymentSourceBtnActive
+                                      : ""
+                                  }`}
                                   onClick={() => {
-                                    if (amount === "Exact") {
-                                      setTenderAmount(
-                                        previewData.totalAmount.toString(),
-                                      );
+                                    if (isCash) {
+                                      setPaymentType("cash");
+                                      setSelectedCashId(source.id);
                                     } else {
-                                      setTenderAmount(amount.toString());
+                                      setPaymentType("qr");
+                                      setSelectedBankId(source.id);
                                     }
                                   }}
-                                  className="border rounded-md p-4 text-sm font-medium transition bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                                 >
-                                  {amount === "Exact"
-                                    ? "Exact"
-                                    : `${CurrencySign}${amount}`}
+                                  {isCash ? (
+                                    <Banknote size={16} />
+                                  ) : (
+                                    <QrCode size={16} />
+                                  )}
+                                  <span className={styles.paymentSourceName}>
+                                    {source.name}
+                                  </span>
+                                  <span className={styles.paymentSourceMeta}>
+                                    {isCash
+                                      ? "Cash counter"
+                                      : source.supportsDynamicQr
+                                        ? "Dynamic QR"
+                                        : "Static QR"}
+                                  </span>
                                 </button>
-                              ),
-                            )}
-                          </div>
+                              );
+                            })
+                          )}
                         </div>
 
-                        <div className="p-3 bg-gray-50 rounded-md">
-                          {/* <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">
-                              Total Amount:
-                            </span>
-                            <span className="text-sm">
-                              ₹{previewData.totalAmount.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-sm font-medium">
-                              Tender Amount:
-                            </span>
-                            <span className="text-sm">
-                              ₹{tenderAmount || "0.00"}
-                            </span>
-                          </div> */}
-                          <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                            <span className="text-[16px] font-semibold">
-                              Change Due:
-                            </span>
-                            <span
-                              className={`text-[16px] font-semibold ${
-                                (parseFloat(tenderAmount) || 0) -
-                                  selectedSubtotal >=
-                                0
-                                  ? "text-black"
-                                  : "text-green-600"
-                              }`}
-                            >
-                              {CurrencySign}
-                              {Math.max(
-                                0,
-                                (parseFloat(tenderAmount) || 0) -
-                                  selectedSubtotal,
-                              ).toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentType === "qr" && (
-                      <div className="mt-4">
-                        <div className="mb-4">
-                          <p className="text-sm font-medium mb-2">
-                            Select QR Type:
-                          </p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(["bank", "wallet"] as const).map((type) => (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedQrCategory(
-                                    type as "bank" | "wallet",
-                                  );
-                                  setSelectedBankId(null);
-                                  setSelectedWalletId(null);
-                                }}
-                                className={`border rounded-md p-2 text-sm font-medium transition ${
-                                  selectedQrCategory === type
-                                    ? "bg-blue-50 border-blue-300 text-blue-700"
-                                    : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
-                                }`}
-                                aria-pressed={selectedQrCategory === type}
-                              >
-                                {type === "bank" ? "Bank" : "Wallet"}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Dropdown for selected type */}
-                        {selectedQrCategory === "bank" ? (
-                          <div className="mb-4">
+                        {paymentType === "cash" && (
+                          <div className={styles.cashPanel}>
+                            <p className={styles.payHint}>
+                              {selectedPaymentSource?.name ??
+                                "Select a cash counter"}
+                            </p>
                             <label
-                              htmlFor="qr-bank-select"
-                              className="text-sm font-medium mb-2 block"
+                              className={styles.fieldLabel}
+                              htmlFor="cash-received"
                             >
-                              Select Bank Account:
+                              Cash received
                             </label>
-                            <select
-                              className="w-full bg-white px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-                              id="qr-bank-select"
-                              value={selectedBankId ?? ""}
-                              onChange={(e) => {
-                                setSelectedBankId(
-                                  e.target.value
-                                    ? Number(e.target.value)
-                                    : null,
-                                );
-                                setQrMode("static");
-                              }}
-                            >
-                              <option value="">-- Choose --</option>
-                              {bankAccounts.map((acc: any) => (
-                                <option key={acc.id} value={acc.id}>
-                                  {acc?.name ||
-                                    acc?.accountName ||
-                                    `Bank #${acc.id}`}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          <div className="mb-4">
-                            <label
-                              htmlFor="qr-wallet-select"
-                              className="text-sm font-medium mb-2 block"
-                            >
-                              Select Wallet Account:
-                            </label>
-                            <select
-                              className="w-full bg-white px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-transparent"
-                              id="qr-wallet-select"
-                              value={selectedWalletId ?? ""}
+                            <input
+                              id="cash-received"
+                              type="number"
+                              value={tenderAmount}
                               onChange={(e) =>
-                                setSelectedWalletId(
-                                  e.target.value
-                                    ? Number(e.target.value)
-                                    : null,
-                                )
+                                handleTenderAmountChange(e.target.value)
                               }
-                            >
-                              <option value="">-- Choose --</option>
-                              {walletAccounts.map((acc: any) => (
-                                <option key={acc.id} value={acc.id}>
-                                  {acc?.name ||
-                                    acc?.accountName ||
-                                    `Wallet #${acc.id}`}
-                                </option>
-                              ))}
-                            </select>
+                              placeholder="0.00"
+                              className={`${styles.tenderInput} ${
+                                cashTenderShort || cashTenderExcessive
+                                  ? styles.tenderInputError
+                                  : ""
+                              }`}
+                              min="0"
+                              max={selectedSubtotal}
+                              step="0.01"
+                            />
+                            {cashTenderShort ? (
+                              <p className={styles.payHintError}>
+                                Cash received must be at least {CurrencySign}{" "}
+                                {selectedSubtotal.toFixed(2)}
+                              </p>
+                            ) : null}
+                            <div className={styles.changeBox}>
+                              <span className={styles.changeLabel}>
+                                {tenderValue >= selectedSubtotal
+                                  ? "Change"
+                                  : "Short"}
+                              </span>
+                              <span
+                                className={`${styles.changeValue} ${
+                                  tenderValue >= selectedSubtotal
+                                    ? styles.changeValueGood
+                                    : styles.changeValueWarn
+                                }`}
+                              >
+                                {CurrencySign}{" "}
+                                {(tenderValue >= selectedSubtotal
+                                  ? changeDue
+                                  : amountDue
+                                ).toFixed(2)}
+                              </span>
+                            </div>
                           </div>
                         )}
 
-                        {selectedQrCategory === "bank" &&
-                          selectedBankId &&
-                          isNepalPaySelected && (
-                            <div className="mb-4">
-                              <p className="text-sm font-medium mb-2">
-                                NEPALPAY QR mode:
-                              </p>
-                              <div className="grid grid-cols-2 gap-2">
-                                {(["static", "dynamic"] as const).map(
-                                  (mode) => (
-                                    <button
-                                      key={mode}
-                                      type="button"
-                                      onClick={() => {
-                                        setQrMode(mode);
-                                        if (mode === "static") {
-                                          setDynamicIntent(null);
-                                          setDynamicQrError(null);
-                                        }
-                                      }}
-                                      className={`border rounded-md p-2 text-sm font-medium transition ${
-                                        qrMode === mode
-                                          ? "bg-blue-50 border-blue-300 text-blue-700"
-                                          : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
-                                      }`}
-                                      aria-pressed={qrMode === mode}
-                                    >
-                                      {mode === "static"
-                                        ? "Static QR"
-                                        : "Dynamic QR"}
-                                    </button>
-                                  ),
-                                )}
-                              </div>
-                              {qrMode === "dynamic" &&
-                                !checkoutOrderId &&
-                                !canDynamicCheckoutAll && (
-                                  <p className="mt-2 text-xs text-amber-700">
-                                    For Checkout ALL, dynamic QR pays the whole
-                                    table at once — select all items, or use
-                                    static QR / cash for partial payments.
-                                  </p>
-                                )}
-                            </div>
-                          )}
+                        {paymentType === "qr" && (
+                          <div className={styles.payBlockBody}>
+                            <p className={styles.payHint}>
+                              {selectedPaymentSource?.name ??
+                                "Select a bank or wallet"}
+                            </p>
 
-                        {/* QR Preview */}
-                        <div className="flex flex-col items-center ">
-                          {selectedQrCategory === "bank" &&
-                            selectedBankId &&
-                            isNepalPaySelected &&
-                            qrMode === "dynamic" && (
-                              <>
-                                {dynamicQrError && (
-                                  <p className="text-sm text-red-600 mb-2">
-                                    {dynamicQrError}
-                                  </p>
-                                )}
-                                {isInitiatingQr && !dynamicIntent && (
-                                  <p className="text-sm text-gray-500">
-                                    Generating QR for Rs.{" "}
-                                    {selectedSubtotal.toFixed(2)}…
-                                  </p>
-                                )}
-                                {dynamicIntent && (
-                                  <DynamicQrDisplay
-                                    qrImageUrl={dynamicIntent.qrImageUrl}
-                                    qrPayload={dynamicIntent.qrPayload}
-                                    amount={dynamicIntent.amount}
-                                    merchantTxnRef={
-                                      dynamicIntent.merchantTxnRef
-                                    }
-                                    expiresAt={dynamicIntent.expiresAt}
-                                    status={dynamicIntent.status}
-                                  />
-                                )}
-                                {!canUseDynamicQr &&
-                                  !dynamicQrError &&
-                                  !isInitiatingQr && (
-                                    <p className="text-xs text-gray-500">
-                                      Select items and ensure order total is
-                                      greater than zero.
+                            <div className={styles.qrPreview}>
+                              {selectedBankId && isNepalPaySelected && (
+                                <>
+                                  {dynamicQrError && (
+                                    <p className={styles.payHintError}>
+                                      {dynamicQrError}
                                     </p>
                                   )}
-                              </>
-                            )}
-                          {selectedQrCategory === "bank" &&
-                            selectedBankId &&
-                            (!isNepalPaySelected || qrMode === "static") && (
-                              <>
+                                  {!dynamicQrError &&
+                                    (!dynamicIntent ||
+                                      Math.abs(
+                                        dynamicIntent.amount - selectedSubtotal,
+                                      ) >= 0.01) && (
+                                      <p className={styles.payHint}>
+                                        Updating QR…
+                                      </p>
+                                    )}
+                                  {dynamicIntent &&
+                                    Math.abs(
+                                      dynamicIntent.amount - selectedSubtotal,
+                                    ) < 0.01 && (
+                                      <DynamicQrDisplay
+                                        qrImageUrl={dynamicIntent.qrImageUrl}
+                                        qrPayload={dynamicIntent.qrPayload}
+                                        amount={dynamicIntent.amount}
+                                        merchantTxnRef={
+                                          dynamicIntent.merchantTxnRef
+                                        }
+                                        expiresAt={dynamicIntent.expiresAt}
+                                        status={dynamicIntent.status}
+                                      />
+                                    )}
+                                </>
+                              )}
+                              {selectedBankId && !isNepalPaySelected && (
                                 <img
                                   src={
                                     bankQrUrl
                                       ? buildAssetUrl(bankQrUrl)
                                       : QR_IMAGE
                                   }
-                                  alt="Bank Static QR"
-                                  className="w-full max-w-[280px] rounded-md border"
+                                  alt="Scan to pay"
+                                  className={styles.qrImage}
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = QR_IMAGE;
+                                    (e.target as HTMLImageElement).src =
+                                      QR_IMAGE;
                                   }}
                                 />
-                                {!bankQrUrl && (
-                                  <p className="mt-2 text-xs text-amber-700">
-                                    No static QR on this account. Upload one in
-                                    Cash &amp; Banks → Edit account.
-                                  </p>
-                                )}
-                                <p className="mt-2 text-xs text-gray-500">
-                                  {isNepalPaySelected
-                                    ? "Static NEPALPAY QR — scan then tap Complete Payment."
-                                    : "Scan to pay via selected bank account."}
+                              )}
+                              {!selectedBankId && (
+                                <p className={styles.payHint}>
+                                  Choose a QR account to continue
                                 </p>
-                              </>
-                            )}
-                          {selectedQrCategory === "wallet" &&
-                            selectedWalletId && (
-                              <>
-                                <img
-                                  src={
-                                    walletQrUrl
-                                      ? buildAssetUrl(walletQrUrl)
-                                      : QR_IMAGE
-                                  }
-                                  alt="Wallet Static QR"
-                                  className="w-full max-w-[280px] rounded-md border"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = QR_IMAGE;
-                                  }}
-                                />
-                                <p className="mt-2 text-xs text-gray-500">
-                                  Scan to pay via selected wallet account.
-                                </p>
-                              </>
-                            )}
-                          {((selectedQrCategory === "bank" &&
-                            !selectedBankId) ||
-                            (selectedQrCategory === "wallet" &&
-                              !selectedWalletId)) && (
-                            <p className="text-xs text-gray-500">
-                              Select an account to view QR.
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
-                    {paymentType === "split" && (
-                      <div className="flex flex-col gap-3 mt-6">
-                        {accountsResp?.data?.data?.map((account:any) => {
-                          const paymentAccount = splitPaymentData?.find(
-                            (acc: any) => acc.accountId === account.id,
-                          );
-                          if (paymentAccount) {
-                            return (
-                              <div
-                                key={account.id}
-                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                              >
-                                <div className="flex items-center space-x-3">
-                                  <p className="text-lg font-semibold text-gray-900 cursor-pointer">
-                                    {account.name}
-                                  </p>
-                                </div>
-
-                                <div className="w-32">
-                                  <div className="relative">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
-                                      {CurrencySign}
-                                    </span>
-                                    <input
-                                      type="number"
-                                      disabled
-                                      className="pl-6 text-right border rounded-md p-2 w-full bg-white"
-                                      placeholder="0.00"
-                                      value={paymentAccount.amount}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
-                    )}
-
-                    <div className="mt-6 gap-3 flex justify-center flex-wrap">
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleOpenPreview}
-                          disabled={
-                            checkoutType === "member" && !selectedMember
-                          }
-                          className={`p-2 border rounded text-[14px] font-medium transition ${
-                            checkoutType === "member" && !selectedMember
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:bg-gray-50"
-                          }`}
-                          title="Preview bill"
-                        >
-                          Preview Bill
-                        </button>
-                        <button
-                          disabled={
-                            (paymentType === "split" &&
-                              splitPaymentData === null) ||
-                            (paymentType === "qr" &&
-                              isNepalPaySelected &&
-                              qrMode === "dynamic" &&
-                              dynamicIntent?.status !== "paid")
-                          }
-                          onClick={handlePayment}
-                          className="p-2 bg-primaryColor text-white rounded text-[14px] font-medium hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={
-                            paymentType === "cash"
-                              ? "Submit"
-                              : paymentType === "qr" &&
-                                  isNepalPaySelected &&
-                                  qrMode === "dynamic"
-                                ? "Enabled after customer pays via dynamic QR"
-                                : "Complete QR payment"
-                          }
-                        >
-                          {paymentType === "cash"
-                            ? "Submit"
-                            : paymentType === "qr" &&
-                                isNepalPaySelected &&
-                                qrMode === "dynamic" &&
-                                dynamicIntent?.status === "paid"
-                              ? "Done"
-                              : paymentType === "qr" &&
-                                  isNepalPaySelected &&
-                                  qrMode === "dynamic"
-                                ? "Awaiting payment…"
-                                : "Complete Payment"}
-                        </button>
-                        <button
-                          disabled={
-                            (paymentType === "split" &&
-                              splitPaymentData === null) ||
-                            (paymentType === "qr" &&
-                              isNepalPaySelected &&
-                              qrMode === "dynamic" &&
-                              dynamicIntent?.status !== "paid")
-                          }
-                          onClick={handleSubmitAndPrint}
-                          className="p-2 bg-emerald-600 text-white rounded text-[14px] font-medium hover:bg-emerald-700"
-                          title="Submit and print the bill"
-                        >
-                          Submit & Print
-                        </button>
-                      </div>
+                    <div className={styles.payActions}>
+                      <button
+                        type="button"
+                        disabled={paymentSubmitDisabled}
+                        onClick={handlePayment}
+                        className={styles.completeBtn}
+                      >
+                        {paymentSubmitLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleOpenPreview}
+                        className={styles.previewBtn}
+                        disabled={
+                          checkoutType === "member" && !selectedMember
+                        }
+                      >
+                        Preview bill
+                      </button>
+                      <button
+                        type="button"
+                        disabled={paymentSubmitDisabled}
+                        onClick={handleSubmitAndPrint}
+                        className={styles.printBtn}
+                      >
+                        <Printer size={15} />
+                        Print & pay
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             </>
           )}
-          <Drawer
-            isOpen={splitOpen}
-            setIsOpen={setSplitOpen}
-            width="w-[90%] lg:w-[30%]"
-          >
-            <SplitPayment
-              id={tableId}
-              setSplitPaymentData={setSplitPaymentData}
-              closeSplitPayment={() => setSplitOpen(false)}
-            />
-          </Drawer>
         </div>
       </div>
       {/* Preview Modal */}

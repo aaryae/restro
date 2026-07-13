@@ -1,9 +1,4 @@
-import Input from "@/components/Input";
-import { OrderSchema } from "../schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
-import Button from "@/components/Button";
 import { z } from "zod";
 import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,8 +15,6 @@ import Beep from "@/assets/audio/beep.mp3";
 import DeleteBeep from "@/assets/audio/DeleteBeep.mp3";
 import {
   useGetApiQuery,
-  useCreateApiMutation,
-  useUpdateApiMutation,
   usePatchApiMutation,
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
@@ -35,6 +28,11 @@ import { buildQueryString } from "@/utils/generalHelper";
 import usePagination from "@/hooks/usePagination";
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import Drawer from "@/components/Drawer";
+import styles from "./AddEditOrder.module.css";
+import Input from "@/components/Input";
+import { OrderSchema } from "../schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -548,61 +546,58 @@ export default function AddEditOrder({
         />
       )}
 
-      <div className="max-w-[95rem] mx-auto px-3 mt-4">
+      <div className={styles.page}>
         <form
-          className={`grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4 lg:gap-6 ${isComponent ? "" : "form-container"}`}
+          className={styles.grid}
           onSubmit={handleSubmit(onSubmit)}
         >
-          <div>
-            {/* Order Information Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h3 className="flex justify-between text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                <span className="flex items-center">
-                  <MdShoppingCart className="mr-2 text-blue-600" />
-                  Order Information
+          <div className={`${styles.panel} ${styles.panelPad}`}>
+            <div className={styles.panelHeader}>
+              <h3 className={styles.panelTitle}>
+                <span className={styles.panelTitleIcon}>
+                  <MdShoppingCart size={18} />
                 </span>
-                <span className="ml-auto relative">
-                  <ShoppingBasket className="text-black size-[2.5rem] cursor-pointer" />
-                  {totalQuantity > 0 && (
-                    <span className="absolute -top-[0.3rem] -right-[0.5rem] text-[0.9rem] font-medium rounded-full bg-blue-500 text-white w-6 h-6 flex items-center justify-center">
-                      {totalQuantity}
-                    </span>
-                  )}
-                </span>
+                Order Information
               </h3>
+              <span className={styles.cartBadgeWrap}>
+                <ShoppingBasket size={18} />
+                {totalQuantity > 0 && (
+                  <span className={styles.cartBadge}>{totalQuantity}</span>
+                )}
+              </span>
+            </div>
 
-              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                <div>
-                  {/* Order Type */}
-                  <label className="block text-sm font-medium text-gray-700 mb-2 input-label">
-                    Order Type
-                  </label>
-                  <Controller
-                    name="orderType"
-                    control={control}
-                    defaultValue="dineIn"
-                    render={({ field }) => (
-                      <div className="flex flex-wrap gap-3 sm:space-x-5 p-1 rounded-lg">
-                        {orderTypeOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`flex border-2 py-3 px-8 text-base font-medium rounded-md transition-colors ${
-                              field.value === option.value
-                                ? "bg-primaryColor text-white border-none"
-                                : "bg-white text-gray-700 hover:bg-gray-200"
-                            }`}
-                            onClick={() => field.onChange(option.value)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  />
-                </div>
-                {/* Table (for dineIn) */}
-                {watchedOrderType === "dineIn" && (
+            <div className={styles.topRow}>
+              <div className={styles.fieldBlock}>
+                <label className={styles.fieldLabel}>Order Type</label>
+                <Controller
+                  name="orderType"
+                  control={control}
+                  defaultValue="dineIn"
+                  render={({ field }) => (
+                    <div className={styles.typePills}>
+                      {orderTypeOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`${styles.typePill} ${
+                            field.value === option.value
+                              ? styles.typePillActive
+                              : ""
+                          }`}
+                          onClick={() => field.onChange(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                />
+              </div>
+
+              {watchedOrderType === "dineIn" && (
+                <div className={`${styles.fieldBlock} ${styles.sideField}`}>
+                  <label className={styles.fieldLabel}>Table</label>
                   <Controller
                     defaultValue={tableId || ""}
                     name="tableId"
@@ -610,332 +605,285 @@ export default function AddEditOrder({
                     render={({ field }) => (
                       <Select
                         {...field}
-                        label="Table: "
                         options={tableOptions}
-                        className="flex items-start gap-3"
                         error={errors.tableId?.message}
                         required
                       />
                     )}
                   />
-                )}
-                {watchedOrderType === "takeaway" && (
+                </div>
+              )}
+
+              {watchedOrderType === "takeaway" && (
+                <div className={`${styles.fieldBlock} ${styles.sideField}`}>
+                  <label className={styles.fieldLabel}>Takeaway Name</label>
                   <Input
-                    label="Takeaway Name: "
-                    placeholder="Enter customer name"
+                    placeholder="Customer name"
                     {...register("takeAwayName")}
                     error={errors.takeAwayName?.message}
-                  />
-                )}
-              </div>
-
-              {/* Product Selection */}
-              <div className="my-6">
-                <div className="mb-6">
-                  <div className="relative">
-                    <Input
-                      placeholder="Search menu items..."
-                      value={queryStringOptions}
-                      onChange={(e) => {
-                        setQueryStringOptions(e.target.value);
-                      }}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                {isProductLoading ? (
-                  <div className="text-center py-12">
-                    <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg mb-2">
-                      Loading menu items...
-                    </p>
-                  </div>
-                ) : productData?.data?.data?.length > 0 ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="text-left text-lg font-semibold text-gray-900">
-                      {queryStringOptions
-                        ? `Search Results (${productData?.data?.data?.length})`
-                        : "Top Selling Menu Items"}
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto">
-                      {productData?.data?.data?.map(
-                        (product: {
-                          id: string;
-                          name: string;
-                          description: string;
-                          price: number;
-                          quantity: number;
-                          mediaArr: {
-                            imageUrl: string;
-                          }[];
-                        }) => (
-                          <div
-                            key={product.id}
-                            className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md cursor-pointer transition-all duration-200 bg-white"
-                            onClick={() => {
-                              addProductToOrder(product);
-                              playAudio();
-                            }}
-                          >
-                            <h4 className="font-semibold text-gray-900 mb-2 text-sm">
-                              {product.name}
-                            </h4>
-                            <div className="flex items-center gap-2 justify-center">
-                              <img
-                                src={`${product?.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + product.mediaArr[0].imageUrl : DishPlaceHolder}`}
-                                alt={product.name}
-                                className="w-[80px] h-[80px] object-cover rounded mb-3"
-                                loading="lazy"
-                              />
-                            </div>
-                            {/* <p
-                              dangerouslySetInnerHTML={{
-                                __html: product?.description,
-                              }}
-                              className="text-xs text-gray-600 mb-3 line-clamp-2"
-                            ></p> */}
-                            <div className="flex items-center">
-                              <span className="text-lg font-bold text-primaryColor">
-                                {CurrencySign}{" "}
-                                {Number(product.price).toFixed(2)}
-                              </span>
-                              {/* <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                Stock: {product.quantity}
-                              </span> */}
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <button
-                                type="button"
-                                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium py-2 px-3 rounded transition-colors"
-                              >
-                                Add to Order
-                              </button>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <MdShoppingCart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg mb-2">
-                      {productSearchTerm
-                        ? "No menu items match your search"
-                        : "No products available"}
-                    </p>
-                    {productSearchTerm && (
-                      <p className="text-gray-400 text-sm">
-                        Try searching with different keywords
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Address (for delivery) */}
-              {watchedOrderType === "delivery" && (
-                <div className="mt-6">
-                  <Input
-                    label="Delivery Address"
-                    placeholder="Enter complete delivery address"
-                    className="w-full"
-                    {...register("deliveryAddress")}
-                    error={errors.deliveryAddress?.message}
-                    required
                   />
                 </div>
               )}
             </div>
-          </div>
-          <div>
-            {/* Order Items Section */}
-            <div className="bg-white rounded-lg flex flex-col h-full shadow-sm border border-gray-200 px-3 py-4 sm:py-6">
-              <div className="flex items-center justify-between py-4 sm:py-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Order Items
-                </h3>
-              </div>
 
-              {visibleOrderItems.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <MdShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500 text-lg mb-2">
-                    No items added yet
+            <div className={styles.searchRow}>
+              <div className={styles.searchInner}>
+                <FaSearch className={styles.searchIcon} size={13} />
+                <Input
+                  placeholder="Search menu items..."
+                  value={queryStringOptions}
+                  onChange={(e) => {
+                    setQueryStringOptions(e.target.value);
+                  }}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {isProductLoading ? (
+              <div className={styles.emptyState}>
+                <MdShoppingCart className={styles.emptyIcon} />
+                <p className={styles.emptyTitle}>Loading menu items...</p>
+              </div>
+            ) : productData?.data?.data?.length > 0 ? (
+              <div>
+                <h4 className={styles.sectionLabel}>
+                  {queryStringOptions
+                    ? `Search Results (${productData?.data?.data?.length})`
+                    : "Top Selling Menu Items"}
+                </h4>
+                <div className={styles.productGrid}>
+                  {productData?.data?.data?.map(
+                    (product: {
+                      id: string;
+                      name: string;
+                      description: string;
+                      price: number;
+                      quantity: number;
+                      mediaArr: {
+                        imageUrl: string;
+                      }[];
+                    }) => (
+                      <div
+                        key={product.id}
+                        className={styles.productCard}
+                        onClick={() => {
+                          addProductToOrder(product);
+                          playAudio();
+                        }}
+                      >
+                        <div className={styles.productImageWrap}>
+                          <img
+                            src={`${product?.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + product.mediaArr[0].imageUrl : DishPlaceHolder}`}
+                            alt={product.name}
+                            className={styles.productImage}
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className={styles.productBody}>
+                          <h4 className={styles.productName}>{product.name}</h4>
+                          <span className={styles.productPrice}>
+                            {CurrencySign} {Number(product.price).toFixed(2)}
+                          </span>
+                          <button type="button" className={styles.addBtn}>
+                            Add to Order
+                          </button>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                <MdShoppingCart className={styles.emptyIcon} />
+                <p className={styles.emptyTitle}>
+                  {productSearchTerm
+                    ? "No menu items match your search"
+                    : "No products available"}
+                </p>
+                {productSearchTerm && (
+                  <p className={styles.emptyHint}>
+                    Try searching with different keywords
                   </p>
-                  <p className="text-gray-400 text-sm">
-                    Click "Add Items" to start building the order
+                )}
+              </div>
+            )}
+
+            {watchedOrderType === "delivery" && (
+              <div className="mt-4">
+                <Input
+                  label="Delivery Address"
+                  placeholder="Enter complete delivery address"
+                  className="w-full"
+                  {...register("deliveryAddress")}
+                  error={errors.deliveryAddress?.message}
+                  required
+                />
+              </div>
+            )}
+          </div>
+
+          <div className={`${styles.panel} ${styles.cartPanel}`}>
+            <div className={styles.cartHeader}>
+              <h3 className={styles.panelTitle}>Order Items</h3>
+            </div>
+
+            <div className={styles.cartBody}>
+              {visibleOrderItems.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <MdShoppingCart className={styles.emptyIcon} />
+                  <p className={styles.emptyTitle}>No items added yet</p>
+                  <p className={styles.emptyHint}>
+                    Click a menu item to start building the order
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4 flex-1">
-                  {visibleOrderItems.map((item) => (
+                visibleOrderItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`${styles.cartItem} ${
+                      item.status === "cancelled" ? styles.cartItemCancelled : ""
+                    }`}
+                  >
                     <div
-                      key={item.id}
-                      className={`flex items-start justify-between gap-3 sm:gap-0 px-4 py-4 rounded-lg border ${item.status === "cancelled" ? "bg-gray-200" : "bg-gray-50"}`}
+                      className={
+                        item.status === "cancelled" ? "line-through" : ""
+                      }
                     >
-                      <div
-                        className={`flex flex-col items-start ${item.status === "cancelled" ? "line-through" : ""}`}
-                      >
-                        <h4 className={`font-medium text-gray-900 `}>
-                          {item.productName}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {CurrencySign} {Number(item.productPrice).toFixed(2)}{" "}
-                          each
-                        </p>
-                        {item.addons && item.addons.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1 text-xs font-medium text-gray-500">
-                            Addons:
-                            {item.addons.map((a) => {
-                              const addonName =
-                                (a as any).name ||
-                                (a as any).addon?.name ||
-                                (a as any).addonName ||
-                                String((a as any).addonId || "");
-                              const qty =
-                                (a as any).quantity ?? (a as any).qty ?? 1;
-                              return (
-                                <span
-                                  key={`${item.id}_${(a as any).addonId || addonName}`}
-                                  className="px-2 py-[2px] text-xs rounded bg-gray-100 border"
-                                >
-                                  + {addonName} x{qty}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex">
-                        <div className="flex flex-col items-center justify-center gap-3">
-                          <div
-                            className={`flex items-center space-x-2 ${item.status === "cancelled" ? "hidden" : ""}`}
-                          >
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                disabled={item.status === "preparing"}
-                                handleClick={() => {
-                                  updateOrderItemQuantity(
-                                    item.id,
-                                    item.quantity - 1,
-                                  );
-                                  playAudio();
-                                }}
-                                className={`bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center
-                                ${item.status === "preparing" ? "opacity-50 cursor-not-allowed" : ""}
-                            `}
+                      <h4 className={styles.cartItemName}>
+                        {item.productName}
+                      </h4>
+                      <p className={styles.cartItemMeta}>
+                        {CurrencySign} {Number(item.productPrice).toFixed(2)}{" "}
+                        each
+                      </p>
+                      {item.addons && item.addons.length > 0 && (
+                        <div className={styles.addonChips}>
+                          {item.addons.map((a) => {
+                            const addonName =
+                              (a as any).name ||
+                              (a as any).addon?.name ||
+                              (a as any).addonName ||
+                              String((a as any).addonId || "");
+                            const qty =
+                              (a as any).quantity ?? (a as any).qty ?? 1;
+                            return (
+                              <span
+                                key={`${item.id}_${(a as any).addonId || addonName}`}
+                                className={styles.addonChip}
                               >
-                                <Minus className="w-4 h-4" />
-                              </Button>
-
-                              <span className="w-8 text-center font-medium text-[15px]">
-                                {item.quantity}
+                                + {addonName} x{qty}
                               </span>
-                              <Button
-                                handleClick={() => {
-                                  updateOrderItemQuantity(
-                                    item.id,
-                                    item.quantity + 1,
-                                  );
-                                  playAudio();
-                                }}
-                                className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 rounded-full flex items-center justify-center"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </div>
-
-                            {/* {item?.status === "pending" && (
-                          <Button
-                            type="button"
-                            onClick={() => removeOrderItem(item.id)}
-                            className="bg-red-500 py-[0.5rem] px-[0.75rem] h-fit rounded-[6px] flex items-center text-white"
-                          >
-                            Cancel Order
-                          </Button>
-                        )} */}
-                          </div>
-                          <div className="flex justify-center items-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveAddonItem(item);
-                                setAddonDrawerOpen(true);
-                              }}
-                              className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded border"
-                            >
-                              {item.addons?.length
-                                ? `Edit Addons (${item.addons.length})`
-                                : "Add Addons"}
-                            </button>
-                          </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex items-start">
-                          <Button
-                            disabled={
-                              item.status === "preparing" ||
-                              item.status === "cancelled"
-                            }
-                            handleClick={() => {
-                              removeOrderItem(item.id);
-                              playDeleteAudio();
-                            }}
-                            className={`text-right ${
-                              item.status === "preparing" ||
-                              item.status === "cancelled"
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            }`}
-                          >
-                            <Plus
-                              className={`rotate-45 ${item.status === "preparing" ? "text-red-300" : "text-red-400"} cursor-pointer`}
-                            />
-                          </Button>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-start gap-2">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`${styles.qtyRow} ${
+                            item.status === "cancelled" ? "hidden" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            disabled={item.status === "preparing"}
+                            onClick={() => {
+                              updateOrderItemQuantity(
+                                item.id,
+                                item.quantity - 1,
+                              );
+                              playAudio();
+                            }}
+                            className={styles.qtyBtn}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className={styles.qtyValue}>
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateOrderItemQuantity(
+                                item.id,
+                                item.quantity + 1,
+                              );
+                              playAudio();
+                            }}
+                            className={styles.qtyBtn}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAddonItem(item);
+                            setAddonDrawerOpen(true);
+                          }}
+                          className={styles.addonBtn}
+                        >
+                          {item.addons?.length
+                            ? `Edit Addons (${item.addons.length})`
+                            : "Add Addons"}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={
+                          item.status === "preparing" ||
+                          item.status === "cancelled"
+                        }
+                        onClick={() => {
+                          removeOrderItem(item.id);
+                          playDeleteAudio();
+                        }}
+                        className={styles.removeBtn}
+                      >
+                        <Plus className="rotate-45 w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
               )}
-              {/* Total Section */}
-              <div className="border-t pt-4 mt-auto">
-                <div className="flex justify-between items-center text-xl font-bold">
-                  <span>Total Amount:</span>
-                  <span className="text-green-600">
-                    {CurrencySign} {Number(totalAmount).toFixed(2)}
-                  </span>
-                </div>
+            </div>
+
+            <div className={styles.cartFooter}>
+              <div className={styles.totalRow}>
+                <span className={styles.totalLabel}>Total Amount</span>
+                <span className={styles.totalValue}>
+                  {CurrencySign} {Number(totalAmount).toFixed(2)}
+                </span>
               </div>
-              {/* Submit Button */}
-              <div className="flex flex-wrap justify-end gap-3 mt-4 pb-3">
+              <div className={styles.actions}>
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-md"
+                  className={styles.cancelBtn}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || orderItems.length === 0}
-                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md flex items-center"
+                  className={styles.submitBtn}
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                       {isEditMode ? "Updating..." : "Creating..."}
                     </>
                   ) : (
                     <>
-                      <MdShoppingCart className="mr-2" />
+                      <MdShoppingCart size={16} />
                       {isEditMode ? "Update Order" : "Create Order"}
                     </>
                   )}
                 </button>
               </div>
-
               {errors.orderItems && (
                 <p className="text-red-500 text-sm mt-2">
                   {errors.orderItems.message}
@@ -948,59 +896,62 @@ export default function AddEditOrder({
 
       {isConfirmOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 sm:p-4">
-          <div className="bg-white w-[95%] max-w-md sm:max-w-2xl rounded-lg shadow-lg">
-            <div className="px-3 py-3 sm:px-6 sm:py-4 border-b relative">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                Confirm {isEditMode ? "Update" : "Order"}
-              </h3>
-            </div>
-            <div className="p-4 sm:p-6 max-h-[75vh] overflow-y-auto">
-              <div className="flex justify-between mb-3 sm:mb-4 text-sm text-gray-700">
-                <p className="mb-1">
-                  <span className="font-medium">Order Type:</span>{" "}
-                  {watchedOrderType}
-                </p>
-                {watchedOrderType === "dineIn" && (
-                  <p className="mb-1">
-                    <span className="font-medium">Table:</span>{" "}
-                    {tableOptions.find(
-                      (t: { value: string; label: string }) =>
-                        t.value ===
-                        String(
-                          (pendingData as any)?.tableId ?? watchedTableId ?? "",
-                        ),
-                    )?.label || "-"}
-                  </p>
-                )}
-                {pendingData?.deliveryAddress && (
-                  <p className="mb-1">
-                    <span className="font-medium">Delivery Address:</span>{" "}
-                    {pendingData.deliveryAddress}
-                  </p>
-                )}
-                {pendingData?.orderNote && (
-                  <p className="mb-1">
-                    <span className="font-medium">Note:</span>{" "}
-                    {pendingData.orderNote}
-                  </p>
-                )}
+          <div className={styles.modalBackdrop}>
+            <div className={styles.modal}>
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>
+                  Confirm {isEditMode ? "Update" : "Order"}
+                </h3>
               </div>
-
-              <div className="border rounded-md">
-                <div className="grid grid-cols-12 px-4 py-2 bg-gray-100 text-sm font-medium text-gray-700">
-                  <div className="col-span-6">Item</div>
-                  <div className="col-span-2 text-right">Qty</div>
-                  <div className="col-span-2 text-right">Price</div>
-                  <div className="col-span-2 text-right">Subtotal</div>
+              <div className={styles.modalBody}>
+                <div className={styles.modalMeta}>
+                  <p>
+                    <span className="font-medium">Order Type:</span>{" "}
+                    {watchedOrderType}
+                  </p>
+                  {watchedOrderType === "dineIn" && (
+                    <p>
+                      <span className="font-medium">Table:</span>{" "}
+                      {tableOptions.find(
+                        (t: { value: string; label: string }) =>
+                          t.value ===
+                          String(
+                            (pendingData as any)?.tableId ??
+                              watchedTableId ??
+                              "",
+                          ),
+                      )?.label || "-"}
+                    </p>
+                  )}
+                  {pendingData?.deliveryAddress && (
+                    <p>
+                      <span className="font-medium">Delivery Address:</span>{" "}
+                      {pendingData.deliveryAddress}
+                    </p>
+                  )}
+                  {pendingData?.orderNote && (
+                    <p>
+                      <span className="font-medium">Note:</span>{" "}
+                      {pendingData.orderNote}
+                    </p>
+                  )}
                 </div>
-                <div className="divide-y">
+
+                <div className={styles.modalTable}>
+                  <div className={styles.modalTableHead}>
+                    <div>Item</div>
+                    <div className={styles.rightAlign}>Qty</div>
+                    <div className={styles.rightAlign}>Price</div>
+                    <div className={styles.rightAlign}>Subtotal</div>
+                  </div>
                   {visibleOrderItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`grid grid-cols-12 px-4 py-2 text-sm ${item.status === "cancelled" ? "line-through" : ""}`}
+                      className={`${styles.modalTableRow} ${
+                        item.status === "cancelled" ? "line-through" : ""
+                      }`}
                     >
-                      <div className="col-span-6 truncate">
+                      <div className="truncate">
                         {item.productName}
                         {Array.isArray(item.addons) &&
                           item.addons.length > 0 && (
@@ -1023,67 +974,62 @@ export default function AddEditOrder({
                             </span>
                           )}
                       </div>
-                      <div className="col-span-2 text-right">
-                        {item.quantity}
-                      </div>
-                      <div className="col-span-2 text-right">
+                      <div className={styles.rightAlign}>{item.quantity}</div>
+                      <div className={styles.rightAlign}>
                         {CurrencySign} {Number(item.productPrice).toFixed(2)}
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div className={styles.rightAlign}>
                         {CurrencySign} {Number(item.subtotal).toFixed(2)}
                       </div>
                     </div>
                   ))}
+                  <div className={styles.modalTableFoot}>
+                    <div>Total</div>
+                    <div />
+                    <div />
+                    <div className={`${styles.rightAlign} text-primaryColor`}>
+                      {CurrencySign} {Number(totalAmount).toFixed(2)}
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-12 px-4 py-3 bg-gray-50 items-center">
-                  <div className="col-span-6 text-base font-semibold">
-                    Total
-                  </div>
-                  <div className="col-span-2"></div>
-                  <div className="col-span-2"></div>
-                  <div className="col-span-2 text-right text-base font-bold text-green-600">
-                    {CurrencySign} {Number(totalAmount).toFixed(2)}
-                  </div>
+
+                <div className="mt-4">
+                  <TextArea
+                    rows={4}
+                    placeholder="Any special instructions or notes"
+                    className="w-full"
+                    {...register("orderNote")}
+                    error={errors.orderNote?.message}
+                  />
                 </div>
               </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmOpen(false)}
+                  className={styles.modalSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCreate}
+                  disabled={isConfirming}
+                  className={styles.modalPrimary}
+                >
+                  {isConfirming ? "Processing..." : "Confirm"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCreateAndPrint}
+                  disabled={isConfirming}
+                  className={styles.modalPrimary}
+                >
+                  Confirm and Print
+                </button>
+              </div>
             </div>
-            {/* Order Note */}
-            <div className="p-6">
-              <TextArea
-                rows={5}
-                placeholder="Any special instructions or notes"
-                className="w-full"
-                {...register("orderNote")}
-                error={errors.orderNote?.message}
-              />
-            </div>
-            <div className="px-6 py-4 border-t flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsConfirmOpen(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCreate}
-                disabled={isConfirming}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
-              >
-                {isConfirming ? "Processing..." : "Confirm"}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCreateAndPrint}
-                disabled={isConfirming}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-6 py-2 rounded-md"
-              >
-                Confirm and Print
-              </button>
-            </div>
-          </div>
-        </div>,
+          </div>,
           document.body,
         )}
       {/* Hidden Kot printable content */}

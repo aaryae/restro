@@ -12,6 +12,17 @@
 }
 
 .modalContent {
+  --ck-primary: var(--primary-color, #032768);
+  --ck-primary-hover: color-mix(in srgb, var(--ck-primary) 88%, black);
+  --ck-primary-soft: color-mix(in srgb, var(--ck-primary) 9%, white);
+  --ck-primary-soft-strong: color-mix(in srgb, var(--ck-primary) 14%, white);
+  --ck-primary-border: color-mix(in srgb, var(--ck-primary) 22%, #e5e7eb);
+  --ck-primary-ring: color-mix(in srgb, var(--ck-primary) 18%, transparent);
+  --ck-surface: #ffffff;
+  --ck-border: rgb(229 231 235 / 0.85);
+  --ck-muted: #6b7280;
+  --ck-text: #111827;
+
   background-color: #fff;
   border-radius: 8px;
   padding: 0px 24px 24px 24px;
@@ -22,7 +33,6 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Larger screens */
 @media (min-width: 1024px) {
   .modalContent {
     width: 95%;
@@ -82,7 +92,6 @@
   font-size: 17px;
   font-weight: 600;
   color: #1f2937;
-  /* margin-bottom: 16px; */
 }
 
 .totalAmount {
@@ -163,7 +172,6 @@
   max-height: 300px;
 }
 
-/* Small devices tweaks */
 @media (max-width: 640px) {
   .modalTitle {
     font-size: 18px;
@@ -208,4 +216,287 @@
 
 .actionButton:hover {
   background-color: #059669;
+}
+
+/* Clothing-style payment panel */
+.paySectionTitle {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ck-muted);
+}
+
+.payBlockBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.qrPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 5rem;
+}
+
+.payHint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.payHintError {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #dc2626;
+  text-align: center;
+}
+
+.payPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid var(--ck-border);
+  background: var(--ck-surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  width: 100%;
+}
+
+.payPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.splitLinkBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.splitLinkBtn:hover {
+  color: var(--ck-primary);
+  background: var(--ck-primary-soft);
+}
+
+.splitLinkBtnActive {
+  color: var(--ck-primary);
+  background: var(--ck-primary-soft);
+}
+
+.payActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.payActions .completeBtn {
+  grid-column: 1 / -1;
+}
+
+.paymentSourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.paymentSourceBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-height: 4.25rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ck-border);
+  background: var(--ck-surface);
+  color: #4b5563;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.paymentSourceBtn:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.paymentSourceBtnActive {
+  border-color: var(--ck-primary-border);
+  background: var(--ck-primary-soft);
+  color: var(--ck-primary);
+  box-shadow: 0 0 0 1px var(--ck-primary-ring);
+}
+
+.paymentSourceName {
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paymentSourceMeta {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.fieldLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.tenderInput {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ck-border);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ck-text);
+  font-variant-numeric: tabular-nums;
+  background: var(--ck-surface);
+}
+
+.cashPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tenderInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--ck-primary) 40%, #d1d5db);
+  box-shadow: 0 0 0 3px var(--ck-primary-ring);
+}
+
+.tenderInputError {
+  border-color: #dc2626;
+}
+
+.tenderInputError:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.15);
+}
+
+.changeBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+}
+
+.changeLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.changeValue {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.changeValueGood {
+  color: #059669;
+}
+
+.changeValueWarn {
+  color: #d97706;
+}
+
+.completeBtn {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  background: var(--ck-primary);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: background 0.15s ease;
+}
+
+.completeBtn:hover:not(:disabled) {
+  background: var(--ck-primary-hover);
+}
+
+.completeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelBtn,
+.previewBtn {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ck-border);
+  background: var(--ck-surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b5563;
+  transition: background 0.15s ease;
+}
+
+.cancelBtn:hover,
+.previewBtn:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.printBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--ck-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.printBtn:hover:not(:disabled) {
+  background: var(--ck-primary-hover);
+}
+
+.printBtn:disabled,
+.previewBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

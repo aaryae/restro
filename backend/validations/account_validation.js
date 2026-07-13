@@ -28,6 +28,9 @@ const accountPostValidation = async (req, res, next) => {
     description: joi.string().trim().allow("").optional().messages({
       "string.base": "Description must be a string",
     }),
+    isDefault: joi.boolean().optional().messages({
+      "boolean.base": "isDefault must be a boolean",
+    }),
     staticQrUrl: joi
       .string()
       .trim()

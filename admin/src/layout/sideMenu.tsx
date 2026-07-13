@@ -290,10 +290,18 @@ export default function SideMenu({
             ) || [];
 
           const hasSubmenu = visibleSubItems.length > 0;
+          const isChildActive = visibleSubItems.some(
+            (item) =>
+              (item.path && location.pathname.startsWith(item.path)) ||
+              isActive === item.name,
+          );
           const isParentActive =
-            each.path &&
-            (currentPath.includes(each.name.toLowerCase()) ||
-              (each.path && location.pathname.startsWith(each.path)));
+            isChildActive ||
+            Boolean(
+              each.path &&
+                (currentPath.includes(each.name.toLowerCase()) ||
+                  location.pathname.startsWith(each.path)),
+            );
           const isLeafActive =
             currentPath.includes(each.name.toLowerCase()) ||
             currentPath.includes(each.name.toLowerCase() + "-category");
@@ -324,7 +332,7 @@ export default function SideMenu({
               {each.menu ? (
                 <div
                   className={`sidebar-item group flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer transition-all duration-300 ${
-                    isParentActive ? "sidebar-item-active" : ""
+                    isParentActive || isChildActive ? "sidebar-item-active" : ""
                   }`}
                   onClick={() => {
                     if (isSettingsView && each.name === "Settings") {

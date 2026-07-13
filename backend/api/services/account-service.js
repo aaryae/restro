@@ -158,6 +158,7 @@ const createAccount = async (req) => {
       bankAccountNumber,
       walletId,
       staticQrUrl,
+      isDefault,
     } = req.body;
 
     // Create Account record
@@ -168,6 +169,7 @@ const createAccount = async (req) => {
         currentBalance: openingBalance,
         name,
         description,
+        isDefault: Boolean(isDefault),
       },
       { transaction },
     );
@@ -312,6 +314,7 @@ const updateAccount = async (req) => {
       walletId,
       staticQrUrl,
       status,
+      isDefault,
     } = req.body;
 
     const account = await accountModel.findByPk(id, {
@@ -389,6 +392,18 @@ const updateAccount = async (req) => {
         };
       }
       baseUpdates.status = newStatus;
+    }
+    if (isDefault !== undefined) {
+      const nextDefault = Boolean(isDefault);
+      if (nextDefault && account.status !== "active") {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Account must be active to be set as default",
+        };
+      }
+      baseUpdates.isDefault = nextDefault;
     }
 
     if (Object.keys(baseUpdates).length > 0) {
@@ -507,7 +522,7 @@ const changeDefaultAccount = async (req) => {
       };
     }
 
-    // Ensure account is active before making it default
+    // Ensure account is active before marking as primary/default
     if (account.status !== "active") {
       await transaction.rollback();
       return {
@@ -517,23 +532,24 @@ const changeDefaultAccount = async (req) => {
       };
     }
 
-    // Set all accounts to isDefault: false
-    await accountModel.update({ isDefault: false }, { where: {}, transaction });
-
-    // Set the specified account to isDefault: true
-    await account.update({ isDefault: true }, { transaction });
+    // Toggle this account's default flag without clearing other primaries.
+    // isDefault means "show in checkout payment options" (multiple allowed).
+    const nextDefault = !account.isDefault;
+    await account.update({ isDefault: nextDefault }, { transaction });
 
     await transaction.commit();
 
     return {
       status: 200,
       success: true,
-      message: "Default account changed successfully",
+      message: nextDefault
+        ? "Account marked as default successfully"
+        : "Account unmarked as default successfully",
       data: {
         account: {
           id: account.id,
           accountType: account.accountType,
-          isDefault: true,
+          isDefault: nextDefault,
           updatedAt: account.updatedAt,
         },
       },

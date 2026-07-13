@@ -1,220 +1,269 @@
-import Button from "@/components/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CurrencySign } from "@/constants";
-import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { useCheckoutOrderMutation } from "@/redux/services/orders";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { buildQueryString } from "@/utils/generalHelper";
-import { useState } from "react";
+import { Banknote, Building2, QrCode, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import styles from "./SplitPayment.module.css";
 
-interface Account {
-  id: string;
-  name: string;
-  accountType: string;
-  amount: number;
-  isSelected: boolean;
-}
+type AccountFilter = "all" | "cash" | "bank" | "wallet";
 
 interface SplitPaymentProps {
-  id: number | [number] | null;
+  grandTotal: number;
   setSplitPaymentData: React.Dispatch<any>;
-  closeSplitPayment: () => void;
+  isMemberAssigned?: boolean;
 }
 
 function SplitPayment({
-  id,
+  grandTotal,
   setSplitPaymentData,
-  closeSplitPayment,
+  isMemberAssigned = false,
 }: SplitPaymentProps) {
-  const [amounts, setAmounts] = useState<{ [key: string]: string }>({});
-
-  const [checkoutOrderApi] = useCheckoutOrderMutation();
-  const { data: tableOrder } = useGetApiQuery(
-    { url: `${ORDER_URL}active-orders/${id}` },
-    // { url: `order/${id}?itemStatus=active` },
-
-    { skip: id === null || id === undefined },
-  );
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<AccountFilter>("all");
+  const [qrAccountId, setQrAccountId] = useState<number | null>(null);
 
   const url = buildQueryString("account/list", { page: 1, limit: 99999 });
   const { data: allAccount, isSuccess: accountSuccess } = useGetApiQuery({
     url,
   });
 
-  const handleAmountChange = (
+  const accounts: any[] = useMemo(
+    () => (accountSuccess ? allAccount?.data?.data ?? [] : []),
+    [accountSuccess, allAccount],
+  );
+
+  const { data: qrAccountDetail } = useGetApiQuery(
+    qrAccountId ? { url: `account/${qrAccountId}` } : ({} as any),
+    { skip: !qrAccountId },
+  );
+
+  const staticQrUrl =
+    (qrAccountDetail?.data as any)?.mediaArr?.[0]?.imageUrl ||
+    (qrAccountDetail?.data as any)?.bankAccount?.staticQrUrl ||
+    (qrAccountDetail?.data as any)?.walletAccount?.staticQrUrl ||
+    null;
+
+  const filteredAccounts = useMemo(() => {
+    if (filter === "all") return accounts;
+    return accounts.filter((a) => a.accountType === filter);
+  }, [accounts, filter]);
+
+  const totalPaid = useMemo(
+    () =>
+      Object.values(amounts).reduce(
+        (sum, amount) => sum + (parseFloat(amount) || 0),
+        0,
+      ),
+    [amounts],
+  );
+
+  const dueTotal = Number(grandTotal) || 0;
+  const remaining = dueTotal - totalPaid;
+  const isSettled =
+    dueTotal > 0 && remaining >= -0.01 && remaining <= 0.01;
+  const allocatedPercent =
+    dueTotal > 0 ? Math.min(100, (totalPaid / dueTotal) * 100) : 0;
+
+  const findPaymentType = (
     accountId: string,
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const value = e.target.value;
-    if (Number.isNaN(Number(value))) return;
+  ): "cash" | "card" | "online" => {
+    const type = accounts.find((a) => String(a.id) === accountId)?.accountType;
+    if (type === "cash") return "cash";
+    if (type === "bank") return "card";
+    return "online";
+  };
+
+  const handleAmountChange = (accountId: string, value: string) => {
+    if (value !== "" && Number.isNaN(Number(value))) return;
+    setAmounts((prev) => ({ ...prev, [accountId]: value }));
+  };
+
+  const fillRemaining = (accountId: string) => {
+    if (remaining <= 0.01) return;
+    const current = parseFloat(amounts[accountId] || "0") || 0;
     setAmounts((prev) => ({
       ...prev,
-      [accountId]: value,
+      [accountId]: (current + remaining).toFixed(2),
     }));
   };
 
-  const calculateRemaining = (): number => {
-    const totalPaid = Object.values(amounts).reduce((sum, amount) => {
-      return sum + (parseFloat(amount) || 0);
-    }, 0);
-
-    const grandTotal = tableOrder?.data?.totalAmount || 0;
-    return grandTotal - totalPaid;
+  const accountIcon = (type: string) => {
+    if (type === "cash") return <Banknote size={14} />;
+    if (type === "wallet") return <Wallet size={14} />;
+    return <Building2 size={14} />;
   };
 
-  const getTotalPaid = () => {
-    return Object.values(amounts).reduce((sum, amount) => {
-      return sum + (parseFloat(amount) || 0);
-    }, 0);
-  };
-
-  const findPaymentType = (accountId: string) => {
-    let type = allAccount?.data?.data?.find(
-      (a: any) => a.id == accountId,
-    )?.accountType;
-    if (type != "cash") {
-      type = "online";
+  useEffect(() => {
+    if (!isSettled || dueTotal <= 0) {
+      setSplitPaymentData(null);
+      return;
     }
-    return type;
-  };
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Split Payment</h2>
-        <div className="text-right">
-          <div className="text-sm text-gray-500">Grand Total</div>
-          <div className="text-2xl font-bold text-green-600">
-            {CurrencySign}
 
-            {tableOrder?.data?.sessionTotal || "0.00"}
-          </div>
+    const payments = Object.entries(amounts)
+      .map(([accountId, amount]) => ({
+        paymentMethod: findPaymentType(accountId),
+        amount: Math.round((parseFloat(amount) || 0) * 100) / 100,
+        accountId: Number(accountId),
+      }))
+      .filter((p) => p.amount > 0);
+
+    setSplitPaymentData(payments.length > 0 ? payments : null);
+  }, [amounts, isSettled, dueTotal, setSplitPaymentData, accounts]);
+
+  const filters: { id: AccountFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "cash", label: "Cash" },
+    { id: "bank", label: "Bank" },
+    { id: "wallet", label: "Wallet" },
+  ];
+
+  return (
+    <div className={styles.splitPanel}>
+      <div className={styles.splitHero}>
+        <div className={styles.splitHeroBlock}>
+          <span className={styles.splitHeroLabel}>To split</span>
+          <span className={styles.splitHeroValue}>
+            {CurrencySign} {dueTotal.toFixed(2)}
+          </span>
+        </div>
+        <div className={styles.splitHeroBlock}>
+          <span className={styles.splitHeroLabel}>
+            {isSettled ? "Ready" : "Left"}
+          </span>
+          <span
+            className={`${styles.splitHeroValue} ${
+              isSettled ? styles.splitHeroLeftOk : styles.splitHeroLeft
+            }`}
+          >
+            {CurrencySign} {Math.abs(remaining).toFixed(2)}
+          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Select Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                {accountSuccess &&
-                  allAccount?.data?.data?.map((account: any) => (
-                    <div
-                      key={account.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex gap-4 items-center">
-                          <label
-                            htmlFor={account.id}
-                            className="text-lg font-semibold text-gray-900 cursor-pointer"
-                          >
-                            {account.name}
-                          </label>
-                          <p className="text-sm text-gray-500">
-                            {account.accountType}
-                          </p>
-                        </div>
-                      </div>
+      <div className={styles.splitProgress}>
+        <div
+          className={styles.splitProgressBar}
+          style={{ width: `${allocatedPercent}%` }}
+        />
+      </div>
 
-                      <div className="w-32">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">
-                            {CurrencySign}
-                          </span>
-                          <input
-                            type="number"
-                            className="pl-6 text-right border rounded-md p-2 w-full bg-white"
-                            placeholder="0.00"
-                            value={amounts[account.id] || ""}
-                            onChange={(e) => handleAmountChange(account.id, e)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className={styles.splitFilters}>
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            className={`${styles.splitFilterBtn} ${
+              filter === f.id ? styles.splitFilterBtnOn : ""
+            }`}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="space-y-4">
-          <Card className="shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Grand Total:</span>
-                  <span className="font-medium">
-                    {CurrencySign}
-                    {tableOrder?.data?.sessionTotal?.toFixed(2) || "0.00"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Paid:</span>
-                  <span className="font-medium">
-                    {CurrencySign}
-                    {getTotalPaid()}
-                  </span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between font-bold">
-                    <span>Remaining:</span>
-                    <span
-                      className={
-                        calculateRemaining() > 0
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }
-                    >
-                      {CurrencySign}
-                      {calculateRemaining()}
+      <div className={styles.splitList}>
+        {!accountSuccess ? (
+          <p className={styles.splitEmpty}>Loading accounts…</p>
+        ) : filteredAccounts.length === 0 ? (
+          <p className={styles.splitEmpty}>No accounts in this group.</p>
+        ) : (
+          filteredAccounts.map((account: any) => {
+            const aid = String(account.id);
+            const hasAmount = (parseFloat(amounts[aid] || "0") || 0) > 0;
+            return (
+              <div
+                key={account.id}
+                className={`${styles.splitRow} ${
+                  hasAmount ? styles.splitRowActive : ""
+                }`}
+              >
+                <div className={styles.splitRowMain}>
+                  <div className={styles.splitRowInfo}>
+                    <span className={styles.splitRowName}>{account.name}</span>
+                    <span className={styles.splitRowType}>
+                      {accountIcon(account.accountType)} {account.accountType}
                     </span>
                   </div>
+                  <div className={styles.splitRowActions}>
+                    {account.accountType !== "cash" && (
+                      <button
+                        type="button"
+                        className={`${styles.splitQrBtn} ${
+                          qrAccountId === account.id ? styles.splitQrBtnOn : ""
+                        }`}
+                        onClick={() =>
+                          setQrAccountId((prev) =>
+                            prev === account.id ? null : account.id,
+                          )
+                        }
+                        aria-label={`Show QR for ${account.name}`}
+                      >
+                        <QrCode size={15} />
+                      </button>
+                    )}
+                    <div className={styles.splitAmountWrap}>
+                      <span className={styles.splitCurrency}>{CurrencySign}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className={styles.splitAmountInput}
+                        placeholder="0"
+                        value={amounts[aid] || ""}
+                        onChange={(e) => handleAmountChange(aid, e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.splitRestBtn}
+                      disabled={remaining <= 0.01}
+                      onClick={() => fillRemaining(aid)}
+                    >
+                      Rest
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Button
-                    handleClick={async () => {
-                      const payments = Object.entries(amounts)
-                        .map(([accountId, amount]) => ({
-                          paymentMethod: findPaymentType(accountId),
-                          amount: Number(amount),
-                          accountId: Number(accountId),
-                        }))
-                        .filter((acc) => acc.amount > 0);
-                      setSplitPaymentData(payments);
-                      closeSplitPayment();
-                    }}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={calculateRemaining() !== 0}
-                    style={{
-                      backgroundColor: "#2563eb",
-                      color: "white",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "0.375rem",
-                      width: "100%",
-                      marginTop: "1rem",
-                      cursor:
-                        calculateRemaining() !== 0 ? "not-allowed" : "pointer",
-                      opacity: calculateRemaining() !== 0 ? 0.7 : 1,
-                    }}
-                  >
-                    Confirm Payment
-                  </Button>
-                </div>
+
+                {qrAccountId === account.id && (
+                  <div className={styles.splitQrPanel}>
+                    {staticQrUrl ? (
+                      <img
+                        src={buildAssetUrl(staticQrUrl)}
+                        alt={`${account.name} QR`}
+                        className={styles.splitQrImage}
+                      />
+                    ) : (
+                      <p className={styles.splitHintWarn}>
+                        No QR configured for this account.
+                      </p>
+                    )}
+                    <p className={styles.splitHint}>
+                      Customer scans, then enter the amount above.
+                    </p>
+                  </div>
+                )}
               </div>
-              <p className="text-sm mt-3 font-semibold text-left text-red-500">
-                *Since no user is assigned, the total amount should be equal to
-                the total billed amount.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            );
+          })
+        )}
       </div>
+
+      {isSettled ? (
+        <p className={styles.splitReady}>Split matches total — tap Complete below.</p>
+      ) : (
+        <p className={styles.splitHint}>
+          Enter amounts across accounts. Use <strong>Rest</strong> to fill what is
+          left on a line.
+        </p>
+      )}
+
+      {!isMemberAssigned && !isSettled && dueTotal > 0 ? (
+        <p className={styles.splitHintWarn}>
+          Full amount must be allocated before completing the sale.
+        </p>
+      ) : null}
     </div>
   );
 }
