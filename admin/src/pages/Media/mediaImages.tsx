@@ -186,6 +186,8 @@ export default function MediaImages() {
                   <DeleteModal
                     open={open}
                     setOpen={setOpen}
+                  itemId={each.id}
+                  activeId={deleteId}
                     handleDeleteTrigger={() => handleDeleteTrigger(each.id)}
                     handleConfirmDelete={handleDeleteFile}
                   />

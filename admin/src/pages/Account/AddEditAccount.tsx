@@ -7,7 +7,6 @@ import { Controller, useForm } from "react-hook-form";
 import useTranslation from "@/locale/useTranslation";
 import { useParams, useNavigate } from "react-router-dom";
 import MediaComponent from "@/components/MediaComponent";
-import { ImageInputUI } from "@/components/ImageComponent";
 import { useAppSelector } from "@/redux/store/hooks";
 import Toast from "@/components/Toast";
 import { BANK_LIST_ROUTE } from "@/routes/routeNames";
@@ -29,7 +28,8 @@ import {
   useGetPaymentIntegrationsQuery,
   useUpdatePaymentIntegrationMutation,
 } from "@/redux/services/paymentIntegration";
-import { Banknote, Building2, Check, Wallet } from "lucide-react";
+import { Banknote, Building2, Check, ImagePlus, QrCode, Wallet, X } from "lucide-react";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 
 type AccountFromType = z.infer<typeof AccountSchema>;
 
@@ -266,33 +266,88 @@ const AddEditAccount: React.FC = () => {
     }
   }, [qrType, setValue]);
 
-  const renderQrUpload = () => (
+  const staticQrUrl = watch("staticQrUrl");
+
+  const renderQrUpload = (hint?: string) => (
     <div className={`flex flex-col ${fieldClass}`}>
       <label className="mb-2 text-sm font-medium text-slate-700">
         Static QR <span className="text-red-500">*</span>
       </label>
-      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-4">
-        <MediaComponent
-          title={<ImageInputUI image={watch("staticQrUrl")} />}
-          handleConfirmImage={() => {
-            if (typeof selectedImage === "string") {
-              setValue("staticQrUrl", selectedImage, {
-                shouldDirty: true,
-                shouldTouch: true,
-                shouldValidate: true,
-              });
-            }
-            setMediaOpen(false);
-          }}
-          isMultiSelect={false}
-          open={mediaOpen}
-          setOpen={setMediaOpen}
-          acceptFiles="image/*"
-        />
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+          <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 sm:mx-0">
+            {staticQrUrl ? (
+              <img
+                src={buildAssetUrl(staticQrUrl)}
+                alt="Static QR preview"
+                className="h-full w-full object-contain p-2"
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-slate-400">
+                <QrCode size={28} strokeWidth={1.5} />
+                <span className="text-[11px] font-medium">QR preview</span>
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <p className="text-sm font-medium text-slate-800">
+              {staticQrUrl ? "QR image selected" : "Upload a QR code image"}
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed text-slate-500">
+              {hint ||
+                "JPG, PNG, or GIF · max 1MB. Shown to customers at checkout."}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <MediaComponent
+                title={
+                  <span className="inline-flex items-center gap-2 rounded-xl border border-primaryColor/25 bg-primaryColor/5 px-3.5 py-2 text-sm font-medium text-primaryColor transition hover:bg-primaryColor/10">
+                    <ImagePlus size={15} />
+                    {staticQrUrl ? "Change image" : "Choose image"}
+                  </span>
+                }
+                handleConfirmImage={() => {
+                  if (typeof selectedImage === "string") {
+                    setValue("staticQrUrl", selectedImage, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    });
+                  }
+                  setMediaOpen(false);
+                }}
+                isMultiSelect={false}
+                open={mediaOpen}
+                setOpen={setMediaOpen}
+                acceptFiles="image/*"
+              />
+
+              {staticQrUrl && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue("staticQrUrl", "" as unknown as string, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <X size={14} />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
       <input type="hidden" {...register("staticQrUrl")} />
       {(errors as any)?.staticQrUrl && (
-        <p className="mt-1 text-xs text-red-500">
+        <p className="mt-1.5 text-xs text-red-500">
           {(errors as any)?.staticQrUrl?.message as string}
         </p>
       )}
@@ -444,7 +499,10 @@ const AddEditAccount: React.FC = () => {
                 </p>
               </div>
 
-              {qrType === "static" && renderQrUpload()}
+              {qrType === "static" &&
+                renderQrUpload(
+                  "Upload your bank QR image. JPG, PNG, or GIF · max 1MB.",
+                )}
 
               {qrType === "dynamic" && (
                 <div
@@ -472,26 +530,37 @@ const AddEditAccount: React.FC = () => {
 
           {accountType === "wallet" && (
             <div className="space-y-5 border-t border-slate-100 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Wallet details
-              </p>
-              <Input
-                label="Wallet Name"
-                placeholder="Enter wallet name"
-                className={fieldClass}
-                {...register("walletAccountName")}
-                error={errors?.walletAccountName?.message as string}
-                isRequired
-              />
-              <Input
-                label="Wallet ID"
-                placeholder="Enter wallet ID"
-                className={fieldClass}
-                {...register("walletId")}
-                error={errors?.walletId?.message as string}
-                isRequired
-              />
-              {renderQrUpload()}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Wallet details
+                </p>
+                <p className="mt-1 text-[13px] text-slate-500">
+                  Add the wallet ID and QR customers will scan at checkout.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Wallet Name"
+                  placeholder="e.g. eSewa, Khalti"
+                  className="w-full"
+                  {...register("walletAccountName")}
+                  error={errors?.walletAccountName?.message as string}
+                  isRequired
+                />
+                <Input
+                  label="Wallet ID"
+                  placeholder="Enter wallet ID / number"
+                  className="w-full"
+                  {...register("walletId")}
+                  error={errors?.walletId?.message as string}
+                  isRequired
+                />
+              </div>
+
+              {renderQrUpload(
+                "Upload this wallet’s QR image. JPG, PNG, or GIF · max 1MB.",
+              )}
             </div>
           )}
 

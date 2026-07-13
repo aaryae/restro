@@ -136,6 +136,8 @@ export default function EmailTemplate() {
                   compact
                   open={open}
                   setOpen={setOpen}
+                  itemId={id}
+                  activeId={deletedId}
                   handleDeleteTrigger={() => handleDeleteTrigger(id)}
                   handleConfirmDelete={handleDelete}
                 />

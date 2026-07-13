@@ -73,9 +73,11 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
 
     const flatOptions = useMemo(() => {
       const list: { label: string; value: string }[] = [];
-      options.forEach((option) => {
+      (options || []).forEach((option) => {
+        if (!option) return;
         if (option.options?.length) {
           option.options.forEach((nested) => {
+            if (!nested) return;
             list.push({ label: nested.label, value: String(nested.value) });
           });
         } else {

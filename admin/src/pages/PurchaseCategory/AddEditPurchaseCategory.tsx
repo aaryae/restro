@@ -109,7 +109,7 @@ const AddPurchaseCategory: React.FC = () => {
           {...register("description")}
           error={errors.description?.message}
         />
-        <div className="flex justify-start">
+        <div className="flex justify-end">
           <Button
             type="submit"
             className="submit-button w-[5rem]"

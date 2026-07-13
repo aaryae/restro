@@ -121,6 +121,8 @@ export default function OpenItem() {
                   compact
                   open={open}
                   setOpen={setOpen}
+                  itemId={id}
+                  activeId={deleteId}
                   handleDeleteTrigger={() => handleDeleteTrigger(id)}
                   handleConfirmDelete={handleDelete}
                 />

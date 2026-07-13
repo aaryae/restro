@@ -5,176 +5,198 @@ import { ADToBS } from "bikram-sambat-js";
 import { formatDate } from "@/utils/formatDate";
 import { formatNepaliDate } from "@/utils/formatNepaliDate";
 import { OpeningBalance } from "./components/OpeningBalance";
-import { REVENUE_URL } from "@/constants/apiUrlConstants";
+import {
+  EXPENSE_URL,
+  PURCHASE_URL,
+  REVENUE_URL,
+} from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { subDays } from "date-fns";
-import { useState } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-
-const PageHeader = ({
-  dateRange,
-  selectedDateFilter,
-  handleDateFilter,
-  showDatePicker,
-  setShowDatePicker,
-  setDateRange,
-  setSelectedDateFilter,
-}: any) => {
-  const button = [
-    { label: "Yesterday", value: "yesterday" },
-    { label: "Today", value: "today" },
-  ];
-
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Daily Summary Report
-        </h1>
-        <div className="flex items-center gap-2">
-          {button.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => handleDateFilter(item.value)}
-              className={`px-4 py-2 rounded-md transition-colors ${
-                selectedDateFilter === item.value
-                  ? "bg-primaryColor text-white"
-                  : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              setShowDatePicker(!showDatePicker);
-              if (!showDatePicker) {
-                setSelectedDateFilter("custom");
-              }
-            }}
-            className={`px-4 py-2 rounded-md transition-colors ${
-              selectedDateFilter === "custom"
-                ? "bg-primaryColor text-white"
-                : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-            }`}
-          >
-            Custom
-          </button>
-        </div>
-      </div>
-      {showDatePicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="relative bg-white p-8 rounded-lg shadow-lg">
-            <button
-              type="button"
-              onClick={() => setShowDatePicker(false)}
-              className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-2xl"
-            >
-              ×
-            </button>
-            <DatePicker
-              selected={dateRange.startDate}
-              onChange={(date: Date) => {
-                setDateRange({
-                  startDate: date,
-                  endDate: date,
-                  key: "selection",
-                });
-                setSelectedDateFilter("custom");
-              }}
-              inline
-            />
-          </div>
-        </div>
-      )}
-      <div className="flex items-center justify-between text-xl text-black font-bold">
-        <p>
-          Date: {formatDate(dateRange.startDate)}
-          {dateRange.startDate.getTime() !== dateRange.endDate.getTime() &&
-            ` - ${formatDate(dateRange.endDate)}`}
-        </p>
-        <p>{formatNepaliDate(ADToBS(dateRange.startDate))}</p>
-      </div>
-      <div className="flex justify-center">
-        <p className="text-xl font-semibold border-x-2 px-4 border-black w-fit">
-          {dateRange.startDate.toLocaleDateString("en-US", { weekday: "long" })}
-        </p>
-      </div>
-    </div>
-  );
-};
+import { useMemo, useState } from "react";
+import { CurrencySign } from "@/constants";
+import { ReportDateChip } from "./components/ReportUI";
+import { ReportDatePickerDialog } from "./components/ReportDatePickerDialog";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Scale,
+  TrendingUp,
+} from "lucide-react";
 
 export const DailySummaryReport = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
-    "today",
-  );
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("today");
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
     endDate: new Date(),
-    key: "selection",
   });
 
   const handleDateFilter = (type: string) => {
     const today = new Date();
     if (type === "today") {
-      setDateRange({
-        startDate: today,
-        endDate: today,
-        key: "selection",
-      });
+      setDateRange({ startDate: today, endDate: today });
     } else if (type === "yesterday") {
       const yesterday = subDays(today, 1);
-      setDateRange({
-        startDate: yesterday,
-        endDate: yesterday,
-        key: "selection",
-      });
+      setDateRange({ startDate: yesterday, endDate: yesterday });
     }
     setSelectedDateFilter(type);
+    setShowDatePicker(false);
   };
 
-  const getDateParams = () => {
-    const year = dateRange.startDate.getFullYear();
-    const month = String(dateRange.startDate.getMonth() + 1).padStart(2, "0");
-    const day = String(dateRange.startDate.getDate()).padStart(2, "0");
-    const start = `${year}-${month}-${day}`;
+  const dateParams = useMemo(() => {
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    return `start=${fmt(dateRange.startDate)}&end=${fmt(dateRange.endDate)}`;
+  }, [dateRange]);
 
-    const year2 = dateRange.endDate.getFullYear();
-    const month2 = String(dateRange.endDate.getMonth() + 1).padStart(2, "0");
-    const day2 = String(dateRange.endDate.getDate()).padStart(2, "0");
-    const end = `${year2}-${month2}-${day2}`;
-
-    return `start=${start}&end=${end}`;
-  };
+  const periodLabel = useMemo(() => {
+    if (selectedDateFilter === "today") return "Today";
+    if (selectedDateFilter === "yesterday") return "Yesterday";
+    return formatDate(dateRange.startDate);
+  }, [selectedDateFilter, dateRange.startDate]);
 
   const { data: revenueData } = useGetApiQuery({
-    url: `${REVENUE_URL}revenue-today?${getDateParams()}`,
+    url: `${REVENUE_URL}revenue-today?${dateParams}`,
   });
-  const todayRevenue = revenueData?.data?.totalRevenue || 0;
+  const { data: purchaseData } = useGetApiQuery({
+    url: `${PURCHASE_URL}purchase-today?${dateParams}`,
+  });
+  const { data: expenseData } = useGetApiQuery({
+    url: `${EXPENSE_URL}expense-today?${dateParams}`,
+  });
+
   const revenues = revenueData?.data?.revenues || [];
+  const totalRevenue = Number(revenueData?.data?.totalRevenue || 0);
+  const totalPurchase = Number(purchaseData?.data?.totalPurchase || 0);
+  const totalExpense = Number(expenseData?.data?.totalExpense || 0);
+  const net = totalRevenue - totalPurchase - totalExpense;
+
+  const weekday = dateRange.startDate.toLocaleDateString("en-US", {
+    weekday: "long",
+  });
+
+  const kpis = [
+    {
+      label: "Revenue",
+      value: totalRevenue,
+      icon: TrendingUp,
+      iconClass: "bg-[#0F766E] text-white",
+      valueClass: "text-[#0F766E]",
+    },
+    {
+      label: "Purchase",
+      value: totalPurchase,
+      icon: ArrowDownCircle,
+      iconClass: "bg-[#B45309] text-white",
+      valueClass: "text-[#B45309]",
+    },
+    {
+      label: "Expense",
+      value: totalExpense,
+      icon: ArrowUpCircle,
+      iconClass: "bg-[#BE123C] text-white",
+      valueClass: "text-[#BE123C]",
+    },
+    {
+      label: "Net",
+      value: net,
+      icon: Scale,
+      iconClass:
+        net >= 0 ? "bg-primaryColor text-white" : "bg-[#BE123C] text-white",
+      valueClass: net >= 0 ? "text-slate-900" : "text-[#BE123C]",
+    },
+  ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <PageHeader
-          dateRange={dateRange}
-          selectedDateFilter={selectedDateFilter}
-          handleDateFilter={handleDateFilter}
-          showDatePicker={showDatePicker}
-          setShowDatePicker={setShowDatePicker}
-          setDateRange={setDateRange}
-          setSelectedDateFilter={setSelectedDateFilter}
-        />
+    <div className="w-full space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            Daily Summary Report
+          </h1>
+          <p className="mt-1 text-[13px] text-slate-500">
+            <span className="font-medium text-slate-800">
+              {formatDate(dateRange.startDate)}
+            </span>
+            <span className="mx-1.5 text-slate-300">·</span>
+            {weekday}
+            <span className="mx-1.5 text-slate-300">·</span>
+            {formatNepaliDate(ADToBS(dateRange.startDate))}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <ReportDateChip
+            active={selectedDateFilter === "yesterday"}
+            onClick={() => handleDateFilter("yesterday")}
+          >
+            Yesterday
+          </ReportDateChip>
+          <ReportDateChip
+            active={selectedDateFilter === "today"}
+            onClick={() => handleDateFilter("today")}
+          >
+            Today
+          </ReportDateChip>
+          <ReportDateChip
+            active={selectedDateFilter === "custom" || showDatePicker}
+            onClick={() => setShowDatePicker(true)}
+          >
+            Custom
+          </ReportDateChip>
+        </div>
       </div>
-      <div className="flex flex-col gap-4">
-        <TotalRevenue dateParams={getDateParams()} />
-        <OpeningBalance revenues={revenues} />
-        <TotalPurchase dateParams={getDateParams()} />
-        <TotalExpense dateParams={getDateParams()} />
+
+      <ReportDatePickerDialog
+        open={showDatePicker}
+        onOpenChange={setShowDatePicker}
+        selectedDate={dateRange.startDate}
+        onConfirm={(date) => {
+          setDateRange({ startDate: date, endDate: date });
+          setSelectedDateFilter("custom");
+        }}
+      />
+
+      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map(({ label, value, icon: Icon, iconClass, valueClass }) => (
+          <div
+            key={label}
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[12px] font-medium text-slate-500">{label}</p>
+                <p
+                  className={`mt-1.5 text-2xl font-bold tabular-nums tracking-tight ${valueClass}`}
+                >
+                  {CurrencySign}
+                  {value.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[12px] text-slate-400">{periodLabel}</p>
+              </div>
+              <span
+                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+              >
+                <Icon size={18} strokeWidth={2} />
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <TotalRevenue dateParams={dateParams} periodLabel={periodLabel} />
+        <div className="border-t border-slate-100 pt-5">
+          <OpeningBalance revenues={revenues} />
+        </div>
+        <div className="grid gap-6 border-t border-slate-100 pt-5 lg:grid-cols-2">
+          <TotalPurchase dateParams={dateParams} periodLabel={periodLabel} />
+          <TotalExpense dateParams={dateParams} periodLabel={periodLabel} />
+        </div>
       </div>
     </div>
   );

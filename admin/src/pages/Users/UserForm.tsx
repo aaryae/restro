@@ -17,7 +17,7 @@ import { useDispatch } from "react-redux";
 import { clearSelectedMedia } from "../../redux/feature/mediaSlice";
 import { useGetRoleQuery } from "../../redux/services/role";
 import Select from "../../components/Select";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
 import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
@@ -88,7 +88,7 @@ export default function UserForm({
       refetch();
       if (getUser?.data) {
         reset({ ...getUser.data, roleId: String(getUser.data.roleId) });
-        setImage(getUser.data.imageUrl);
+        setImage(getUser.data.imageUrl || "");
       }
     } else {
       reset({
@@ -173,10 +173,13 @@ export default function UserForm({
         <div className="flex gap-[1.5rem] ">
           <div className="border h-[6.25rem] w-[6.25rem] rounded-[0.375rem]">
             <img
-              src={image !== "" ? `${IMAGE_BASE_URL}${image}` : userImage}
+              src={image ? buildAssetUrl(image) : userImage}
               alt="User"
-              className="object-cover h-[6.25rem] w-[6.25rem] overflow-hidden"
-              // crossOrigin="anonymous"
+              className="h-[6.25rem] w-[6.25rem] overflow-hidden object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = userImage;
+              }}
             />
           </div>
           <div className="space-y-[1rem]">

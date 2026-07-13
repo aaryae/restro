@@ -1,71 +1,80 @@
 import { CurrencySign } from "@/constants";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { Receipt, CreditCard, DollarSign } from "lucide-react";
+import { CreditCard, DollarSign, Receipt } from "lucide-react";
+import { ReportEmptyState, ReportSection } from "./ReportUI";
 
 interface TotalExpenseProps {
   dateParams?: string;
+  periodLabel?: string;
 }
 
-const TotalExpense = ({ dateParams = "" }: TotalExpenseProps) => {
+const TotalExpense = ({
+  dateParams = "",
+  periodLabel = "Today",
+}: TotalExpenseProps) => {
   const { data: expenseData, isFetching } = useGetApiQuery({
     url: `${EXPENSE_URL}expense-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const categories = expenseData?.data?.categories || [];
-  const totalExpense = expenseData?.data?.totalExpense;
+  const totalExpense = expenseData?.data?.totalExpense ?? 0;
 
   const getCategoryIcon = (categoryName: string) => {
     const name = categoryName?.toLowerCase() || "";
     if (name.includes("utilit")) {
-      return <DollarSign className="w-5 h-5" />;
+      return <DollarSign className="h-3.5 w-3.5" />;
     }
     if (name.includes("rent") || name.includes("maintenance")) {
-      return <Receipt className="w-5 h-5" />;
+      return <Receipt className="h-3.5 w-3.5" />;
     }
     if (name.includes("suppl") || name.includes("equip")) {
-      return <CreditCard className="w-5 h-5" />;
+      return <CreditCard className="h-3.5 w-3.5" />;
     }
-    return <Receipt className="w-5 h-5" />;
+    return <Receipt className="h-3.5 w-3.5" />;
   };
 
   return (
-    <div className="space-y-4 border border-[#DDDDDD] rounded-lg p-6 bg-white">
-      <div className="border-b border-[#DDDDDD] pb-4">
-        <p className="text-xl font-bold">
-          Total Expense of Today : {CurrencySign}
-          {totalExpense?.toLocaleString()}
-        </p>
-      </div>
-
+    <ReportSection
+      title={`Expenses · ${periodLabel}`}
+      total={Number(totalExpense)}
+      totalTone="red"
+    >
       {isFetching ? (
-        <div className="text-center py-10 text-gray-500">Loading...</div>
-      ) : categories.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="py-6 text-center text-sm text-slate-500">
+          Loading…
+        </div>
+      ) : categories.length === 0 ? (
+        <ReportEmptyState
+          compact
+          icon={Receipt}
+          title="No expenses"
+          description="None recorded for this day."
+        />
+      ) : (
+        <div className="space-y-2">
           {categories.map((category: any, index: number) => (
             <div
-              key={index}
-              className="flex items-center justify-between py-3 px-4 border border-[#DDDDDD] rounded-lg hover:bg-gray-50 transition-colors"
+              key={category.id ?? index}
+              className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-red-600">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-rose-50 text-rose-600">
                   {getCategoryIcon(category.categoryName)}
                 </span>
-                <span className="font-medium text-gray-700">
+                <span className="text-[13px] font-medium text-slate-700">
                   {category.categoryName}
                 </span>
               </div>
-              <span className="text-red-600 font-semibold text-lg">
+              <span className="text-[13px] font-semibold tabular-nums text-rose-600">
                 {CurrencySign}
-                {category.totalExpense.toLocaleString()}
+                {Number(category.totalExpense).toLocaleString()}
               </span>
             </div>
           ))}
         </div>
-      ) : (
-        <p className="text-gray-500 text-center py-10">No expense data found</p>
       )}
-    </div>
+    </ReportSection>
   );
 };
 

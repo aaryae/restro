@@ -15,7 +15,7 @@ import { UserSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
 import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
@@ -66,7 +66,7 @@ export default function BasicInfo() {
   useEffect(() => {
     if (getUser?.data) {
       reset({ ...getUser.data });
-      setImage(getUser.data.imageUrl);
+      setImage(getUser.data.imageUrl || "");
     }
   }, [getUser, success]);
 
@@ -103,10 +103,13 @@ export default function BasicInfo() {
       <div className="flex gap-[1.5rem] mb-[2.5rem] md:p-[1.5rem] border w-fit rounded-[0.25rem]">
         <div className="border h-[100px] w-[100px] rounded-[6px]">
           <img
-            src={image ? `${IMAGE_BASE_URL}${image}` : userImage}
-            alt="User "
-            className="object-cover h-[100px] w-[100px] overflow-hidden"
-            // crossOrigin="anonymous"
+            src={image ? buildAssetUrl(image) : userImage}
+            alt="User"
+            className="h-[100px] w-[100px] overflow-hidden object-cover"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = userImage;
+            }}
           />
         </div>
         <div className="space-y-[1rem]">

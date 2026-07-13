@@ -15,9 +15,14 @@ import useTranslation from "@/locale/useTranslation";
 type DeleteModalProps = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  handleDeleteTrigger: (id: number, isDeleted?: boolean) => void;
+  /** Parent wraps id selection, e.g. `() => handleDeleteTrigger(item.id)` */
+  handleDeleteTrigger: () => void;
   handleConfirmDelete: () => void;
   compact?: boolean;
+  /** Row id for this trigger — pass with `activeId` when many rows share one `open` state */
+  itemId?: number | string | null;
+  /** Currently selected delete id from the parent */
+  activeId?: number | string | null;
 };
 
 export default function DeleteModal({
@@ -26,34 +31,42 @@ export default function DeleteModal({
   handleDeleteTrigger,
   handleConfirmDelete,
   compact = false,
+  itemId,
+  activeId,
 }: DeleteModalProps) {
   const translate = useTranslation();
 
-  const handleCancelButton = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setOpen(false);
-  };
+  const isOpen =
+    itemId != null && activeId != null
+      ? open && String(itemId) === String(activeId)
+      : open;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger onClick={handleDeleteTrigger} asChild>
-        {compact ? (
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-            title="Delete"
-          >
-            <TbTrashXFilled size={16} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="inline-flex cursor-pointer items-center"
-            title="Delete"
-          >
-            <TbTrashXFilled size={22} className="text-red-500" />
-          </button>
-        )}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(next) => {
+        if (!next) setOpen(false);
+      }}
+    >
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          title="Delete"
+          className={
+            compact
+              ? "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+              : "inline-flex cursor-pointer items-center"
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteTrigger();
+          }}
+        >
+          <TbTrashXFilled
+            size={compact ? 16 : 22}
+            className={compact ? undefined : "text-red-500"}
+          />
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-[400px] gap-5 p-6 sm:p-7">
         <DialogHeader className="items-center space-y-3 sm:items-center sm:text-center">
@@ -73,7 +86,7 @@ export default function DeleteModal({
           <button
             type="button"
             className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={handleCancelButton}
+            onClick={() => setOpen(false)}
           >
             {translate("Cancel")}
           </button>

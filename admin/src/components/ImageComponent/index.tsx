@@ -18,7 +18,6 @@ export const ImageInputUI = ({
             src={buildAssetUrl(image)}
             alt="Gallery Icon"
             className="object-contain h-full w-full p-[1rem]"
-            // crossOrigin="anonymous"
           />
         ) : (
           <img
@@ -52,20 +51,17 @@ export const VideoInputUI = ({
       >
         {video !== null && video !== "" ? (
           <video
-            src={`${IMAGE_BASE_URL}${video}`}
+            src={buildAssetUrl(video)}
             controls
             className="object-contain h-full w-full p-[1rem]"
-            // crossOrigin="anonymous"
           />
         ) : (
           <div className="flex flex-col items-center">
-            {/* Replace with your actual video icon */}
             <img
               src={galleryIcon}
               alt="Video Icon"
               className="h-[3rem] w-[5rem]"
               onError={(e) => {
-                // Fallback if video icon is missing
                 e.currentTarget.src = galleryIcon;
               }}
             />
@@ -85,34 +81,26 @@ export const MultipleImageInputUI = ({
   images,
   imageIndex,
 }: {
-  images: string | string[];
+  images: string | string[] | Array<{ img_url?: string }>;
   imageIndex: number;
 }) => {
+  const current = Array.isArray(images) ? images[imageIndex] : images;
+  const currentPath =
+    typeof current === "string"
+      ? current
+      : current && typeof current === "object"
+        ? current.img_url
+        : undefined;
+
   return (
     <div
-      className={`h-[10rem] w-[25rem] border border-dashed border-[#C9CBD1] rounded-[6px] flex items-center justify-center `}
+      className={`flex h-[10rem] w-[25rem] items-center justify-center rounded-[6px] border border-dashed border-[#C9CBD1]`}
     >
-      {Array.isArray(images) && images.length > 0 ? (
-        <div>
-          <div className="h-[10rem] w-[25rem]">
-            <img
-              src={`${IMAGE_BASE_URL}${
-                typeof images[imageIndex] === "string"
-                  ? images[imageIndex]
-                  : images[imageIndex].img_url
-              }`}
-              alt="Gallery Image"
-              className="object-contain w-full h-full p-[1rem]"
-              // crossOrigin="anonymous"
-            />
-          </div>
-        </div>
-      ) : typeof images === "string" ? (
+      {currentPath ? (
         <img
-          src={`${IMAGE_BASE_URL}${images}`}
-          alt="Gallery Icon"
-          className="object-contain h-full w-full p-[1rem]"
-          // crossOrigin="anonymous"
+          src={buildAssetUrl(currentPath)}
+          alt="Gallery Image"
+          className="h-full w-full object-contain p-[1rem]"
         />
       ) : (
         <img

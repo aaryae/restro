@@ -1036,25 +1036,9 @@ const AddEditPurchase: React.FC = () => {
             </div>
           </div>
         </fieldset>
-        <div className="w-full flex justify-start gap-3">
+        <div className="flex w-full justify-end gap-3">
           {!isCompleted && (
             <>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-gray-600 text-white rounded disabled:opacity-60"
-                disabled={creating || updating}
-                onClick={() => setSubmitMode("draft")}
-              >
-                Save Draft
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
-                disabled={creating || updating}
-                onClick={() => setSubmitMode("complete")}
-              >
-                Complete Payment
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1062,14 +1046,30 @@ const AddEditPurchase: React.FC = () => {
                   setSelectedSupplier(null);
                   setSupplierSearchTerm("");
                 }}
-                className="px-4 py-2 border rounded hover:bg-gray-50 transition-colors"
+                className="rounded border px-4 py-2 transition-colors hover:bg-gray-50"
               >
                 Clear
+              </button>
+              <button
+                type="submit"
+                className="rounded bg-gray-600 px-4 py-2 text-white disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("draft")}
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("complete")}
+              >
+                Complete Payment
               </button>
             </>
           )}
           {isCompleted && (
-            <span className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+            <span className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
               This purchase is completed and cannot be edited.
             </span>
           )}

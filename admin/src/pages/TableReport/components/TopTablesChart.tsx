@@ -14,21 +14,28 @@ import { CurrencySign } from "@/constants";
 interface TopTablesChartProps {
   data: any[];
   isLoading?: boolean;
+  periodLabel?: string;
 }
 
-const TopTablesChart: React.FC<TopTablesChartProps> = ({ data, isLoading }) => {
+const TopTablesChart: React.FC<TopTablesChartProps> = ({
+  data,
+  isLoading,
+  periodLabel = "Today",
+}) => {
   if (isLoading) {
     return (
-      <div className="h-64 w-full bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
-        <span className="text-gray-400">Loading chart...</span>
+      <div className="flex h-64 w-full items-center justify-center rounded-xl border border-slate-200 bg-slate-100 animate-pulse">
+        <span className="text-sm text-slate-400">Loading chart…</span>
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 w-full bg-gray-50 rounded-lg flex items-center justify-center">
-        <span className="text-gray-400">No data available</span>
+      <div className="flex h-48 w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60">
+        <span className="text-sm text-slate-400">
+          No table revenue to chart for this day
+        </span>
       </div>
     );
   }
@@ -44,9 +51,9 @@ const TopTablesChart: React.FC<TopTablesChartProps> = ({ data, isLoading }) => {
   const chartHeight = Math.max(300, chartData.length * 60);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h2 className="text-lg font-semibold mb-4">
-        Table Revenue (Today)
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="mb-4 text-base font-semibold text-slate-900">
+        Table revenue · {periodLabel}
       </h2>
       <div style={{ height: `${chartHeight}px` }}>
         <ResponsiveContainer width="100%" height="100%">

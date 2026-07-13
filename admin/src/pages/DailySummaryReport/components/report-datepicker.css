@@ -1,0 +1,104 @@
+.report-datepicker .react-datepicker {
+  border: none;
+  font-family: inherit;
+  background: transparent;
+}
+
+.report-datepicker .react-datepicker__header {
+  background: transparent;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 0 12px;
+  margin-bottom: 8px;
+}
+
+.report-datepicker .react-datepicker__current-month {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.report-datepicker .react-datepicker__day-names {
+  margin-top: 4px;
+}
+
+.report-datepicker .react-datepicker__day-name {
+  width: 2.25rem;
+  line-height: 2rem;
+  margin: 0.1rem;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.report-datepicker .react-datepicker__month {
+  margin: 0;
+}
+
+.report-datepicker .react-datepicker__day {
+  width: 2.25rem;
+  line-height: 2.25rem;
+  margin: 0.1rem;
+  border-radius: 0.5rem;
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+.report-datepicker .react-datepicker__day:hover {
+  background: #f1f5f9;
+  border-radius: 0.5rem;
+}
+
+.report-datepicker .react-datepicker__day--selected,
+.report-datepicker .react-datepicker__day--keyboard-selected {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.report-datepicker .react-datepicker__day--selected:hover,
+.report-datepicker .react-datepicker__day--keyboard-selected:hover {
+  background: var(--primary-color) !important;
+  opacity: 0.92;
+}
+
+.report-datepicker .react-datepicker__day--today {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.report-datepicker .react-datepicker__day--today.react-datepicker__day--selected {
+  color: #fff;
+}
+
+.report-datepicker .react-datepicker__day--outside-month {
+  color: #cbd5e1;
+}
+
+.report-datepicker .react-datepicker__day--disabled {
+  color: #e2e8f0;
+}
+
+.report-datepicker .react-datepicker__navigation {
+  top: 4px;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+}
+
+.report-datepicker .react-datepicker__navigation:hover {
+  background: #f1f5f9;
+}
+
+.report-datepicker .react-datepicker__navigation-icon::before {
+  border-color: #64748b;
+  border-width: 2px 2px 0 0;
+  height: 7px;
+  width: 7px;
+  top: 9px;
+}
+
+.report-datepicker .react-datepicker__triangle {
+  display: none;
+}

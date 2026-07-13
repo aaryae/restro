@@ -1,6 +1,5 @@
 import Input from "@/components/Input";
 import MediaComponent from "@/components/MediaComponent";
-import { IMAGE_BASE_URL } from "@/constants";
 import useTranslation from "@/locale/useTranslation";
 import {
   useGetSettingQuery,
@@ -18,6 +17,7 @@ import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import galleryIcon from "@/assets/gallery_icon.svg";
 import Spinner from "@/components/Spinner";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import {
   Button as AriaBtn,
   ColorPicker,
@@ -57,6 +57,7 @@ export default function Settings() {
     getValues,
     setValue,
     setError,
+    watch,
     formState: { errors },
   } = useForm<SettingFormType>({
     resolver: zodResolver(SettingSchema),
@@ -72,10 +73,9 @@ export default function Settings() {
   const [isBrandingFooterImage, setIsBrandingFooterImage] =
     useState<boolean>(false);
 
-  // getting image
-  const fav_icon = getValues("fav_icon");
-  const brandingImage = getValues("brandingImage");
-  const brandingFooterImage = getValues("brandingFooterImage");
+  const fav_icon = watch("fav_icon");
+  const brandingImage = watch("brandingImage");
+  const brandingFooterImage = watch("brandingFooterImage");
 
   const {
     data: settings,
@@ -407,26 +407,39 @@ export default function Settings() {
 
 const ImageInputUI = ({ type, image }: { type: string; image?: string }) => {
   const translate = useTranslation();
+  const src = image ? buildAssetUrl(image) : "";
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  const showPreview = Boolean(src) && !failed;
+
   return (
     <>
       <div
-        className={`h-[180px] border border-[#C9CBD1] rounded-[6px] flex items-center justify-center ${
-          type === "small" ? "w-[147px] " : "w-[307px]"
+        className={`flex h-[180px] items-center justify-center rounded-[6px] border border-dashed border-[#C9CBD1] bg-white ${
+          type === "small" ? "w-[147px]" : "w-[307px]"
         }`}
       >
-        {image !== undefined ? (
+        {showPreview ? (
           <img
-            src={`${IMAGE_BASE_URL}${image}`}
-            alt="Gallery Icon"
-            className="object-contain w-[307px] h-[60px]"
-            // crossOrigin="anonymous"
+            src={src}
+            alt="Preview"
+            className="max-h-[140px] w-full object-contain px-4 py-3"
+            onError={() => setFailed(true)}
           />
         ) : (
-          <img src={galleryIcon} alt="Gallery Icon" />
+          <img
+            src={galleryIcon}
+            alt="Gallery Icon"
+            className="h-[3rem] w-[5rem] object-contain"
+          />
         )}
       </div>
       {type === "large" && (
-        <p className="font-[400] text-[0.75rem] text-start mt-[2px] text-[#626c78]">
+        <p className="mt-[2px] text-start text-[0.75rem] font-[400] text-[#626c78]">
           {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
         </p>
       )}

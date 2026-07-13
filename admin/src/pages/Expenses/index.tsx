@@ -204,6 +204,8 @@ const Expenses: React.FC = () => {
             compact
             open={open}
             setOpen={setOpen}
+                  itemId={expense?.id}
+                  activeId={deleteId}
             handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
             handleConfirmDelete={handleDelete}
           />

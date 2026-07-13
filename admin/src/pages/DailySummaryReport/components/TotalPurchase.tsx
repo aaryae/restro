@@ -1,19 +1,24 @@
 import { CurrencySign } from "@/constants";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { Package, ShoppingCart, Utensils, Coffee } from "lucide-react";
+import { Coffee, Package, ShoppingCart, Utensils } from "lucide-react";
+import { ReportEmptyState, ReportSection } from "./ReportUI";
 
 interface TotalPurchaseProps {
   dateParams?: string;
+  periodLabel?: string;
 }
 
-const TotalPurchase = ({ dateParams = "" }: TotalPurchaseProps) => {
+const TotalPurchase = ({
+  dateParams = "",
+  periodLabel = "Today",
+}: TotalPurchaseProps) => {
   const { data: purchaseData, isFetching } = useGetApiQuery({
     url: `${PURCHASE_URL}purchase-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const categories = purchaseData?.data?.categories || [];
-  const totalPurchase = purchaseData?.data?.totalPurchase;
+  const totalPurchase = purchaseData?.data?.totalPurchase ?? 0;
 
   const category1 = categories.find((cat: any) => cat.id === 6);
   const otherCategories = categories.filter((cat: any) => cat.id !== 6);
@@ -29,71 +34,77 @@ const TotalPurchase = ({ dateParams = "" }: TotalPurchaseProps) => {
       name.includes("grocery") ||
       name.includes("daily")
     ) {
-      return <Utensils className="w-5 h-5" />;
+      return <Utensils className="h-3.5 w-3.5" />;
     }
     if (
       name.includes("beverage") ||
       name.includes("drink") ||
       name.includes("coffee")
     ) {
-      return <Coffee className="w-5 h-5" />;
+      return <Coffee className="h-3.5 w-3.5" />;
     }
     if (name.includes("suppl") || name.includes("equip")) {
-      return <Package className="w-5 h-5" />;
+      return <Package className="h-3.5 w-3.5" />;
     }
-    return <ShoppingCart className="w-5 h-5" />;
+    return <ShoppingCart className="h-3.5 w-3.5" />;
   };
 
-  return (
-    <div className="space-y-4 border border-[#DDDDDD] rounded-lg p-6 bg-white">
-      <div className="border-b border-[#DDDDDD] pb-4">
-        <p className="text-xl font-bold">
-          Total Purchase of Today : {CurrencySign}
-          {totalPurchase?.toLocaleString()}
-        </p>
-      </div>
+  const hasRows = Boolean(category1) || othersTotal > 0;
 
+  return (
+    <ReportSection
+      title={`Purchases · ${periodLabel}`}
+      total={Number(totalPurchase)}
+      totalTone="orange"
+    >
       {isFetching ? (
-        <div className="text-center py-10 text-gray-500">Loading...</div>
-      ) : categories.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="py-6 text-center text-sm text-slate-500">
+          Loading…
+        </div>
+      ) : !hasRows ? (
+        <ReportEmptyState
+          compact
+          icon={ShoppingCart}
+          title="No purchases"
+          description="None recorded for this day."
+        />
+      ) : (
+        <div className="space-y-2">
           {category1 && (
-            <div className="flex items-center justify-between py-3 px-4 border border-[#DDDDDD] rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-orange-600">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-orange-50 text-orange-600">
                   {getCategoryIcon(category1.categoryName)}
                 </span>
-                <span className="font-medium text-gray-700">
+                <span className="text-[13px] font-medium text-slate-700">
                   {category1.categoryName}
                 </span>
               </div>
-              <span className="text-orange-600 font-semibold text-lg">
+              <span className="text-[13px] font-semibold tabular-nums text-orange-600">
                 {CurrencySign}
-                {category1.totalPurchase.toLocaleString()}
+                {Number(category1.totalPurchase).toLocaleString()}
               </span>
             </div>
           )}
           {othersTotal > 0 && (
-            <div className="flex items-center justify-between py-3 px-4 border border-[#DDDDDD] rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-orange-600">
-                  <ShoppingCart className="w-5 h-5" />
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-orange-50 text-orange-600">
+                  <ShoppingCart className="h-3.5 w-3.5" />
                 </span>
-                <span className="font-medium text-gray-700">Others</span>
+                <span className="text-[13px] font-medium text-slate-700">
+                  Others
+                </span>
               </div>
-              <span className="text-orange-600 font-semibold text-lg">
+              <span className="text-[13px] font-semibold tabular-nums text-orange-600">
                 {CurrencySign}
                 {othersTotal.toLocaleString()}
               </span>
             </div>
           )}
         </div>
-      ) : (
-        <p className="text-gray-500 text-center py-10">
-          No purchase data found
-        </p>
       )}
-    </div>
+    </ReportSection>
   );
 };
 

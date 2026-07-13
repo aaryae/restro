@@ -1,7 +1,7 @@
 import { GiHamburgerMenu } from "react-icons/gi";
 import user_image from "@/assets/user_image.jpeg";
 import { useAppSelector } from "@/redux/store/hooks";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { useState } from "react";
 import Drawer from "@/components/Drawer";
 import SideMenu from "./sideMenu";
@@ -72,11 +72,15 @@ export default function TopMenuMobile() {
                 <img
                   src={
                     profileImage
-                      ? `${IMAGE_BASE_URL}${profileImage}`
+                      ? buildAssetUrl(profileImage)
                       : user_image
                   }
                   alt=""
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = user_image;
+                  }}
                 />
                 <span
                   className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#f8f7fa] bg-emerald-500"

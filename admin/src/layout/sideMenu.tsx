@@ -8,7 +8,7 @@ import { checkViewAccessList } from "@/utils/accessHelper";
 import useTranslation from "@/locale/useTranslation";
 import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
 import { useGetSettingQuery } from "@/redux/services/settings";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 export default function SideMenu({
   setToggleState,
   sideMenuOpen,
@@ -163,21 +163,25 @@ export default function SideMenu({
 
   return (
     <div
-      className={`sidebar-shell ${!sideMenuOpen ? "sidebar-collapsed" : ""} w-full h-full px-[12px] overflow-x-hidden min-h-0 flex flex-col ${!sideMenuOpen ? "pt-[30px]" : "pt-[14px]"}`}
+      className={`sidebar-shell ${!sideMenuOpen ? "sidebar-collapsed" : ""} flex h-full min-h-0 w-full flex-col overflow-x-hidden px-3 ${!sideMenuOpen ? "pt-6" : "pt-4"}`}
     >
       {/* logo section */}
       <div
-        className={`sidebar-header flex items-center ${sideMenuOpen ? "justify-between" : "justify-center"}`}
+        className={`sidebar-header flex items-center ${sideMenuOpen ? "justify-between gap-3" : "justify-center"}`}
       >
         {sideMenuOpen && (
           <img
             src={
               settings?.data?.brandingImage
-                ? `${IMAGE_BASE_URL}${settings.data.brandingImage}`
+                ? buildAssetUrl(settings.data.brandingImage)
                 : Logo
             }
             alt="Logo"
-            className={`w-[72px] h-[59px] object-cover mx-[4px]`}
+            className="mx-1 h-11 w-auto max-w-[7.5rem] object-contain"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = Logo;
+            }}
           />
         )}
 
@@ -187,19 +191,19 @@ export default function SideMenu({
           onClick={() => setToggleState && setToggleState((cur) => !cur)}
           className="sidebar-toggle-btn cursor-pointer"
         >
-          <PanelLeft size={sideMenuOpen ? 20 : 22} strokeWidth={2.2} />
+          <PanelLeft size={sideMenuOpen ? 18 : 20} strokeWidth={2} />
         </button>
       </div>
       <div
-        className={`sidebar-nav ${showScrollBar ? "sidebar-nav-scroll-active" : ""} flex flex-col gap-[6px] mt-[2rem] ${!sideMenuOpen ? "items-center" : " "}`}
+        className={`sidebar-nav ${showScrollBar ? "sidebar-nav-scroll-active" : ""} mt-4 flex flex-col gap-1 ${!sideMenuOpen ? "items-center" : ""}`}
         onScroll={handleSidebarScroll}
       >
         {sideMenuOpen && !isSettingsView && (
-          <p className="sidebar-section-label px-2 mb-1">Navigation</p>
+          <p className="sidebar-section-label mb-1.5 px-2.5">Navigation</p>
         )}
 
         {isSettingsView && sideMenuOpen && (
-          <div className="flex items-center justify-between mb-2">
+          <div className="mb-2 flex items-center justify-between">
             <button
               onClick={() => {
                 let fallback = "/admin/dashboard";
@@ -210,26 +214,26 @@ export default function SideMenu({
                   navigate(fallback);
                 }
               }}
-              className="sidebar-back-btn flex items-center gap-2 text-sm px-2 py-1 rounded"
+              className="sidebar-back-btn flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium"
             >
-              <MdKeyboardArrowLeft />
+              <MdKeyboardArrowLeft size={18} />
               <span>Go back</span>
             </button>
           </div>
         )}
         {!isSettingsView && viewAccess.includes("Dashboard") && (
           <div
-            className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
+            className={`sidebar-item group flex cursor-pointer items-center justify-between px-3 py-2.5 transition-all duration-200 ${
               currentPath.includes("dashboard") ? "sidebar-item-active" : ""
             }`}
             onClick={() => handleNavigate("Dashboard", "/admin/dashboard")}
           >
-            <div className="flex items-center gap-[0.5rem]">
+            <div className="flex items-center gap-2.5">
               <div className="sidebar-item-icon">
                 <LayoutDashboard />
               </div>
               {sideMenuOpen && (
-                <p className="font-[500] text-[0.96rem] transition-all duration-300">
+                <p className="text-[0.9rem] font-medium transition-all duration-200">
                   {translate("Dashboard")}
                 </p>
               )}
@@ -239,17 +243,17 @@ export default function SideMenu({
 
         {!isSettingsView && viewAccess.includes("Order") && (
           <div
-            className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
+            className={`sidebar-item group flex cursor-pointer items-center justify-between px-3 py-2.5 transition-all duration-200 ${
               currentPath.includes("order") ? "sidebar-item-active" : ""
             }`}
             onClick={() => handleNavigate("request", "/admin/order/list")}
           >
-            <div className="flex items-center gap-[0.5rem]">
+            <div className="flex items-center gap-2.5">
               <div className="sidebar-item-icon">
                 <ShoppingCart />
               </div>
               {sideMenuOpen && (
-                <p className="font-[500] text-[0.96rem] transition-all duration-300">
+                <p className="text-[0.9rem] font-medium transition-all duration-200">
                   Orders
                 </p>
               )}
@@ -331,7 +335,7 @@ export default function SideMenu({
             >
               {each.menu ? (
                 <div
-                  className={`sidebar-item group flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer transition-all duration-300 ${
+                  className={`sidebar-item group flex cursor-pointer items-center justify-between px-3 py-2.5 transition-all duration-200 ${
                     isParentActive || isChildActive ? "sidebar-item-active" : ""
                   }`}
                   onClick={() => {
@@ -344,10 +348,10 @@ export default function SideMenu({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-[0.5rem] min-w-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <div className="sidebar-item-icon">{each.icon}</div>
                     {sideMenuOpen && (
-                      <p className="font-[500] text-[0.96rem] transition-all duration-300 text-start">
+                      <p className="text-start text-[0.9rem] font-medium transition-all duration-200">
                         {translate(each.label || each.name)}
                       </p>
                     )}
@@ -357,14 +361,14 @@ export default function SideMenu({
                       (isSettingsView && each.name === "Settings")) && (
                       <div>
                         <MdKeyboardArrowRight
-                          className={`sidebar-chevron transition-transform duration-300 ${submenuOpen ? "rotate-[90deg]" : ""}`}
+                          className={`sidebar-chevron transition-transform duration-200 ${submenuOpen ? "rotate-90" : ""}`}
                         />
                       </div>
                     )}
                 </div>
               ) : (
                 <div
-                  className={`sidebar-item group flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer transition-all duration-300 ${
+                  className={`sidebar-item group flex cursor-pointer items-center justify-between px-3 py-2.5 transition-all duration-200 ${
                     isLeafActive ? "sidebar-item-active" : ""
                   }`}
                   onClick={() => {
@@ -375,10 +379,10 @@ export default function SideMenu({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-[0.5rem] min-w-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <div className="sidebar-item-icon">{each.icon}</div>
                     {sideMenuOpen && (
-                      <p className="font-[500] text-[0.96rem] transition-all duration-300 text-start">
+                      <p className="text-start text-[0.9rem] font-medium transition-all duration-200">
                         {translate(each.label || each.name)}
                       </p>
                     )}
@@ -387,11 +391,11 @@ export default function SideMenu({
               )}
 
               {sideMenuOpen && submenuOpen && (
-                <div className="sidebar-submenu space-y-[0.25rem] mt-[0.25rem]">
+                <div className="sidebar-submenu mt-1 space-y-0.5">
                   {visibleSubItems.map((item, idx) => (
                     <div
                       key={`${each.key}-${idx}`}
-                      className={`sidebar-subitem group flex items-center gap-[0.5rem] px-[1rem] ml-[1rem] py-[0.75rem] rounded-[0.65rem] cursor-pointer transition-all duration-300 ${
+                      className={`sidebar-subitem group flex cursor-pointer items-center gap-2.5 px-3 py-2 transition-all duration-200 ${
                         isActive === item.name ||
                         (item.path && location.pathname.startsWith(item.path))
                           ? "sidebar-subitem-active"
@@ -400,7 +404,7 @@ export default function SideMenu({
                       onClick={() => handleNavigate(item.name, item.path)}
                     >
                       <div className="sidebar-subitem-icon">{item.icon}</div>
-                      <p className="font-[500] text-[0.92rem] transition-all duration-300 text-start">
+                      <p className="text-start text-[0.85rem] font-medium transition-all duration-200">
                         {translate(item.label || item.name)}
                       </p>
                     </div>

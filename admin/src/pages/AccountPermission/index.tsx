@@ -122,6 +122,8 @@ const AccountPermission = () => {
                 compact
                 open={open}
                 setOpen={setOpen}
+                  itemId={row.id}
+                  activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
                 handleConfirmDelete={handleDelete}
               />

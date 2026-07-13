@@ -1,108 +1,129 @@
 import { CurrencySign } from "@/constants";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { Wallet, Building2, CreditCard } from "lucide-react";
+import { Building2, CreditCard, Wallet } from "lucide-react";
+import { ReportEmptyState, ReportSection } from "./ReportUI";
 
 interface TotalRevenueProps {
   dateParams?: string;
+  periodLabel?: string;
 }
 
-const TotalRevenue = ({ dateParams = "" }: TotalRevenueProps) => {
+const TotalRevenue = ({
+  dateParams = "",
+  periodLabel = "Today",
+}: TotalRevenueProps) => {
   const { data: revenueByAccountData, isFetching } = useGetApiQuery({
     url: `${REVENUE_URL}revenue-today${dateParams ? `?${dateParams}` : ""}`,
   });
 
   const revenues = revenueByAccountData?.data?.revenues || [];
-  const totalRevenue = revenueByAccountData?.data?.totalRevenue;
+  const totalRevenue = revenueByAccountData?.data?.totalRevenue ?? 0;
 
-  const groupByAccountType = () => {
-    const groups: Record<string, any[]> = {
-      cash: [],
-      bank: [],
-      wallet: [],
-    };
-
-    revenues.forEach((revenue: any) => {
-      const type = revenue.accountType?.toLowerCase() || "unknown";
-      if (groups[type]) {
-        groups[type].push(revenue);
-      }
-    });
-
-    return groups;
+  const groupedAccounts: Record<string, any[]> = {
+    cash: [],
+    bank: [],
+    wallet: [],
   };
 
-  const groupedAccounts = groupByAccountType();
+  revenues.forEach((revenue: any) => {
+    const type = revenue.accountType?.toLowerCase() || "unknown";
+    if (groupedAccounts[type]) {
+      groupedAccounts[type].push(revenue);
+    }
+  });
 
   const accountTypes = [
-    { key: "cash", label: "Cash", Icon: Wallet, color: "text-green-600" },
-    { key: "bank", label: "Bank", Icon: Building2, color: "text-blue-600" },
+    {
+      key: "cash",
+      label: "Cash",
+      Icon: Wallet,
+      amount: "text-emerald-600",
+      iconBg: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      key: "bank",
+      label: "Bank",
+      Icon: Building2,
+      amount: "text-sky-600",
+      iconBg: "bg-sky-50 text-sky-600",
+    },
     {
       key: "wallet",
       label: "Wallet",
       Icon: CreditCard,
-      color: "text-purple-600",
+      amount: "text-violet-600",
+      iconBg: "bg-violet-50 text-violet-600",
     },
   ];
 
-  const getTotalByType = (type: string) => {
-    return groupedAccounts[type].reduce(
-      (sum: number, r: any) => sum + r.totalRevenue,
+  const getTotalByType = (type: string) =>
+    groupedAccounts[type].reduce(
+      (sum: number, r: any) => sum + (r.totalRevenue || 0),
       0,
     );
-  };
 
   return (
-    <div className="space-y-4 border border-[#DDDDDD] rounded-lg p-6 bg-white">
-      <div className="">
-        <p className="text-xl font-bold mb-4">
-          Total Revenue of Today: {CurrencySign}
-          {totalRevenue?.toLocaleString()}
-        </p>
-      </div>
-
+    <ReportSection
+      title={`Revenue by payment · ${periodLabel}`}
+      total={Number(totalRevenue)}
+      totalTone="green"
+    >
       {isFetching ? (
-        <div className="text-center py-10 text-gray-500">Loading...</div>
+        <div className="py-6 text-center text-sm text-slate-500">
+          Loading revenue…
+        </div>
+      ) : revenues.length === 0 ? (
+        <ReportEmptyState
+          compact
+          icon={Wallet}
+          title="No revenue recorded"
+          description="Settled payments will appear here by cash, bank, and wallet."
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {accountTypes.map(({ key, label, Icon, color }) => (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {accountTypes.map(({ key, label, Icon, amount, iconBg }) => (
             <div
               key={key}
-              className="border border-[#DDDDDD] rounded-lg bg-white overflow-hidden"
+              className="rounded-xl border border-slate-200 bg-slate-50/40 p-3.5"
             >
-              <div
-                className={`bg-gray-50 px-4 py-3 border-b border-[#DDDDDD] ${color}`}
-              >
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Icon className="w-5 h-5" />
-                  <span className="font-semibold text-lg">{label}</span>
+                  <span
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {label}
+                  </span>
                 </div>
-                <div className="text-lg mt-1">
-                  Total: {CurrencySign}
+                <span className={`text-sm font-bold tabular-nums ${amount}`}>
+                  {CurrencySign}
                   {getTotalByType(key).toLocaleString()}
-                </div>
+                </span>
               </div>
 
-              <div className="p-4">
+              <div className="mt-3 space-y-1.5">
                 {groupedAccounts[key].length > 0 ? (
-                  <div className="space-y-2">
-                    {groupedAccounts[key].map((revenue: any) => (
-                      <div
-                        key={revenue.accountId}
-                        className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                  groupedAccounts[key].map((revenue: any) => (
+                    <div
+                      key={revenue.accountId}
+                      className="flex items-center justify-between rounded-lg bg-white px-2.5 py-1.5 ring-1 ring-slate-200/80"
+                    >
+                      <span className="truncate text-[13px] text-slate-600">
+                        {revenue.accountName}
+                      </span>
+                      <span
+                        className={`ml-2 shrink-0 text-[13px] font-semibold tabular-nums ${amount}`}
                       >
-                        <span className="text-gray-700 text-lg">
-                          {revenue.accountName}
-                        </span>
-                        <span className="text-green-600 font-medium text-lg">
-                          {CurrencySign}
-                          {revenue.totalRevenue.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                        {CurrencySign}
+                        {Number(revenue.totalRevenue).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
                 ) : (
-                  <p className="text-gray-400 text-sm text-center py-4">
+                  <p className="py-2 text-center text-[12px] text-slate-400">
                     No accounts
                   </p>
                 )}
@@ -111,7 +132,7 @@ const TotalRevenue = ({ dateParams = "" }: TotalRevenueProps) => {
           ))}
         </div>
       )}
-    </div>
+    </ReportSection>
   );
 };
 

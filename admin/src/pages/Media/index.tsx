@@ -158,6 +158,8 @@ export default function Media() {
                     <DeleteModal
                       open={open}
                       setOpen={setOpen}
+                  itemId={each.id}
+                  activeId={deleteId}
                       handleDeleteTrigger={() => handleDeleteTrigger(each.id)}
                       handleConfirmDelete={handleDelete}
                     />

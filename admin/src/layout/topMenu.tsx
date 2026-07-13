@@ -13,7 +13,7 @@ import { persistor } from "../redux/store/store";
 import { handleError, handleResponse } from "../utils/responseHandler";
 import { useAppSelector } from "../redux/store/hooks";
 import { useNavigate } from "react-router-dom";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { clearProfile } from "@/redux/feature/profileSlice";
 import useTranslation from "@/locale/useTranslation";
 import user_image from "@/assets/user_image.jpeg";
@@ -63,10 +63,14 @@ export default function TopMenu({
           >
             <img
               src={
-                profileImage ? `${IMAGE_BASE_URL}${profileImage}` : user_image
+                profileImage ? buildAssetUrl(profileImage) : user_image
               }
               alt=""
               className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = user_image;
+              }}
             />
             <span
               className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#f8f7fa] bg-emerald-500"

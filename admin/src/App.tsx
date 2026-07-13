@@ -16,7 +16,7 @@ import { clearProfile } from "./redux/feature/profileSlice";
 import { trimFormData } from "./utils/validationHelper";
 import { PROJECT_NAME } from "./constants/projectConstants";
 import { useGetSettingQuery } from "./redux/services/settings";
-import { IMAGE_BASE_URL } from "./constants";
+import { buildAssetUrl } from "./utils/buildAssetUrl";
 import {
   Eye,
   EyeOff,
@@ -107,9 +107,7 @@ export default function App() {
   const brandName = settings?.data?.brand_name || PROJECT_NAME;
   const slides = buildSlides(brandName);
   const logoSrc = settings?.data?.brandingImage
-    ? settings.data.brandingImage.startsWith("http")
-      ? settings.data.brandingImage
-      : `${IMAGE_BASE_URL}${settings.data.brandingImage}`
+    ? buildAssetUrl(settings.data.brandingImage)
     : Logo;
 
   const goToSlide = useCallback((index: number) => {
@@ -167,7 +165,7 @@ export default function App() {
 
   useEffect(() => {
     const href = settings?.data?.fav_icon
-      ? `${IMAGE_BASE_URL}${settings.data.fav_icon}`
+      ? buildAssetUrl(settings.data.fav_icon)
       : "/fav.webp";
     let link = document.querySelector(
       "link[rel='icon']",

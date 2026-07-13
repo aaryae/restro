@@ -196,6 +196,8 @@ export default function Supplier() {
                 compact
                 open={deleteModelOpen}
                 setOpen={setDeleteModelOpen}
+                  itemId={id}
+                  activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(id)}
                 handleConfirmDelete={handleDelete}
               />

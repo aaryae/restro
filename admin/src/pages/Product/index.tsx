@@ -125,7 +125,11 @@ export default function Product() {
             {accessList.includes("edit") && (
               <button
                 type="button"
-                onClick={() => handleNewUser(item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleNewUser(item.id);
+                }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                 title="Edit item"
               >
@@ -137,6 +141,8 @@ export default function Product() {
                 compact
                 open={open}
                 setOpen={setOpen}
+                itemId={item.id}
+                activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
                 handleConfirmDelete={handleDelete}
               />

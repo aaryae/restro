@@ -189,6 +189,8 @@ export default function OrderList() {
                 <CancelOrderModal
                   open={openCancel}
                   setOpen={setOpenCancel}
+                  itemId={id}
+                  activeId={cancelId}
                   handleCancelTrigger={() => handleCancelTrigger(id)}
                   handleConfirmCancel={hanldeOrderCancellation}
                 />

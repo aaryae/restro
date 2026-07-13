@@ -4,7 +4,6 @@ import { MdArrowBackIos, MdEditSquare, MdPhotoLibrary } from "react-icons/md";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,7 +25,7 @@ import {
   setSelectMultipleMedia,
 } from "../../redux/feature/mediaSlice";
 import { useAppSelector } from "../../redux/store/hooks";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
 import Model from "../Model";
 import Input from "../Input";
@@ -227,7 +226,20 @@ export default function MediaComponent({
   const fileButtonText = isAcceptingVideos ? "Choose File" : "Choose Image";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setCurrentFolder(null);
+          if (isMultiSelect) {
+            dispatch(setSelectMultipleMedia([]));
+          } else {
+            dispatch(setSelectedMedia(""));
+          }
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <button onClick={() => setOpen(true)} className="">
           {translate(title)}
@@ -235,70 +247,94 @@ export default function MediaComponent({
       </DialogTrigger>
       <DialogContent
         ref={modelRef}
-        className="w-[90%] md:w-[calc(100vw-20rem)] h-[calc(100vh-10rem)] overflow-y-auto overflow-x-hidden lg:max-h-[80%]"
+        className="flex h-[min(85vh,52rem)] w-[min(96vw,72rem)] max-w-[min(96vw,72rem)] flex-col overflow-hidden p-4 sm:p-6"
       >
-        <DialogHeader className="p-[0.75rem]">
+        <DialogHeader className="shrink-0 space-y-1 p-0 pr-8 text-left sm:text-left">
           <DialogTitle>Choose Image</DialogTitle>
-          <DialogDescription>
-            {/* for buttons */}
-            <div className="flex justify-end gap-[1rem] mt-[2rem] w-full md:w-[calc(100vw-23rem)]">
-              {(Array.isArray(selectedImage) && selectedImage.length === 0) ||
-              selectedImage === "" ? (
-                <div className="flex gap-[1rem] overflow-x-auto scrollbar-hide">
-                  {currentFolder !== null && (
-                    <button
-                      className="bg-gray-400 px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px]"
-                      onClick={() => setCurrentFolder(null)}
-                    >
-                      <MdArrowBackIos size={18} />
-                      Back
-                    </button>
-                  )}
-                  {accessListFile.includes("add") && (
-                    <button
-                      className={`bg-primaryColor px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] whitespace-nowrap ${
-                        currentFolder ? "cursor-pointer" : "hidden"
-                      }`}
-                      onClick={handleButtonClick}
-                      disabled={!currentFolder}
-                    >
-                      <MdPhotoLibrary size={22} />
-                      {fileButtonText}
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={acceptFiles}
-                    onChange={handleFileSelect}
-                    style={{ display: "none" }} // Hide the file input
-                  />
-                  {accessListFolder.includes("add") && (
-                    <button
-                      className={`bg-secondaryBtn px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] whitespace-nowrap ${
-                        currentFolder ? "hidden" : "cursor-pointer"
-                      }`}
-                      onClick={handleOpenModel}
-                      disabled={!!currentFolder}
-                    >
-                      <FaPlus size={16} />
-                      New Folder
-                    </button>
-                  )}
-                </div>
-              ) : (
+        </DialogHeader>
+
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {currentFolder !== null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-600"
+                onClick={() => {
+                  setCurrentFolder(null);
+                  if (isMultiSelect) {
+                    dispatch(setSelectMultipleMedia([]));
+                  } else {
+                    dispatch(setSelectedMedia(""));
+                  }
+                }}
+              >
+                <MdArrowBackIos size={16} />
+                Back to folders
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {accessListFile.includes("add") && currentFolder !== null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                onClick={handleButtonClick}
+              >
+                <MdPhotoLibrary size={18} />
+                {fileButtonText}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={acceptFiles}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            {accessListFolder.includes("add") && currentFolder === null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-secondaryBtn px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                onClick={handleOpenModel}
+              >
+                <FaPlus size={14} />
+                New Folder
+              </button>
+            )}
+            {((Array.isArray(selectedImage) && selectedImage.length > 0) ||
+              (typeof selectedImage === "string" && selectedImage !== "")) && (
+              <>
                 <button
-                  className="bg-primaryColor px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] cursor-pointer"
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  onClick={() => {
+                    if (isMultiSelect) {
+                      dispatch(setSelectMultipleMedia([]));
+                    } else {
+                      dispatch(setSelectedMedia(""));
+                    }
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
                   onClick={handleConfirmImage}
                 >
-                  <MdPhotoLibrary size={22} />
+                  <MdPhotoLibrary size={18} />
                   Confirm Image
                 </button>
-              )}
-            </div>
-            <div className="mt-4 w-full">
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="mt-2 w-full">
               {/* Folder Grid - Responsive */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 md:gap-4">
                 {currentFolder === null && (
                   <>
                     {mediaCategory?.map(
@@ -397,7 +433,7 @@ export default function MediaComponent({
                             {isVideo ? (
                               <div className="relative w-full h-full max-h-[120px] sm:max-h-[140px]">
                                 <video
-                                  src={`${IMAGE_BASE_URL}${each.path}`}
+                                  src={buildAssetUrl(each.path)}
                                   className="w-full h-full object-cover"
                                   crossOrigin="anonymous"
                                 />
@@ -409,7 +445,7 @@ export default function MediaComponent({
                               </div>
                             ) : (
                               <img
-                                src={`${IMAGE_BASE_URL}${each.path}`}
+                                src={buildAssetUrl(each.path)}
                                 alt="Gallery"
                                 className="w-full h-full max-h-[120px] sm:max-h-[140px] object-cover"
                               />
@@ -433,7 +469,7 @@ export default function MediaComponent({
                 )}
               </div>
             </div>
-            <div className="absolute top-[25%] pl-[25%] w-full">
+            <div className="absolute top-[25%] left-0 w-full px-[10%]">
               <Model
                 title="Create Folder"
                 isOpen={openModel}
@@ -454,8 +490,7 @@ export default function MediaComponent({
                 </form>
               </Model>
             </div>
-          </DialogDescription>
-        </DialogHeader>
+        </div>
       </DialogContent>
     </Dialog>
   );

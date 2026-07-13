@@ -147,7 +147,10 @@ export default function ProductForm() {
         variants: product?.data?.variants || [],
         // quantity,
         price,
-        mediaArr: product?.data?.mediaArr?.map((each) => each.imageUrl) || [],
+        mediaArr:
+          product?.data?.mediaArr
+            ?.map((each: { imageUrl?: string }) => each?.imageUrl)
+            .filter(Boolean) || [],
         addons: Array.isArray((product?.data as any)?.addons)
           ? (product?.data as any).addons.map((a: any) => a.id)
           : [],
@@ -306,7 +309,6 @@ export default function ProductForm() {
               options={departmentOptions}
               className="w-full md:w-1/2"
               error={errors.departmentId?.message}
-              required
             />
           )}
         />

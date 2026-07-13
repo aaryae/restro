@@ -14,8 +14,10 @@ import { AlertTriangle, X } from "lucide-react";
 type CancelOrderProps = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  handleCancelTrigger: (id: number, isDeleted?: boolean) => void;
+  handleCancelTrigger: () => void;
   handleConfirmCancel: (remarks: string) => void;
+  itemId?: number | string | null;
+  activeId?: number | string | null;
 };
 
 export default function CancelOrderModal({
@@ -23,30 +25,42 @@ export default function CancelOrderModal({
   setOpen,
   handleCancelTrigger,
   handleConfirmCancel,
+  itemId,
+  activeId,
 }: CancelOrderProps) {
   const translate = useTranslation();
   const [remarks, setRemarks] = useState("");
   const canConfirm = remarks.trim().length > 0;
 
-  const handleDismiss = (event?: React.MouseEvent<HTMLButtonElement>) => {
-    event?.preventDefault();
+  const isOpen =
+    itemId != null && activeId != null
+      ? open && String(itemId) === String(activeId)
+      : open;
+
+  const handleDismiss = () => {
     setRemarks("");
     setOpen(false);
   };
 
   return (
     <Dialog
-      open={open}
+      open={isOpen}
       onOpenChange={(next) => {
-        if (!next) setRemarks("");
-        setOpen(next);
+        if (!next) {
+          setRemarks("");
+          setOpen(false);
+        }
       }}
     >
-      <DialogTrigger onClick={handleCancelTrigger} asChild>
+      <DialogTrigger asChild>
         <button
           type="button"
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
           title="Cancel order"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCancelTrigger();
+          }}
         >
           <X size={16} strokeWidth={2.25} />
         </button>
@@ -67,13 +81,13 @@ export default function CancelOrderModal({
 
         <div className="space-y-1.5 text-left">
           <label
-            htmlFor="cancellation-remarks"
+            htmlFor={`cancellation-remarks-${itemId ?? "order"}`}
             className="text-xs font-medium text-slate-600"
           >
             Cancellation remarks
           </label>
           <textarea
-            id="cancellation-remarks"
+            id={`cancellation-remarks-${itemId ?? "order"}`}
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
             rows={3}

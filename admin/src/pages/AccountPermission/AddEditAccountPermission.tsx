@@ -138,12 +138,10 @@ const AddEditAccountPermission: React.FC = () => {
       />
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col items-center space-y-6"
+        className="mt-4 flex w-full flex-col space-y-6"
       >
-        <div className="flex gap-2 w-full mt-4">
-          {/*  max-w-[900px] */}
-          <div className="flex-1 flex flex-col border-[#ebe9f1] border p-8 rounded-[6px] bg-white">
-            {!isEdit ? (
+        <div className="flex w-full flex-col rounded-[6px] border border-[#ebe9f1] bg-white p-8">
+          {!isEdit ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Controller
                   name="userId"
@@ -262,24 +260,23 @@ const AddEditAccountPermission: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 w-full max-w-[1100px] justify-end">
-          <button
-            type="button"
-            className="px-4 py-2 border rounded"
-            onClick={() => navigate(-1)}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-60"
-          >
-            {isEdit ? "Update Permission" : "Create Permission"}
-          </button>
+          <div className="mt-6 flex w-full items-center justify-end gap-3 border-t border-slate-100 pt-5">
+            <button
+              type="button"
+              className="rounded border px-4 py-2"
+              onClick={() => navigate(-1)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-60"
+            >
+              {isEdit ? "Update Permission" : "Create Permission"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

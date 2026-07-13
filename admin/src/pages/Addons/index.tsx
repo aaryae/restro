@@ -109,6 +109,8 @@ const Addons = () => {
                 compact
                 open={deleteModelOpen}
                 setOpen={setDeleteModelOpen}
+                  itemId={item.id}
+                  activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
                 handleConfirmDelete={handleDelete}
               />

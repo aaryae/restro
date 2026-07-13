@@ -91,6 +91,8 @@ const ExpenseCategory: React.FC = () => {
         compact
         open={deleteModelOpen}
         setOpen={setDeleteModelOpen}
+                  itemId={row.id}
+                  activeId={deleteId}
         handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
         handleConfirmDelete={handleDelete}
       />

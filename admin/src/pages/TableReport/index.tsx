@@ -1,45 +1,34 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { CurrencySign } from "@/constants";
-import PageTitle from "@/components/PageTitle";
 import Modal from "@/components/Modal";
 import { FLOOR_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { formatDate } from "@/utils/formatDate";
-import { subDays, startOfDay, endOfDay } from "date-fns";
+import { subDays } from "date-fns";
 import TopTablesChart from "./components/TopTablesChart";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import Select from "@/components/Select";
+import {
+  ReportDateChip,
+  ReportEmptyState,
+} from "@/pages/DailySummaryReport/components/ReportUI";
+import { ReportDatePickerDialog } from "@/pages/DailySummaryReport/components/ReportDatePickerDialog";
+import { TrendingUp, UtensilsCrossed } from "lucide-react";
 
 export const TableReport = () => {
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
   const [selectedFloorId, setSelectedFloorId] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
-    null,
-  );
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("today");
   const [dateRange, setDateRange] = useState({
     startDate: new Date(),
     endDate: new Date(),
     key: "selection",
   });
 
-  const getDateRangeParams = () => {
-    const { startDate, endDate } = dateRange;
-    return {
-      start: startOfDay(startDate).toISOString(),
-      end: endOfDay(endDate).toISOString(),
-    };
-  };
-
   const handleDateFilter = (type: string) => {
     const today = new Date();
     if (type === "today") {
-      setDateRange({
-        startDate: today,
-        endDate: today,
-        key: "selection",
-      });
+      setDateRange({ startDate: today, endDate: today, key: "selection" });
     } else if (type === "yesterday") {
       const yesterday = subDays(today, 1);
       setDateRange({
@@ -49,12 +38,17 @@ export const TableReport = () => {
       });
     }
     setSelectedDateFilter(type);
+    setShowDatePicker(false);
   };
 
-  const button = [
-    { label: "Yesterday", value: "yesterday" },
-    { label: "Today", value: "today" },
-  ];
+  const periodLabel = useMemo(() => {
+    if (selectedDateFilter === "today") return "Today";
+    if (selectedDateFilter === "yesterday") return "Yesterday";
+    if (dateRange.startDate.getTime() !== dateRange.endDate.getTime()) {
+      return `${formatDate(dateRange.startDate)} – ${formatDate(dateRange.endDate)}`;
+    }
+    return formatDate(dateRange.startDate);
+  }, [selectedDateFilter, dateRange]);
 
   const { data: floorsRes } = useGetApiQuery({
     url: `${FLOOR_URL}list?page=1&limit=100`,
@@ -81,17 +75,13 @@ export const TableReport = () => {
   }, [allTables, selectedFloorId]);
 
   const getDateParams = () => {
-    const year = dateRange.startDate.getFullYear();
-    const month = String(dateRange.startDate.getMonth() + 1).padStart(2, "0");
-    const day = String(dateRange.startDate.getDate()).padStart(2, "0");
-    const start = `${year}-${month}-${day}`;
-
-    const year2 = dateRange.endDate.getFullYear();
-    const month2 = String(dateRange.endDate.getMonth() + 1).padStart(2, "0");
-    const day2 = String(dateRange.endDate.getDate()).padStart(2, "0");
-    const end = `${year2}-${month2}-${day2}`;
-
-    return `start=${start}&end=${end}`;
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    return `start=${fmt(dateRange.startDate)}&end=${fmt(dateRange.endDate)}`;
   };
 
   const { data: revenueRes, isLoading: loadingRevenue } = useGetApiQuery({
@@ -115,58 +105,75 @@ export const TableReport = () => {
     return map;
   }, [tables]);
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Table-wise Report</h1>
+  const totalTableRevenue = useMemo(
+    () =>
+      filteredTables.reduce((sum, table) => {
+        const rev = tableRevenueMap[table.id]?.totalRevenue || 0;
+        return sum + Number(rev);
+      }, 0),
+    [filteredTables, tableRevenueMap],
+  );
 
-      {/* Date Filter Buttons */}
-      <div className="flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            {button.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => handleDateFilter(item.value)}
-                className={`px-4 py-2 rounded-md transition-colors ${
-                  selectedDateFilter === item.value
-                    ? "bg-primaryColor text-white"
-                    : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-             <button
-               type="button"
-               onClick={() => {
-                 setShowDatePicker(!showDatePicker);
-                 if (!showDatePicker) {
-                   setSelectedDateFilter("custom");
-                 }
-               }}
-               className={`px-4 py-2 rounded-md transition-colors ${
-                 selectedDateFilter === "custom"
-                   ? "bg-primaryColor text-white"
-                   : "border border-primaryColor text-primaryColor bg-white shadow-sm hover:bg-blue-50"
-               }`}
-             >
-               Custom
-             </button>
-          </div>
+  const tablesWithRevenue = useMemo(
+    () =>
+      filteredTables.filter(
+        (t) => Number(tableRevenueMap[t.id]?.totalRevenue || 0) > 0,
+      ).length,
+    [filteredTables, tableRevenueMap],
+  );
+
+  return (
+    <div className="w-full space-y-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            Table Report
+          </h1>
+          <p className="mt-1 text-[13px] text-slate-500">
+            <span className="font-medium text-slate-800">{periodLabel}</span>
+            <span className="mx-1.5 text-slate-300">·</span>
+            Tap a table for session details
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <ReportDateChip
+            active={selectedDateFilter === "yesterday"}
+            onClick={() => handleDateFilter("yesterday")}
+          >
+            Yesterday
+          </ReportDateChip>
+          <ReportDateChip
+            active={selectedDateFilter === "today"}
+            onClick={() => handleDateFilter("today")}
+          >
+            Today
+          </ReportDateChip>
+          <ReportDateChip
+            active={selectedDateFilter === "custom" || showDatePicker}
+            onClick={() => setShowDatePicker(true)}
+          >
+            Custom
+          </ReportDateChip>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <p className="text-xl font-semibold">
-          Date: {formatDate(dateRange.startDate)}
-          {dateRange.startDate.getTime() !== dateRange.endDate.getTime() &&
-            ` - ${formatDate(dateRange.endDate)}`}
-        </p>
-      </div>
 
-      {/* Floor Filter */}
-      <div className="flex items-center gap-4">
-        <div className="w-[200px]">
+      <ReportDatePickerDialog
+        open={showDatePicker}
+        onOpenChange={setShowDatePicker}
+        selectedDate={dateRange.startDate}
+        onConfirm={(date) => {
+          setDateRange({
+            startDate: date,
+            endDate: date,
+            key: "selection",
+          });
+          setSelectedDateFilter("custom");
+        }}
+      />
+
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <div className="w-full max-w-[220px]">
           <Select
             label="Floor"
             value={selectedFloorId ?? ""}
@@ -182,172 +189,197 @@ export const TableReport = () => {
             }
           />
         </div>
+        <div className="flex flex-wrap gap-2 text-[13px]">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="text-slate-500">Tables </span>
+            <span className="font-semibold text-slate-800">
+              {filteredTables.length}
+            </span>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="text-slate-500">With sales </span>
+            <span className="font-semibold text-slate-800">
+              {tablesWithRevenue}
+            </span>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <span className="text-emerald-700/80">Total </span>
+            <span className="font-semibold text-emerald-700">
+              {CurrencySign}
+              {totalTableRevenue.toLocaleString()}
+            </span>
+          </div>
+        </div>
       </div>
 
-       {/* Date Picker Modal */}
-       {showDatePicker && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-           <div className="relative bg-white p-8 rounded-lg shadow-lg">
-             <button
-               type="button"
-               onClick={() => setShowDatePicker(false)}
-               className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-2xl"
-             >
-               ×
-             </button>
-             <DatePicker
-               selected={dateRange.startDate}
-               onChange={(date: Date) => {
-                 setDateRange({
-                   startDate: date,
-                   endDate: date,
-                   key: "selection",
-                 });
-                 setSelectedDateFilter("custom");
-               }}
-               inline
-             />
-           </div>
-         </div>
-       )}
+      {loadingRevenue ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100"
+            />
+          ))}
+        </div>
+      ) : !filteredTables.length ? (
+        <ReportEmptyState
+          icon={UtensilsCrossed}
+          title="No tables found"
+          description="Add floors and tables, or switch the floor filter to see results."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filteredTables.map((table: any) => {
+            const tableData = tableRevenueMap[table.id];
+            const revenue = Number(tableData?.totalRevenue || 0);
+            const hasSales = revenue > 0;
 
-      {/* Tables Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filteredTables.map((table: any) => {
-          const tableData = tableRevenueMap[table.id];
-          const revenue = tableData?.totalRevenue || 0;
-
-          return (
-            <button
-              key={table.id}
-              type="button"
-              onClick={() => setSelectedTable(tableData || table)}
-              disabled={!tableData}
-              className={`text-left bg-white rounded-xl border shadow-sm p-4 transition ${
-                tableData
-                  ? "hover:border-gray-300 hover:shadow cursor-pointer"
-                  : "opacity-50 cursor-not-allowed border-gray-100"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold text-gray-900">
-                  Table {table.tableNo}
-                </div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {CurrencySign}
-                  {Number(revenue).toLocaleString()}
-                </div>
-              </div>
-              <div className="text-xs text-gray-500">
-                Floor: {floorMap[table.floorId] || table.floorId}
-              </div>
-              {(tableData?.accounts || []).length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-100">
-                  {(tableData.accounts || []).map((a: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between text-xs"
+            return (
+              <button
+                key={table.id}
+                type="button"
+                onClick={() => setSelectedTable(tableData || table)}
+                className={`rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:shadow ${
+                  hasSales
+                    ? "border-slate-200"
+                    : "border-dashed border-slate-200 opacity-90"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Table {table.tableNo}
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-slate-500">
+                      {floorMap[table.floorId] || `Floor ${table.floorId}`}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-base font-bold ${
+                        hasSales ? "text-emerald-600" : "text-slate-400"
+                      }`}
                     >
-                      <span className="text-gray-600">{a?.name}</span>
-                      <span className="text-gray-900">
-                        {CurrencySign}
-                        {Number(a?.total || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                      {CurrencySign}
+                      {revenue.toLocaleString()}
+                    </p>
+                    {!hasSales && (
+                      <p className="text-[11px] text-slate-400">No sales</p>
+                    )}
+                  </div>
                 </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
 
-      {!filteredTables.length && (
-        <div className="text-sm text-gray-500">No tables found.</div>
+                {(tableData?.accounts || []).length > 0 && (
+                  <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+                    {(tableData.accounts || []).map((a: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-[12px]"
+                      >
+                        <span className="text-slate-500">{a?.name}</span>
+                        <span className="font-medium text-slate-800">
+                          {CurrencySign}
+                          {Number(a?.total || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       )}
-      <TopTablesChart data={tables} isLoading={loadingRevenue} />
 
-      {/* Table Sessions Modal */}
+      <TopTablesChart
+        data={tables}
+        isLoading={loadingRevenue}
+        periodLabel={periodLabel}
+      />
+
       <Modal
         isOpen={!!selectedTable}
         onClose={() => setSelectedTable(null)}
         title={
           selectedTable
-            ? `Table ${selectedTable?.name || selectedTable?.tableNo} sessions`
+            ? `Table ${selectedTable?.name || selectedTable?.tableNo} · sessions`
             : ""
         }
         size="large"
       >
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           {loadingSessions ? (
-            <div className="h-40 w-full animate-pulse bg-gray-100 rounded" />
+            <div className="h-40 w-full animate-pulse rounded-xl bg-slate-100" />
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Total Revenue (Today)</span>
-                <span className="font-semibold text-gray-900">
+              <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-sm text-emerald-800">
+                  <TrendingUp size={15} />
+                  Revenue ({periodLabel})
+                </span>
+                <span className="font-bold text-emerald-700">
                   {CurrencySign}
                   {Number(selectedTable?.totalRevenue || 0).toLocaleString()}
                 </span>
               </div>
 
-              <div className="divide-y divide-gray-200 border border-gray-200 rounded-lg">
+              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
                 {(sessionsRes?.data || []).map((s: any) => (
-                  <div key={s?.sessionId} className="p-4 space-y-2">
+                  <div key={s?.sessionId} className="space-y-2 p-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-slate-900">
                         Session {s?.sessionId}
                       </div>
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-slate-900">
                         {CurrencySign}
                         {Number(s?.total || 0).toLocaleString()}
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[12px] text-slate-500">
                       <span>
                         {s?.sessionStart
                           ? new Date(s.sessionStart).toLocaleString()
-                          : "-"}
+                          : "—"}
                       </span>
-                      <span className="mx-2">to</span>
+                      <span className="mx-2">→</span>
                       <span>
                         {s?.sessionEnd
                           ? new Date(s.sessionEnd).toLocaleString()
-                          : "-"}
+                          : "—"}
                       </span>
                     </div>
 
                     <div className="mt-2">
-                      <div className="text-xs font-medium text-gray-700 mb-1">
+                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
                         Orders
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         {(s?.orders || []).map((o: any) => (
                           <div
                             key={o?.id}
-                            className="border border-gray-200 rounded p-2 text-xs"
+                            className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-[12px]"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-gray-600">
+                              <span className="text-slate-600">
                                 Order #{o?.id}
                               </span>
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-slate-900">
                                 {CurrencySign}
                                 {Number(o?.totalAmount || 0).toLocaleString()}
                               </span>
                             </div>
-                            <div className="text-[11px] text-gray-500 mt-1">
+                            <div className="mt-1 text-[11px] text-slate-500">
                               {o?.orderStartTime
                                 ? new Date(
                                     o.orderStartTime,
                                   ).toLocaleTimeString()
-                                : "-"}{" "}
-                              -{" "}
+                                : "—"}{" "}
+                              –{" "}
                               {o?.orderFinishTime
                                 ? new Date(
                                     o.orderFinishTime,
                                   ).toLocaleTimeString()
-                                : "-"}
+                                : "—"}
                             </div>
                           </div>
                         ))}
@@ -356,7 +388,13 @@ export const TableReport = () => {
                   </div>
                 ))}
                 {!sessionsRes?.data?.length && (
-                  <div className="p-6 text-sm text-gray-500">No sessions.</div>
+                  <div className="p-8">
+                    <ReportEmptyState
+                      icon={UtensilsCrossed}
+                      title="No sessions"
+                      description="This table has no recorded sessions for the current filter."
+                    />
+                  </div>
                 )}
               </div>
             </div>

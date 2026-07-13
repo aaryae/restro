@@ -139,6 +139,8 @@ export default function Users() {
                   compact
                   open={open}
                   setOpen={setOpen}
+                  itemId={id}
+                  activeId={deleteId}
                   handleDeleteTrigger={() =>
                     handleDeleteTrigger(id, isDeleted)
                   }

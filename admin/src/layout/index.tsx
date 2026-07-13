@@ -4,7 +4,7 @@ import TopMenu from "./topMenu";
 import TopMenuMobile from "./topMenuMobile";
 import { useEffect, useState } from "react";
 import { useGetSettingQuery } from "@/redux/services/settings";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 
 export default function Layout() {
   const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(true);
@@ -12,7 +12,7 @@ export default function Layout() {
 
   useEffect(() => {
     const href = settings?.data?.fav_icon
-      ? `${IMAGE_BASE_URL}${settings.data.fav_icon}`
+      ? buildAssetUrl(settings.data.fav_icon)
       : "/fav.webp";
     let link = document.querySelector(
       "link[rel='icon']",
@@ -34,7 +34,7 @@ export default function Layout() {
       <div className="hidden min-h-screen w-full overflow-x-hidden bg-[#f2f6fa] lg:block">
         {/* Side Menu */}
         <div
-          className={`fixed z-50 h-screen overflow-visible shadow-lg shadow-gray-400 transition-all duration-300 ${
+          className={`fixed z-50 h-screen overflow-visible border-r border-slate-200/80 transition-all duration-300 ${
             sideMenuOpen ? "w-[18%]" : "w-20"
           }`}
         >

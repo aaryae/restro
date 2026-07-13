@@ -92,6 +92,8 @@ const PurchaseCategory: React.FC = () => {
         compact
         open={deleteModelOpen}
         setOpen={setDeleteModelOpen}
+                  itemId={r.id}
+                  activeId={deleteId}
         handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
         handleConfirmDelete={handleDelete}
       />

@@ -175,6 +175,8 @@ export default function Customer() {
                 compact
                 open={deleteModelOpen}
                 setOpen={setDeleteModelOpen}
+                  itemId={id}
+                  activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(id)}
                 handleConfirmDelete={handleDelete}
               />

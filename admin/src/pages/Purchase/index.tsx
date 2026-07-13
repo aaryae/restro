@@ -346,6 +346,8 @@ const Purchase: React.FC = () => {
           compact
           open={open}
           setOpen={setOpen}
+                  itemId={id}
+                  activeId={deleteId}
           handleDeleteTrigger={() => handleDeleteTrigger(id)}
           handleConfirmDelete={handleDelete}
         />
