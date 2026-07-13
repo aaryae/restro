@@ -10,6 +10,7 @@ import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
+import { ChefHat } from "lucide-react";
 
 type OrderItem = {
   id: number | string;
@@ -127,7 +128,7 @@ export default function KotList() {
     });
   }, [query, queryStringOptions]);
 
-  const { data: kots, isSuccess } = useGetApiQuery({ url });
+  const { data: kots, isSuccess, isFetching } = useGetApiQuery({ url });
 
   useEffect(() => {
     if (kots?.data) {
@@ -179,12 +180,24 @@ export default function KotList() {
       </div>
       <div className="mt-3 grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {isSuccess && kots?.data?.data?.length > 0 ? (
-          kots?.data?.data?.map((kot) => (
-            <KotCard key={kot.id} kot={kot} />
-          ))
+          kots?.data?.data?.map((kot) => <KotCard key={kot.id} kot={kot} />)
+        ) : isFetching ? (
+          <div className="col-span-full flex min-h-[320px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primaryColor" />
+          </div>
         ) : (
-          <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
-            No kot found
+          <div className="col-span-full flex min-h-[320px] w-full flex-col items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+            <span className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primaryColor/10 text-primaryColor">
+              <ChefHat size={28} strokeWidth={1.75} />
+            </span>
+            <h3 className="text-base font-semibold text-slate-800">
+              No KOTs found
+            </h3>
+            <p className="mt-1.5 max-w-sm text-sm text-slate-500">
+              {queryStringOptions.status === "all"
+                ? "Kitchen tickets will show up here once orders are sent to the kitchen."
+                : `There are no ${queryStringOptions.status} kitchen tickets right now. Try another status filter.`}
+            </p>
           </div>
         )}
       </div>

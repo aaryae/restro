@@ -5,7 +5,7 @@ import { StatusTag } from "../ViewTableOrder";
 import CustomDialog from "@/components/Dialog";
 import ConfirmTransfer from "./ConfirmTransfer";
 import { useState } from "react";
-import Button from "@/components/Button";
+import { CurrencySign } from "@/constants";
 
 export default function ChooseItems({
   selectedTable,
@@ -18,17 +18,15 @@ export default function ChooseItems({
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-  const {
-    data: tableOrder,
-    isSuccess: success,
-    isLoading: loading,
-  } = useGetApiQuery({ url: `${ORDER_URL}active-orders/${selectedTable}` });
+  const { data: tableOrder, isLoading: loading } = useGetApiQuery({
+    url: `${ORDER_URL}active-orders/${selectedTable}`,
+  });
 
   const { data: selectedTableData } = useGetApiQuery({
     url: `${TABLE_URL}${selectedTable}`,
   });
 
-  const orders = tableOrder?.data?.orders;
+  const orders = tableOrder?.data?.orders || [];
 
   const handleOrderSelect = (orderId: number, checked: boolean) => {
     if (checked) {
@@ -44,89 +42,121 @@ export default function ChooseItems({
     }
   };
 
+  const tableLabel = selectedTableData?.data
+    ? `${selectedTableData.data.floor?.name || ""} Table ${selectedTableData.data.tableNo}`
+    : "selected table";
+
   return (
     <>
-      <div>
-        <p className="text-lg font-semibold mb-4">
-          Orders in {selectedTableData?.data?.floor?.name} Table
-          {selectedTableData?.data?.tableNo}
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600">
+          Active orders on <span className="font-medium text-slate-800">{tableLabel}</span>
         </p>
-        <div className="space-y-2">
-          {orders?.map((order) => (
-            <div
-              key={order.id}
-              className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={selectedOrders.includes(order.id)}
-                    onChange={(e) =>
-                      handleOrderSelect(order.id, e.target.checked)
-                    }
-                  />
-                  <div>
-                    <StatusTag status={order.status} orderId={order.id} />
-                    <p className="text-sm text-gray-600">
-                      Order #{order.orderNumber}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-800">
-                    Total: Rs.{Number(order.totalAmount).toFixed(2)}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {order.orderItems.length} items
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-1 ml-7">
-                {order.orderItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-center py-1 text-sm text-gray-600"
-                  >
-                    <div className="flex-1">
-                      <span className="font-medium">{item.product.name}</span>
-                      <span className="text-gray-500 ml-2">
-                        Qty: {item.quantity}
+        {loading ? (
+          <div className="flex min-h-[160px] items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primaryColor" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+            No active orders found on this table.
+          </div>
+        ) : (
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+            {orders.map((order: any) => (
+              <label
+                key={order.id}
+                className={`flex cursor-pointer gap-3 rounded-xl border bg-white p-3.5 transition ${
+                  selectedOrders.includes(order.id)
+                    ? "border-primaryColor/40 ring-2 ring-primaryColor/10"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <Checkbox
+                  checked={selectedOrders.includes(order.id)}
+                  onChange={(e) =>
+                    handleOrderSelect(order.id, e.target.checked)
+                  }
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <StatusTag status={order.status} orderId={order.id} />
+                      <span className="text-sm font-medium text-slate-800">
+                        Order #{order.orderNumber}
                       </span>
-                      {item.specialInstructions && (
-                        <p className="text-xs italic text-gray-500">
-                          Note: {item.specialInstructions}
-                        </p>
-                      )}
                     </div>
                     <div className="text-right">
-                      <p>Rs. {Number(item.subtotal).toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {CurrencySign}
+                        {Number(order.totalAmount).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {order.orderItems.length} items
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+
+                  <div className="mt-2 space-y-1 border-t border-slate-100 pt-2">
+                    {order.orderItems.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start justify-between gap-3 text-xs text-slate-600"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-medium text-slate-700">
+                            {item.product.name}
+                          </span>
+                          <span className="ml-2 text-slate-400">
+                            × {item.quantity}
+                          </span>
+                          {item.specialInstructions && (
+                            <p className="italic text-slate-400">
+                              Note: {item.specialInstructions}
+                            </p>
+                          )}
+                        </div>
+                        <span className="shrink-0">
+                          {CurrencySign}
+                          {Number(item.subtotal).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            disabled={selectedOrders.length === 0}
+            className={`inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-medium text-white transition ${
+              selectedOrders.length > 0
+                ? "bg-primaryColor hover:bg-primaryColor/90"
+                : "cursor-not-allowed bg-slate-300"
+            }`}
+            onClick={handleComplete}
+          >
+            Continue ({selectedOrders.length} selected)
+          </button>
         </div>
-        <Button
-          type="button"
-          className="bg-primaryColor text-white px-4 py-2 mt-6"
-          handleClick={handleComplete}
-          disabled={selectedOrders.length === 0}
-        >
-          Complete ({selectedOrders.length} orders selected)
-        </Button>
       </div>
+
       <CustomDialog
         dialogOpen={dialogOpen}
         setDialogOpen={setDialogOpen}
         title="Confirm Transfer"
-        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+        titleDescription="Review the transfer details before moving the selected orders."
+        contentClassName="max-w-md"
       >
         <ConfirmTransfer
           selectedOrders={selectedOrders}
           sourceTableId={selectedTable}
           destinationTableId={selectedDesiredTable}
+          onCancel={() => setDialogOpen(false)}
           onSuccess={() => {
             setDialogOpen(false);
             onComplete();

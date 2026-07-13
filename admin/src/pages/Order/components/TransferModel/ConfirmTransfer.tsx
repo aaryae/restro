@@ -1,15 +1,14 @@
 import { useState } from "react";
-import Button from "@/components/Button";
-import { useCreateApiMutation } from "@/redux/services/crudApi";
-import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useMoveOrderItemsMutation } from "@/redux/services/orders";
+import { ArrowRightLeft } from "lucide-react";
 
 interface ConfirmTransferProps {
   selectedOrders: number[];
   sourceTableId: number | null;
   destinationTableId: number | null;
   onSuccess: () => void;
+  onCancel: () => void;
 }
 
 function ConfirmTransfer({
@@ -17,13 +16,8 @@ function ConfirmTransfer({
   sourceTableId,
   destinationTableId,
   onSuccess,
+  onCancel,
 }: ConfirmTransferProps) {
-  console.log(
-    selectedOrders,
-    sourceTableId,
-    destinationTableId,
-    "selectedOrders",
-  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moveOrderItems] = useMoveOrderItemsMutation();
@@ -46,14 +40,11 @@ function ConfirmTransfer({
         },
       }).unwrap();
 
-      console.log(response, "response");
-
       handleResponse({
         res: response,
-        onSuccess: onSuccess,
+        onSuccess,
       });
     } catch (err) {
-      console.log(err, "err");
       handleError({ error: err });
     } finally {
       setIsLoading(false);
@@ -61,47 +52,53 @@ function ConfirmTransfer({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          Transfer Confirmation
-        </h3>
-        <div className="text-sm text-blue-800">
-          <p className="mb-2">
-            <strong>Source Table:</strong> Table {sourceTableId}
-          </p>
-          <p className="mb-2">
-            <strong>Destination Table:</strong> Table {destinationTableId}
-          </p>
-          <p className="mb-2">
-            <strong>Orders to Move:</strong> {selectedOrders.length} order(s)
-          </p>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
+          <ArrowRightLeft size={16} className="text-primaryColor" />
+          Transfer summary
         </div>
+        <dl className="space-y-2 text-sm text-slate-600">
+          <div className="flex justify-between gap-3">
+            <dt>Source table ID</dt>
+            <dd className="font-medium text-slate-800">{sourceTableId}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt>Destination table ID</dt>
+            <dd className="font-medium text-slate-800">{destinationTableId}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt>Orders to move</dt>
+            <dd className="font-medium text-slate-800">
+              {selectedOrders.length}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-800 text-sm">{error}</p>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
         </div>
       )}
 
-      <div className="flex justify-end gap-3">
-        <Button
+      <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:gap-3">
+        <button
           type="button"
-          className="bg-gray-500 text-white px-4 py-2"
-          handleClick={onSuccess}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          onClick={onCancel}
           disabled={isLoading}
         >
           Cancel
-        </Button>
-        <Button
+        </button>
+        <button
           type="button"
-          className="bg-primaryColor text-white px-4 py-2"
-          handleClick={handleConfirmTransfer}
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-primaryColor px-5 text-sm font-medium text-white transition hover:bg-primaryColor/90 disabled:opacity-60"
+          onClick={handleConfirmTransfer}
           disabled={isLoading}
         >
           {isLoading ? "Transferring..." : "Confirm Transfer"}
-        </Button>
+        </button>
       </div>
     </div>
   );

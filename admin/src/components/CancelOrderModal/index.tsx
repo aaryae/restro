@@ -1,16 +1,17 @@
-import { DialogTitle, DialogTrigger } from "@radix-ui/react-dialog";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "../ui/dialog";
 import React, { useState } from "react";
 import useTranslation from "@/locale/useTranslation";
-import { Plus } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
-type CacnelOrderProps = {
+type CancelOrderProps = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleCancelTrigger: (id: number, isDeleted?: boolean) => void;
@@ -22,61 +23,85 @@ export default function CancelOrderModal({
   setOpen,
   handleCancelTrigger,
   handleConfirmCancel,
-}: CacnelOrderProps) {
+}: CancelOrderProps) {
   const translate = useTranslation();
+  const [remarks, setRemarks] = useState("");
+  const canConfirm = remarks.trim().length > 0;
 
-  const handleCancelButton = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
+  const handleDismiss = (event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault();
     setRemarks("");
     setOpen(false);
   };
-  const [remarks, setRemarks] = useState<string>("");
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger onClick={handleCancelTrigger}>
-        <Plus
-          onClick={handleCancelButton}
-          size={20}
-          className="rotate-45 text-red-400 cursor-pointer "
-        />
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setRemarks("");
+        setOpen(next);
+      }}
+    >
+      <DialogTrigger onClick={handleCancelTrigger} asChild>
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+          title="Cancel order"
+        >
+          <X size={16} strokeWidth={2.25} />
+        </button>
       </DialogTrigger>
-      <DialogContent className="w-[25rem] p-[3rem] md:w-fit">
-        <DialogHeader>
-          <DialogTitle>
-            <span className="text-[1rem] font-[500] text-red-500 text-center">
-              {translate("Do you want to delete this Item?")}
-            </span>
+      <DialogContent className="max-w-[420px] gap-5 p-6 sm:p-7">
+        <DialogHeader className="items-center space-y-3 sm:items-center sm:text-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <AlertTriangle size={22} strokeWidth={2} />
+          </span>
+          <DialogTitle className="text-base sm:text-center">
+            {translate("Do you want to delete this Item?")}
           </DialogTitle>
-          <DialogDescription>
-            <textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              className="bg-white text-black border border-gray-300 p-2 w-full mt-4"
-              placeholder="Enter Cancellation Remarks"
-            ></textarea>
+          <DialogDescription className="sm:text-center">
+            Please add a short remark explaining why this order is being
+            cancelled.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <div className="flex justify-center gap-[2rem] w-full mt-[1rem]">
-            <button
-              disabled={remarks.trim().length <= 0}
-              className={`py-[0.7rem] px-[1.5rem] h-fit rounded-[6px] flex items-center ${remarks.trim().length <= 0 ? "bg-red-200" : "bg-red-500"}`}
-              onClick={() => handleConfirmCancel(remarks)}
-            >
-              <span className="font-[400] text-[1rem] text-white ">
-                {translate("Delete")}
-              </span>
-            </button>
-            <button
-              className="bg-gray-400 h-fit py-[0.7rem] px-[1.5rem] rounded-[6px] flex items-center"
-              onClick={handleCancelButton}
-            >
-              <span className="font-[400] text-[1rem] text-white ">
-                {translate("Cancel")}
-              </span>
-            </button>
-          </div>
+
+        <div className="space-y-1.5 text-left">
+          <label
+            htmlFor="cancellation-remarks"
+            className="text-xs font-medium text-slate-600"
+          >
+            Cancellation remarks
+          </label>
+          <textarea
+            id="cancellation-remarks"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            rows={3}
+            placeholder="Enter cancellation remarks"
+            className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
+          />
+        </div>
+
+        <DialogFooter className="sm:justify-center">
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={handleDismiss}
+          >
+            {translate("Cancel")}
+          </button>
+          <button
+            type="button"
+            disabled={!canConfirm}
+            className={`inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-medium text-white transition ${
+              canConfirm
+                ? "bg-rose-600 hover:bg-rose-700"
+                : "cursor-not-allowed bg-rose-300"
+            }`}
+            onClick={() => handleConfirmCancel(remarks)}
+          >
+            {translate("Delete")}
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

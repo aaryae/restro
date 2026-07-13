@@ -1,12 +1,14 @@
-import { DialogTitle, DialogTrigger } from "@radix-ui/react-dialog";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "../ui/dialog";
 import { TbTrashXFilled } from "react-icons/tb";
+import { AlertTriangle } from "lucide-react";
 import React from "react";
 import useTranslation from "@/locale/useTranslation";
 
@@ -44,45 +46,44 @@ export default function DeleteModal({
             <TbTrashXFilled size={16} />
           </button>
         ) : (
-          <button type="button" className="inline-flex cursor-pointer items-center">
+          <button
+            type="button"
+            className="inline-flex cursor-pointer items-center"
+            title="Delete"
+          >
             <TbTrashXFilled size={22} className="text-red-500" />
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-[25rem] p-[3rem] md:w-fit">
-        <DialogHeader>
-          <DialogTitle>
-            <span className="text-[1rem] font-[500] text-red-500 text-center">
-              {translate("Do you want to delete this Item?")}
-            </span>
+      <DialogContent className="max-w-[400px] gap-5 p-6 sm:p-7">
+        <DialogHeader className="items-center space-y-3 sm:items-center sm:text-center">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+            <AlertTriangle size={22} strokeWidth={2} />
+          </span>
+          <DialogTitle className="text-base sm:text-center">
+            {translate("Do you want to delete this Item?")}
           </DialogTitle>
-          {/* <DialogDescription>
-            <span className=" font-[400] text-[0.75rem]">
-              {translate(
-                "Are you sure you want to delete this item? This action cannot be undone."
-              )}
-            </span>
-          </DialogDescription> */}
+          <DialogDescription className="sm:text-center">
+            {translate(
+              "Are you sure you want to delete this item? This action cannot be undone.",
+            )}
+          </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <div className="flex justify-center gap-[2rem] w-full mt-[1rem]">
-            <button
-              className="bg-red-500 py-[0.7rem] px-[1.5rem] h-fit rounded-[6px] flex items-center"
-              onClick={handleConfirmDelete}
-            >
-              <span className="font-[400] text-[1rem] text-white ">
-                {translate("Delete")}
-              </span>
-            </button>
-            <button
-              className="bg-gray-400 h-fit py-[0.7rem] px-[1.5rem] rounded-[6px] flex items-center"
-              onClick={handleCancelButton}
-            >
-              <span className="font-[400] text-[1rem] text-white ">
-                {translate("Cancel")}
-              </span>
-            </button>
-          </div>
+        <DialogFooter className="sm:justify-center">
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={handleCancelButton}
+          >
+            {translate("Cancel")}
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-rose-600 px-5 text-sm font-medium text-white transition hover:bg-rose-700"
+            onClick={handleConfirmDelete}
+          >
+            {translate("Delete")}
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

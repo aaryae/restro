@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface DialogProps {
   buttonTitle?: string | React.ReactNode;
@@ -16,6 +17,7 @@ interface DialogProps {
   contentClassName?: string;
   dialogOpen: boolean;
   setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  closeOnOutsideClick?: boolean;
 }
 
 export default function CustomDialog({
@@ -26,28 +28,29 @@ export default function CustomDialog({
   contentClassName,
   dialogOpen,
   setDialogOpen,
+  closeOnOutsideClick = false,
 }: DialogProps) {
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <div>{buttonTitle} </div>
-      </DialogTrigger>
+      {buttonTitle ? (
+        <DialogTrigger asChild>
+          <div>{buttonTitle}</div>
+        </DialogTrigger>
+      ) : null}
       <DialogContent
-        className={
-          contentClassName
-            ? contentClassName
-            : "w-[95vw] max-w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
-        }
+        className={cn(
+          "max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto p-6 sm:p-7",
+          contentClassName,
+        )}
         onInteractOutside={(e) => {
-          // Prevent dialog from closing when clicking on the overlay
-          e.preventDefault();
+          if (!closeOnOutsideClick) e.preventDefault();
         }}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {titleDescription && (
+          {titleDescription ? (
             <DialogDescription>{titleDescription}</DialogDescription>
-          )}
+          ) : null}
         </DialogHeader>
         {children}
       </DialogContent>

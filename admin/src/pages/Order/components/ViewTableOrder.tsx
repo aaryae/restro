@@ -237,10 +237,11 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
       <CustomDialog
         dialogOpen={dialogOpen}
         setDialogOpen={setDialogOpen}
-        title="Choose Table"
-        contentClassName="w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-auto p-2 sm:p-4"
+        title="Transfer Table"
+        titleDescription="Move orders from one table to another."
+        contentClassName="max-w-xl"
       >
-        <ChooseTable tableId={id} />
+        <ChooseTable tableId={id} onClose={() => setDialogOpen(false)} />
       </CustomDialog>
     </>
   );
