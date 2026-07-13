@@ -5,6 +5,7 @@ import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css"; // Main style file
 import "react-date-range/dist/theme/default.css"; // Theme CSS file
 import "./DateRange.css";
+import Select from "@/components/Select";
 
 interface OrderFilterPropsType {
   start: string;
@@ -96,19 +97,17 @@ export default function OrderFilter({
     setSelectedQuick("all");
   };
 
-  const handlePaymentStatusChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
+  const handlePaymentStatusChange = (paymentStatus: string) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      paymentStatus: e.target.value,
+      paymentStatus,
     });
   };
 
-  const handleOrderStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleOrderStatusChange = (orderStatus: string) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      orderStatus: e.target.value,
+      orderStatus,
     });
   };
 
@@ -226,43 +225,35 @@ export default function OrderFilter({
             document.body,
           )}
         <div className="flex gap-3">
-          <div className="flex flex-col items-start">
-            <label
-              htmlFor="paymentStatus"
-              className="mb-1.5 text-xs font-medium text-slate-500"
-            >
-              Payment Status
-            </label>
-            <select
+          <div className="flex min-w-[150px] flex-col items-start">
+            <Select
               id="paymentStatus"
+              label="Payment Status"
               value={queryStringOptions.paymentStatus}
-              onChange={handlePaymentStatusChange}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
-            >
-              <option value="">All</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-            </select>
+              onValueChange={handlePaymentStatusChange}
+              options={[
+                { value: "", label: "All" },
+                { value: "paid", label: "Paid" },
+                { value: "pending", label: "Pending" },
+                { value: "failed", label: "Failed" },
+              ]}
+              triggerClassName="h-9 text-[13px]"
+            />
           </div>
-          <div className="flex flex-col items-start">
-            <label
-              htmlFor="orderStatus"
-              className="mb-1.5 text-xs font-medium text-slate-500"
-            >
-              Order Status
-            </label>
-            <select
+          <div className="flex min-w-[150px] flex-col items-start">
+            <Select
               id="orderStatus"
+              label="Order Status"
               value={queryStringOptions.orderStatus}
-              onChange={handleOrderStatusChange}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
-            >
-              <option value="">All</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              onValueChange={handleOrderStatusChange}
+              options={[
+                { value: "", label: "All" },
+                { value: "pending", label: "Pending" },
+                { value: "completed", label: "Completed" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+              triggerClassName="h-9 text-[13px]"
+            />
           </div>
         </div>
       </div>

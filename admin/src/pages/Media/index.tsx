@@ -22,6 +22,7 @@ import useTranslation from "@/locale/useTranslation";
 import { MEDIA_LIST_ROUTE } from "@/routes/routeNames";
 import DeleteModal from "@/components/DeleteModal";
 import { checkAccess } from "@/utils/accessHelper";
+import Select from "@/components/Select";
 
 export default function Media() {
   const translate = useTranslation();
@@ -196,21 +197,17 @@ export default function Media() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-gray-700">
               Show:
-              <select
-                aria-label="Items per page"
+              <Select
                 value={mediaCategoryList.data.limit}
-                className="bg-white border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                onChange={(e) => {
-                  // Update the limit and reset to first page
-                  handlePageChange(1, Number(e.target.value));
-                }}
-              >
-                {[10, 25, 50, 100].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+                options={[10, 25, 50, 100].map((value) => ({
+                  value,
+                  label: String(value),
+                }))}
+                onValueChange={(next) => handlePageChange(1, Number(next))}
+                className="w-[72px]"
+                triggerClassName="h-8 px-2 text-sm"
+                contentClassName="min-w-[72px]"
+              />
               entries
             </div>
 

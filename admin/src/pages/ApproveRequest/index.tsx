@@ -9,6 +9,7 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
 import { useLocation } from "react-router-dom";
+import Select from "@/components/Select";
 
 export default function ApproveRequest() {
   const location = useLocation();
@@ -122,20 +123,22 @@ export default function ApproveRequest() {
           placeholder="Search With Keywords"
           className="bg-white border rounded-[0.75rem] w-[50%] px-[0.5rem]"
         />
-        <div className="py-[0.375rem] px-[1rem] border rounded-[0.75rem] flex">
-          <p>Group by: </p>{" "}
-          <select
-            name="group-id"
+        <div className="flex items-center gap-2 rounded-[0.75rem] border px-[1rem] py-[0.375rem]">
+          <span className="whitespace-nowrap text-sm">Group by:</span>
+          <Select
             id="group-id"
-            className="bg-inherit w-fit"
-            value={status.status}
-            onChange={handleFilterData}
-          >
-            <option value="All">All</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+            value={status.status ?? "All"}
+            onValueChange={(next) => handleFilterData(next)}
+            options={[
+              { value: "All", label: "All" },
+              { value: "Pending", label: "Pending" },
+              { value: "Approved", label: "Approved" },
+              { value: "Rejected", label: "Rejected" },
+            ]}
+            className="w-[140px]"
+            triggerClassName="h-8 border-0 bg-transparent px-1 shadow-none hover:border-0 focus-visible:ring-0"
+            contentClassName="min-w-[140px]"
+          />
         </div>
       </div>
       {success && (

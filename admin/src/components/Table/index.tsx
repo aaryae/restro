@@ -3,6 +3,7 @@ import { PaginationType } from "@/types/commonTypes";
 import React from "react";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
 import styles from "./index.module.css";
+import Select from "@/components/Select";
 
 interface TableProps {
   headers: string[] | any;
@@ -115,25 +116,23 @@ const Table: React.FC<TableProps> = ({
           <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <label className="inline-flex items-center gap-2 text-[12px] font-medium text-slate-600">
               Show
-              <select
-                name="pagination"
-                id="pagination"
+              <Select
                 value={pagination.limit}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
-                onChange={(e) =>
+                options={[10, 25, 50, 100].map((each) => ({
+                  value: each,
+                  label: String(each),
+                }))}
+                onValueChange={(next) =>
                   handlePagination &&
                   handlePagination({
                     ...pagination,
-                    limit: Number(e.target.value),
+                    limit: Number(next),
                   })
                 }
-              >
-                {[10, 25, 50, 100].map((each) => (
-                  <option key={each} value={each}>
-                    {each}
-                  </option>
-                ))}
-              </select>
+                className="w-[72px]"
+                triggerClassName="h-8 px-2.5 text-[12px]"
+                contentClassName="min-w-[72px]"
+              />
               entries
             </label>
 

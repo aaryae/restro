@@ -3,6 +3,7 @@ import { format, startOfWeek, endOfWeek } from "date-fns";
 import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
+import Select from "@/components/Select";
 
 interface RevenueFilterPropsType {
   start: string;
@@ -63,12 +64,10 @@ export default function RevenueFilter({
     setShowDatePicker(false);
   };
 
-  const handleCashOrCreditChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
+  const handleCashOrCreditChange = (cash_or_credit: string) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      cash_or_credit: e.target.value,
+      cash_or_credit,
     });
   };
 
@@ -145,19 +144,20 @@ export default function RevenueFilter({
           ) : null}
         </div>
 
-        <label className="flex items-center gap-2 text-[12px] font-medium text-slate-600">
-          Payment method
-          <select
+        <div className="w-[160px]">
+          <Select
             id="cash_or_credit"
+            label="Payment method"
             value={queryStringOptions.cash_or_credit}
-            onChange={handleCashOrCreditChange}
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50/60 px-2.5 text-[12px] text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
-          >
-            <option value="">All</option>
-            <option value="cash">Cash</option>
-            <option value="credit">Credit</option>
-          </select>
-        </label>
+            onValueChange={handleCashOrCreditChange}
+            options={[
+              { value: "", label: "All" },
+              { value: "cash", label: "Cash" },
+              { value: "credit", label: "Credit" },
+            ]}
+            triggerClassName="h-8 text-[12px]"
+          />
+        </div>
       </div>
 
       {showDatePicker ? (

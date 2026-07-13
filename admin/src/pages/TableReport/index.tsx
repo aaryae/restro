@@ -9,6 +9,7 @@ import { subDays, startOfDay, endOfDay } from "date-fns";
 import TopTablesChart from "./components/TopTablesChart";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import Select from "@/components/Select";
 
 export const TableReport = () => {
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
@@ -165,21 +166,22 @@ export const TableReport = () => {
 
       {/* Floor Filter */}
       <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Floor:</label>
-        <select
-          value={selectedFloorId || ""}
-          onChange={(e) =>
-            setSelectedFloorId(e.target.value ? Number(e.target.value) : null)
-          }
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
-        >
-          <option value="">All Floors</option>
-          {floors.map((floor: any) => (
-            <option key={floor.id} value={floor.id}>
-              {floor.name}
-            </option>
-          ))}
-        </select>
+        <div className="w-[200px]">
+          <Select
+            label="Floor"
+            value={selectedFloorId ?? ""}
+            options={[
+              { value: "", label: "All Floors" },
+              ...floors.map((floor: any) => ({
+                value: String(floor.id),
+                label: floor.name,
+              })),
+            ]}
+            onValueChange={(next) =>
+              setSelectedFloorId(next ? Number(next) : null)
+            }
+          />
+        </div>
       </div>
 
        {/* Date Picker Modal */}

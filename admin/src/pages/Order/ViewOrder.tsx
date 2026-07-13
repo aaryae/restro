@@ -1,10 +1,8 @@
-import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
-import { ORDER_URL } from "@/constants/apiUrlConstants";
-import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
-import { handleError, handleResponse } from "@/utils/responseHandler";
+import { useGetApiQuery } from "@/redux/services/crudApi";
 import { SetStateAction } from "react";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 
 interface Addon {
   id: number;
@@ -36,94 +34,63 @@ type ViewCustomerProps = {
   setIsOpen: React.Dispatch<SetStateAction<boolean>>;
 };
 
-export default function ViewOrder({
-  id,
-  isOpen,
-  setIsOpen,
-}: ViewCustomerProps) {
-  const {
-    data: orderData,
-    isLoading: loading,
-    isSuccess: success,
-  } = useGetApiQuery(
+function getProductImageSrc(item: OrderItem) {
+  const imageUrl = item?.product?.mediaArr?.[0]?.imageUrl;
+  if (!imageUrl) return DishPlaceHolder;
+  return `${IMAGE_BASE_URL}${imageUrl}`;
+}
+
+export default function ViewOrder({ id }: ViewCustomerProps) {
+  const { data: orderData, isSuccess: success } = useGetApiQuery(
     { url: `order/${id}` },
     {
       skip: id === null || id === undefined,
     },
   );
 
-  const statusOptions = [
-    "pending",
-    "preparing",
-    "ready",
-    "served",
-    "cancelled",
-  ];
-
-  const [patchStatus] = usePatchApiMutation();
-
-  async function handleStatusUpdate(status: string, id: string | number) {
-    try {
-      const response = await patchStatus({
-        url: `${ORDER_URL}items/status`,
-        body: { status, orderItemIds: id },
-      }).unwrap();
-      handleResponse({
-        res: response,
-        onSuccess: () => {},
-      });
-    } catch (error) {
-      handleError({ error });
-    }
-  }
-
-  console.log(orderData, "this is order data");
-
   return (
     <div className="mt-[2rem] ">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <PageTitle title="Order Details" />
-        {/* <button
-          onClick={() => {}}
-          className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700"
-        >
-          <span className="font-[500] text-[15px]">Print Order</span>
-        </button> */}
       </div>
       {success && (
         <div>
           {orderData?.data?.orderItems.map((item: OrderItem) => (
             <div
-              className={`border-l-4 p-4 bg-white shadow-sm mb-4 flex gap-4
-  ${
-    item?.status === "pending"
-      ? "border-yellow-400"
-      : item?.status === "preparing"
-        ? "border-blue-400"
-        : item?.status === "ready"
-          ? "border-green-400"
-          : item?.status === "served"
-            ? "border-purple-400"
-            : item?.status === "cancelled"
-              ? "border-red-400"
-              : "border-gray-400"
-  }`}
+              key={item.id}
+              className={`mb-4 flex gap-4 border-l-4 bg-white p-4 shadow-sm ${
+                item?.status === "pending"
+                  ? "border-yellow-400"
+                  : item?.status === "preparing"
+                    ? "border-blue-400"
+                    : item?.status === "ready"
+                      ? "border-green-400"
+                      : item?.status === "served"
+                        ? "border-purple-400"
+                        : item?.status === "cancelled"
+                          ? "border-red-400"
+                          : "border-gray-400"
+              }`}
             >
-              {/* Image Section */}
-              <div className="w-24 h-24 flex-shrink-0">
+              <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
                 <img
-                  src={`${IMAGE_BASE_URL}${item?.product?.mediaArr?.[0]?.imageUrl}`}
+                  src={getProductImageSrc(item)}
                   alt={item.product?.name || "Product"}
-                  className="w-full h-full object-cover rounded-md"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.dataset.fallbackApplied === "true") return;
+                    target.dataset.fallbackApplied = "true";
+                    target.src = DishPlaceHolder;
+                  }}
                 />
               </div>
-              {/* Content Section */}
               <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-800">
+                <h3 className="text-lg font-semibold text-gray-800">
                   {item.product?.name || "Unknown Product"}
                 </h3>
 
-                <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
                   <p className="text-left">
                     <span className="font-medium">Quantity:</span>{" "}
                     {item.quantity}
@@ -141,7 +108,7 @@ export default function ViewOrder({
                   {item.discount > 0 && (
                     <p className="text-green-600">
                       <span className="font-medium">Discount:</span> $
-                      {parseFloat(item.discount).toFixed(2)}
+                      {parseFloat(String(item.discount)).toFixed(2)}
                     </p>
                   )}
                   {item.department && (
@@ -160,8 +127,8 @@ export default function ViewOrder({
                 )}
 
                 {item.addons && item.addons.length > 0 && (
-                  <div className="mt-3 pl-4 border-l-2 border-gray-200">
-                    <p className="font-medium text-sm text-gray-600 mb-1 text-left">
+                  <div className="mt-3 border-l-2 border-gray-200 pl-4">
+                    <p className="mb-1 text-left text-sm font-medium text-gray-600">
                       Addons:
                     </p>
                     <div className="space-y-2">

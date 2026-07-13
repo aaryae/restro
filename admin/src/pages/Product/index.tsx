@@ -18,6 +18,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import DraggableTable from "@/components/Table/dragableTable";
 import Loader from "@/components/Loader";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
+import Select from "@/components/Select";
 
 export default function Product() {
   const translate = useTranslation();
@@ -151,20 +152,16 @@ export default function Product() {
         searchValue={productSearchTerm}
         onSearchChange={setProductSearchTerm}
         filters={
-          <select
+          <Select
             value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
+            options={categoryOptions}
+            onValueChange={(next) => {
+              setSelectedCategory(next);
               handlePagination({ page: 1, limit: query.limit });
             }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15 sm:w-auto sm:min-w-[160px]"
-          >
-            {categoryOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            className="w-full sm:w-auto sm:min-w-[160px]"
+            triggerClassName="h-10 py-2.5"
+          />
         }
         hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add New Items")}

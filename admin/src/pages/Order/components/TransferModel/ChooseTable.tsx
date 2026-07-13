@@ -1,8 +1,9 @@
 import Button from "@/components/Button";
 import CustomDialog from "@/components/Dialog";
+import Select from "@/components/Select";
 import { TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ChooseItems from "./ChooseItems";
 
 function ChooseTable({ tableId }: { tableId: number | null }) {
@@ -12,49 +13,49 @@ function ChooseTable({ tableId }: { tableId: number | null }) {
     number | null
   >(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const tableOptions = useMemo(
+    () => [
+      { value: "", label: "Select Table" },
+      ...(table?.data?.data?.map((t: any) => ({
+        value: String(t.id),
+        label: `${t.floor?.name} - ${t.tableNo}`,
+      })) || []),
+    ],
+    [table],
+  );
+
   const handleCancel = () => {
     setSelectedTable(null);
     setSelectedDesiredTable(null);
   };
-  const handleSubmit = () => {
-    console.log("clicked");
 
+  const handleSubmit = () => {
     setDialogOpen(true);
   };
+
   return (
     <>
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-2">Current Table</label>
-            <select
-              className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-primaryColor"
-              value={selectedTable || ""}
-              onChange={(e) => setSelectedTable(Number(e.target.value))}
-            >
-              <option value="">Select Table</option>
-              {table?.data?.data?.map((t: any) => (
-                <option key={t.id} value={t.id}>
-                  {t.floor?.name} - {t.tableNo}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label="Current Table"
+            value={selectedTable ?? ""}
+            options={tableOptions}
+            onValueChange={(next) =>
+              setSelectedTable(next ? Number(next) : null)
+            }
+          />
 
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-2">Desired Table</label>
-            <select
-              className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primaryColor focus:border-primaryColor"
-              value={selectedDesiredTable || ""}
-              onChange={(e) => setSelectedDesiredTable(Number(e.target.value))}
-            >
-              <option value="">Select Table</option>
-              {table?.data?.data?.map((t: any) => (
-                <option key={t.id} value={t.id}>
-                  {t.floor?.name} - {t.tableNo}
-                </option>
-              ))}
-            </select>
+          <div>
+            <Select
+              label="Desired Table"
+              value={selectedDesiredTable ?? ""}
+              options={tableOptions}
+              onValueChange={(next) =>
+                setSelectedDesiredTable(next ? Number(next) : null)
+              }
+            />
             {selectedTable &&
               selectedDesiredTable &&
               selectedTable === selectedDesiredTable && (
@@ -65,10 +66,10 @@ function ChooseTable({ tableId }: { tableId: number | null }) {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+        <div className="flex flex-col justify-end gap-2 sm:flex-row">
           <Button
             type="button"
-            className="bg-gray-200 text-gray-800 px-4 py-2 hover:bg-gray-300"
+            className="bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300"
             handleClick={handleCancel}
           >
             Reset
@@ -80,7 +81,7 @@ function ChooseTable({ tableId }: { tableId: number | null }) {
               selectedTable === selectedDesiredTable
             }
             type="button"
-            className="bg-primaryColor text-white px-4 py-2 disabled:bg-gray-400"
+            className="bg-primaryColor px-4 py-2 text-white disabled:bg-gray-400"
             handleClick={() => handleSubmit()}
           >
             Submit

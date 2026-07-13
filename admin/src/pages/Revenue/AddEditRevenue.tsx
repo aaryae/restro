@@ -4,7 +4,8 @@ import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import Select from "@/components/Select";
 import { useNavigate, useParams } from "react-router-dom";
 import useTranslation from "@/locale/useTranslation";
 import {
@@ -80,6 +81,7 @@ export default function AddEditRevenue() {
     setError,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<RevenueFormType>({
     resolver: zodResolver(RevenueSchema),
@@ -257,77 +259,83 @@ export default function AddEditRevenue() {
                 />
               </div>
 
-              <div className="flex flex-col">
-                <label className="input-label flex">Account</label>
-                <select
-                  disabled={isEditMode}
-                  className="input-field flex border border-gray-200 rounded px-3 py-2 bg-white"
-                  {...register("accountId", { valueAsNumber: true })}
-                >
-                  <option value="">Select Account</option>
-                  {accountsSuccess &&
-                    accountsResp?.data?.data?.map((acc: any) => (
-                      <option
-                        value={acc.id}
-                        key={acc.id}
-                        disabled={acc.status !== "active"}
-                      >
-                        {acc.name} {acc.isDefault ? "(Default)" : ""} -{" "}
-                        {acc.accountType}
-                      </option>
-                    ))}
-                </select>
-                {errors.accountId?.message && (
-                  <span className="input-error">
-                    {errors.accountId.message}
-                  </span>
+              <Controller
+                name="accountId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    label="Account"
+                    disabled={isEditMode}
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    error={errors.accountId?.message}
+                    placeholder="Select Account"
+                    options={[
+                      { value: "", label: "Select Account" },
+                      ...((accountsSuccess &&
+                        accountsResp?.data?.data?.map((acc: any) => ({
+                          value: String(acc.id),
+                          label: `${acc.name}${acc.isDefault ? " (Default)" : ""} - ${acc.accountType}`,
+                          disabled: acc.status !== "active",
+                        }))) ||
+                        []),
+                    ]}
+                    onValueChange={(next) =>
+                      field.onChange(next ? Number(next) : undefined)
+                    }
+                  />
                 )}
-              </div>
+              />
 
-              <div className="md:col-span-2 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+              <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">
                     Payment Details
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Choose how the payment was made and whether it was cash or
                     credit.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="input-label text-[18px]">
-                      Payment Method
-                    </label>
-                    <select
-                      className="input-field"
-                      {...register("paymentMethod")}
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="card">Card</option>
-                      <option value="online">Online</option>
-                    </select>
-                    {errors.paymentMethod?.message && (
-                      <span className="input-error">
-                        {errors.paymentMethod.message}
-                      </span>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Controller
+                    name="paymentMethod"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Payment Method"
+                        value={field.value ?? ""}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        error={errors.paymentMethod?.message}
+                        options={[
+                          { value: "cash", label: "Cash" },
+                          { value: "card", label: "Card" },
+                          { value: "online", label: "Online" },
+                        ]}
+                        onValueChange={field.onChange}
+                      />
                     )}
-                  </div>
-                  <div>
-                    <label className="input-label">Cash or Credit</label>
-                    <select
-                      className="input-field"
-                      {...register("cash_or_credit")}
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="credit">Credit</option>
-                    </select>
-                    {errors.cash_or_credit?.message && (
-                      <span className="input-error">
-                        {errors.cash_or_credit.message}
-                      </span>
+                  />
+                  <Controller
+                    name="cash_or_credit"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Cash or Credit"
+                        value={field.value ?? ""}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        error={errors.cash_or_credit?.message}
+                        options={[
+                          { value: "cash", label: "Cash" },
+                          { value: "credit", label: "Credit" },
+                        ]}
+                        onValueChange={field.onChange}
+                      />
                     )}
-                  </div>
+                  />
                 </div>
               </div>
 

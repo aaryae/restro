@@ -7,6 +7,7 @@ import moment from "moment";
 import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
 import Table from "@/components/Table";
 import { User } from "lucide-react";
+import Select from "@/components/Select";
 
 type ViewCustomerProps = {
   id: number | null;
@@ -174,24 +175,21 @@ export default function ViewCustomer({
           {/* Order Summary */}
           <div className="bg-[#f0f3f4] w-full flex flex-col items-start p-[1.25rem] mt-[2rem] rounded-[4px]">
             <h3 className="font-[700] text-[1.25rem] ">Order Summary</h3>
-            <div className="w-full mt-[0.75rem] flex flex-wrap items-center gap-3">
-              <label
-                htmlFor="payment-status-filter"
-                className="text-sm text-gray-700"
-              >
-                Payment Status:
-              </label>
-              <select
-                id="payment-status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primaryColor"
-              >
-                <option value="all">All</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="failed">Failed</option>
-              </select>
+            <div className="mt-[0.75rem] flex w-full flex-wrap items-center gap-3">
+              <div className="w-[180px]">
+                <Select
+                  id="payment-status-filter"
+                  label="Payment Status"
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                  options={[
+                    { value: "all", label: "All" },
+                    { value: "pending", label: "Pending" },
+                    { value: "paid", label: "Paid" },
+                    { value: "failed", label: "Failed" },
+                  ]}
+                />
+              </div>
             </div>
             <div className="w-full mt-[1rem]">
               <Table

@@ -13,6 +13,7 @@ import { ORDER_ADD_ROUTE, TABLE_ADD_ROUTE } from "@/routes/routeNames";
 import { buildQueryString } from "@/utils/generalHelper";
 import PageContent from "@/components/PageContent";
 import TakeAwayOrders from "./TakeAwayOrders";
+import Select from "@/components/Select";
 import ViewTableOrder from "./ViewTableOrder";
 import CheckoutModal from "./CheckoutModal";
 import { Plus } from "lucide-react";
@@ -331,20 +332,15 @@ function Header({
                 {option.label}
               </button>
             ))}
-            <div className="ml-4">
-              <select
+            <div className="ml-4 min-w-[160px]">
+              <Select
                 value={selectedFloor || "all"}
-                onChange={(e) =>
-                  onFloorChange(e.target.value === "all" ? "" : e.target.value)
+                options={floorOptions}
+                onValueChange={(next) =>
+                  onFloorChange(next === "all" ? "" : next)
                 }
-                className="px-6 py-2 sm:px-6 sm:py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[150px] "
-              >
-                {floorOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                triggerClassName="h-10 min-w-[160px] font-medium"
+              />
             </div>
           </div>
         </div>

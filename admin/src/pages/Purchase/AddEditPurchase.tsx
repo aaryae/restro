@@ -33,6 +33,7 @@ import { Input } from "react-aria-components";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import { Controller } from "react-hook-form";
+import Select from "@/components/Select";
 
 type ItemRow = PurchaseItemInput;
 
@@ -697,61 +698,52 @@ const AddEditPurchase: React.FC = () => {
                   />
                 </div>
                 {/* Removed global Purchase Category field in favor of per-item category */}
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
-                    Payment Terms
-                  </label>
-                  <select
-                    className="border rounded px-3 py-2 bg-white"
-                    {...register("paymentTerm")}
-                    title="Payment terms"
-                    aria-label="Payment terms"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="cheque">Cheque</option>
-                    <option value="credit">Credit</option>
-                  </select>
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
-                    Account
-                  </label>
-                  <Controller
-                    name="accountId"
-                    control={control}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        value={
-                          field.value !== undefined && field.value !== null
-                            ? String(field.value)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? Number(e.target.value) : undefined,
-                          )
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option value="">Select Account</option>
-                        {accounts.map((option) => (
-                          <option
-                            key={option.value}
-                            value={String(option.value)}
-                          >
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  />
-                  {errors.accountId?.message && (
-                    <span className="input-error">
-                      {String(errors.accountId.message)}
-                    </span>
+                <Controller
+                  name="paymentTerm"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Payment Terms"
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      options={[
+                        { value: "cash", label: "Cash" },
+                        { value: "cheque", label: "Cheque" },
+                        { value: "credit", label: "Credit" },
+                      ]}
+                      onValueChange={field.onChange}
+                    />
                   )}
-                </div>
+                />
+                <Controller
+                  name="accountId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Account"
+                      value={
+                        field.value !== undefined && field.value !== null
+                          ? String(field.value)
+                          : ""
+                      }
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      error={errors.accountId?.message}
+                      placeholder="Select Account"
+                      options={[
+                        { value: "", label: "Select Account" },
+                        ...accounts.map((option) => ({
+                          value: String(option.value),
+                          label: option.label,
+                        })),
+                      ]}
+                      onValueChange={(next) =>
+                        field.onChange(next ? Number(next) : undefined)
+                      }
+                    />
+                  )}
+                />
               </div>
 
               {/* Items table */}
@@ -817,33 +809,30 @@ const AddEditPurchase: React.FC = () => {
                                 name={`items.${idx}.categoryId`}
                                 control={control}
                                 render={({ field }) => (
-                                  <select
-                                    {...field}
+                                  <Select
                                     value={
                                       field.value !== undefined &&
                                       field.value !== null
                                         ? String(field.value)
                                         : ""
                                     }
-                                    onChange={(e) =>
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    placeholder="Select Category"
+                                    options={[
+                                      { value: "", label: "Select Category" },
+                                      ...purchaseCategories.map((option) => ({
+                                        value: String(option.value),
+                                        label: option.label,
+                                      })),
+                                    ]}
+                                    onValueChange={(next) =>
                                       field.onChange(
-                                        e.target.value
-                                          ? Number(e.target.value)
-                                          : undefined,
+                                        next ? Number(next) : undefined,
                                       )
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                  >
-                                    <option value="">Select Category</option>
-                                    {purchaseCategories.map((option) => (
-                                      <option
-                                        key={option.value}
-                                        value={String(option.value)}
-                                      >
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
+                                    triggerClassName="h-9"
+                                  />
                                 )}
                               />
                               {errors.items?.[idx]?.categoryId?.message && (
