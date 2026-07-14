@@ -21,7 +21,9 @@ function isMenuPathActive(pathname: string, menuPath?: string) {
   if (!menuPath) return false;
   const menuSection = getAdminSection(menuPath);
   const currentSection = getAdminSection(pathname);
-  return Boolean(menuSection && currentSection && menuSection === currentSection);
+  return Boolean(
+    menuSection && currentSection && menuSection === currentSection,
+  );
 }
 
 export default function SideMenu({
@@ -37,13 +39,15 @@ export default function SideMenu({
   const navigate = useNavigate();
   const viewAccess = checkViewAccessList();
   const settingsGroup = SideMenuList.find((each) => each.name === "Settings");
-  const settingsPaths = [
-    settingsGroup?.path,
-    ...(settingsGroup?.menu?.map((m) => m.path) || []),
-  ].filter(Boolean) as string[];
-  const isSettingsView = settingsPaths.some((p) =>
-    isMenuPathActive(pathname, p),
+  const settingsSections = new Set(
+    [
+      "settings",
+      ...(settingsGroup?.menu || [])
+        .map((m) => getAdminSection(m.path || ""))
+        .filter(Boolean),
+    ] as string[],
   );
+  const isSettingsView = settingsSections.has(getAdminSection(pathname) || "");
   const filteredSideMenuList = isSettingsView
     ? SideMenuList.filter((each) => each.name === "Settings")
     : SideMenuList;
@@ -99,6 +103,7 @@ export default function SideMenu({
   }, [isSettingsView, pathname]);
 
   useEffect(() => {
+    // Keep /admin/settings as an alias for company settings.
     if (pathname === "/admin/settings") {
       navigate("/admin/settings/list", { replace: true });
     }
@@ -317,10 +322,13 @@ export default function SideMenu({
             isChildActive || isMenuPathActive(pathname, each.path);
           const isLeafActive =
             !hasSubmenu && isMenuPathActive(pathname, each.path);
-          const submenuOpen = showSubmenu(
-            each.key,
-            hasSubmenu && !(each.name === "Settings" && !isSettingsView),
-          );
+          // In settings mode always show the Settings children (don't wait on expand state).
+          const submenuOpen =
+            (each.name === "Settings" && isSettingsView && sideMenuOpen) ||
+            showSubmenu(
+              each.key,
+              hasSubmenu && !(each.name === "Settings" && !isSettingsView),
+            );
 
           return (
             <div
@@ -349,6 +357,9 @@ export default function SideMenu({
                   onClick={() => {
                     if (isSettingsView && each.name === "Settings") {
                       handleClick(each.key);
+                    } else if (each.name === "Settings") {
+                      // Enter settings mode on the company settings page.
+                      handleNavigate("/admin/settings/list");
                     } else if (each.path) {
                       handleNavigate(each.path);
                     } else {

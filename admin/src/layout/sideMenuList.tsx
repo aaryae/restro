@@ -231,7 +231,7 @@ export const SideMenuList: SideListMenuType[] = [
     key: 9,
     name: "Settings",
     icon: <Settings />,
-    path: "/admin/settings",
+    path: "/admin/settings/list",
     menu: [
       {
         key: 9.1,
