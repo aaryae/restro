@@ -401,14 +401,16 @@ async function refreshMachbankConfig() {
     const merchantId = row.merchantId || undefined;
     const merchantCode = row.merchantCode || merchantId;
 
-    // Start from env (URLs, mTLS certs, getpay key, labels stay env-driven in
-    // phase 1), then overlay the DB-managed merchant identity + secrets.
+    // Start from env (URLs, mTLS certs, getpay key, terminal label), then
+    // overlay the DB-managed merchant identity + secrets from the admin modal.
     const overlay = {
       enabled: true,
       bankMid: merchantId,
       merchantCode,
       mcc: row.merchantCategoryCode || undefined,
       merchantName: row.merchantName || undefined,
+      // Store label is merchant-specific — use modal Merchant Name unless env overrides.
+      storeLabel: env("MACHBANK_STORE_LABEL") || row.merchantName || undefined,
       acquirerId: row.acquirerId || undefined,
       merchantCity: row.merchantCity || undefined,
       merchantPostalCode: row.merchantPostalCode || "4600",

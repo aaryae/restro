@@ -276,13 +276,19 @@ const initiateQrPayment = async (req) => {
 
     const nchlBillNumber = parseNchlBillNumberFromQrPayload(qrResult.qrPayload);
 
+    // DB column is ISO alpha (NPR); bank payloads use numeric currencyCode separately.
+    const currencyAlpha =
+      !config.currency || /^\d+$/.test(String(config.currency))
+        ? "NPR"
+        : String(config.currency).slice(0, 3).toUpperCase();
+
     const intent = await paymentIntentModel.create({
       orderId: anchorOrderId,
       tableId: isTableCheckoutAll ? Number(tableId) : null,
       sessionId,
       checkoutAll: isTableCheckoutAll,
       amount: payAmount,
-      currency: config.currency,
+      currency: currencyAlpha,
       merchantTxnRef,
       nchlBillNumber,
       validationTraceId: qrResult.validationTraceId || null,
@@ -309,7 +315,14 @@ const initiateQrPayment = async (req) => {
       },
     );
 
-    await syncMachbankWebSocket();
+    // WS watch is best-effort — do not fail a successful QR initiate.
+    try {
+      await syncMachbankWebSocket();
+    } catch (wsErr) {
+      logMachbankIssue("syncMachbankWebSocket after initiate", {
+        message: wsErr.message,
+      });
+    }
 
     return {
       status: 201,
@@ -318,7 +331,13 @@ const initiateQrPayment = async (req) => {
       data: formatIntentResponse(intent),
     };
   } catch (error) {
-    logMachbankIssue("initiateQrPayment", { message: error.message });
+    logMachbankIssue("initiateQrPayment", {
+      name: error.name,
+      message: error.message,
+      sql: error.parent?.sql || error.sql || undefined,
+      original: error.parent?.message || error.original?.message || undefined,
+      stack: error.stack,
+    });
     return {
       status: 500,
       success: false,
