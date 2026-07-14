@@ -26,7 +26,13 @@ import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { Banknote, Contact, Mail, Printer, QrCode, Split, X } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { FaPlus } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
@@ -861,10 +867,29 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     dynamicIntentRef.current = dynamicIntent;
   }, [dynamicIntent]);
 
+  /** Cancel/stop the active dynamic QR when leaving checkout or leaving NepalPay QR. */
+  const abandonPendingQr = useCallback(() => {
+    qrRefreshSeqRef.current += 1;
+    const pending = dynamicIntentRef.current;
+    setDynamicIntent(null);
+    setDynamicQrError(null);
+    if (pending?.status !== "pending") return;
+    void cancelQrPayment(pending.id)
+      .unwrap()
+      .catch(() => {
+        /* already settled, expired, or replaced */
+      });
+  }, [cancelQrPayment]);
+
   useEffect(() => {
     setDynamicIntent(null);
     setDynamicQrError(null);
   }, [selectedBankId]);
+
+  useEffect(() => {
+    if (isOpen && canUseDynamicQr) return;
+    abandonPendingQr();
+  }, [isOpen, canUseDynamicQr, abandonPendingQr]);
 
   useEffect(() => {
     if (!isOpen || !canUseDynamicQr) return;
@@ -973,7 +998,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   ]);
 
   useEffect(() => {
-    if (!dynamicIntent || dynamicIntent.status !== "pending") return;
+    if (!isOpen || !dynamicIntent || dynamicIntent.status !== "pending") return;
 
     const poll = async () => {
       try {
@@ -1004,7 +1029,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const interval = setInterval(poll, 3000);
     poll();
     return () => clearInterval(interval);
-  }, [dynamicIntent?.id, dynamicIntent?.status, fetchQrStatus, onClose]);
+  }, [
+    isOpen,
+    dynamicIntent?.id,
+    dynamicIntent?.status,
+    fetchQrStatus,
+    onClose,
+  ]);
 
   const paymentSubmitDisabled =
     selectedSubtotal <= CHECKOUT_ROUND_EPS ||
@@ -1078,7 +1109,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           ) : (
             <>
-              <div className="sticky top-0 bg-white pb-2 pt-[24px]">
+              <div className={styles.modalHeader}>
                 <div className="flex justify-between items-center">
                   <h2 className={styles.modalTitle}>
                     Checkout - Table{" "}
@@ -1089,6 +1120,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </button>
                 </div>
               </div>
+              <div className={styles.modalBody}>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
                 {/* Left column: Order details and member section */}
                 <div className="flex flex-col gap-4 lg:col-span-2">
@@ -1612,6 +1644,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             </>
           )}

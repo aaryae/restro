@@ -1,13 +1,2 @@
-const cron = require("node-cron");
-// REDIS EXCLUSION
-// const { releaseExpiredStock } = require("./release-expired-stock");
-const { withTransaction } = require("./transaction");
-
-// const cleanupExpiredCarts = cron.schedule("*/10 * * * *", () =>
-//   withTransaction(async (t) => {
-//     await releaseExpiredStock(t);
-//     console.log("Expired carts’ stock released");
-//   }),
-// );
-// cleanupExpiredCarts.start();
-// module.exports = { cleanupExpiredCarts };
+// Cart cleanup cron is currently disabled.
+// Re-enable by scheduling releaseExpiredStock from helpers/order/release-expired-stock.js

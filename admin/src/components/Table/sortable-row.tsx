@@ -65,7 +65,7 @@ export function SortableRow({
               className={`px-4 py-3 align-middle ${
                 isActions
                   ? "whitespace-nowrap pr-6 text-center"
-                  : "text-left break-words whitespace-normal"
+                  : "whitespace-nowrap text-left"
               }`}
             >
               {item}

@@ -328,29 +328,57 @@ const updateOrderItemsStatusValidation = async (req, res, next) => {
 };
 
 const checkoutOrderValidation = async (req, res, next) => {
-  const paymentSplitSchema = joi
+  const paymentLineSchema = joi
+    .object({
+      paymentMethod: joi.string().valid("cash", "card", "online").required(),
+      amount: joi.number().positive().required(),
+      accountId: joi.number().positive().required(),
+    })
+    .unknown(false);
+
+  const paymentsArraySchema = joi
+    .array()
+    .items(paymentLineSchema)
+    .min(1)
+    .required();
+
+  // Split across the whole table session
+  const paymentSplitCheckoutAllSchema = joi
     .object({
       checkoutAll: joi.valid(true).required(),
-      payments: joi
-        .array()
-        .items(
-          joi
-            .object({
-              paymentMethod: joi
-                .string()
-                .valid("cash", "card", "online")
-                .required(),
-              amount: joi.number().positive().required(),
-              accountId: joi.number().positive().required(),
-            })
-            .unknown(false),
-        )
-        .min(1)
-        .required(),
+      payments: paymentsArraySchema,
       customerId: joi.number().positive().optional(),
+      sessionId: joi.string().uuid({ version: "uuidv4" }).optional(),
+      discountAmount: joi.number().min(0).optional(),
     })
     .required()
-    .unknown(false); // disallow unknown fields
+    .unknown(false);
+
+  // Split for a single order (takeaway / one order on a table)
+  const paymentSplitOrderSchema = joi
+    .object({
+      orderId: joi.number().positive().required(),
+      payments: paymentsArraySchema,
+      customerId: joi.number().positive().optional(),
+      discountAmount: joi.number().min(0).optional(),
+    })
+    .required()
+    .unknown(false);
+
+  // Split for selected line items (partial table checkout)
+  const paymentSplitSelectiveSchema = joi
+    .object({
+      orderItemIds: joi
+        .array()
+        .items(joi.number().positive())
+        .min(1)
+        .required(),
+      payments: paymentsArraySchema,
+      customerId: joi.number().positive().optional(),
+      discountAmount: joi.number().min(0).optional(),
+    })
+    .required()
+    .unknown(false);
 
   const checkoutAllSchema = joi
     .object({
@@ -391,7 +419,9 @@ const checkoutOrderValidation = async (req, res, next) => {
   const joiModel = joi
     .alternatives()
     .try(
-      paymentSplitSchema,
+      paymentSplitCheckoutAllSchema,
+      paymentSplitOrderSchema,
+      paymentSplitSelectiveSchema,
       checkoutAllSchema,
       takeawayCheckoutSchema,
       selectiveCheckoutSchema,

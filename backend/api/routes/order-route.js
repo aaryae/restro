@@ -33,8 +33,6 @@ const {
   checkoutOrderValidation,
 } = require("../../validations/order-validation");
 
-const authenticateUser = require("../../middlewares/customer-auth-middleware");
-
 router.get(
   "/list",
   authentication,

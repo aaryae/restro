@@ -2,9 +2,10 @@ import { Outlet } from "react-router-dom";
 import SideMenu from "./sideMenu";
 import TopMenu from "./topMenu";
 import TopMenuMobile from "./topMenuMobile";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
+import Loader from "@/components/Loader";
 
 export default function Layout() {
   const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(true);
@@ -57,8 +58,10 @@ export default function Layout() {
               setSideMenuOpen={setSideMenuOpen}
             />
           </div>
-          <div className="min-w-0 overflow-x-hidden overflow-y-auto px-[1.5rem] py-[1rem]">
-            <Outlet />
+          <div className="relative min-w-0 overflow-x-hidden overflow-y-auto px-[1.5rem] py-[1rem]">
+            <Suspense fallback={<Loader />}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </div>
@@ -66,8 +69,10 @@ export default function Layout() {
       <div className="block overflow-x-hidden lg:hidden">
         <TopMenuMobile />
 
-        <div className="min-h-[87vh] overflow-x-hidden overflow-y-auto p-4">
-          <Outlet />
+        <div className="relative min-h-[87vh] overflow-x-hidden overflow-y-auto p-4">
+          <Suspense fallback={<Loader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </>

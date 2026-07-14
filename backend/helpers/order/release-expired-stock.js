@@ -1,6 +1,5 @@
 const { productModel, cartModel, cartItemModel } = require("../../models");
 const { Op } = require("sequelize");
-// const redis = require("../../configs/redis");
 
 // Helper: Release expired stock from carts
 const releaseExpiredStock = async (transaction) => {
@@ -24,7 +23,6 @@ const releaseExpiredStock = async (transaction) => {
           { reservedQuantity: newReserved },
           { transaction },
         );
-        await redis.del(`product:${item.productId}:reserved`);
       }
     }
     await cart.update({ expiresAt: null }, { transaction });

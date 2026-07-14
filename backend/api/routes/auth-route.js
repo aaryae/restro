@@ -30,10 +30,6 @@ const {
   idValidation,
   paginationValidation,
 } = require("../../validations/common-validation");
-const {
-  loginLimiter,
-  //require when redis enabled loginAttemptMiddleware,
-} = require("../../utils/loginRateLimit");
 const { isValidCaptcha } = require("../../middlewares/captcha-middleware");
 
 router.post(
@@ -109,7 +105,6 @@ router.get("/:id", authentication, authorization, idValidation, authGetUser);
 router.post(
   "/login",
   loginValidation,
-  //require for REDIS loginAttemptMiddleware,
   // isValidCaptcha,
   authLogin,
 );

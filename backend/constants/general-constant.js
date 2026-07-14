@@ -1233,11 +1233,6 @@ module.exports = {
         success: true,
         message: "Customer Updated Successfully",
       },
-      CLEAR_REDIS_FAILURE: {
-        status: httpStatus.NOT_ACCEPTABLE,
-        success: false,
-        message: "Unable to clear redis",
-      },
       INCORRECT_PASSWORD: {
         status: httpStatus.NOT_ACCEPTABLE,
         success: false,
