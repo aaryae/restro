@@ -19,13 +19,14 @@ import {
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Minus, Plus, ShoppingBasket } from "lucide-react";
+import { LayoutGrid, List, Minus, Plus, ShoppingBasket, User } from "lucide-react";
 import {
   useCreateOrderMutation,
   useUpdateOrderMutation,
 } from "@/redux/services/orders";
 import { buildQueryString } from "@/utils/generalHelper";
 import usePagination from "@/hooks/usePagination";
+import useDebounce from "@/hooks/useDebounce";
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import Drawer from "@/components/Drawer";
 import styles from "./AddEditOrder.module.css";
@@ -70,7 +71,6 @@ export default function AddEditOrder({
   closeModal = () => {},
 }: Props) {
   const { tableId, orderId } = useParams();
-  const [productSearchTerm, setProductSearchTerm] = useState("");
   const navigate = useNavigate();
   const isEditMode = !!orderId;
 
@@ -91,22 +91,40 @@ export default function AddEditOrder({
     },
   });
 
-  const [queryStringOptions, setQueryStringOptions] = useState("");
+  const [productSearchInput, setProductSearchInput] = useState("");
+  const debouncedProductSearch = useDebounce(productSearchInput, 400);
 
   const { query, handlePagination } = usePagination({
     page: 1,
     limit: 6,
   });
 
+  // Mobile: load more products at once to reduce paging taps.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      handlePagination({ page: 1, limit: 40 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reset to first page when debounced search changes.
+  useEffect(() => {
+    if (query.page !== 1) {
+      handlePagination({ page: 1, limit: query.limit });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedProductSearch]);
+
   const url = useMemo(() => {
     return buildQueryString("product/list", {
       page: query.page,
       limit: query.limit,
       search: {
-        name: queryStringOptions,
+        name: debouncedProductSearch,
       },
     });
-  }, [query, queryStringOptions]);
+  }, [query, debouncedProductSearch]);
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -119,6 +137,17 @@ export default function AddEditOrder({
   const [activeAddonItem, setActiveAddonItem] = useState<OrderItem | null>(
     null,
   );
+  const [cartSheetExpanded, setCartSheetExpanded] = useState(false);
+  const [cartDragY, setCartDragY] = useState(0);
+  const [cartDragging, setCartDragging] = useState(false);
+  const [menuView, setMenuView] = useState<"card" | "list">("card");
+  const cartSheetRef = useRef<HTMLDivElement>(null);
+  const cartDragStartY = useRef(0);
+  const cartDragOriginExpanded = useRef(false);
+  const cartDraggingRef = useRef(false);
+  const cartDidDragRef = useRef(false);
+  const cartDragYRef = useRef(0);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
   const beepRef = useRef<HTMLAudioElement | null>(null);
@@ -316,6 +345,28 @@ export default function AddEditOrder({
       };
       setOrderItems((prev) => [...prev, newItem]);
     }
+  };
+
+  const adjustProductQty = (
+    product: {
+      id: string;
+      name: string;
+      price: number;
+      departmentId: number;
+      quantity: number;
+    },
+    delta: number,
+  ) => {
+    const existingItem = orderItems.find(
+      (item) =>
+        String(item.productId) === String(product.id) &&
+        item.status !== "cancelled",
+    );
+    if (!existingItem) {
+      if (delta > 0) addProductToOrder(product);
+      return;
+    }
+    updateOrderItemQuantity(existingItem.id, existingItem.quantity + delta);
   };
 
   const calcSubtotal = (item: OrderItem) => {
@@ -537,6 +588,59 @@ export default function AddEditOrder({
     (item) => item.status !== "cancelled",
   );
 
+  const qtyForProduct = (productId: string | number) =>
+    orderItems
+      .filter(
+        (item) =>
+          String(item.productId) === String(productId) &&
+          item.status !== "cancelled",
+      )
+      .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const onCartSheetTouchStart = (e: React.TouchEvent) => {
+    cartDragStartY.current = e.touches[0].clientY;
+    cartDragOriginExpanded.current = cartSheetExpanded;
+    cartDraggingRef.current = true;
+    cartDidDragRef.current = false;
+    cartDragYRef.current = 0;
+    setCartDragging(true);
+    setCartDragY(0);
+  };
+
+  const onCartSheetTouchMove = (e: React.TouchEvent) => {
+    if (!cartDraggingRef.current) return;
+    const dy = e.touches[0].clientY - cartDragStartY.current;
+    if (Math.abs(dy) > 6) cartDidDragRef.current = true;
+    const next = cartDragOriginExpanded.current
+      ? Math.max(0, dy)
+      : Math.min(0, dy);
+    cartDragYRef.current = next;
+    setCartDragY(next);
+  };
+
+  const onCartSheetTouchEnd = () => {
+    if (!cartDraggingRef.current) return;
+    const dy = cartDragYRef.current;
+    const threshold = 48;
+    if (cartDragOriginExpanded.current) {
+      if (dy > threshold) setCartSheetExpanded(false);
+    } else if (dy < -threshold) {
+      setCartSheetExpanded(true);
+    }
+    cartDraggingRef.current = false;
+    cartDragYRef.current = 0;
+    setCartDragging(false);
+    setCartDragY(0);
+  };
+
+  const onCartSheetToggleClick = () => {
+    if (cartDidDragRef.current) {
+      cartDidDragRef.current = false;
+      return;
+    }
+    setCartSheetExpanded((open) => !open);
+  };
+
   return (
     <>
       {!isComponent && (
@@ -548,11 +652,12 @@ export default function AddEditOrder({
 
       <div className={styles.page}>
         <form
+          ref={formRef}
           className={styles.grid}
           onSubmit={handleSubmit(onSubmit)}
         >
-          <div className={`${styles.panel} ${styles.panelPad}`}>
-            <div className={styles.panelHeader}>
+          <div className={`${styles.panel} ${styles.panelPad} ${styles.menuPanel}`}>
+            <div className={`${styles.panelHeader} ${styles.desktopOnly}`}>
               <h3 className={styles.panelTitle}>
                 <span className={styles.panelTitleIcon}>
                   <MdShoppingCart size={18} />
@@ -567,76 +672,98 @@ export default function AddEditOrder({
               </span>
             </div>
 
-            <div className={styles.topRow}>
-              <div className={styles.fieldBlock}>
-                <label className={styles.fieldLabel}>Order Type</label>
-                <Controller
-                  name="orderType"
-                  control={control}
-                  defaultValue="dineIn"
-                  render={({ field }) => (
-                    <div className={styles.typePills}>
-                      {orderTypeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`${styles.typePill} ${
-                            field.value === option.value
-                              ? styles.typePillActive
-                              : ""
-                          }`}
-                          onClick={() => field.onChange(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                />
-              </div>
-
-              {watchedOrderType === "dineIn" && (
-                <div className={`${styles.fieldBlock} ${styles.sideField}`}>
-                  <label className={styles.fieldLabel}>Table</label>
+            <div className={styles.mobileSetup}>
+              <div className={styles.topRow}>
+                <div className={styles.fieldBlock}>
+                  <label className={`${styles.fieldLabel} ${styles.desktopOnly}`}>
+                    Order Type
+                  </label>
                   <Controller
-                    defaultValue={tableId || ""}
-                    name="tableId"
+                    name="orderType"
                     control={control}
+                    defaultValue="dineIn"
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        options={tableOptions}
-                        error={errors.tableId?.message}
-                        required
-                      />
+                      <div className={styles.typePills} role="group" aria-label="Order type">
+                        {orderTypeOptions.map((option) => {
+                          const isActive = field.value === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={styles.typePill}
+                              data-active={isActive ? "true" : "false"}
+                              aria-pressed={isActive}
+                              onClick={() => field.onChange(option.value)}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
                   />
                 </div>
-              )}
 
-              {watchedOrderType === "takeaway" && (
-                <div className={`${styles.fieldBlock} ${styles.sideField}`}>
-                  <label className={styles.fieldLabel}>Takeaway Name</label>
+                {watchedOrderType === "dineIn" && (
+                  <div className={`${styles.fieldBlock} ${styles.sideField}`}>
+                    <label
+                      className={`${styles.fieldLabel} ${styles.desktopOnly}`}
+                    >
+                      Table
+                    </label>
+                    <Controller
+                      defaultValue={tableId || ""}
+                      name="tableId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={tableOptions}
+                          error={errors.tableId?.message}
+                          placeholder="Select table"
+                          triggerClassName={styles.mobileSelectTrigger}
+                          contentClassName={styles.mobileSelectContent}
+                          required
+                        />
+                      )}
+                    />
+                  </div>
+                )}
+
+                {watchedOrderType === "takeaway" && (
+                  <div className={`${styles.fieldBlock} ${styles.sideField}`}>
+                    <label
+                      className={`${styles.fieldLabel} ${styles.desktopOnly}`}
+                    >
+                      Takeaway Name
+                    </label>
+                    <div className={styles.takeawayField}>
+                      <span className={styles.takeawayIcon} aria-hidden>
+                        <User size={16} strokeWidth={2} />
+                      </span>
+                      <Input
+                        placeholder="Customer name"
+                        {...register("takeAwayName")}
+                        error={errors.takeAwayName?.message}
+                        className={styles.takeawayMobileInput}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.searchRow}>
+                <div className={styles.searchInner}>
+                  <FaSearch className={styles.searchIcon} size={14} />
                   <Input
-                    placeholder="Customer name"
-                    {...register("takeAwayName")}
-                    error={errors.takeAwayName?.message}
+                    placeholder="Search menu…"
+                    value={productSearchInput}
+                    onChange={(e) => {
+                      setProductSearchInput(e.target.value);
+                    }}
+                    className="w-full"
                   />
                 </div>
-              )}
-            </div>
-
-            <div className={styles.searchRow}>
-              <div className={styles.searchInner}>
-                <FaSearch className={styles.searchIcon} size={13} />
-                <Input
-                  placeholder="Search menu items..."
-                  value={queryStringOptions}
-                  onChange={(e) => {
-                    setQueryStringOptions(e.target.value);
-                  }}
-                  className="w-full"
-                />
               </div>
             </div>
 
@@ -647,12 +774,53 @@ export default function AddEditOrder({
               </div>
             ) : productData?.data?.data?.length > 0 ? (
               <div>
-                <h4 className={styles.sectionLabel}>
-                  {queryStringOptions
-                    ? `Search Results (${productData?.data?.data?.length})`
-                    : "Top Selling Menu Items"}
-                </h4>
-                <div className={styles.productGrid}>
+                <div className={styles.menuToolbar}>
+                  <h4 className={`${styles.sectionLabel} ${styles.desktopOnly}`}>
+                    {debouncedProductSearch
+                      ? `Search Results (${productData?.data?.data?.length})`
+                      : "Top Selling Menu Items"}
+                  </h4>
+                  <p className={styles.mobileMenuHint}>
+                    {debouncedProductSearch
+                      ? `${productData?.data?.data?.length} results`
+                      : "Menu"}
+                  </p>
+                  <div
+                    className={styles.viewToggle}
+                    role="group"
+                    aria-label="Menu layout"
+                  >
+                    <button
+                      type="button"
+                      className={styles.viewToggleBtn}
+                      data-active={menuView === "card" ? "true" : "false"}
+                      aria-pressed={menuView === "card"}
+                      aria-label="Card view"
+                      onClick={() => setMenuView("card")}
+                    >
+                      <LayoutGrid size={16} />
+                      <span>Cards</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.viewToggleBtn}
+                      data-active={menuView === "list" ? "true" : "false"}
+                      aria-pressed={menuView === "list"}
+                      aria-label="List view"
+                      onClick={() => setMenuView("list")}
+                    >
+                      <List size={16} />
+                      <span>List</span>
+                    </button>
+                  </div>
+                </div>
+                <div
+                  className={`${styles.productGrid} ${
+                    menuView === "list"
+                      ? styles.productGridList
+                      : styles.productGridCards
+                  }`}
+                >
                   {productData?.data?.data?.map(
                     (product: {
                       id: string;
@@ -660,37 +828,96 @@ export default function AddEditOrder({
                       description: string;
                       price: number;
                       quantity: number;
+                      departmentId: number;
                       mediaArr: {
                         imageUrl: string;
                       }[];
-                    }) => (
-                      <div
-                        key={product.id}
-                        className={styles.productCard}
-                        onClick={() => {
-                          addProductToOrder(product);
-                          playAudio();
-                        }}
-                      >
-                        <div className={styles.productImageWrap}>
-                          <img
-                            src={`${product?.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + product.mediaArr[0].imageUrl : DishPlaceHolder}`}
-                            alt={product.name}
-                            className={styles.productImage}
-                            loading="lazy"
-                          />
+                    }) => {
+                      const inCartQty = qtyForProduct(product.id);
+                      return (
+                        <div
+                          key={product.id}
+                          className={`${styles.productCard} ${
+                            inCartQty > 0 ? styles.productCardActive : ""
+                          }`}
+                          onClick={() => {
+                            addProductToOrder(product);
+                            playAudio();
+                          }}
+                        >
+                          <div className={styles.productImageWrap}>
+                            <img
+                              src={`${product?.mediaArr?.[0]?.imageUrl ? IMAGE_BASE_URL + product.mediaArr[0].imageUrl : DishPlaceHolder}`}
+                              alt={product.name}
+                              className={styles.productImage}
+                              loading="lazy"
+                            />
+                            {inCartQty > 0 && (
+                              <span className={styles.productQtyBadge}>
+                                {inCartQty}
+                              </span>
+                            )}
+                          </div>
+                          <div className={styles.productBody}>
+                            <h4 className={styles.productName}>
+                              {product.name}
+                            </h4>
+                            <span className={styles.productPrice}>
+                              {CurrencySign} {Number(product.price).toFixed(2)}
+                            </span>
+                            <button type="button" className={styles.addBtn}>
+                              Add to Order
+                            </button>
+                          </div>
+                          <div
+                            className={styles.mobileQtyControls}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {inCartQty > 0 ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className={styles.mobileQtyBtn}
+                                  aria-label="Decrease quantity"
+                                  onClick={() => {
+                                    adjustProductQty(product, -1);
+                                    playAudio();
+                                  }}
+                                >
+                                  <Minus size={16} />
+                                </button>
+                                <span className={styles.mobileQtyValue}>
+                                  {inCartQty}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={styles.mobileQtyBtn}
+                                  aria-label="Increase quantity"
+                                  onClick={() => {
+                                    adjustProductQty(product, 1);
+                                    playAudio();
+                                  }}
+                                >
+                                  <Plus size={16} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.mobileAddBtn}
+                                aria-label={`Add ${product.name}`}
+                                onClick={() => {
+                                  addProductToOrder(product);
+                                  playAudio();
+                                }}
+                              >
+                                <Plus size={18} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className={styles.productBody}>
-                          <h4 className={styles.productName}>{product.name}</h4>
-                          <span className={styles.productPrice}>
-                            {CurrencySign} {Number(product.price).toFixed(2)}
-                          </span>
-                          <button type="button" className={styles.addBtn}>
-                            Add to Order
-                          </button>
-                        </div>
-                      </div>
-                    ),
+                      );
+                    },
                   )}
                 </div>
               </div>
@@ -698,11 +925,11 @@ export default function AddEditOrder({
               <div className={styles.emptyState}>
                 <MdShoppingCart className={styles.emptyIcon} />
                 <p className={styles.emptyTitle}>
-                  {productSearchTerm
+                  {debouncedProductSearch
                     ? "No menu items match your search"
                     : "No products available"}
                 </p>
-                {productSearchTerm && (
+                {debouncedProductSearch && (
                   <p className={styles.emptyHint}>
                     Try searching with different keywords
                   </p>
@@ -724,9 +951,60 @@ export default function AddEditOrder({
             )}
           </div>
 
-          <div className={`${styles.panel} ${styles.cartPanel}`}>
-            <div className={styles.cartHeader}>
-              <h3 className={styles.panelTitle}>Order Items</h3>
+          {cartSheetExpanded && (
+            <button
+              type="button"
+              aria-label="Collapse order details"
+              className={styles.mobileCartScrim}
+              onClick={() => setCartSheetExpanded(false)}
+            />
+          )}
+
+          <div
+            ref={cartSheetRef}
+            className={`${styles.panel} ${styles.cartPanel} ${
+              cartSheetExpanded ? styles.cartPanelExpanded : styles.cartPanelPeek
+            } ${cartDragging ? styles.cartPanelDragging : ""}`}
+            style={
+              cartDragging
+                ? { transform: `translate3d(0, ${cartDragY}px, 0)` }
+                : undefined
+            }
+          >
+            <div
+              className={styles.cartDragZone}
+              onTouchStart={onCartSheetTouchStart}
+              onTouchMove={onCartSheetTouchMove}
+              onTouchEnd={onCartSheetTouchEnd}
+              onTouchCancel={onCartSheetTouchEnd}
+              onClick={onCartSheetToggleClick}
+              role="button"
+              tabIndex={0}
+              aria-expanded={cartSheetExpanded}
+              aria-label={
+                cartSheetExpanded
+                  ? "Collapse order details"
+                  : "Expand order details"
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setCartSheetExpanded((open) => !open);
+                }
+              }}
+            >
+              <div className={styles.mobileCartHandle} aria-hidden />
+              <div className={styles.cartHeader}>
+                <h3 className={styles.panelTitle}>
+                  <span className={styles.desktopOnly}>Order Items</span>
+                  <span className={styles.mobileOnlyTitle}>
+                    Your order · {totalQuantity}
+                  </span>
+                </h3>
+                <span className={styles.mobileCartHeaderTotal}>
+                  {CurrencySign} {Number(totalAmount).toFixed(2)}
+                </span>
+              </div>
             </div>
 
             <div className={styles.cartBody}>
@@ -735,7 +1013,7 @@ export default function AddEditOrder({
                   <MdShoppingCart className={styles.emptyIcon} />
                   <p className={styles.emptyTitle}>No items added yet</p>
                   <p className={styles.emptyHint}>
-                    Click a menu item to start building the order
+                    Tap + on a menu item to add it
                   </p>
                 </div>
               ) : (
@@ -757,6 +1035,14 @@ export default function AddEditOrder({
                       <p className={styles.cartItemMeta}>
                         {CurrencySign} {Number(item.productPrice).toFixed(2)}{" "}
                         each
+                        <span className={styles.cartItemLineTotal}>
+                          {" "}
+                          · {CurrencySign}{" "}
+                          {Number(
+                            item.subtotal ??
+                              item.quantity * item.productPrice,
+                          ).toFixed(2)}
+                        </span>
                       </p>
                       {item.addons && item.addons.length > 0 && (
                         <div className={styles.addonChips}>
@@ -852,7 +1138,7 @@ export default function AddEditOrder({
             </div>
 
             <div className={styles.cartFooter}>
-              <div className={styles.totalRow}>
+              <div className={`${styles.totalRow} ${styles.desktopOnly}`}>
                 <span className={styles.totalLabel}>Total Amount</span>
                 <span className={styles.totalValue}>
                   {CurrencySign} {Number(totalAmount).toFixed(2)}
@@ -868,7 +1154,7 @@ export default function AddEditOrder({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || orderItems.length === 0}
+                  disabled={isSubmitting || visibleOrderItems.length === 0}
                   className={styles.submitBtn}
                 >
                   {isSubmitting ? (
@@ -880,6 +1166,11 @@ export default function AddEditOrder({
                     <>
                       <MdShoppingCart size={16} />
                       {isEditMode ? "Update Order" : "Create Order"}
+                      {totalQuantity > 0 && (
+                        <span className={styles.submitQty}>
+                          ({totalQuantity})
+                        </span>
+                      )}
                     </>
                   )}
                 </button>

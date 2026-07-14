@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { appToast } from "@/components/Toast";
 import Input from "@/components/Input";
 import { CurrencySign } from "@/constants";
 
 const STORAGE_KEY = "openingBalance";
-const TOAST_ID = "opening-balance-updated";
 
 interface Revenue {
   accountId: number;
@@ -40,10 +39,7 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
     setValue(next);
     setSavedValue(next);
 
-    toast.success("Opening balance updated successfully", {
-      position: "bottom-right",
-      toastId: TOAST_ID,
-    });
+    appToast.success("Opening balance updated successfully");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

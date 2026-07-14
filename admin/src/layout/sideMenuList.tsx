@@ -251,6 +251,12 @@ export const SideMenuList: SideListMenuType[] = [
         path: "/admin/smtp",
         icon: <MdOutlineMailOutline />,
       },
+      {
+        key: 9.4,
+        name: "Recently Deleted",
+        path: "/admin/recently-deleted",
+        icon: <MdOutlineFactCheck />,
+      },
     ],
   },
 ];

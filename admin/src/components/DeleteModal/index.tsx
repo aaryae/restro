@@ -78,7 +78,7 @@ export default function DeleteModal({
           </DialogTitle>
           <DialogDescription className="sm:text-center">
             {translate(
-              "Are you sure you want to delete this item? This action cannot be undone.",
+              "Are you sure you want to delete this item? You can restore it later from Settings → Recently Deleted (kept for 30 days).",
             )}
           </DialogDescription>
         </DialogHeader>

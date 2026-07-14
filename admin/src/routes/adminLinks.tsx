@@ -74,6 +74,7 @@ const DailySummaryReport = lazy(() =>
   })),
 );
 const TableReport = lazy(() => import("@/pages/TableReport"));
+const RecentlyDeleted = lazy(() => import("@/pages/RecentlyDeleted"));
 
 export const adminLinks: { path: string; element: ReactNode }[] = [
   {
@@ -119,6 +120,10 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
   {
     path: "/settings/list",
     element: <Settings />,
+  },
+  {
+    path: "/recently-deleted",
+    element: <RecentlyDeleted />,
   },
   {
     path: "/email-template/list",

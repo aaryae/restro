@@ -310,9 +310,17 @@ export default function SideMenu({
           if (!hasAccess) return null;
 
           const visibleSubItems =
-            (each.menu as SideListMenuType[] | undefined)?.filter((item) =>
-              viewAccess.includes(item.name),
-            ) || [];
+            (each.menu as SideListMenuType[] | undefined)?.filter((item) => {
+              if (item.name === "Recently Deleted") {
+                return (
+                  viewAccess.includes("Company Settings") ||
+                  viewAccess.includes("Email Template") ||
+                  viewAccess.includes("Email SMTP") ||
+                  viewAccess.includes("Recently Deleted")
+                );
+              }
+              return viewAccess.includes(item.name);
+            }) || [];
 
           const hasSubmenu = visibleSubItems.length > 0;
           const isChildActive = visibleSubItems.some((item) =>
