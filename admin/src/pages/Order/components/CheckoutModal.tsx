@@ -152,26 +152,39 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     },
   });
 
+  const resolvedOrderId = useMemo(() => {
+    if (Array.isArray(orderId)) {
+      return orderId.length === 1 ? Number(orderId[0]) : null;
+    }
+    if (orderId == null) return null;
+    const n = Number(orderId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [orderId]);
+
   const { data: order } = useGetApiQuery(
-    { url: `order/${orderId}?itemStatus=active` },
+    { url: `order/${resolvedOrderId}?itemStatus=active` },
     {
-      skip:
-        orderId === null ||
-        orderId === undefined ||
-        (Array.isArray(orderId) && orderId.length > 1),
+      skip: !isOpen || resolvedOrderId == null,
     },
   );
 
   // When checking out ALL (multiple orderIds), read active orders for the table
   const { data: activeOrdersResp } = useGetApiQuery(
     { url: `${ORDER_URL}active-orders/${tableId}` },
-    { skip: !Array.isArray(orderId) || !tableId },
+    {
+      skip:
+        !isOpen ||
+        !Array.isArray(orderId) ||
+        orderId.length <= 1 ||
+        tableId == null ||
+        !Number(tableId),
+    },
   );
 
   const { data: table } = useGetApiQuery(
     { url: `table/${tableId}` },
     {
-      skip: !tableId,
+      skip: !isOpen || tableId == null || !Number(tableId),
     },
   );
 
@@ -220,9 +233,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   });
 
   // Fetch all accounts to populate bank and wallet dropdowns
-  const { data: accountsResp } = useGetApiQuery({
-    url: buildQueryString("account/list", { page: 1, limit: 100 }),
-  });
+  const { data: accountsResp } = useGetApiQuery(
+    {
+      url: buildQueryString("account/list", { page: 1, limit: 100 }),
+    },
+    { skip: !isOpen },
+  );
 
   const allActiveAccounts: Array<any> = Array.isArray(accountsResp?.data?.data)
     ? accountsResp?.data?.data.filter((a: any) => a?.status === "active")
@@ -266,7 +282,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // Accounts linked to an active NepalPay integration drive the dynamic-QR flow.
   // Name-based detection is kept only as a backward-compatible fallback.
-  const { data: nepalPayAccountsResp } = useGetActiveIntegrationAccountsQuery();
+  const { data: nepalPayAccountsResp } = useGetActiveIntegrationAccountsQuery(
+    undefined,
+    { skip: !isOpen },
+  );
   const nepalPayAccountIds: number[] = nepalPayAccountsResp?.data || [];
   const isNepalPaySelected =
     !!selectedQrAccount &&
@@ -274,12 +293,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       isNepalPayAccount(selectedQrAccount));
 
   const checkoutOrderId = useMemo(() => {
-    if (Array.isArray(orderId)) {
-      return orderId.length === 1 ? Number(orderId[0]) : null;
-    }
-    const id = orderId ?? order?.data?.id;
-    return id != null ? Number(id) : null;
-  }, [orderId, order]);
+    if (resolvedOrderId != null) return resolvedOrderId;
+    const id = order?.data?.id;
+    return id != null && Number(id) > 0 ? Number(id) : null;
+  }, [resolvedOrderId, order]);
 
   // Prefer media array image when present, otherwise fall back to staticQrUrl fields
   const bankQrUrl =
@@ -315,7 +332,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     isSuccess: customerSuccess,
     isLoading: customerDataLoading,
     refetch: customerRefetch,
-  } = useGetApiQuery({ url: customerUrl });
+  } = useGetApiQuery(
+    { url: customerUrl },
+    { skip: !isOpen || checkoutType !== "member" },
+  );
 
   const closeDialog = () => {
     setDialogOpen(false);

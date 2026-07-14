@@ -222,8 +222,8 @@ function TakeAwayOrders() {
             setOpenCheckout(false);
             setCheckoutCtx({ orderId: null, tableId: null });
           }}
-          tableId={Number(checkoutCtx.tableId ?? 0)}
-          orderId={Number(checkoutCtx.orderId ?? 0)}
+          tableId={checkoutCtx.tableId}
+          orderId={checkoutCtx.orderId}
         />
       )}
     </>

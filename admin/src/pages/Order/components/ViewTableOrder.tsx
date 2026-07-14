@@ -53,16 +53,20 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   } = useGetApiQuery(
     { url: `${ORDER_URL}active-orders/${id}` },
     {
-      skip: id === null || id === undefined,
+      skip: id == null || Number.isNaN(Number(id)),
     },
   );
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: table } = useGetApiQuery({ url: `${TABLE_URL}${id}` });
+  const { data: table } = useGetApiQuery(
+    { url: `${TABLE_URL}${id}` },
+    {
+      skip: id == null || Number.isNaN(Number(id)),
+    },
+  );
 
-
-  const orders = tableOrder?.data?.orders;
-  const allOrderIds = tableOrder?.data?.orders.map(({ id }: any) => id);
+  const orders = tableOrder?.data?.orders ?? [];
+  const allOrderIds = orders.map(({ id: orderId }: { id: number }) => orderId);
 
   return (
     <>
@@ -73,7 +77,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           </h2>
           <div className="flex gap-2">
             <Link
-              to={`/admin/${ORDER_URL}${id}`}
+              to={`/admin/order/${id}`}
               className="flex items-center gap-1 px-3 py-1.5 sm:px-5 sm:py-2 rounded-[0.25rem] bg-primaryColor text-white text-sm sm:text-[15px]"
             >
               <LuChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -105,8 +109,18 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                     <StatusTag status={order.status} orderId={order.id} />
 
                     <div className="space-y-2">
-                      {order.orderItems.map((item) => (
-                        <>
+                      {order.orderItems.map((item: any) => {
+                        const itemName =
+                          item?.product?.name ||
+                          item?.openItem?.name ||
+                          "Unknown item";
+                        const unitPrice = Number(
+                          item?.product?.price ??
+                            item?.openItem?.price ??
+                            item?.price ??
+                            0,
+                        );
+                        return (
                           <div
                             key={item.id}
                             className=" border-b border-gray-200 py-2 gap-6 flex items-center"
@@ -114,7 +128,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                             <div className="flex justify-between w-full">
                               <div className="leading-[1.5] text-gray-600 ">
                                 <p className="font-medium text-[14px] text-left">
-                                  Item: {item.product.name}
+                                  Item: {itemName}
                                 </p>
                                 <p className="flex text-[13px]">
                                   Qty: {item.quantity}
@@ -153,40 +167,39 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                               </div>
                               <div className="leading-[1.5] text-gray-600 text-right flex flex-col justify-between">
                                 <p className="text-[14px]">
-                                  Rs. {Number(item.product.price).toFixed(2)}{" "}
-                                  each
+                                  Rs. {unitPrice.toFixed(2)} each
                                 </p>
                                 {item.addons && item.addons.length > 0 && (
                                   <p className="text-xs text-gray-500">
-                                    {item.addons && item.addons.length > 0 && (
-                                      <div className="text-xs text-gray-600">
-                                        + {CurrencySign}
-                                        {item.addons
-                                          .reduce(
-                                            (sum: number, addonItem: any) =>
-                                              sum +
-                                              Number(
-                                                addonItem?.addon?.price || 0,
-                                              ) *
-                                                addonItem.quantity,
-                                            0,
-                                          )
-                                          .toFixed(2)}{" "}
-                                        addons
-                                      </div>
-                                    )}
+                                    <span className="text-xs text-gray-600">
+                                      + {CurrencySign}
+                                      {item.addons
+                                        .reduce(
+                                          (sum: number, addonItem: any) =>
+                                            sum +
+                                            Number(
+                                              addonItem?.addon?.price || 0,
+                                            ) *
+                                              Number(addonItem?.quantity || 1),
+                                          0,
+                                        )
+                                        .toFixed(2)}{" "}
+                                      addons
+                                    </span>
                                   </p>
                                 )}
 
                                 <p className="text-[13px] font-medium">
                                   Subtotal: Rs.
-                                  {Number(item.itemTotal).toFixed(2)}
+                                  {Number(item.itemTotal ?? item.subtotal ?? 0).toFixed(
+                                    2,
+                                  )}
                                 </p>
                               </div>
                             </div>
                           </div>
-                        </>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="flex justify-between items-center mt-4">
                       <div className="flex gap-2">
@@ -200,9 +213,10 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                                 Checkout
                               </span>
                             </button>
-                            {order.status !== "prepared" && (
+                            {order.status !== "prepared" &&
+                              order.status !== "completed" && (
                               <Link
-                                to={`/admin/${ORDER_URL}${id}/${order.id}`}
+                                to={`/admin/order/${id}/${order.id}`}
                                 className="flex items-center gap-[6px] px-[10px] py-[4px] md:px-[20px] md:py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
                               >
                                 <span className="font-[500] text-[13px] md:text-[15px]">
@@ -253,10 +267,9 @@ export function StatusTag({
   status,
   orderId,
 }: {
-  status: "pending" | "completed" | "cancelled";
+  status: string;
   orderId: number;
 }) {
-  console.log("status", status);
   return (
     <div className="flex justify-between py-2">
       <p className="text-[14px] font-semibold">Order No: {orderId}</p>
@@ -269,10 +282,13 @@ export function StatusTag({
                   ? "bg-red-100 text-red-800"
                   : status === "pending"
                     ? "bg-yellow-100 text-yellow-800"
-                    : "bg-gray-100 text-gray-800"
+                    : status === "prepared" || status === "ready"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-100 text-gray-800"
             }`}
       >
-        {status?.charAt(0)?.toUpperCase() + status?.slice(1)}
+        {(status || "unknown").charAt(0).toUpperCase() +
+          (status || "unknown").slice(1)}
       </span>
     </div>
   );

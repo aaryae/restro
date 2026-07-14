@@ -152,6 +152,8 @@ export default function TableList() {
 
   function closeCheckoutModal() {
     setCheckoutTableId(null);
+    setCheckoutOrderId(null);
+    setCheckoutSelectedItemIds(null);
   }
 
   // Update paid item indicators after successful selective checkout
