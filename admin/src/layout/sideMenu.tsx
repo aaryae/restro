@@ -9,6 +9,21 @@ import useTranslation from "@/locale/useTranslation";
 import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
 import { useGetSettingQuery } from "@/redux/services/settings";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
+
+/** Active when the /admin/<section> segment matches (avoids sticky click state and prefix collisions). */
+function getAdminSection(path: string): string | null {
+  const parts = path.split("/").filter(Boolean);
+  if (parts[0] !== "admin" || !parts[1]) return null;
+  return parts[1];
+}
+
+function isMenuPathActive(pathname: string, menuPath?: string) {
+  if (!menuPath) return false;
+  const menuSection = getAdminSection(menuPath);
+  const currentSection = getAdminSection(pathname);
+  return Boolean(menuSection && currentSection && menuSection === currentSection);
+}
+
 export default function SideMenu({
   setToggleState,
   sideMenuOpen,
@@ -17,7 +32,7 @@ export default function SideMenu({
   sideMenuOpen: boolean;
 }>) {
   const location = useLocation();
-  const currentPath = location.pathname.split("/");
+  const pathname = location.pathname;
   const translate = useTranslation();
   const navigate = useNavigate();
   const viewAccess = checkViewAccessList();
@@ -27,7 +42,7 @@ export default function SideMenu({
     ...(settingsGroup?.menu?.map((m) => m.path) || []),
   ].filter(Boolean) as string[];
   const isSettingsView = settingsPaths.some((p) =>
-    location.pathname.startsWith(p),
+    isMenuPathActive(pathname, p),
   );
   const filteredSideMenuList = isSettingsView
     ? SideMenuList.filter((each) => each.name === "Settings")
@@ -45,33 +60,49 @@ export default function SideMenu({
   } | null>(null);
   const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isActive, setIsActive] = useState<string | null>(null);
   const { data: settings } = useGetSettingQuery("");
+
+  // Keep the parent of the current route expanded (history back/forward included).
+  useEffect(() => {
+    const activeParentKeys = SideMenuList.filter((group) =>
+      group.menu?.some((item) => isMenuPathActive(pathname, item.path)),
+    ).map((group) => group.key);
+
+    if (activeParentKeys.length === 0) return;
+
+    setIsVisible((prev) => {
+      const next = new Set(prev);
+      activeParentKeys.forEach((key) => next.add(key));
+      return Array.from(next);
+    });
+  }, [pathname]);
+
   useEffect(() => {
     if (isSettingsView) {
       const sg = SideMenuList.find((m) => m.name === "Settings");
-      if (sg && !isVisible.includes(sg.key)) {
-        setIsVisible((prev) => [...prev, sg.key]);
+      if (sg) {
+        setIsVisible((prev) =>
+          prev.includes(sg.key) ? prev : [...prev, sg.key],
+        );
       }
     }
-  }, [isSettingsView, location.pathname]);
+  }, [isSettingsView, pathname]);
 
   useEffect(() => {
     if (!isSettingsView) {
       try {
-        localStorage.setItem("lastMainPath", location.pathname);
+        localStorage.setItem("lastMainPath", pathname);
       } catch (_) {
         // ignore storage errors
       }
     }
-  }, [isSettingsView, location.pathname]);
+  }, [isSettingsView, pathname]);
 
   useEffect(() => {
-    if (location.pathname === "/admin/settings") {
-      setIsActive("Company Settings");
+    if (pathname === "/admin/settings") {
       navigate("/admin/settings/list", { replace: true });
     }
-  }, [location.pathname]);
+  }, [pathname, navigate]);
 
   useEffect(() => {
     if (sideMenuOpen) {
@@ -133,8 +164,7 @@ export default function SideMenu({
     });
   };
 
-  const handleNavigate = (name: string, path?: string) => {
-    setIsActive(name);
+  const handleNavigate = (path?: string) => {
     navigate(path ? path : "");
     // Auto-minimize drawer only on tablet/mobile
     try {
@@ -224,9 +254,11 @@ export default function SideMenu({
         {!isSettingsView && viewAccess.includes("Dashboard") && (
           <div
             className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
-              currentPath.includes("dashboard") ? "sidebar-item-active" : ""
+              isMenuPathActive(pathname, "/admin/dashboard")
+                ? "sidebar-item-active"
+                : ""
             }`}
-            onClick={() => handleNavigate("Dashboard", "/admin/dashboard")}
+            onClick={() => handleNavigate("/admin/dashboard")}
           >
             <div className="flex items-center gap-[0.5rem]">
               <div className="sidebar-item-icon">
@@ -244,9 +276,11 @@ export default function SideMenu({
         {!isSettingsView && viewAccess.includes("Order") && (
           <div
             className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
-              currentPath.includes("order") ? "sidebar-item-active" : ""
+              isMenuPathActive(pathname, "/admin/order")
+                ? "sidebar-item-active"
+                : ""
             }`}
-            onClick={() => handleNavigate("request", "/admin/order/list")}
+            onClick={() => handleNavigate("/admin/order/list")}
           >
             <div className="flex items-center gap-[0.5rem]">
               <div className="sidebar-item-icon">
@@ -261,24 +295,6 @@ export default function SideMenu({
           </div>
         )}
 
-        {/* {viewAccess.includes("Supplier") && ( */}
-        {/* <div
-          className={`${
-            currentPath.includes("supplier") ? "bg-primaryColor text-white" : ""
-          } hover:bg-primaryColor hover:text-white flex justify-between items-center rounded-[0.25rem] py-[0.75rem] px-[0.75rem] cursor-pointer mt-[0.25rem]`}
-          onClick={() => handleNavigate("request", "/admin/supplier/list")}
-        >
-          <div className="flex items-center gap-[0.5rem]">
-            <div
-              className={`${sideMenuOpen ? "h-5 w-5" : "h-7 w-7"} flex items-center`}
-            >
-              <Container />
-            </div>
-            {sideMenuOpen && <p className="font-[400] text-[1rem]">Supplier</p>}
-          </div>
-        </div> */}
-        {/* )} */}
-        {/* Apps and Pages */}
         {filteredSideMenuList.map((each: SideListMenuType, index) => {
           const subMenuList = each.menu
             ? each.menu.map((each) => each.name)
@@ -286,7 +302,7 @@ export default function SideMenu({
           const hasAccess = subMenuList.some((item) =>
             viewAccess.includes(item),
           );
-          if (!hasAccess) return null; // Completely remove unauthorized menu groups/items
+          if (!hasAccess) return null;
 
           const visibleSubItems =
             (each.menu as SideListMenuType[] | undefined)?.filter((item) =>
@@ -294,21 +310,13 @@ export default function SideMenu({
             ) || [];
 
           const hasSubmenu = visibleSubItems.length > 0;
-          const isChildActive = visibleSubItems.some(
-            (item) =>
-              (item.path && location.pathname.startsWith(item.path)) ||
-              isActive === item.name,
+          const isChildActive = visibleSubItems.some((item) =>
+            isMenuPathActive(pathname, item.path),
           );
           const isParentActive =
-            isChildActive ||
-            Boolean(
-              each.path &&
-                (currentPath.includes(each.name.toLowerCase()) ||
-                  location.pathname.startsWith(each.path)),
-            );
+            isChildActive || isMenuPathActive(pathname, each.path);
           const isLeafActive =
-            currentPath.includes(each.name.toLowerCase()) ||
-            currentPath.includes(each.name.toLowerCase() + "-category");
+            !hasSubmenu && isMenuPathActive(pathname, each.path);
           const submenuOpen = showSubmenu(
             each.key,
             hasSubmenu && !(each.name === "Settings" && !isSettingsView),
@@ -336,13 +344,13 @@ export default function SideMenu({
               {each.menu ? (
                 <div
                   className={`sidebar-item group flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer transition-all duration-300 ${
-                    isParentActive || isChildActive ? "sidebar-item-active" : ""
+                    isParentActive ? "sidebar-item-active" : ""
                   }`}
                   onClick={() => {
                     if (isSettingsView && each.name === "Settings") {
                       handleClick(each.key);
                     } else if (each.path) {
-                      handleNavigate(each.name, each.path);
+                      handleNavigate(each.path);
                     } else {
                       handleClick(each.key);
                     }
@@ -373,7 +381,7 @@ export default function SideMenu({
                   }`}
                   onClick={() => {
                     if (each.path) {
-                      handleNavigate(each.name, each.path);
+                      handleNavigate(each.path);
                     } else {
                       handleClick(each.key);
                     }
@@ -396,12 +404,11 @@ export default function SideMenu({
                     <div
                       key={`${each.key}-${idx}`}
                       className={`sidebar-subitem group flex items-center gap-[0.5rem] px-[1rem] ml-[1rem] py-[0.75rem] rounded-[0.65rem] cursor-pointer transition-all duration-300 ${
-                        isActive === item.name ||
-                        (item.path && location.pathname.startsWith(item.path))
+                        isMenuPathActive(pathname, item.path)
                           ? "sidebar-subitem-active"
                           : ""
                       }`}
-                      onClick={() => handleNavigate(item.name, item.path)}
+                      onClick={() => handleNavigate(item.path)}
                     >
                       <div className="sidebar-subitem-icon">{item.icon}</div>
                       <p className="font-[500] text-[0.92rem] transition-all duration-300 text-start">
@@ -411,7 +418,6 @@ export default function SideMenu({
                   ))}
                 </div>
               )}
-
             </div>
           );
         })}
@@ -436,13 +442,12 @@ export default function SideMenu({
                   key={`flyout-${collapsedFlyout.key}-${idx}`}
                   type="button"
                   className={`sidebar-flyout-item ${
-                    isActive === item.name ||
-                    (item.path && location.pathname.startsWith(item.path))
+                    isMenuPathActive(pathname, item.path)
                       ? "sidebar-flyout-item-active"
                       : ""
                   }`}
                   onClick={() => {
-                    handleNavigate(item.name, item.path);
+                    handleNavigate(item.path);
                     setCollapsedFlyout(null);
                     setHoveredKey(null);
                   }}

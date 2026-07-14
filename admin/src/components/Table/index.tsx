@@ -83,7 +83,7 @@ const Table: React.FC<TableProps> = ({
                     {row.map((cell, cellIndex) => (
                       <td
                         key={cellIndex}
-                        className={`px-3 py-3.5 align-middle break-words whitespace-normal md:px-4 ${
+                        className={`px-3 py-3.5 align-middle whitespace-nowrap md:px-4 ${
                           isActionsHeader(
                             headers[cellIndex],
                             cellIndex,
