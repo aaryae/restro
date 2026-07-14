@@ -173,6 +173,13 @@ const deleteById = async (req) => {
       };
     }
 
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({
+      resourceType: "expense_category",
+      record: category,
+      req,
+      transaction,
+    });
     await category.destroy({ transaction });
 
     await transaction.commit();

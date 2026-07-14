@@ -134,6 +134,12 @@ const deleteTemplate = async (req) => {
       };
     }
 
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({
+      resourceType: "email_template",
+      record: result,
+      req,
+    });
     await result.destroy();
 
     return {

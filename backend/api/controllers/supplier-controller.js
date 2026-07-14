@@ -82,7 +82,7 @@ const update = async (req, res, next) => {
 const deleteById = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const result = await supplierService.deleteById(id);
+    const result = await supplierService.deleteById(id, req);
 
     return responseHelper.sendResponse(
       res,

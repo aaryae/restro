@@ -170,7 +170,7 @@ const update = async (id, data) => {
   }
 };
 
-const deleteById = async (id) => {
+const deleteById = async (id, req) => {
   try {
     // Prevent delete if supplier is referenced in purchases or expenses
     const [purchaseCount, expenseCount] = await Promise.all([
@@ -187,7 +187,17 @@ const deleteById = async (id) => {
       };
     }
 
-    const deleted = await supplierModel.destroy({ where: { id } });
+    const supplier = await supplierModel.findByPk(id);
+    if (!supplier) {
+      return {
+        ...generalConstant.EN.SUPPLIER.DELETE_FAILURE,
+        data: null,
+      };
+    }
+
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({ resourceType: "supplier", record: supplier, req });
+    const deleted = await supplier.destroy();
     if (!deleted) {
       return {
         ...generalConstant.EN.SUPPLIER.DELETE_FAILURE,

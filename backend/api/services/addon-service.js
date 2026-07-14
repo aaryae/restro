@@ -136,6 +136,8 @@ const deleteById = async (req) => {
       };
     }
 
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({ resourceType: "addon", record: addon, req });
     await addon.destroy();
     return {
       ...generalConstant.EN.ADDON.DELETE_ADDON_SUCCESS,

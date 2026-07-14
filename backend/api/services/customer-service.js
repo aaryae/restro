@@ -169,6 +169,8 @@ const deleteById = async (req) => {
       };
     }
 
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({ resourceType: "customer", record: result, req });
     const deleted = await result.destroy();
     if (!deleted) {
       return {

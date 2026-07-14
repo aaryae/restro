@@ -198,6 +198,8 @@ const deleteById = async (req) => {
       };
     }
 
+    const { archiveToTrash } = require("../../helpers/trash-helper");
+    await archiveToTrash({ resourceType: "floor", record: result, req });
     const deleted = await result.destroy();
     if (!deleted) {
       return {
