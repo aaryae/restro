@@ -25,8 +25,6 @@ const {
   mediaBulkDeleteValidation,
   changeNameValidation,
 } = require("../../validations/media-validation");
-// REDIS EXCLUSION
-// const authenticateUser = require("../../middlewares/customer-auth-middleware");
 
 const upload = uploaderHelper.uploadFiles(
   "resources",
@@ -38,7 +36,6 @@ const upload = uploaderHelper.uploadFiles(
 router.post("/", authentication, authorization, upload, uploadMedia);
 router.post(
   "/customer-upload",
-  // REDIS EXCLUSION authenticateUser,
   upload,
   uploadMedia,
 );

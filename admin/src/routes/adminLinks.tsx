@@ -1,59 +1,81 @@
-import UserProfile from "@/pages/UserProfile";
-import Access from "@/pages/Access";
-import EditAccess from "@/pages/Access/EditAccess";
-import Dashboard from "@/pages/Dashboard";
-import Media from "@/pages/Media";
-import MediaImages from "@/pages/Media/mediaImages";
-import Roles from "@/pages/Roles";
-import Users from "@/pages/Users";
-import ApproveRequest from "@/pages/ApproveRequest";
-import Settings from "@/pages/Settings";
-import EmailTemplate from "@/pages/EmailTemplate";
-import AddEditEmailTemplate from "@/pages/EmailTemplate/AddEditEmailTemplate";
-import EmailSmtp from "@/pages/EmailSmtp";
-import ActiveEmailTemplate from "@/pages/ActiveEmailTemplate";
-import ProductCategory from "@/pages/ProductCategory";
-import AddEditProductCategory from "@/pages/ProductCategory/AddEditProductCategory";
-import Product from "@/pages/Product";
-import AddEditProduct from "@/pages/Product/AddEditProduct";
-import ProductVariant from "@/pages/ProductVariant";
-import AddEditProductVariant from "@/pages/ProductVariant/AddEditProductVariant";
-import Customer from "@/pages/Customer";
-import Order from "@/pages/Order";
-import Department from "@/pages/Department";
-import AddEditDepartment from "@/pages/Department/AddEditDepartment";
-import Floor from "@/pages/Floor";
-import AddEditFloor from "@/pages/Floor/AddEditFloor";
-import OrderTable from "@/pages/Table";
-import AddEditTable from "@/pages/Table/AddEditTable";
-import AddEditOrder from "@/pages/Order/components/AddEditOrder";
-import AddEditCustomer from "@/pages/Customer/AddEditCustomer";
-import Supplier from "@/pages/SuppliersModule";
-import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
-import Revenue from "@/pages/Revenue";
-import AddEditRevenue from "@/pages/Revenue/AddEditRevenue";
-import Purchase from "@/pages/Purchase";
-import PurchaseCategory from "@/pages/PurchaseCategory";
-import AddPurchaseCategory from "@/pages/PurchaseCategory/AddEditPurchaseCategory";
-import AddEditPurchase from "@/pages/Purchase/AddEditPurchase";
-import Account from "@/pages/Account";
-import Expenses from "@/pages/Expenses";
-import AddEditExpense from "@/pages/Expenses/AddEditExpense";
-import AddEditAccount from "@/pages/Account/AddEditAccount";
-import OpenItem from "@/pages/OpenItem";
-import AddEditOpenItem from "@/pages/OpenItem/AddEditOpenItem";
-import ExpenseCategory from "@/pages/ExpenseCategory";
-import AddExpenseCategory from "@/pages/ExpenseCategory/AddEditExpenseCategory";
-import Transaction from "@/pages/Transaction";
-import AddEditAccountPermission from "@/pages/AccountPermission/AddEditAccountPermission";
-import AddEditAddons from "@/pages/Addons/AddEditAddons";
-import Addons from "@/pages/Addons";
-import AccountPermission from "@/pages/AccountPermission";
-import Report from "@/pages/DailyReport";
-import { DailySummaryReport } from "@/pages/DailySummaryReport";
-import { TableReport } from "@/pages/TableReport";
+import { lazy, type ReactNode } from "react";
 
-export const adminLinks = [
+const UserProfile = lazy(() => import("@/pages/UserProfile"));
+const Access = lazy(() => import("@/pages/Access"));
+const EditAccess = lazy(() => import("@/pages/Access/EditAccess"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Media = lazy(() => import("@/pages/Media"));
+const MediaImages = lazy(() => import("@/pages/Media/mediaImages"));
+const Roles = lazy(() => import("@/pages/Roles"));
+const Users = lazy(() => import("@/pages/Users"));
+const ApproveRequest = lazy(() => import("@/pages/ApproveRequest"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const EmailTemplate = lazy(() => import("@/pages/EmailTemplate"));
+const AddEditEmailTemplate = lazy(
+  () => import("@/pages/EmailTemplate/AddEditEmailTemplate"),
+);
+const EmailSmtp = lazy(() => import("@/pages/EmailSmtp"));
+const ActiveEmailTemplate = lazy(() => import("@/pages/ActiveEmailTemplate"));
+const ProductCategory = lazy(() => import("@/pages/ProductCategory"));
+const AddEditProductCategory = lazy(
+  () => import("@/pages/ProductCategory/AddEditProductCategory"),
+);
+const Product = lazy(() => import("@/pages/Product"));
+const AddEditProduct = lazy(() => import("@/pages/Product/AddEditProduct"));
+const ProductVariant = lazy(() => import("@/pages/ProductVariant"));
+const AddEditProductVariant = lazy(
+  () => import("@/pages/ProductVariant/AddEditProductVariant"),
+);
+const Customer = lazy(() => import("@/pages/Customer"));
+const Order = lazy(() => import("@/pages/Order"));
+const Department = lazy(() => import("@/pages/Department"));
+const AddEditDepartment = lazy(
+  () => import("@/pages/Department/AddEditDepartment"),
+);
+const Floor = lazy(() => import("@/pages/Floor"));
+const AddEditFloor = lazy(() => import("@/pages/Floor/AddEditFloor"));
+const OrderTable = lazy(() => import("@/pages/Table"));
+const AddEditTable = lazy(() => import("@/pages/Table/AddEditTable"));
+const AddEditOrder = lazy(() => import("@/pages/Order/components/AddEditOrder"));
+const AddEditCustomer = lazy(() => import("@/pages/Customer/AddEditCustomer"));
+const Supplier = lazy(() => import("@/pages/SuppliersModule"));
+const AddEditSupplier = lazy(
+  () => import("@/pages/SuppliersModule/AddEditSupplier"),
+);
+const Revenue = lazy(() => import("@/pages/Revenue"));
+const AddEditRevenue = lazy(() => import("@/pages/Revenue/AddEditRevenue"));
+const Purchase = lazy(() => import("@/pages/Purchase"));
+const PurchaseCategory = lazy(() => import("@/pages/PurchaseCategory"));
+const AddPurchaseCategory = lazy(
+  () => import("@/pages/PurchaseCategory/AddEditPurchaseCategory"),
+);
+const AddEditPurchase = lazy(() => import("@/pages/Purchase/AddEditPurchase"));
+const Account = lazy(() => import("@/pages/Account"));
+const Expenses = lazy(() => import("@/pages/Expenses"));
+const AddEditExpense = lazy(() => import("@/pages/Expenses/AddEditExpense"));
+const AddEditAccount = lazy(() => import("@/pages/Account/AddEditAccount"));
+const OpenItem = lazy(() => import("@/pages/OpenItem"));
+const AddEditOpenItem = lazy(() => import("@/pages/OpenItem/AddEditOpenItem"));
+const ExpenseCategory = lazy(() => import("@/pages/ExpenseCategory"));
+const AddExpenseCategory = lazy(
+  () => import("@/pages/ExpenseCategory/AddEditExpenseCategory"),
+);
+const Transaction = lazy(() => import("@/pages/Transaction"));
+const AddEditAccountPermission = lazy(
+  () => import("@/pages/AccountPermission/AddEditAccountPermission"),
+);
+const AddEditAddons = lazy(() => import("@/pages/Addons/AddEditAddons"));
+const Addons = lazy(() => import("@/pages/Addons"));
+const AccountPermission = lazy(() => import("@/pages/AccountPermission"));
+const Report = lazy(() => import("@/pages/DailyReport"));
+const DailySummaryReport = lazy(() =>
+  import("@/pages/DailySummaryReport").then((m) => ({
+    default: m.DailySummaryReport,
+  })),
+);
+const TableReport = lazy(() => import("@/pages/TableReport"));
+
+export const adminLinks: { path: string; element: ReactNode }[] = [
   {
     path: "/dashboard",
     element: <Dashboard />,

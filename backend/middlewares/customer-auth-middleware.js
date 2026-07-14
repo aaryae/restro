@@ -1,5 +1,4 @@
 const { verifyCustomerToken } = require("../helpers/jwt-helper");
-const redis = require("../configs/redis");
 
 const authenticateUser = async (req, res, next) => {
   try {
@@ -15,17 +14,6 @@ const authenticateUser = async (req, res, next) => {
         status: 403,
         success: false,
         msg: "JWT expired.",
-      });
-    }
-
-    // Check if the token is in Redis (exists = valid, not exists = logged out)
-    const storedToken = await redis.get(`auth:${decoded.id}`);
-
-    if (!storedToken || storedToken !== token) {
-      return res.status(403).json({
-        status: 403,
-        success: false,
-        msg: "Session expired. Please login again.",
       });
     }
 

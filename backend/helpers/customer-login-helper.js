@@ -1,7 +1,6 @@
 const { generateCustomerJWT } = require("./jwt-helper");
 const passport = require("passport");
-// REDIS EXCLUSION
-// const redis = require("../configs/redis");
+
 const customerLoginHelper = async (user) => {
   try {
     const token = generateCustomerJWT({
@@ -10,13 +9,6 @@ const customerLoginHelper = async (user) => {
       email: user?.email,
       isGuest: user?.isGuest,
     });
-    // REDIS EXCLUSION
-    // await redis.set(
-    //   `auth:${user.id}`,
-    //   token,
-    //   "EX",
-    //   process.env.CUSTOMER_LOGIN_EXPIRATION_TIME,
-    // );
     return token;
   } catch (e) {
     throw e;

@@ -48,10 +48,27 @@ export const chartTooltipStyle = {
 export const formatChartValue = (value: number) =>
   `${CurrencySign}${Number(value).toLocaleString()}`;
 
+/** Trim trailing zeros from fixed decimals (2.0 → 2, 5.50 → 5.5). */
+function trimFixed(n: number, digits: number) {
+  return n
+    .toFixed(digits)
+    .replace(/\.0+$/, "")
+    .replace(/(\.\d*[1-9])0+$/, "$1");
+}
+
+/**
+ * Compact Y-axis labels using South Asian (Nepali/Indian) scales:
+ * 1 Lakh = 1,00,000 · 1 Crore = 1,00,00,000
+ */
 export const formatCompactAxis = (value: number) => {
   const n = Number(value);
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  if (!Number.isFinite(n)) return String(value);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+
+  if (abs >= 10_000_000) return `${sign}${trimFixed(abs / 10_000_000, 1)}Cr`;
+  if (abs >= 100_000) return `${sign}${trimFixed(abs / 100_000, 1)}L`;
+  if (abs >= 1_000) return `${sign}${trimFixed(abs / 1_000, 1)}K`;
   return String(n);
 };
 

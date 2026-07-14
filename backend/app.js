@@ -21,17 +21,12 @@ const morgan = require("morgan");
 const session = require("express-session");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
-// const redis = require("./configs/redis");
-// const { RedisStore } = require("connect-redis");
 
-// Add this //path
+//path
 const messageConstants = require("./constants/message-constant");
 const setupPath = require("./configs/setup");
 const { Sequelize } = require("./models");
 const logger = require("./configs/logger");
-// const { apiRateLimiter } = require("./utils/loginRateLimit");
-
-// const { apiRateLimiter } = require("./utils/loginRateLimit");
 
 //websocket
 const { initWebSocket } = require("./websocket");
@@ -145,18 +140,12 @@ app.use(
   }),
 );
 
-// Redis session storage
+// Session storage (in-memory; suitable for single-instance admin)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "nirvana", // Use env for security
     resave: false,
     saveUninitialized: false, // Only save authenticated sessions
-    // cookie: {
-    //   maxAge: 1 * 60 * 60 * 1000, // 1 day expiration
-    //   httpOnly: true, // Prevent JS access
-    //   secure: process.env.NODE_ENV === "production", // HTTPS in prod
-    //   sameSite: "lax", // CSRF protection
-    // },
   }),
 );
 

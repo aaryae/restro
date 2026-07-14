@@ -11,8 +11,6 @@ const {
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
 // const { Op } = require("sequelize");
-// REDIS EXCLUSION
-// const redis = require("../../configs/redis");
 const create = async (req) => {
   const transaction = await sequelize.transaction();
   try {
@@ -301,15 +299,6 @@ const deleteById = async (req) => {
         data: null,
       };
     }
-    // REDIS EXCLUSION
-    // const getData = await redis.get(`product:${req.params.id}:reserved`);
-    // const quantity = +getData;
-    // if (quantity) {
-    //   return {
-    //     status: 200,
-    //     message: `You cannot delete this product because ${quantity} quantity is still lock by user`,
-    //   };
-    // }
     const deleted = await product.destroy();
     if (!deleted) {
       return {
