@@ -413,7 +413,7 @@ async function refreshMachbankConfig() {
       storeLabel: env("MACHBANK_STORE_LABEL") || row.merchantName || undefined,
       acquirerId: row.acquirerId || undefined,
       merchantCity: row.merchantCity || undefined,
-      merchantPostalCode: row.merchantPostalCode || "4600",
+      merchantPostalCode: row.merchantPostalCode,
       npiUserId: row.npiUsername || undefined,
       username: row.username || undefined,
       password: password || undefined,
