@@ -270,9 +270,12 @@ export default function UserForm({
           name="roleId"
           control={control}
           render={({ field }) => (
-            <Select {...field} options={roleOptions} label="Role Type"
-          isRequired
-        />
+            <Select
+              {...field}
+              options={roleOptions}
+              label="Role Type"
+              isRequired
+            />
           )}
         />
         <Controller
@@ -280,9 +283,12 @@ export default function UserForm({
           control={control}
           render={({ field }) => (
             <div>
-              <Select {...field} options={GenderOptions} label="Gender"
-          isRequired
-        />
+              <Select
+                {...field}
+                options={GenderOptions}
+                label="Gender"
+                isRequired
+              />
               {errors.gender && (
                 <p className="text-red-500 text-sm">{errors.gender.message}</p>
               )}
@@ -297,8 +303,8 @@ export default function UserForm({
             autoComplete="new-password"
             {...register("password")}
             error={errors.password?.message}
-          isRequired
-        />
+            isRequired
+          />
         )}
         {/* <Input label="Is Active" type="checkbox" /> */}
         <div />
