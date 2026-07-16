@@ -36,7 +36,6 @@ class CustomUploadAdapter {
           })
             .then((response) => response.json())
             .then((data) => {
-              console.log(data, "uplaoded image url");
               if (data) {
                 resolve({ default: `${IMAGE_BASE_URL}${data.data.path}` });
               } else {
@@ -51,7 +50,6 @@ class CustomUploadAdapter {
     );
   }
   __handleUploadFailure(reject, errorMessage) {
-    console.log("upload failed", errorMessage);
     if (this.loader && typeof this.loader.abort === "function") {
       this.loader.abort();
     }

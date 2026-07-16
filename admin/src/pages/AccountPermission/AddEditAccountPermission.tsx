@@ -153,7 +153,7 @@ const AddEditAccountPermission: React.FC = () => {
                       options={userOptions}
                       label="User"
                       error={errors.userId?.message}
-                    />
+          />
                   )}
                 />
 
@@ -167,7 +167,7 @@ const AddEditAccountPermission: React.FC = () => {
                       options={accountOptions}
                       label="Account"
                       error={errors.accountId?.message}
-                    />
+          />
                   )}
                 />
               </div>

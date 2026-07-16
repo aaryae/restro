@@ -137,6 +137,7 @@ export default function AddEditTable({
           className="w-full md:w-1/2"
           {...register("tableNo")}
           error={errors.tableNo?.message}
+          isRequired
         />
 
         <Controller
@@ -150,7 +151,7 @@ export default function AddEditTable({
               className="w-full md:w-1/2"
               error={errors.floorId?.message}
               required
-            />
+          />
           )}
         />
 
@@ -165,7 +166,7 @@ export default function AddEditTable({
               className="w-full md:w-1/2"
               error={errors.type?.message}
               required
-            />
+          />
           )}
         />
         <Controller
@@ -179,7 +180,7 @@ export default function AddEditTable({
               className="w-full md:w-1/2"
               error={errors.status?.message}
               required
-            />
+          />
           )}
         />
 
@@ -190,6 +191,7 @@ export default function AddEditTable({
           className="w-full md:w-1/2"
           {...register("capacity", { valueAsNumber: true })}
           error={errors.capacity?.message}
+          isRequired
         />
 
         <div className="flex justify-start">

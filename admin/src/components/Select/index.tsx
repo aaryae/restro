@@ -3,6 +3,7 @@ import { FieldError } from "react-hook-form";
 import { Check, ChevronDown } from "lucide-react";
 import useTranslation from "@/locale/useTranslation";
 import { cn } from "@/lib/utils";
+import { RequiredMark } from "@/components/RequiredMark";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,8 @@ interface SelectProps {
   disabled?: boolean;
   name?: string;
   id?: string;
+  isRequired?: boolean;
+  required?: boolean;
   onBlur?: React.FocusEventHandler;
   onChange?: (event: { target: { value: string; name?: string } }) => void;
   onValueChange?: (value: string) => void;
@@ -56,6 +59,8 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
       disabled,
       name,
       id,
+      isRequired,
+      required,
       onBlur,
       onChange,
       onValueChange,
@@ -63,6 +68,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
     ref,
   ) => {
     const translate = useTranslation();
+    const showRequired = Boolean(isRequired || required);
     const [open, setOpen] = useState(false);
     const [uncontrolled, setUncontrolled] = useState(
       defaultValue != null ? String(defaultValue) : "",
@@ -106,6 +112,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
         {label && (
           <label htmlFor={id} className="input-label text-left">
             {typeof label === "string" ? translate(label) : label}
+            {showRequired && <RequiredMark />}
           </label>
         )}
 
@@ -118,6 +125,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
               name={name}
               disabled={disabled}
               onBlur={onBlur}
+              aria-required={showRequired || undefined}
               className={cn(
                 "flex h-10 w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 outline-none transition",
                 "hover:border-slate-300",

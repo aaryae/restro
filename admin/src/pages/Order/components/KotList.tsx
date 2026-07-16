@@ -6,11 +6,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import usePagination from "@/hooks/usePagination";
 import Button from "@/components/Button";
-import CheckoutModal from "./CheckoutModal";
 import { useReactToPrint } from "react-to-print";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
 import { ChefHat } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { buildCheckoutPath } from "@/utils/checkoutNavigation";
 
 type OrderItem = {
   id: number | string;
@@ -285,7 +286,7 @@ function KotCard({ kot }) {
     0,
   );
 
-  const [openCheckout, setOpenCheckout] = useState(false);
+  const navigate = useNavigate();
   const statusTheme = getKotStatusTheme(kot.status);
 
   const tableOrCustomer =
@@ -399,7 +400,14 @@ function KotCard({ kot }) {
           {kot.status === "ready" && (
             <Button
               className="border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-700"
-              handleClick={() => setOpenCheckout(true)}
+              handleClick={() =>
+                navigate(
+                  buildCheckoutPath({
+                    tableId: kot?.order?.table?.id ?? null,
+                    orderId: kot?.order?.id ?? kot?.orderId ?? null,
+                  }),
+                )
+              }
             >
               Checkout
             </Button>
@@ -442,14 +450,6 @@ function KotCard({ kot }) {
             </Button>
           )}
         </div>
-        {openCheckout && (
-          <CheckoutModal
-            isOpen={openCheckout}
-            onClose={() => setOpenCheckout(false)}
-            tableId={kot?.order?.table?.id ?? null}
-            orderId={kot?.order?.id ?? kot?.orderId ?? null}
-          />
-        )}
       </div>
     </>
   );

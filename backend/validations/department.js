@@ -12,7 +12,7 @@ const {
 const departmentPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
     name: joi.string().required().label("name"),
-    description: joi.string().optional().min(1).max(1000).label("Description"),
+    description: joi.string().allow(null, "").optional().max(1000).label("Description"),
     color: joi.string().required().label("Color"),
     subNameOne: joi.string().optional().label("Sub Name One"),
     subNameTwo: joi.string().optional().label("Sub Name Two"),
@@ -38,8 +38,7 @@ const departmentPutValidation = async (req, res, next) => {
     description: joi
       .string()
       .optional()
-      .allow(null)
-      .min(1)
+      .allow(null, "")
       .max(1000)
       .label("Description"),
     color: joi.string().optional().label("Color"),

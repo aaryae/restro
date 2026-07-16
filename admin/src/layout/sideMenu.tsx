@@ -29,9 +29,11 @@ function isMenuPathActive(pathname: string, menuPath?: string) {
 export default function SideMenu({
   setToggleState,
   sideMenuOpen,
+  showCollapseToggle = true,
 }: Readonly<{
   setToggleState?: React.Dispatch<SetStateAction<boolean>>;
   sideMenuOpen: boolean;
+  showCollapseToggle?: boolean;
 }>) {
   const location = useLocation();
   const pathname = location.pathname;
@@ -171,13 +173,13 @@ export default function SideMenu({
 
   const handleNavigate = (path?: string) => {
     navigate(path ? path : "");
-    // Auto-minimize drawer only on tablet/mobile
+    // Close overlay drawer on phone after navigate
     try {
       if (
         setToggleState &&
         typeof window !== "undefined" &&
         window.matchMedia &&
-        window.matchMedia("(max-width: 1023px)").matches
+        window.matchMedia("(max-width: 767px)").matches
       ) {
         setToggleState(false);
       }
@@ -202,7 +204,13 @@ export default function SideMenu({
     >
       {/* logo section */}
       <div
-        className={`sidebar-header flex items-center ${sideMenuOpen ? "justify-between" : "justify-center"}`}
+        className={`sidebar-header flex items-center ${
+          sideMenuOpen
+            ? showCollapseToggle
+              ? "justify-between"
+              : "justify-start pr-12"
+            : "justify-center"
+        }`}
       >
         {sideMenuOpen && (
           <img
@@ -220,14 +228,16 @@ export default function SideMenu({
           />
         )}
 
-        <button
-          type="button"
-          aria-label={sideMenuOpen ? "Collapse sidebar" : "Expand sidebar"}
-          onClick={() => setToggleState && setToggleState((cur) => !cur)}
-          className="sidebar-toggle-btn cursor-pointer"
-        >
-          <PanelLeft size={sideMenuOpen ? 20 : 22} strokeWidth={2.2} />
-        </button>
+        {showCollapseToggle && (
+          <button
+            type="button"
+            aria-label={sideMenuOpen ? "Collapse sidebar" : "Expand sidebar"}
+            onClick={() => setToggleState && setToggleState((cur) => !cur)}
+            className="sidebar-toggle-btn cursor-pointer"
+          >
+            <PanelLeft size={sideMenuOpen ? 20 : 22} strokeWidth={2.2} />
+          </button>
+        )}
       </div>
       <div
         className={`sidebar-nav ${showScrollBar ? "sidebar-nav-scroll-active" : ""} flex flex-col gap-[6px] mt-[2rem] ${!sideMenuOpen ? "items-center" : " "}`}

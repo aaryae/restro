@@ -101,6 +101,7 @@ const AddPurchaseCategory: React.FC = () => {
           className="w-full md:w-1/2"
           {...register("title")}
           error={errors.title?.message}
+          isRequired
         />
         <TextArea
           label={translate("Purchase Category Description")}

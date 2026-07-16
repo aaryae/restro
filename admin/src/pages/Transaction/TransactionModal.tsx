@@ -98,7 +98,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                 {...field}
                 value={field.value?.toString() || ""}
                 onChange={(e) => field.onChange(Number(e.target.value))}
-              />
+          isRequired
+        />
             )}
           />
         </div>
@@ -112,8 +113,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
             className="w-full"
             {...register("amount", { valueAsNumber: true })}
             error={errors?.amount?.message as string}
-            isRequired
-          />
+          isRequired
+        />
         </div>
 
         <div>

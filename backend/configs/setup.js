@@ -299,7 +299,6 @@ internal.saveSettings = async (setting) => {
 // };
 
 internal.saveRTEMediaCategory = async (req, mediaCategory) => {
-  console.log(mediaCategory);
 
   try {
     for (const mediaCat of mediaCategory) {
@@ -319,7 +318,6 @@ internal.saveRTEMediaCategory = async (req, mediaCategory) => {
 internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
   try {
     // Ensure categoryConfigs is an array
-    console.log(categoryConfigs, typeof categoryConfigs);
     if (!Array.isArray(categoryConfigs)) {
       throw new Error("categoryConfigs must be an array");
     }
@@ -335,7 +333,6 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
         .catch(() => false))
     ) {
       await fs.mkdir(resourcesFolder, { recursive: true });
-      console.log(`Created resources folder: ${resourcesFolder}`);
     }
 
     // Process each category configuration
@@ -379,7 +376,6 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
           slug: generateSlug(departmentName),
           isActive: true, // Required field with default
         });
-        console.log(`Created department: ${departmentName}`);
       } else {
         console.log(`Department already exists: ${departmentName}`);
       }
@@ -415,7 +411,6 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
           orders: 0,
           loyaltyRequired: 0,
         });
-        console.log(`Created product category: ${categoryName}`);
       } else {
         console.log(`Product category already exists: ${categoryName}`);
       }
@@ -475,7 +470,6 @@ internal.seedFolderBasedMedia = async (req, categoryConfigs) => {
 
         // Copy file to resources
         await fs.copyFile(sourcePath, targetPath);
-        console.log(`Copied file to resources: ${targetPath}`);
 
         const stats = await fs.stat(targetPath);
         const dbPath = `resources/${targetFileName}`; // e.g., resources/1747215288312-fmhnauq0-espresso.png
@@ -715,7 +709,6 @@ internal.seedAccounts = async (req, accountConfigs) => {
           status: "active", // Required field with default
           isDefault: isDefault,
         });
-        console.log(`Created account: ${name} (${accountType})`);
       } else {
         console.log(`Account already exists: ${name} (${accountType})`);
       }

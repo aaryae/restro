@@ -37,7 +37,10 @@ interface ViewTableOrderProps {
   id: number | null;
   tableNo: number | null;
   orderId: number | null;
-  handleCheckout: (tableId: number, orderId: number | null | [number]) => void;
+  handleCheckout: (
+    tableId: number,
+    orderId: number | null | number[],
+  ) => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
@@ -106,7 +109,33 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                     key={order.id}
                     className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
                   >
-                    <StatusTag status={order.status} orderId={order.id} />
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <StatusTag status={order.status} orderId={order.id} />
+                      {order.paymentStatus && (
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${
+                            order.paymentStatus === "paid"
+                              ? "bg-green-100 text-green-800"
+                              : order.paymentStatus === "partially_paid"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.paymentStatus === "failed"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {String(order.paymentStatus).replace(/_/g, " ")}
+                        </span>
+                      )}
+                    </div>
+
+                    {String(order.orderNote || "").trim() && (
+                      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-950">
+                        <span className="font-semibold text-amber-800">
+                          Order notes:{" "}
+                        </span>
+                        {String(order.orderNote).trim()}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       {order.orderItems.map((item: any) => {

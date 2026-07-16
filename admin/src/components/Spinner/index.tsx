@@ -1,36 +1,33 @@
-import { Loader2 } from "lucide-react";
 import { FC } from "react";
-import styles from "./index.module.css";
 
-// Define props interface
 interface SpinnerProps {
   size?: number;
-  color?: string;
   className?: string;
   withText?: boolean;
+  label?: string;
 }
 
 const Spinner: FC<SpinnerProps> = ({
-  size = 24,
-  color = "#3B82F6",
+  size = 28,
   className = "",
   withText = false,
+  label = "Loading",
 }) => {
   return (
     <div
       role="status"
-      aria-label="Loading"
-      className={`inline-flex items-center justify-center font-roboto text-base ${
-        withText ? "gap-2" : ""
-      } ${className}`}
-      style={{ color }}
+      aria-label={label}
+      className={`inline-flex flex-col items-center justify-center gap-3 ${className}`}
     >
-      <Loader2
-        className={styles.spinner}
+      <span
+        className="inline-block animate-spin rounded-full border-[3px] border-slate-200 border-t-[var(--primary-color)]"
         style={{ width: size, height: size }}
-        color={color}
       />
-      {withText && <span>Loading...</span>}
+      {withText && (
+        <span className="text-sm font-medium tracking-wide text-slate-500">
+          {label}
+        </span>
+      )}
     </div>
   );
 };

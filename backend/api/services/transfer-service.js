@@ -53,7 +53,6 @@ const createTransfer = async (req) => {
       { transaction },
     );
 
-    console.log(fromAccount, toAccount);
 
     // Create transfer record
     const transfer = await transferModel.create(

@@ -234,6 +234,7 @@ export default function OrderFilter({
               options={[
                 { value: "", label: "All" },
                 { value: "paid", label: "Paid" },
+                { value: "partially_paid", label: "Partially Paid" },
                 { value: "pending", label: "Pending" },
                 { value: "failed", label: "Failed" },
               ]}

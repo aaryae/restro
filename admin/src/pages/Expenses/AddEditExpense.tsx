@@ -263,7 +263,7 @@ const AddEditExpense: React.FC = () => {
                       {...field}
                       options={expenseCategoryOptions}
                       error={errors.categoryId?.message}
-                    />
+          />
                   </div>
                 )}
               />
@@ -282,7 +282,7 @@ const AddEditExpense: React.FC = () => {
                       ]}
                       label="Payment Method"
                       error={errors.paymentMethod?.message}
-                    />
+          />
                   )}
                 />
               </div>
@@ -300,7 +300,7 @@ const AddEditExpense: React.FC = () => {
                       options={paymentSourceOptions}
                       label="Payment Source"
                       error={errors.accountId?.message}
-                    />
+          />
                   )}
                 />
               </div>
@@ -580,7 +580,8 @@ const AddEditExpense: React.FC = () => {
                   className="w-full"
                   {...register("amount")}
                   error={errors.amount?.message}
-                />
+          isRequired
+        />
               </div>
 
               <div className="flex flex-col gap-1 md:col-span-2">

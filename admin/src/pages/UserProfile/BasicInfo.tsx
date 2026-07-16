@@ -148,6 +148,7 @@ export default function BasicInfo() {
           type="text"
           {...register("username")}
           error={errors.username?.message}
+          isRequired
         />
         <Input
           label="Email"
@@ -155,6 +156,7 @@ export default function BasicInfo() {
           type="text"
           {...register("email")}
           error={errors?.email?.message}
+          isRequired
         />
         <Input
           label="First Name"
@@ -162,6 +164,7 @@ export default function BasicInfo() {
           type="text"
           {...register("firstName")}
           error={errors?.firstName?.message}
+          isRequired
         />
         <Input
           label="Last Name"
@@ -169,6 +172,7 @@ export default function BasicInfo() {
           type="text"
           {...register("lastName")}
           error={errors?.lastName?.message}
+          isRequired
         />
         <Input
           label="Mobile No"
@@ -176,6 +180,7 @@ export default function BasicInfo() {
           type="text"
           {...register("mobileNo")}
           error={errors.mobileNo}
+          isRequired
         />
         <Input
           label="Mobile Prefix"
@@ -183,21 +188,27 @@ export default function BasicInfo() {
           type="text"
           {...register("mobilePrefix")}
           error={errors.mobilePrefix}
+          isRequired
         />
         <Controller
           name="roleId"
           control={control}
           render={({ field }) => (
-            <Select {...field} options={roleOptions} label="Role Type" />
+            <Select {...field} options={roleOptions} label="Role Type"
+          isRequired
+        />
           )}
         />
-        {/* <Input label="Role" placeholder="SuperAdmin" type="text" {...register("roleId")} disabled error={errors.roleId} /> */}
+        {/* <Input label="Role" placeholder="SuperAdmin" type="text" {...register("roleId")} disabled error={errors.roleId}
+          isRequired
+        /> */}
         <Input
           label="Gender"
           placeholder="Male"
           type="text"
           {...register("gender")}
           error={errors.gender}
+          isRequired
         />
         <div />
         <div className="flex justify-end gap-[1rem]">

@@ -294,7 +294,6 @@ export default function RichTextEditor({
   return (
     <div className={className ? className : ""}>
       <p className="input-label mb-[0.5rem]">Body</p>
-      {console.log(data, "data")}
       <div className="main-container">
         <div
           className="editor-container editor-container_document-editor"

@@ -24,8 +24,8 @@ export const ACTIVE_EMAIL_TEMPLATE_ROUTE = "/admin/active-email-template";
 export const PRODUCT_CATEGORY_LIST_ROUTE = "/admin/product-category/list";
 export const PRODUCT_CATEGORY_ADD_ROUTE = "/admin/product-category/";
 
-export const PRODUCT_LIST_ROUTE = "/admin/product/list";
-export const PRODUCT_ADD_ROUTE = "/admin/product/";
+export const PRODUCT_LIST_ROUTE = "/admin/item/list";
+export const PRODUCT_ADD_ROUTE = "/admin/item/";
 
 export const OPEN_ITEM_LIST_ROUTE = "/admin/open-item/list";
 export const OPEN_ITEM_ADD_ROUTE = "/admin/open-item/";
@@ -38,6 +38,7 @@ export const CONTACT_LIST_ROUTE = "/admin/contact";
 export const ORDER_LIST_ROUTE = "/admin/order/list";
 
 export const ORDER_ADD_ROUTE = "/admin/order/";
+export const ORDER_CHECKOUT_ROUTE = "/admin/order/checkout";
 export const SUPPLIER_LIST_ROUTE = "/admin/supplier/list";
 export const SUPPLIER_ADD_ROUTE = "/admin/supplier/";
 export const CUSTOMER_LIST_ROUTE = "/admin/customer/list";

@@ -2,47 +2,65 @@ import { Controller, useForm } from "react-hook-form";
 import OrderList from "./components/OrderList";
 import TableList from "./components/TableList";
 import KotList from "./components/KotList";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 import CustomDialog from "@/components/Dialog";
 import ChooseTable from "./components/TransferModel/ChooseTable";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChefHat, ClipboardList, LayoutGrid, Plus, Repeat } from "lucide-react";
+
+const VIEW_VALUES = ["table", "order", "kot"] as const;
+type OrderView = (typeof VIEW_VALUES)[number];
+
+function resolveView(raw: string | null): OrderView {
+  if (raw && (VIEW_VALUES as readonly string[]).includes(raw)) {
+    return raw as OrderView;
+  }
+  return "table";
+}
 
 export default function Order() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const headerOptions = [
     { label: "Tables", value: "table", icon: LayoutGrid },
     { label: "Orders", value: "order", icon: ClipboardList },
     { label: "KOT", value: "kot", icon: ChefHat },
   ] as const;
 
-  const { control, watch } = useForm<{ accountType: string }>({
-    defaultValues: { accountType: "table" },
+  const { control, watch, setValue } = useForm<{ accountType: OrderView }>({
+    defaultValues: { accountType: resolveView(searchParams.get("view")) },
   });
   const selectedView = watch("accountType");
   const [contentReady, setContentReady] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const fromUrl = resolveView(searchParams.get("view"));
+    if (fromUrl !== selectedView) {
+      setValue("accountType", fromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
+    const current = searchParams.get("view");
+    if (selectedView === "table" && (current == null || current === "")) {
+      return;
+    }
+    if (current !== selectedView) {
+      const next = new URLSearchParams(searchParams);
+      if (selectedView === "table") next.delete("view");
+      else next.set("view", selectedView);
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedView]);
 
   useEffect(() => {
     setContentReady(false);
     const timer = window.setTimeout(() => setContentReady(true), 120);
     return () => window.clearTimeout(timer);
-  }, [selectedView]);
-
-  useEffect(() => {
-    const activeIndex = headerOptions.findIndex(
-      (option) => option.value === selectedView,
-    );
-    const activeTab = tabsRef.current[activeIndex];
-    if (!activeTab) return;
-
-    setIndicator({
-      left: activeTab.offsetLeft,
-      width: activeTab.offsetWidth,
-    });
   }, [selectedView]);
 
   return (
@@ -52,28 +70,18 @@ export default function Order() {
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="relative flex w-full rounded-full bg-slate-100 p-1 sm:w-auto">
-              <span
-                className="absolute top-1 bottom-1 rounded-full bg-primaryColor shadow-sm transition-all duration-300 ease-out"
-                style={{
-                  left: indicator.left,
-                  width: indicator.width,
-                }}
-              />
-              {headerOptions.map((option, index) => {
+            <div className="flex w-full rounded-full bg-slate-100 p-1 sm:w-auto">
+              {headerOptions.map((option) => {
                 const Icon = option.icon;
                 const isActive = field.value === option.value;
                 return (
                   <button
                     key={option.value}
                     type="button"
-                    ref={(el) => {
-                      tabsRef.current[index] = el;
-                    }}
-                    className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors duration-300 sm:flex-none sm:min-w-[104px] sm:px-5 ${
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 sm:flex-none sm:min-w-[104px] sm:px-5 ${
                       isActive
-                        ? "text-white"
-                        : "text-slate-500 hover:text-slate-700"
+                        ? "bg-primaryColor text-white shadow-sm"
+                        : "text-slate-500 hover:bg-white/70 hover:text-slate-700"
                     }`}
                     onClick={() => field.onChange(option.value)}
                   >

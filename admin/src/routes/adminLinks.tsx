@@ -1,4 +1,10 @@
 import { lazy, type ReactNode } from "react";
+import { Navigate, useParams } from "react-router-dom";
+
+function LegacyProductToItemRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/admin/item/${id}` : "/admin/item/"} replace />;
+}
 
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
 const Access = lazy(() => import("@/pages/Access"));
@@ -37,6 +43,7 @@ const AddEditFloor = lazy(() => import("@/pages/Floor/AddEditFloor"));
 const OrderTable = lazy(() => import("@/pages/Table"));
 const AddEditTable = lazy(() => import("@/pages/Table/AddEditTable"));
 const AddEditOrder = lazy(() => import("@/pages/Order/components/AddEditOrder"));
+const CheckoutPage = lazy(() => import("@/pages/Order/CheckoutPage"));
 const AddEditCustomer = lazy(() => import("@/pages/Customer/AddEditCustomer"));
 const Supplier = lazy(() => import("@/pages/SuppliersModule"));
 const AddEditSupplier = lazy(
@@ -158,16 +165,29 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
     element: <AddEditProductCategory />,
   },
   {
-    path: "/product/list",
+    path: "/item/list",
     element: <Product />,
   },
   {
-    path: "/product/",
+    path: "/item/",
     element: <AddEditProduct />,
   },
   {
-    path: "/product/:id",
+    path: "/item/:id",
     element: <AddEditProduct />,
+  },
+  // Legacy product URLs → item
+  {
+    path: "/product/list",
+    element: <Navigate to="/admin/item/list" replace />,
+  },
+  {
+    path: "/product/",
+    element: <Navigate to="/admin/item/" replace />,
+  },
+  {
+    path: "/product/:id",
+    element: <LegacyProductToItemRedirect />,
   },
   {
     path: "/open-item/list",
@@ -256,6 +276,10 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
   {
     path: "/order/list",
     element: <Order />,
+  },
+  {
+    path: "/order/checkout",
+    element: <CheckoutPage />,
   },
   {
     path: "/order/",

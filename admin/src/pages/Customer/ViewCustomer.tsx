@@ -243,7 +243,7 @@ export default function ViewCustomer({
 }
 
 const tableHeader = [
-  "Product",
+  "Item",
   "Order Id",
   "Order Date",
   "Payment Method",

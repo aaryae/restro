@@ -24,8 +24,6 @@ interface DepartmentResponseType {
   slug: string;
   isActive: string;
   AvgPreparationTime: number;
-  displayOrder: number;
-  color: string;
 }
 
 export default function Department() {

@@ -71,34 +71,35 @@ export default function EmailSmtp() {
       >
         <Input
           label="Username"
-          isRequired
           {...register("username")}
           error={errors?.username?.message}
+          isRequired
         />
         <Input
           label="Pass Key"
-          isRequired
           {...register("passkey")}
           error={errors?.passkey?.message}
+          isRequired
         />
         <Input
           label="Host"
-          isRequired
           {...register("host")}
           error={errors?.host?.message}
+          isRequired
         />
         {/* <Controller
           name="host"
           control={control}
           render={({ field }) => (
-            <Select {...field} options={HostOption} label="Host" />
+            <Select {...field} options={HostOption} label="Host"
+          />
           )}
         /> */}
         <Input
           label="Port"
-          isRequired
           {...register("port")}
           error={errors?.port?.message}
+          isRequired
         />
 
         <Controller

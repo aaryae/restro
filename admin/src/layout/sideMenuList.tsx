@@ -48,7 +48,7 @@ export const SideMenuList: SideListMenuType[] = [
         key: 1.1,
         name: "Product",
         label: "Items",
-        path: "/admin/product/list",
+        path: "/admin/item/list",
         icon: <UtensilsCrossed size={12} />,
       },
       {

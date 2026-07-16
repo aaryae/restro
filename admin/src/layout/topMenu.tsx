@@ -51,8 +51,10 @@ export default function TopMenu({
   };
 
   return (
-    <div className="flex w-full min-w-0 items-center justify-between gap-4 px-6 py-4">
-      <SearchBox />
+    <div className="flex w-full min-w-0 items-center gap-4 px-6 py-4">
+      <div className="min-w-0 flex-1">
+        <SearchBox />
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

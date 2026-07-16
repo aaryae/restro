@@ -2,6 +2,7 @@ import React, { forwardRef } from "react";
 import { FieldError } from "react-hook-form";
 import "./textarea.css";
 import useTranslation from "@/locale/useTranslation";
+import { RequiredMark } from "@/components/RequiredMark";
 
 interface TextAreaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -24,17 +25,19 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
       leftSection,
       rightSection,
       isRequired,
+      required,
       ...rest
     },
     ref,
   ) => {
     const translate = useTranslation();
+    const showRequired = Boolean(isRequired || required);
     return (
       <div className={`textarea-container ${className || ""}`}>
         {label && (
           <label className="input-label">
-            {translate(label)}{" "}
-            {isRequired && <span className="text-red-500">*</span>}
+            {typeof label === "string" ? translate(label) : label}{" "}
+            {showRequired && <RequiredMark />}
           </label>
         )}
         <div className="textarea-wrapper">
@@ -44,6 +47,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           <textarea
             ref={ref}
             rows={rows || 10}
+            required={required}
             className={`textarea-field ${error ? "textarea-error-field" : ""}`}
             {...rest}
           />

@@ -1,0 +1,8 @@
+/** Red asterisk for required form labels */
+export function RequiredMark() {
+  return (
+    <span className="ml-0.5 text-red-500" aria-hidden="true">
+      *
+    </span>
+  );
+}

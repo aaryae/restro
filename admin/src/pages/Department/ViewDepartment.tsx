@@ -47,19 +47,6 @@ export default function ViewDepartment({ id }: { id: number | null }) {
               value={departmentData?.data?.AvgPreparationTime ?? ""}
               disabled
             />
-            <Input
-              label="Display Order"
-              type="number"
-              value={departmentData?.data?.displayOrder ?? ""}
-              disabled
-            />
-            <Input
-              label="Color (Hex Code)"
-              type="color"
-              value={departmentData?.data?.color || "#000000"}
-              disabled
-              className="w-[30%]"
-            />
           </form>
         </div>
       )}

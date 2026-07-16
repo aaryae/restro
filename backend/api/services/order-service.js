@@ -336,14 +336,18 @@ const createOrder = async (req) => {
 
     let baseKotNo = todayKotsCount + 1;
 
-    // Prepare order data
+    // Prepare order data (do not spread req.body — avoids polluting the row
+    // with nested arrays like orderItems / client-only fields)
     const orderData = {
-      ...req.body,
+      orderType,
+      orderNote: req.body.orderNote || null,
+      estimatedTime: req.body.estimatedTime || null,
       orderStartTime: new Date(),
       status: "pending",
       paymentStatus: "pending",
       orderNumber: `ORD-${Date.now()}`,
-      customerDetails: customerDetails || null,
+      customerId: req.body.customerId || null,
+      isGuestOrder: Boolean(req.body.isGuestOrder),
     };
 
     // Add order type specific data
@@ -1231,18 +1235,24 @@ const checkoutOrder = async (req) => {
 
     // If selective checkout by order items is requested, handle that path
     if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
-      // Fetch target items and their addons for active orders on this table
+      const mainOrderItemIds = orderItemIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+
+      // Fetch target items and their addons for active orders
+      // (dine-in: match table; takeaway: tableId may be null / absent)
       const targetItems = await orderItemModel.findAll({
         where: {
-          id: { [Op.in]: orderItemIds },
+          id: { [Op.in]: mainOrderItemIds },
           isAddon: false, // Only main items in orderItemIds
+          status: { [Op.notIn]: ["completed", "cancelled"] },
         },
         include: [
           {
             model: orderModel,
             as: "order",
             where: {
-              tableId,
+              ...(hasTable ? { tableId } : {}),
               status: { [Op.notIn]: ["completed", "cancelled"] },
             },
           },
@@ -1346,7 +1356,7 @@ const checkoutOrder = async (req) => {
           },
           0,
         );
-        if (totalPaid !== subsetTotal) {
+        if (Math.abs(totalPaid - subsetTotal) > 0.01) {
           await transaction.rollback();
           return {
             status: 400,
@@ -1470,9 +1480,12 @@ const checkoutOrder = async (req) => {
 
         // Distribute payment across the order
         const amountPaidForOrder = subsetTotal;
-        const newPayableAmount = originalPayable - amountPaidForOrder;
+        const newPayableAmount =
+          Math.round((originalPayable - amountPaidForOrder) * 100) / 100;
+        const roundedCalculated =
+          Math.round(Number(calculatedNewPayable) * 100) / 100;
 
-        if (newPayableAmount !== calculatedNewPayable) {
+        if (Math.abs(newPayableAmount - roundedCalculated) > 0.01) {
           await transaction.rollback();
           return {
             status: 500,
@@ -1481,16 +1494,28 @@ const checkoutOrder = async (req) => {
           };
         }
 
+        // Remaining unpaid main items decide paid vs partially_paid
+        const unpaidMainCount = await orderItemModel.count({
+          where: {
+            orderId: oid,
+            isAddon: false,
+            status: { [Op.notIn]: ["completed", "cancelled"] },
+          },
+          transaction,
+        });
+
         // Update order
         const updateFields = {
           totalAmount,
-          payableAmount: newPayableAmount,
+          payableAmount: Math.max(0, roundedCalculated),
         };
-        if (newPayableAmount <= 0) {
+        if (unpaidMainCount === 0) {
           updateFields.status = "completed";
           updateFields.paymentStatus = "paid";
           updateFields.orderFinishTime = new Date();
+          updateFields.payableAmount = 0;
         } else {
+          // Keep kitchen/order status; mark payment as partial
           updateFields.paymentStatus = "partially_paid";
         }
         const orderRecord = await orderModel.findByPk(oid, { transaction });
@@ -1741,8 +1766,8 @@ const checkoutOrder = async (req) => {
     // Prepare payments
     let paymentList = [];
     let usedMethods = [];
-    if (checkoutAll && Array.isArray(payments) && payments.length > 0) {
-      // Split payment
+    if (Array.isArray(payments) && payments.length > 0) {
+      // Split payment (checkout-all, single order, or takeaway orderId path)
       const totalPaid = payments.reduce(
         (sum, p) => sum + Number(p.amount || 0),
         0,
@@ -1878,24 +1903,23 @@ const checkoutOrder = async (req) => {
       const updateFields = {
         ...updateData,
         paymentMethods: usedMethods,
-        paymentStatus: newPayableAmount <= 0 ? "paid" : "partially_paid",
-        status: newPayableAmount <= 0 ? "completed" : order.status,
         customerId: finalCustomerId,
         isGuestOrder,
-        payableAmount: newPayableAmount,
-        ...(newPayableAmount <= 0 && { orderFinishTime: new Date() }),
+        payableAmount: Math.max(0, newPayableAmount),
       };
-      if (newPayableAmount <= 0) {
+      if (newPayableAmount <= 0.01) {
         updateFields.status = "completed";
         updateFields.paymentStatus = "paid";
         updateFields.orderFinishTime = new Date();
+        updateFields.payableAmount = 0;
       } else {
         updateFields.paymentStatus = "partially_paid";
+        updateFields.status = order.status;
       }
       await order.update(updateFields, { transaction });
 
       // Mark items and KOTs as completed if fully paid
-      if (newPayableAmount <= 0) {
+      if (newPayableAmount <= 0.01) {
         await orderItemModel.update(
           { status: "completed" },
           {
@@ -2195,7 +2219,7 @@ const listOrders = async (req) => {
       {
         model: customerModel,
         as: "customer",
-        attributes: ["id", "email"],
+        attributes: ["id", "email", "firstName", "lastName"],
       },
       {
         model: tableModel,

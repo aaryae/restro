@@ -105,6 +105,7 @@ const AddExpenseCategory: React.FC<{
           className="w-full"
           {...register("title")}
           error={errors.title?.message}
+          isRequired
         />
         <TextArea
           label={translate("Expense Category Description")}

@@ -382,13 +382,16 @@ const AddEditAccount: React.FC = () => {
             className={fieldClass}
             {...register("accountName")}
             error={errors?.accountName?.message as string}
-            isRequired
-          />
+          isRequired
+        />
 
           {!isEditMode && (
             <div className={fieldClass}>
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 Account Type
+                <span className="ml-0.5 text-red-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <Controller
                 name="accountType"
@@ -467,8 +470,8 @@ const AddEditAccount: React.FC = () => {
                 className={fieldClass}
                 {...register("bankAccountNumber")}
                 error={errors?.bankAccountNumber?.message as string}
-                isRequired
-              />
+          isRequired
+        />
 
               <div className={fieldClass}>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -546,16 +549,16 @@ const AddEditAccount: React.FC = () => {
                   className="w-full"
                   {...register("walletAccountName")}
                   error={errors?.walletAccountName?.message as string}
-                  isRequired
-                />
+          isRequired
+        />
                 <Input
                   label="Wallet ID"
                   placeholder="Enter wallet ID / number"
                   className="w-full"
                   {...register("walletId")}
                   error={errors?.walletId?.message as string}
-                  isRequired
-                />
+          isRequired
+        />
               </div>
 
               {renderQrUpload(

@@ -1,6 +1,7 @@
 import React, { forwardRef } from "react";
 import { FieldError } from "react-hook-form";
 import useTranslation from "@/locale/useTranslation";
+import { RequiredMark } from "@/components/RequiredMark";
 import "./multiselect-checkbox.css";
 
 interface MultiSelectCheckboxProps
@@ -13,6 +14,7 @@ interface MultiSelectCheckboxProps
   options: { label: string; value: string | number }[]; // Options for checkboxes
   onValuesChange?: (selectedValues: (string | number)[]) => void; // Optional callback
   onChange?: (selectedValues: (string | number)[]) => void; // For react-hook-form
+  isRequired?: boolean;
 }
 
 const MultiSelectCheckbox = forwardRef<
@@ -29,6 +31,7 @@ const MultiSelectCheckbox = forwardRef<
       options,
       onValuesChange,
       onChange,
+      isRequired,
       ...rest
     },
     ref,
@@ -51,6 +54,7 @@ const MultiSelectCheckbox = forwardRef<
         {label && (
           <label className="input-label">
             {typeof label === "string" ? translate(label) : label}
+            {isRequired && <RequiredMark />}
           </label>
         )}
         <div className="checkbox-group">

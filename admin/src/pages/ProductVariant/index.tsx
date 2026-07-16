@@ -72,7 +72,7 @@ export default function ProductVariant() {
   };
 
   const tableHeaders = [
-    "Product",
+    "Item",
     "Quantity",
     "Price",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
@@ -118,7 +118,7 @@ export default function ProductVariant() {
         newButtonText={translate("Add Variant")}
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
-        subText="Manage size and quantity variants linked to menu products."
+        subText="Manage size and quantity variants linked to menu items."
       />
 
       {accessList.includes("view") ? (
@@ -131,7 +131,7 @@ export default function ProductVariant() {
         />
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
-          You do not have permission to view product variants.
+          You do not have permission to view item variants.
         </div>
       )}
     </div>

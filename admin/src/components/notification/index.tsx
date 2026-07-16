@@ -47,7 +47,6 @@ export default function Notification({ setOpen }: NotificationProps) {
   const newNotificationData = useAppSelector((state) => state.socket.message);
 
   useEffect(() => {
-    console.log(newNotificationData, "new notification data");
     if (notificationSuccess && notificationData?.data?.data) {
       setNotification(notificationData.data.data);
     }

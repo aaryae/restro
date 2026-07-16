@@ -1,4 +1,4 @@
-import { Loader } from "@mantine/core";
+import Loader from "@/components/Loader";
 
 interface PageContentProps {
   loading?: boolean;
@@ -8,12 +8,9 @@ interface PageContentProps {
 const PageContent = ({ loading, children }: PageContentProps) => {
   if (loading) {
     return <Loader />;
-  } else
-    return (
-      <div className={`rounded-2xl mb-5 p-4  ${loading ? "opacity-40" : ""}`}>
-        {children}
-      </div>
-    );
+  }
+
+  return <div className="mb-5 rounded-2xl p-4">{children}</div>;
 };
 
 export default PageContent;

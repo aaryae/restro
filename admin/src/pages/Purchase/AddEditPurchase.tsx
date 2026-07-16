@@ -741,7 +741,8 @@ const AddEditPurchase: React.FC = () => {
                       onValueChange={(next) =>
                         field.onChange(next ? Number(next) : undefined)
                       }
-                    />
+          isRequired
+        />
                   )}
                 />
               </div>

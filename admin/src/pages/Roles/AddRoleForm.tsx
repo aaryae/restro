@@ -74,10 +74,10 @@ export default function AddRoleForm({
           type="text"
           {...register("title")}
           error={errors.title?.message}
+          isRequired
         />
         <TextArea
           label={<>{translate("Description")}</>}
-          isRequired
           {...register("description")}
           error={errors?.description?.message}
         />

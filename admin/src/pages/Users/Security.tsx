@@ -74,14 +74,16 @@ export default function Security({
         type="password"
         {...register("newPassword")}
         error={errors.newPassword?.message}
-      />
+          isRequired
+        />
       <Input
         label="Confirm Password"
         placeholder="******"
         type="password"
         {...register("confirmPassword")}
         error={errors.confirmPassword?.message}
-      />
+          isRequired
+        />
       <Button type="submit" className="submit-button">
         {" "}
         <div className="flex justify-center items-center gap-[0.5rem] ">

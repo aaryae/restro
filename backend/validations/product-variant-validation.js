@@ -10,7 +10,7 @@ const productVariantPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
     productId: joi.number().integer().positive().required(),
     name: joi.string().trim().min(1).required(),
-    description: joi.string().required(),
+    description: joi.string().allow(null, "").optional(),
     quantity: joi.number().integer().min(0).required(),
     price: joi.number().precision(2).min(0).required(),
     mediaArr: joi.array().items(joi.string()).optional(),
@@ -35,7 +35,7 @@ const productVariantPutValidation = async (req, res, next) => {
   let joiModel = joi.object({
     productId: joi.number().integer().positive().optional(),
     name: joi.string().trim().min(1).optional(),
-    description: joi.string().optional(),
+    description: joi.string().allow(null, "").optional(),
     quantity: joi.number().integer().min(0).optional(),
     price: joi.number().precision(2).min(0).optional(),
     mediaArr: joi.array().items(joi.string()).optional(),

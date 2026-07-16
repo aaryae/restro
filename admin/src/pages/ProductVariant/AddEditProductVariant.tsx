@@ -121,17 +121,18 @@ export default function AddEditProductVariantCategory() {
   };
   return (
     <>
-      <PageTitle title="Add Product Variant" />
+      <PageTitle title="Add Item Variant" />
       <form
         className="form-container grid grid-cols-1 gap-[1rem] mt-[1rem]"
         onSubmit={handleSubmit(onSubmit)}
       >
         <Input
           label="Name"
-          placeholder="Enter Product"
+          placeholder="Enter item name"
           className="w-1/2"
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
         <Controller
           name="productId"
@@ -141,7 +142,8 @@ export default function AddEditProductVariantCategory() {
               {...field}
               className="w-1/3"
               options={productOptions}
-              label="Product Category"
+              label="Item"
+              isRequired
             />
           )}
         />
@@ -187,7 +189,7 @@ export default function AddEditProductVariantCategory() {
         <TextArea
           label="Description"
           className="w-1/2"
-          placeholder="Enter Description of the Product"
+          placeholder="Enter item description"
           {...register("description")}
           error={errors?.description?.message}
         />
@@ -196,17 +198,25 @@ export default function AddEditProductVariantCategory() {
           label="Quantity"
           type="number"
           className="w-1/2"
-          placeholder="Enter Quantity of Product"
-          {...register("quantity", { valueAsNumber: true })}
+          placeholder="0"
+          {...register("quantity", {
+            setValueAs: (v) =>
+              v === "" || v === null || v === undefined ? undefined : Number(v),
+          })}
           error={errors.quantity?.message}
+          isRequired
         />
         <Input
           label="Price"
           type="number"
           className="w-1/2"
-          placeholder="Enter Price of Product"
-          {...register("price", { valueAsNumber: true })}
+          placeholder="0"
+          {...register("price", {
+            setValueAs: (v) =>
+              v === "" || v === null || v === undefined ? undefined : Number(v),
+          })}
           error={errors.price?.message}
+          isRequired
         />
         <div className="flex justify-start">
           <Button type="submit" className="submit-button w-[5rem]">

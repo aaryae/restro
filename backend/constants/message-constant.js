@@ -7,7 +7,7 @@ module.exports = {
     TOKEN_EXPIRED: "Token Expired",
     USER_INFO_NOT_FOUND: "User Information Not found",
     ACCESS_DENIED: "ACCESS DENIED",
-    INPUT_ERROR: "Input Errors",
+    INPUT_ERROR: "Please check the highlighted fields",
     INTERNAL_SERVER_ERROR: "Something Went Wrong",
     USERNAME_PASSWORD_INCORRECT: "Email or Password Incorrect",
     APPROVAL_SUCCESS: "Your request has been approved",

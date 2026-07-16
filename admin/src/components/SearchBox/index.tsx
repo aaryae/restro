@@ -42,17 +42,29 @@ export default function SearchBox() {
     setUserInput(value);
 
     if (value.trim() !== "") {
-      const matchedRoutes: RouteSuggestionType[] = SideMenuList.filter((route) =>
-        route.name.toLowerCase().includes(value.toLowerCase()),
-      ).flatMap((route) => {
-        if (!route.menu) {
-          return { name: route.name, path: route.path };
-        }
-        return route.menu.map((each) => ({
-          name: each.name,
-          path: each.path,
-        }));
-      });
+      const q = value.toLowerCase();
+      const matchesLabelOrName = (item: {
+        name: string;
+        label?: string;
+      }) =>
+        item.name.toLowerCase().includes(q) ||
+        (item.label || "").toLowerCase().includes(q);
+
+      const matchedRoutes: RouteSuggestionType[] = SideMenuList.flatMap(
+        (route) => {
+          if (!route.menu) {
+            return matchesLabelOrName(route)
+              ? [{ name: route.label || route.name, path: route.path }]
+              : [];
+          }
+          return route.menu
+            .filter((each) => matchesLabelOrName(each))
+            .map((each) => ({
+              name: each.label || each.name,
+              path: each.path,
+            }));
+        },
+      );
       setSuggestion(matchedRoutes);
     } else {
       setSuggestion([]);
@@ -60,7 +72,7 @@ export default function SearchBox() {
   };
 
   return (
-    <div className="relative w-full max-w-lg">
+    <div className="relative w-full min-w-0">
       <div
         className={[
           "flex h-11 items-center gap-3 rounded-lg border bg-white px-4 transition-all duration-200",

@@ -28,10 +28,14 @@ function SplitPayment({
     url,
   });
 
-  const accounts: any[] = useMemo(
-    () => (accountSuccess ? allAccount?.data?.data ?? [] : []),
-    [accountSuccess, allAccount],
-  );
+  const accounts: any[] = useMemo(() => {
+    const rows = accountSuccess ? allAccount?.data?.data ?? [] : [];
+    // Match checkout cash/QR: only active primary accounts (isDefault).
+    // For banks this surfaces the primary bank only.
+    return rows.filter(
+      (a: any) => a?.status === "active" && Boolean(a?.isDefault),
+    );
+  }, [accountSuccess, allAccount]);
 
   const { data: qrAccountDetail } = useGetApiQuery(
     qrAccountId ? { url: `account/${qrAccountId}` } : ({} as any),
@@ -167,7 +171,10 @@ function SplitPayment({
         {!accountSuccess ? (
           <p className={styles.splitEmpty}>Loading accounts…</p>
         ) : filteredAccounts.length === 0 ? (
-          <p className={styles.splitEmpty}>No accounts in this group.</p>
+          <p className={styles.splitEmpty}>
+            No primary accounts in this group. Mark accounts as primary in Cash
+            &amp; Banks.
+          </p>
         ) : (
           filteredAccounts.map((account: any) => {
             const aid = String(account.id);

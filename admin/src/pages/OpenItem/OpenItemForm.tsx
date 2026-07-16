@@ -43,8 +43,8 @@ export default function OpenItemForm() {
     defaultValues: {
       name: "",
       description: "",
-      quantity: 1,
-      price: 0,
+      quantity: undefined as unknown as number,
+      price: undefined as unknown as number,
       departmentId: undefined,
       stockStatus: "in_stock",
       mediaArr: [],
@@ -98,8 +98,14 @@ export default function OpenItemForm() {
       reset({
         name: openItem.data.name,
         description: openItem.data.description || "",
-        quantity: openItem.data.quantity,
-        price: openItem.data.price || 0,
+        quantity:
+          openItem.data.quantity != null
+            ? Number(openItem.data.quantity)
+            : (undefined as unknown as number),
+        price:
+          openItem.data.price != null && openItem.data.price !== ""
+            ? Number(openItem.data.price)
+            : (undefined as unknown as number),
         departmentId: openItem.data.departmentId,
         stockStatus: openItem.data.stockStatus,
         mediaArr:
@@ -147,7 +153,8 @@ export default function OpenItemForm() {
         className="w-1/2"
         {...register("name")}
         error={errors.name?.message}
-      />
+          isRequired
+        />
 
       <div className="md:w-1/2 w-full">
         <label className="input-label flex mb-[2px]">Description</label>
@@ -171,25 +178,28 @@ export default function OpenItemForm() {
         label={"Quantity"}
         type="number"
         className="w-1/2"
-        placeholder={"Enter Quantity"}
-        {...register("quantity", { valueAsNumber: true })}
+        placeholder="0"
+        {...register("quantity", {
+          setValueAs: (v) =>
+            v === "" || v === null || v === undefined ? undefined : Number(v),
+        })}
         error={errors.quantity?.message}
-      />
+          isRequired
+        />
 
       <div className="w-1/2">
         <Controller
           name="departmentId"
           control={control}
           render={({ field }) => (
-            <>
-              <label className="input-label block mb-1">Department</label>
-              <Select
-                {...field}
-                options={departments}
-                className="w-full"
-                error={errors.departmentId?.message}
-              />
-            </>
+            <Select
+              {...field}
+              label="Department"
+              options={departments}
+              className="w-full"
+              error={errors.departmentId?.message}
+          isRequired
+        />
           )}
         />
       </div>
@@ -199,8 +209,11 @@ export default function OpenItemForm() {
         type="number"
         step={0.01}
         className="w-1/2"
-        placeholder={"Enter Price"}
-        {...register("price", { valueAsNumber: true })}
+        placeholder="0"
+        {...register("price", {
+          setValueAs: (v) =>
+            v === "" || v === null || v === undefined ? undefined : Number(v),
+        })}
         error={errors.price?.message}
       />
 

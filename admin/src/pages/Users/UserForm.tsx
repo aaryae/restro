@@ -226,6 +226,7 @@ export default function UserForm({
           autoComplete="new-username"
           {...register("username")}
           error={errors.username?.message}
+          isRequired
         />
         <Input
           label="Email"
@@ -233,6 +234,7 @@ export default function UserForm({
           type="text"
           {...register("email")}
           error={errors.email?.message}
+          isRequired
         />
         <Input
           label="First Name"
@@ -254,6 +256,7 @@ export default function UserForm({
           type="text"
           {...register("mobileNo")}
           error={errors.mobileNo?.message}
+          isRequired
         />
         <Input
           label="Mobile Prefix"
@@ -261,12 +264,15 @@ export default function UserForm({
           type="text"
           {...register("mobilePrefix")}
           error={errors.mobilePrefix?.message}
+          isRequired
         />
         <Controller
           name="roleId"
           control={control}
           render={({ field }) => (
-            <Select {...field} options={roleOptions} label="Role Type" />
+            <Select {...field} options={roleOptions} label="Role Type"
+          isRequired
+        />
           )}
         />
         <Controller
@@ -274,7 +280,9 @@ export default function UserForm({
           control={control}
           render={({ field }) => (
             <div>
-              <Select {...field} options={GenderOptions} label="Gender" />
+              <Select {...field} options={GenderOptions} label="Gender"
+          isRequired
+        />
               {errors.gender && (
                 <p className="text-red-500 text-sm">{errors.gender.message}</p>
               )}
@@ -289,7 +297,8 @@ export default function UserForm({
             autoComplete="new-password"
             {...register("password")}
             error={errors.password?.message}
-          />
+          isRequired
+        />
         )}
         {/* <Input label="Is Active" type="checkbox" /> */}
         <div />

@@ -9,7 +9,7 @@ const BaseAccount = z.object({
     .number()
     .min(0, "Opening Balance must be 0 or more")
     .default(0),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   status: z
     .enum(["active", "inactive"], {
       required_error: "Status is required",

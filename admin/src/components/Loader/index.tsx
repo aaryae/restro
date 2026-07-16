@@ -1,10 +1,10 @@
 import Spinner from "../Spinner";
 
-export default function Loader() {
+export default function Loader({ label = "Loading" }: { label?: string }) {
   return (
-    <div className="size-full flex absolute top-0 left-0 items-center justify-center">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-        <Spinner size={80} withText />
+    <div className="flex min-h-[60vh] w-full items-center justify-center">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-8 py-7 shadow-sm">
+        <Spinner size={32} withText label={label} />
       </div>
     </div>
   );

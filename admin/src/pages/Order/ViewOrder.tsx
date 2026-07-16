@@ -3,6 +3,8 @@ import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { SetStateAction } from "react";
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
+import { format } from "date-fns";
+import { StickyNote, UtensilsCrossed } from "lucide-react";
 
 interface Addon {
   id: number;
@@ -12,20 +14,23 @@ interface Addon {
 
 type OrderItem = {
   id: string | number;
-  product: {
+  product?: {
     name: string;
     mediaArr?: Array<{ imageUrl: string }>;
   };
+  openItem?: {
+    name: string;
+  };
   quantity: number;
-  price: string;
-  subtotal: string;
-  discount: number;
+  price: string | number;
+  subtotal: string | number;
+  discount?: number;
   status: string;
   department?: {
     name: string;
   };
   specialInstructions?: string;
-  addons?: Addon[];
+  addons?: any[];
 };
 
 type ViewCustomerProps = {
@@ -40,118 +45,264 @@ function getProductImageSrc(item: OrderItem) {
   return `${IMAGE_BASE_URL}${imageUrl}`;
 }
 
+function getItemName(item: OrderItem) {
+  return item.product?.name || item.openItem?.name || "Unknown item";
+}
+
+function statusStyles(status?: string) {
+  switch ((status || "").toLowerCase()) {
+    case "pending":
+      return "border-amber-400 bg-amber-50 text-amber-800";
+    case "preparing":
+      return "border-sky-400 bg-sky-50 text-sky-800";
+    case "ready":
+    case "prepared":
+      return "border-emerald-400 bg-emerald-50 text-emerald-800";
+    case "served":
+      return "border-violet-400 bg-violet-50 text-violet-800";
+    case "completed":
+      return "border-slate-400 bg-slate-100 text-slate-700";
+    case "cancelled":
+      return "border-rose-400 bg-rose-50 text-rose-800";
+    default:
+      return "border-slate-300 bg-slate-50 text-slate-600";
+  }
+}
+
+function itemAccent(status?: string) {
+  switch ((status || "").toLowerCase()) {
+    case "pending":
+      return "bg-amber-400";
+    case "preparing":
+      return "bg-sky-400";
+    case "ready":
+    case "prepared":
+      return "bg-emerald-400";
+    case "served":
+      return "bg-violet-400";
+    case "cancelled":
+      return "bg-rose-400";
+    default:
+      return "bg-slate-300";
+  }
+}
+
+function formatMoney(value: string | number | undefined) {
+  const n = Number(value ?? 0);
+  return `${CurrencySign}${Number.isFinite(n) ? n.toFixed(2) : "0.00"}`;
+}
+
+function formatLabel(value?: string | null) {
+  if (!value) return "—";
+  return String(value).replace(/_/g, " ");
+}
+
 export default function ViewOrder({ id }: ViewCustomerProps) {
-  const { data: orderData, isSuccess: success } = useGetApiQuery(
+  const { data: orderData, isSuccess: success, isLoading } = useGetApiQuery(
     { url: `order/${id}` },
     {
       skip: id === null || id === undefined,
     },
   );
 
+  const order = orderData?.data;
+  const items: OrderItem[] = order?.orderItems || [];
+  const orderNote = String(order?.orderNote || "").trim();
+
   return (
-    <div className="mt-[2rem] ">
-      <div className="flex items-center justify-between">
-        <PageTitle title="Order Details" />
+    <div className="flex h-full min-h-0 flex-col px-1 pt-6">
+      <div className="shrink-0 space-y-4 border-b border-slate-200/80 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <PageTitle title="Order Details" />
+            {order?.orderNumber && (
+              <p className="mt-1 text-left text-xs font-medium text-slate-400">
+                #{String(order.orderNumber).replace(/^ORD-/, "ORD · ")}
+              </p>
+            )}
+          </div>
+          {order?.status && (
+            <span
+              className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize ${statusStyles(order.status)}`}
+            >
+              {formatLabel(order.status)}
+            </span>
+          )}
+        </div>
+
+        {success && order && (
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3 text-left text-sm">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                Type
+              </p>
+              <p className="mt-0.5 font-medium capitalize text-slate-800">
+                {formatLabel(order.orderType)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                Payment
+              </p>
+              <p className="mt-0.5 font-medium capitalize text-slate-800">
+                {formatLabel(order.paymentStatus)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                Table
+              </p>
+              <p className="mt-0.5 font-medium text-slate-800">
+                {order.table?.tableNo ||
+                  (order.orderType === "takeaway"
+                    ? order.takeAwayName || "Takeaway"
+                    : "—")}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                Started
+              </p>
+              <p className="mt-0.5 font-medium text-slate-800">
+                {order.orderStartTime
+                  ? format(new Date(order.orderStartTime), "dd MMM, hh:mm a")
+                  : "—"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {success && orderNote && (
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 p-3 text-left">
+            <div className="mb-1.5 flex items-center gap-2 text-amber-800">
+              <StickyNote size={15} strokeWidth={2.2} />
+              <span className="text-xs font-semibold uppercase tracking-wide">
+                Order notes
+              </span>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-950/90">
+              {orderNote}
+            </p>
+          </div>
+        )}
       </div>
-      {success && (
-        <div>
-          {orderData?.data?.orderItems.map((item: OrderItem) => (
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4 pr-1">
+        {isLoading && (
+          <p className="py-10 text-center text-sm text-slate-500">
+            Loading order…
+          </p>
+        )}
+
+        {success && items.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center">
+            <UtensilsCrossed className="mx-auto mb-2 h-7 w-7 text-slate-300" />
+            <p className="text-sm font-medium text-slate-600">No items</p>
+          </div>
+        )}
+
+        {success &&
+          items.map((item) => (
             <div
               key={item.id}
-              className={`mb-4 flex gap-4 border-l-4 bg-white p-4 shadow-sm ${
-                item?.status === "pending"
-                  ? "border-yellow-400"
-                  : item?.status === "preparing"
-                    ? "border-blue-400"
-                    : item?.status === "ready"
-                      ? "border-green-400"
-                      : item?.status === "served"
-                        ? "border-purple-400"
-                        : item?.status === "cancelled"
-                          ? "border-red-400"
-                          : "border-gray-400"
-              }`}
+              className="relative overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
             >
-              <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
-                <img
-                  src={getProductImageSrc(item)}
-                  alt={item.product?.name || "Product"}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (target.dataset.fallbackApplied === "true") return;
-                    target.dataset.fallbackApplied = "true";
-                    target.src = DishPlaceHolder;
-                  }}
-                />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {item.product?.name || "Unknown Product"}
-                </h3>
+              <div
+                className={`absolute bottom-0 left-0 top-0 w-1 ${itemAccent(item.status)}`}
+                aria-hidden
+              />
+              <div className="flex gap-3 p-3 pl-4">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/80">
+                  <img
+                    src={getProductImageSrc(item)}
+                    alt={getItemName(item)}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.dataset.fallbackApplied === "true") return;
+                      target.dataset.fallbackApplied = "true";
+                      target.src = DishPlaceHolder;
+                    }}
+                  />
+                </div>
 
-                <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
-                  <p className="text-left">
-                    <span className="font-medium">Quantity:</span>{" "}
-                    {item.quantity}
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="truncate text-[15px] font-semibold text-slate-900">
+                      {getItemName(item)}
+                    </h3>
+                    <span
+                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusStyles(item.status)}`}
+                    >
+                      {formatLabel(item.status)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm text-slate-600">
+                    <span>
+                      Qty <span className="font-semibold text-slate-800">{item.quantity}</span>
+                    </span>
+                    <span className="text-slate-300">·</span>
+                    <span>{formatMoney(item.price)} each</span>
+                  </div>
+
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {formatMoney(item.subtotal)}
                   </p>
-                  <p className="text-left">
-                    <span className="font-medium">Price:</span>
-                    {CurrencySign}
-                    {parseFloat(item.price).toFixed(2)}
-                  </p>
-                  <p className="text-left">
-                    <span className="font-medium">Subtotal:</span>
-                    {CurrencySign}
-                    {parseFloat(item.subtotal).toFixed(2)}
-                  </p>
-                  {item.discount > 0 && (
-                    <p className="text-green-600">
-                      <span className="font-medium">Discount:</span> $
-                      {parseFloat(String(item.discount)).toFixed(2)}
-                    </p>
-                  )}
-                  {item.department && (
-                    <p>
-                      <span className="font-medium">Department:</span>{" "}
+
+                  {item.department?.name && (
+                    <p className="mt-1 text-xs text-slate-400">
                       {item.department.name}
                     </p>
                   )}
-                </div>
 
-                {item.specialInstructions && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    <span className="font-medium">Instructions:</span>{" "}
-                    {item.specialInstructions}
-                  </p>
-                )}
-
-                {item.addons && item.addons.length > 0 && (
-                  <div className="mt-3 border-l-2 border-gray-200 pl-4">
-                    <p className="mb-1 text-left text-sm font-medium text-gray-600">
-                      Addons:
+                  {item.specialInstructions && (
+                    <p className="mt-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600">
+                      <span className="font-medium text-slate-700">Note: </span>
+                      {item.specialInstructions}
                     </p>
-                    <div className="space-y-2">
+                  )}
+
+                  {Array.isArray(item.addons) && item.addons.length > 0 && (
+                    <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2">
                       {item.addons.map((addonItem: any, index: number) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 text-sm"
+                        <li
+                          key={addonItem?.id ?? index}
+                          className="flex items-center justify-between gap-2 text-xs text-slate-500"
                         >
-                          <span className="text-gray-500">+</span>
-                          <span>{addonItem?.addon?.name}</span>
-                          <span className="text-gray-500">
-                            ({CurrencySign}
-                            {parseFloat(addonItem?.price).toFixed(2)} ×{" "}
-                            {addonItem?.quantity})
+                          <span>
+                            + {addonItem?.addon?.name || addonItem?.name || "Addon"}
+                            {addonItem?.quantity > 1
+                              ? ` ×${addonItem.quantity}`
+                              : ""}
                           </span>
-                        </div>
+                          <span className="shrink-0 font-medium text-slate-600">
+                            {formatMoney(addonItem?.price ?? addonItem?.addon?.price)}
+                          </span>
+                        </li>
                       ))}
-                    </div>
-                  </div>
-                )}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           ))}
+      </div>
+
+      {success && order && (
+        <div className="shrink-0 border-t border-slate-200/80 bg-white pt-3 pb-2">
+          <div className="flex items-center justify-between rounded-xl bg-slate-900 px-4 py-3 text-white">
+            <span className="text-sm font-medium text-white/70">Total</span>
+            <span className="text-lg font-semibold tracking-tight">
+              {formatMoney(order.totalAmount)}
+            </span>
+          </div>
+          {order.payableAmount != null &&
+            Number(order.payableAmount) !== Number(order.totalAmount) && (
+              <p className="mt-2 text-right text-xs text-slate-500">
+                Payable {formatMoney(order.payableAmount)}
+              </p>
+            )}
         </div>
       )}
     </div>

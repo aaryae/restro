@@ -117,6 +117,7 @@ export default function AddEditDepartment({
           className="w-full md:w-1/2"
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
 
         <TextArea
@@ -134,24 +135,7 @@ export default function AddEditDepartment({
           className="w-full md:w-1/2"
           {...register("AvgPreparationTime", { valueAsNumber: true })}
           error={errors.AvgPreparationTime?.message}
-        />
-
-        <Input
-          label="Display Order"
-          type="number"
-          placeholder="Enter display order"
-          className="w-full md:w-1/2"
-          {...register("displayOrder", { valueAsNumber: true })}
-          error={errors.displayOrder?.message}
-        />
-
-        <Input
-          type="color"
-          label="Color (Hex Code)"
-          placeholder="#FF5722"
-          className="w-[40%] md:w-[15%]"
-          {...register("color")}
-          error={errors.color?.message}
+          isRequired
         />
 
         <div className="flex justify-start">

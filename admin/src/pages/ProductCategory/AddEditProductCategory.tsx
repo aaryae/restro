@@ -36,9 +36,13 @@ export default function AddEditProductCategory({
     handleSubmit,
     setError,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ProductCategoryFormType>({
     resolver: zodResolver(ProductCategorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
   });
 
   const { data: productCategory, isSuccess: success } =
@@ -46,12 +50,16 @@ export default function AddEditProductCategory({
       skip: id === null || id === undefined,
     });
 
-  const [createDepartment] = useCreateProductCategoryMutation();
-  const [updateDepartment] = useUpdateProductCategoryByIdMutation();
+  const [createCategory, { isLoading: creating }] =
+    useCreateProductCategoryMutation();
+  const [updateCategory, { isLoading: updating }] =
+    useUpdateProductCategoryByIdMutation();
 
   useEffect(() => {
-    reset(productCategory?.data);
-  }, [success]);
+    if (success && productCategory?.data) {
+      reset(productCategory.data);
+    }
+  }, [success, productCategory, reset]);
 
   const handleSuccess = () => {
     if (isComponent) {
@@ -61,13 +69,16 @@ export default function AddEditProductCategory({
     }
   };
 
-  const onSubmit = async (data: any) => {
-    const body = { ...data };
+  const onSubmit = async (data: ProductCategoryFormType) => {
+    const body = {
+      name: data.name,
+      description: data.description || undefined,
+    };
 
     try {
       const response = id
-        ? await updateDepartment({ body, id }).unwrap()
-        : await createDepartment(body).unwrap();
+        ? await updateCategory({ body, id }).unwrap()
+        : await createCategory(body).unwrap();
       handleResponse({
         res: response,
         onSuccess: handleSuccess,
@@ -77,33 +88,72 @@ export default function AddEditProductCategory({
     }
   };
 
+  const busy = isSubmitting || creating || updating;
+
   return (
     <>
-      {!isComponent && <PageTitle title="Add Product Category" isBack={true} />}
+      {!isComponent && (
+        <PageTitle
+          title={id ? "Edit Item Category" : "Add Item Category"}
+          isBack={true}
+        />
+      )}
       <form
-        className={`grid grid-cols-1 gap-[2rem] mt-[1rem] ${
-          isComponent ? "" : " form-container"
-        }`}
-        onSubmit={handleSubmit(onSubmit)}
+        className={
+          isComponent
+            ? "mt-5 space-y-4"
+            : "form-container mt-[1rem] grid grid-cols-1 gap-[2rem]"
+        }
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void handleSubmit(onSubmit)(e);
+        }}
       >
         <Input
           label="Name"
-          placeholder="Enter Product Category"
-          className="w-full md:w-1/2"
+          placeholder="e.g. Hot drinks, Desserts"
+          className={isComponent ? "w-full" : "w-full md:w-1/2"}
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
         <TextArea
           label="Description"
-          className="w-full md:w-1/2"
+          placeholder="Optional short description for this category"
+          className={isComponent ? "w-full" : "w-full md:w-1/2"}
+          rows={isComponent ? 4 : 10}
           {...register("description")}
           error={errors.description?.message}
         />
-        <div className="flex justify-start">
-          <Button type="submit" className="submit-button w-[5rem]">
-            {" "}
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
-              {translate("Submit")}
+        <div
+          className={
+            isComponent
+              ? "flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4"
+              : "flex justify-start"
+          }
+        >
+          {isComponent && (
+            <button
+              type="button"
+              onClick={closeModal}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              disabled={busy}
+            >
+              Cancel
+            </button>
+          )}
+          <Button
+            type="submit"
+            className={
+              isComponent
+                ? "submit-button h-10 min-w-[7.5rem] px-5"
+                : "submit-button w-[5rem]"
+            }
+            disabled={busy}
+          >
+            <div className="flex items-center justify-center gap-[0.5rem] text-white">
+              {busy ? "Saving…" : translate("Submit")}
             </div>
           </Button>
         </div>

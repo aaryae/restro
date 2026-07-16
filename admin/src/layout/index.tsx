@@ -31,12 +31,11 @@ export default function Layout() {
 
   return (
     <>
-      {/* For Desktop View */}
-      <div className="hidden min-h-screen w-full overflow-x-hidden bg-[#f2f6fa] lg:block">
-        {/* Side Menu */}
+      {/* Docked sidebar from tablet up */}
+      <div className="hidden min-h-screen w-full overflow-x-hidden bg-[#f2f6fa] md:block">
         <div
-          className={`fixed z-50 h-screen overflow-visible border-r border-slate-200/80 transition-all duration-300 ${
-            sideMenuOpen ? "w-[18%]" : "w-20"
+          className={`fixed left-0 top-0 z-50 h-screen overflow-visible border-r border-slate-200/80 transition-all duration-300 ${
+            sideMenuOpen ? "w-80" : "w-20"
           }`}
         >
           <SideMenu
@@ -47,9 +46,7 @@ export default function Layout() {
 
         <div
           className={`min-h-screen min-w-0 transition-all duration-300 ${
-            sideMenuOpen
-              ? "ml-[18%] w-[82%]"
-              : "ml-20 w-[calc(100%-5rem)]"
+            sideMenuOpen ? "ml-80 w-[calc(100%-20rem)]" : "ml-20 w-[calc(100%-5rem)]"
           }`}
         >
           <div className="min-w-0">
@@ -65,8 +62,8 @@ export default function Layout() {
           </div>
         </div>
       </div>
-      {/* for Mobile View */}
-      <div className="block overflow-x-hidden lg:hidden">
+      {/* Phone: overlay drawer */}
+      <div className="block overflow-x-hidden md:hidden">
         <TopMenuMobile />
 
         <div className="relative min-h-[87vh] overflow-x-hidden overflow-y-auto p-4">

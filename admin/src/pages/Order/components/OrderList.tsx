@@ -46,12 +46,17 @@ function StatusPill({
 }
 
 function paymentTone(status?: string) {
-  const value = (status || "").toLowerCase();
+  const value = (status || "").toLowerCase().replace(/_/g, " ");
   if (value === "paid" || value === "completed") return "emerald";
   if (value === "pending") return "amber";
   if (value === "partially paid" || value === "partial") return "blue";
   if (value === "cancelled" || value === "failed") return "rose";
   return "slate";
+}
+
+function formatPaymentStatus(status?: string) {
+  if (!status) return "-";
+  return status.replace(/_/g, " ");
 }
 
 export default function OrderList() {
@@ -169,7 +174,7 @@ export default function OrderList() {
             </span>,
             <span className={status === "cancelled" ? "line-through opacity-60" : ""}>
               <StatusPill
-                value={paymentStatus || "-"}
+                value={formatPaymentStatus(paymentStatus)}
                 tone={paymentTone(paymentStatus) as any}
               />
             </span>,

@@ -28,7 +28,6 @@ export default function useWebSocket(
       socketRef.current = new WebSocket(url, [`Admin${token}`]);
 
       socketRef.current.onopen = () => {
-        console.log("Web Socket Connected");
         setSocketConnected(true);
       };
 
@@ -47,7 +46,6 @@ export default function useWebSocket(
       };
 
       socketRef.current.onclose = () => {
-        console.log("Web Socket disconnected");
         setSocketConnected(false);
         socketRef.current = null;
         clearInterval(pingIntervalRef.current as NodeJS.Timeout);

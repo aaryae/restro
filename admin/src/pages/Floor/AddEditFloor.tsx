@@ -112,6 +112,7 @@ export default function AddEditFloor({
           className="w-full md:w-1/2"
           {...register("floorNo")}
           error={errors.floorNo?.message}
+          isRequired
         />
 
         <Input
@@ -120,6 +121,7 @@ export default function AddEditFloor({
           className="w-full md:w-1/2"
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
 
         <TextArea

@@ -12,7 +12,7 @@ export default function AddEditProduct() {
 
   return (
     <>
-      <PageTitle title={id ? "Edit Product " : "Add Product"} isBack={true} />
+      <PageTitle title={id ? "Edit Item" : "Add Item"} isBack={true} />
       {tab === "product" ? <ProductForm /> : <ProductVariantForm />}
     </>
   );

@@ -102,9 +102,9 @@ export default function AddEditEmailTemplate() {
         >
           <Input
             label="Template Name"
-            isRequired
             {...register("templateName")}
             error={errors?.templateName?.message}
+            isRequired
           />
           <Controller
             name="templateKey"
@@ -115,6 +115,7 @@ export default function AddEditEmailTemplate() {
                   {...field}
                   options={EMAIL_TEMPLATE_OPTIONS}
                   label="Template Key"
+                  isRequired
                 />
                 {errors.templateKey && (
                   <p className="text-red-500 text-sm">
@@ -152,9 +153,9 @@ export default function AddEditEmailTemplate() {
           </div>
           <Input
             label="Subject"
-            isRequired
             {...register("subject")}
             error={errors?.subject?.message}
+            isRequired
           />
 
           {(!id || success) && (

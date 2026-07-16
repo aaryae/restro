@@ -256,7 +256,8 @@ export default function AddEditRevenue() {
                   placeholder="Enter amount"
                   {...register("amount", { valueAsNumber: true })}
                   error={errors.amount?.message}
-                />
+          isRequired
+        />
               </div>
 
               <Controller
@@ -284,7 +285,8 @@ export default function AddEditRevenue() {
                     onValueChange={(next) =>
                       field.onChange(next ? Number(next) : undefined)
                     }
-                  />
+          isRequired
+        />
                 )}
               />
 
@@ -315,7 +317,8 @@ export default function AddEditRevenue() {
                           { value: "online", label: "Online" },
                         ]}
                         onValueChange={field.onChange}
-                      />
+          isRequired
+        />
                     )}
                   />
                   <Controller
@@ -333,7 +336,8 @@ export default function AddEditRevenue() {
                           { value: "credit", label: "Credit" },
                         ]}
                         onValueChange={field.onChange}
-                      />
+          isRequired
+        />
                     )}
                   />
                 </div>

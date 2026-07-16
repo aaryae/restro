@@ -11,19 +11,15 @@ import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
 import { ORDER_ADD_ROUTE, TABLE_ADD_ROUTE } from "@/routes/routeNames";
 import { buildQueryString } from "@/utils/generalHelper";
+import { buildCheckoutPath } from "@/utils/checkoutNavigation";
 import PageContent from "@/components/PageContent";
 import TakeAwayOrders from "./TakeAwayOrders";
 import Select from "@/components/Select";
 import ViewTableOrder from "./ViewTableOrder";
-import CheckoutModal from "./CheckoutModal";
 import { Plus } from "lucide-react";
 import "./TableListCss.css";
 
 export default function TableList() {
-  const [checkoutTableId, setCheckoutTableId] = useState<number | null>(null);
-  const [checkoutSelectedItemIds, setCheckoutSelectedItemIds] = useState<
-    number[] | null
-  >(null);
   const [paidItemsByOrder, setPaidItemsByOrder] = useState<
     Record<number, number[]>
   >({});
@@ -135,46 +131,24 @@ export default function TableList() {
     } catch {}
   }, [paidItemsByOrder]);
 
-  console.log(allTables, "all tables");
-  const [checkoutOrderId, setCheckoutOrderId] = useState<
-    number | null | [number]
-  >(null);
-
-  function handleCheckout(
-    tableId: number,
-    orderId: number | null | [number],
-    selectedItemIds?: number[],
-  ) {
-    setCheckoutTableId(tableId);
-    setCheckoutOrderId(orderId);
-    setCheckoutSelectedItemIds(selectedItemIds ?? null);
-  }
-
-  function closeCheckoutModal() {
-    setCheckoutTableId(null);
-    setCheckoutOrderId(null);
-    setCheckoutSelectedItemIds(null);
-  }
-
-  // Update paid item indicators after successful selective checkout
-  const handleCheckoutSuccessInList = (
-    tableId: number | null,
-    orderId: number | null | [number],
-    paidItemIds: number[],
-  ) => {
-    if (Array.isArray(orderId) || orderId == null) return;
-    setPaidItemsByOrder((prev) => {
-      const existing = prev[orderId] || [];
-      const merged = Array.from(new Set([...existing, ...paidItemIds]));
-      return { ...prev, [orderId]: merged };
-    });
-    // Trigger refetch of active-orders drawer
-    setOrdersRefresh((n) => n + 1);
-  };
-
   const [restroTableId, setRestroTableId] = useState<number | null>(null);
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const navigate = useNavigate();
+
+  function handleCheckout(
+    tableId: number,
+    orderId: number | null | number[],
+    selectedItemIds?: number[],
+  ) {
+    setOpenDrawer(false);
+    navigate(
+      buildCheckoutPath({
+        tableId,
+        orderId,
+        selectedItemIds,
+      }),
+    );
+  }
 
   function handleTableClick(id: number, status: string) {
     if (status === "available") {
@@ -204,7 +178,9 @@ export default function TableList() {
               selectedFloor={selectedFloor}
             />
           )}
-          <TakeAwayOrders />
+          <div className="mt-10">
+            <TakeAwayOrders />
+          </div>
         </div>
         <Drawer
           isOpen={openDrawer}
@@ -219,14 +195,6 @@ export default function TableList() {
             ordersRefresh={ordersRefresh}
           />
         </Drawer>
-        <CheckoutModal
-          isOpen={checkoutTableId !== null}
-          onClose={closeCheckoutModal}
-          tableId={checkoutTableId}
-          orderId={checkoutOrderId}
-          selectedItemIds={checkoutSelectedItemIds ?? undefined}
-          onCheckoutSuccess={handleCheckoutSuccessInList}
-        />
       </PageContent>
     </>
   );

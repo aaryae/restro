@@ -163,49 +163,56 @@ export default function Settings() {
             type="text"
             {...register("brand_name")}
             error={errors?.brand_name?.message}
-          />
+          isRequired
+        />
           <Input
             label="Email"
             placeholder="Email"
             type="text"
             {...register("email")}
             error={errors?.email?.message}
-          />
+          isRequired
+        />
           <Input
             label="Primary Phone"
             placeholder="Primary Phone Number"
             type="text"
             {...register("primary_phone")}
             error={errors?.primary_phone?.message}
-          />
+          isRequired
+        />
           <Input
             label="Secondary Phone"
             placeholder="Secondary Phone"
             type="text"
             {...register("secondary_phone")}
             error={errors?.secondary_phone?.message}
-          />
+          isRequired
+        />
           <Input
             label="Address"
             placeholder="Address"
             type="text"
             {...register("address")}
             error={errors?.address?.message}
-          />
+          isRequired
+        />
           <Input
             label="Footer Description"
             placeholder="Footer Description"
             type="text"
             {...register("footer_desc")}
             error={errors?.footer_desc?.message}
-          />
+          isRequired
+        />
           <Input
             label="Google Analytics"
             placeholder="Google Analytics"
             type="text"
             {...register("google_analytics")}
             error={errors?.google_analytics?.message}
-          />
+          isRequired
+        />
           <Input
             label="Map Url"
             placeholder="url from google map"

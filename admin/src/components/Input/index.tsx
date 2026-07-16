@@ -2,6 +2,7 @@ import React, { forwardRef, useState } from "react";
 import { FieldError } from "react-hook-form";
 import "./input.css";
 import useTranslation from "@/locale/useTranslation";
+import { RequiredMark } from "@/components/RequiredMark";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string | React.ReactNode;
@@ -22,6 +23,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       rightSection,
       type = "text",
       isRequired,
+      required,
       ...rest
     },
     ref,
@@ -29,6 +31,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const translate = useTranslation();
     const [showPasswordVisibility, setShowPasswordVisibility] =
       useState<boolean>(false);
+    const showRequired = Boolean(isRequired || required);
 
     const handlePasswordVisibility = () => {
       setShowPasswordVisibility(!showPasswordVisibility);
@@ -38,7 +41,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className={`input-container ${className || ""}`}>
         {label && (
           <label className="input-label">
-            {label} {isRequired && <span className="text-red-500">*</span>}
+            {typeof label === "string" ? translate(label) : label}
+            {showRequired && <RequiredMark />}
           </label>
         )}
         <div
@@ -52,6 +56,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             type={type === "password" && showPasswordVisibility ? "text" : type}
+            required={required}
             className={`input-field ${error ? "input-error-field" : ""}  ${rest.disabled === "true" ? "cursor-not-allowed" : "cursor-text"}`}
             {...rest}
           />

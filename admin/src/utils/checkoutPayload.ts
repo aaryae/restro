@@ -92,14 +92,15 @@ export function buildSplitCheckoutBody(options: {
     body.customerId = Number(options.customerId);
   }
 
-  if (options.sessionId && isValidSessionId(options.sessionId)) {
-    body.sessionId = options.sessionId;
-  }
-
   if (options.checkoutAll) {
+    if (options.sessionId && isValidSessionId(options.sessionId)) {
+      body.sessionId = options.sessionId;
+    }
     return { ...body, checkoutAll: true };
   }
 
+  // sessionId is only allowed on checkoutAll split schemas — omit it for
+  // orderId / orderItemIds payloads or Joi rejects with "valid checkout types".
   if (options.orderItemIds?.length) {
     return {
       ...body,
@@ -111,6 +112,9 @@ export function buildSplitCheckoutBody(options: {
     return { ...body, orderId: Number(options.orderId) };
   }
 
+  if (options.sessionId && isValidSessionId(options.sessionId)) {
+    body.sessionId = options.sessionId;
+  }
   return { ...body, checkoutAll: true };
 }
 

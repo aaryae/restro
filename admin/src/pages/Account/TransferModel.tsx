@@ -96,15 +96,15 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
             {...register("fromAccountId")}
             options={accountOptions}
             error={errors.fromAccountId?.message}
-            required
-          />
+            isRequired
+        />
           <Select
             label="To Account"
             {...register("toAccountId")}
             options={accountOptions}
             error={errors.toAccountId?.message}
-            required
-          />
+            isRequired
+        />
           <Input
             label="Amount"
             type="number"
@@ -114,15 +114,15 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 v === "" || v === null ? undefined : Number(v),
             })}
             error={errors.amount?.message}
-            required
-          />
+            isRequired
+        />
           <Input
             label="Remarks"
             placeholder="Reason for transfer"
             {...register("remarks")}
             error={errors.remarks?.message}
-            required
-          />
+            isRequired
+        />
 
           <div className="flex justify-end gap-3 pt-2 border-t mt-4">
             <button

@@ -1,35 +1,33 @@
-import CustomDialog from "@/components/Dialog";
-import Input from "@/components/Input";
-import Select from "@/components/Select";
-import { Controller, useForm, useFieldArray } from "react-hook-form";
-import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
-import AddEditProductCategory from "../ProductCategory/AddEditProductCategory";
-import MediaComponent from "@/components/MediaComponent";
-import { MultipleImageInputUI } from "@/components/ImageComponent";
-import RichTextEditor from "@/components/RichTextEditor";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import Button from "@/components/Button";
+import CustomDialog from "@/components/Dialog";
+import Drawer from "@/components/Drawer";
+import { MultipleImageInputUI } from "@/components/ImageComponent";
+import Input from "@/components/Input";
+import MediaComponent from "@/components/MediaComponent";
+import Select from "@/components/Select";
+import { IMAGE_BASE_URL } from "@/constants";
+import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
+import useImageHandler from "@/hooks/useImageHandler";
 import useTranslation from "@/locale/useTranslation";
-import { ProductSchema } from "./schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { handleError, handleResponse } from "@/utils/responseHandler";
-import { PRODUCT_LIST_ROUTE } from "@/routes/routeNames";
+import { useGetApiQuery } from "@/redux/services/crudApi";
 import {
   useCreateProductMutation,
   useGetProductByIdQuery,
   useUpdateProductByIdMutation,
 } from "@/redux/services/product";
-import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
-import useImageHandler from "@/hooks/useImageHandler";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
-import Drawer from "@/components/Drawer";
+import { PRODUCT_LIST_ROUTE } from "@/routes/routeNames";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { useNavigate, useParams } from "react-router-dom";
+import { z } from "zod";
+import AddEditProductCategory from "../ProductCategory/AddEditProductCategory";
 import ListCategoryDetails from "./ListCategoryDetails";
-import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
-import { useGetApiQuery } from "@/redux/services/crudApi";
-import { ADDON_URL } from "@/constants/apiUrlConstants";
-import { IMAGE_BASE_URL } from "@/constants";
-import DishPlaceHolder from "@/assets/product_placeholder.jpg";
+import { ProductSchema } from "./schema";
 
 type ProductFormType = z.infer<typeof ProductSchema>;
 
@@ -53,10 +51,10 @@ export default function ProductForm() {
     defaultValues: {
       productCategoryId: "",
       departmentId: "",
+      description: "",
       hasVariant: false,
       variants: [],
-      // quantity: 0,
-      price: 0,
+      price: undefined,
       mediaArr: [],
       addons: [],
     },
@@ -135,17 +133,28 @@ export default function ProductForm() {
   useEffect(() => {
     if (id && product?.data) {
       const price = product?.data?.hasVariant
-        ? 0
-        : Number(product?.data?.price || 0);
-      // const quantity = product?.data?.hasVariant
-      //   ? 0
-      //   : Number(product?.data?.quantity || 0);
+        ? undefined
+        : product?.data?.price != null && product?.data?.price !== ""
+          ? Number(product.data.price)
+          : undefined;
       reset({
         ...product?.data,
         productCategoryId: String(product?.data?.productCategoryId),
         departmentId: String(product?.data?.departmentId),
-        variants: product?.data?.variants || [],
-        // quantity,
+        variants: Array.isArray(product?.data?.variants)
+          ? product.data.variants.map((v: any) => ({
+              name: v.name ?? "",
+              description: v.description ?? "",
+              price:
+                v.price != null && v.price !== ""
+                  ? Number(v.price)
+                  : undefined,
+              quantity:
+                v.quantity != null && v.quantity !== ""
+                  ? Number(v.quantity)
+                  : undefined,
+            }))
+          : [],
         price,
         mediaArr:
           product?.data?.mediaArr
@@ -156,24 +165,18 @@ export default function ProductForm() {
           : [],
       });
       setSelectedOption(product?.data?.productCategoryId);
-      console.log("Reset form with product data:", {
-        price,
-        // quantity,
-        hasVariant: product?.data?.hasVariant,
-      });
     } else {
       reset({
         productCategoryId: "",
         departmentId: "",
         hasVariant: false,
         variants: [],
-        // quantity: 0,
-        price: 0,
+        price: undefined,
         mediaArr: [],
         addons: [],
       });
     }
-  }, [success, product, reset, setValue]);
+  }, [success, product, reset, id]);
 
   useEffect(() => {
     if (productCategorySuccess && productCategory?.data?.data) {
@@ -192,8 +195,12 @@ export default function ProductForm() {
       fields.length === 0 &&
       (!id || (id && !product?.data?.variants?.length))
     ) {
-      console.log("Appending initial variant");
-      append({ name: "", price: 0, quantity: 0, description: "" });
+      append({
+        name: "",
+        price: undefined as unknown as number,
+        quantity: undefined as unknown as number,
+        description: "",
+      });
     }
   }, [hasVariant, fields, append, id, product]);
 
@@ -210,8 +217,12 @@ export default function ProductForm() {
   };
 
   const handleAddVariant = () => {
-    console.log("Adding new variant, current fields:", fields);
-    append({ name: "", price: 0, quantity: 0, description: "" });
+    append({
+      name: "",
+      price: undefined as unknown as number,
+      quantity: undefined as unknown as number,
+      description: "",
+    });
   };
 
   const onSubmit = async (data: ProductFormType) => {
@@ -223,7 +234,6 @@ export default function ProductForm() {
       departmentId: Number(data.departmentId),
       variants: data.hasVariant ? data.variants : [],
     };
-    console.log("Submitting payload:", body);
     try {
       const response = id
         ? await updateProduct({ body, id }).unwrap()
@@ -240,8 +250,7 @@ export default function ProductForm() {
 
   const isHasVariantDisabled = id && product?.data?.variants?.length > 0;
 
-  console.log("Form errors:", errors);
-  console.log("Form values:", getValues());
+ 
 
   return (
     <>
@@ -255,13 +264,14 @@ export default function ProductForm() {
           className="w-1/2"
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
 
         <Controller
           name="productCategoryId"
           control={control}
           render={({ field }) => (
-            <div className="flex items-end gap-[1rem]">
+            <div className="flex items-start gap-3">
               <Select
                 {...field}
                 options={productCategoryOptions}
@@ -269,32 +279,29 @@ export default function ProductForm() {
                 label="Item Category"
                 onChange={(event) => handleSelectComponent(event)}
                 error={errors.productCategoryId?.message}
+                isRequired
               />
-              <button
-                type="button"
-                className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
-                onClick={openDrawer}
-              >
-                <FaEye /> Show
-              </button>
-              <CustomDialog
-                buttonTitle={
-                  <button
-                    type="button"
-                    className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
-                  >
-                    <FaPlus /> Add
-                  </button>
-                }
-                dialogOpen={dialogOpen}
-                setDialogOpen={setDialogOpen}
-                title="Add Item Category"
-              >
-                <AddEditProductCategory
-                  isComponent={true}
-                  closeModal={closeDialog}
-                />
-              </CustomDialog>
+              {/* Offset by label + gap so buttons stay level with the select trigger */}
+              <div className="flex shrink-0 items-center gap-2 pt-[1.7rem]">
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                  onClick={openDrawer}
+                >
+                  <FaEye size={14} /> Show
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDialogOpen(true);
+                  }}
+                >
+                  <FaPlus size={14} /> Add
+                </button>
+              </div>
             </div>
           )}
         />
@@ -309,7 +316,8 @@ export default function ProductForm() {
               options={departmentOptions}
               className="w-full md:w-1/2"
               error={errors.departmentId?.message}
-            />
+          isRequired
+        />
           )}
         />
 
@@ -381,7 +389,7 @@ export default function ProductForm() {
           <label>Has Variants?</label>
           {isHasVariantDisabled && (
             <span className="text-red-500 text-sm">
-              Cannot disable variants while editing a product with existing
+              Cannot disable variants while editing an item with existing
               variants. Manage variants below.
             </span>
           )}
@@ -402,10 +410,16 @@ export default function ProductForm() {
               type="number"
               step={0.01}
               className="w-1/2"
-              placeholder="Enter Price"
-              {...register("price", { valueAsNumber: true })}
+              placeholder="0"
+              {...register("price", {
+                setValueAs: (v) =>
+                  v === "" || v === null || v === undefined
+                    ? undefined
+                    : Number(v),
+              })}
               error={errors.price?.message}
-            />
+          isRequired
+        />
           </>
         )}
 
@@ -458,18 +472,24 @@ export default function ProductForm() {
                   label="Price"
                   type="number"
                   step={0.01}
-                  placeholder="Variant Price"
+                  placeholder="0"
                   {...register(`variants.${index}.price`, {
-                    valueAsNumber: true,
+                    setValueAs: (v) =>
+                      v === "" || v === null || v === undefined
+                        ? undefined
+                        : Number(v),
                   })}
                   error={errors.variants?.[index]?.price?.message}
                 />
                 <Input
                   label="Quantity"
                   type="number"
-                  placeholder="Variant Quantity"
+                  placeholder="0"
                   {...register(`variants.${index}.quantity`, {
-                    valueAsNumber: true,
+                    setValueAs: (v) =>
+                      v === "" || v === null || v === undefined
+                        ? undefined
+                        : Number(v),
                   })}
                   error={errors.variants?.[index]?.quantity?.message}
                 />
@@ -482,7 +502,6 @@ export default function ProductForm() {
                 <button
                   type="button"
                   onClick={() => {
-                    console.log("Removing variant at index:", index);
                     remove(index);
                   }}
                   className="text-red-500"
@@ -510,10 +529,26 @@ export default function ProductForm() {
         </div>
       </form>
 
+      <CustomDialog
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        title="Add Item Category"
+        titleDescription="Create a category to group menu items."
+        contentClassName="max-w-md sm:max-w-lg"
+        closeOnOutsideClick
+      >
+        <AddEditProductCategory
+          isComponent={true}
+          closeModal={closeDialog}
+        />
+      </CustomDialog>
+
       <Drawer
         isOpen={drawerOpen}
         setIsOpen={setDrawerOpen}
-        width="w-full lg:w-[30%]"
+        width="w-full max-w-md"
+        className="border-l border-slate-200/80 shadow-2xl"
+        contentClassName="p-6 pt-5"
       >
         <ListCategoryDetails id={selectedOption} />
       </Drawer>

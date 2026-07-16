@@ -16,7 +16,7 @@ export default function Drawer({
   isOpen,
   setIsOpen,
   children,
-  width = "50%",
+  width = "w-full lg:w-1/2",
   position = "right",
   className,
   contentClassName = "p-4",
@@ -65,13 +65,13 @@ export default function Drawer({
       <div
         className={`fixed inset-y-0 z-[70] ${
           position === "right" ? "right-0" : "left-0"
-        } h-screen bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+        } h-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
           isOpen
             ? "visible translate-x-0 pointer-events-auto"
             : position === "right"
               ? "invisible translate-x-full pointer-events-none"
               : "invisible -translate-x-full pointer-events-none"
-        } ${width} ${className}`}
+        } ${width} ${className ?? ""}`}
       >
         <button
           onClick={toggleDrawer}

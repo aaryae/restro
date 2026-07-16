@@ -25,7 +25,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Banknote, Contact, Mail, Printer, QrCode, Split, X } from "lucide-react";
+import { Banknote, Contact, Mail, Printer, QrCode, Split, X, ArrowLeft } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -33,7 +33,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { FaPlus } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
@@ -103,8 +102,10 @@ interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   tableId: number | null;
-  orderId: number | null | [number];
+  orderId: number | null | number[];
   selectedItemIds?: number[];
+  /** page = full route; modal kept for compatibility but unused by callers */
+  variant?: "modal" | "page";
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -113,6 +114,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   tableId,
   orderId,
   selectedItemIds,
+  variant = "page",
 }) => {
   const [paymentType, setPaymentType] = useState<"cash" | "qr" | "split">(
     "cash",
@@ -391,6 +393,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         return "cash"; // fallback, split handled separately
       };
 
+      const isPartialSelection =
+        selectedIds.length > 0 &&
+        Array.isArray(items) &&
+        selectedIds.length < items.length;
+      // Any item selection uses selective item checkout; partial leaves unpaid items
       const isSelective = selectedIds.length > 0;
       const isCheckoutAll = Array.isArray(orderId) && selectedIds.length === 0;
       const isTakeaway =
@@ -410,22 +417,33 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           ? { customerId: selectedMember.id }
           : {};
 
-      // Selective checkout
+      const selectiveItemIds = [
+        ...selectedIds.map(Number),
+        ...addonIdsForSelected,
+      ];
+
+      // Selective / partial item checkout — always use orderItemIds so unpaid
+      // items remain and paymentStatus becomes partially_paid.
       let payload: any;
-      if (isSelective) {
-        if (isTakeaway) {
-          payload = withAccountId({
-            paymentMethod: mapPaymentMethod(paymentType),
-            orderId,
-            ...memberFields,
-          });
-        } else {
-          payload = withAccountId({
-            paymentMethod: mapPaymentMethod(paymentType),
-            orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
-            ...memberFields,
-          });
-        }
+      if (isSelective && isPartialSelection) {
+        payload = withAccountId({
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderItemIds: selectiveItemIds,
+          ...memberFields,
+        });
+      } else if (isSelective && isTakeaway && orderId) {
+        // All takeaway items selected → settle whole order
+        payload = withAccountId({
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderId,
+          ...memberFields,
+        });
+      } else if (isSelective) {
+        payload = withAccountId({
+          paymentMethod: mapPaymentMethod(paymentType),
+          orderItemIds: selectiveItemIds,
+          ...memberFields,
+        });
       } else if (!Array.isArray(orderId) && orderId && isTakeaway) {
         payload = withAccountId({
           paymentMethod: mapPaymentMethod(paymentType),
@@ -478,7 +496,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           return;
         }
         const response = await checkoutOrderApi({
-          id: tableId,
+          id: tableId ?? 0,
           body: payload,
         }).unwrap();
 
@@ -511,7 +529,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         // Static QR — manual confirm via checkout API
         let qrPayload;
-        if (isTakeaway) {
+        if (isSelective && isPartialSelection) {
+          qrPayload = withAccountId({
+            paymentMethod: "online",
+            orderItemIds: selectiveItemIds,
+            ...memberFields,
+          });
+        } else if (isTakeaway) {
           qrPayload = {
             paymentMethod: "online",
             orderId,
@@ -521,7 +545,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         } else if (isSelective) {
           qrPayload = withAccountId({
             paymentMethod: "online",
-            orderItemIds: [...selectedIds.map(Number), ...addonIdsForSelected],
+            orderItemIds: selectiveItemIds,
             ...memberFields,
           });
         } else {
@@ -536,7 +560,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
 
         const response = await checkoutOrderApi({
-          id: tableId,
+          id: tableId ?? 0,
           body: qrPayload,
         }).unwrap();
 
@@ -587,25 +611,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         const splitBody = buildSplitCheckoutBody({
           payments,
-          orderId: isSelective && !isTakeaway ? null : resolvedOrderId,
+          orderId:
+            isSelective && isPartialSelection
+              ? null
+              : isSelective && !isTakeaway
+                ? null
+                : resolvedOrderId,
           orderItemIds:
-            isSelective && !isTakeaway
-              ? [...selectedIds.map(Number), ...addonIdsForSelected]
+            isSelective && (isPartialSelection || !isTakeaway)
+              ? selectiveItemIds
               : undefined,
           checkoutAll: !isSelective && (isCheckoutAll || !resolvedOrderId),
           customerId: memberCustomerId,
           sessionId: table?.data?.sessionId ?? null,
         });
 
-        // Takeaway selective / full order uses orderId path
-        if (isTakeaway && resolvedOrderId) {
+        // Takeaway full-order settle uses orderId path (not partial item pay)
+        if (isTakeaway && resolvedOrderId && !isPartialSelection) {
           splitBody.orderId = resolvedOrderId;
           delete splitBody.orderItemIds;
           delete splitBody.checkoutAll;
+          delete splitBody.sessionId;
         }
 
         const response = await checkoutOrderApi({
-          id: tableId,
+          id: tableId ?? 0,
           body: splitBody,
         }).unwrap();
 
@@ -1097,50 +1127,82 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  return createPortal(
+  const tableLabel =
+    order?.data?.table?.tableNo || table?.data?.tableNo || null;
+  const pageTitle = tableLabel
+    ? `Checkout — Table ${tableLabel}`
+    : "Checkout";
+
+  const body = (
     <>
-      <div className={styles.modalOverlay}>
-        <div className={styles.modalContent}>
-          {isPaymentSuccess ? (
-            <div className="min-h-[60vh] flex items-center justify-center">
-              <div className={`${styles.successContainer} text-center`}>
-                <div className={styles.checkmarkContainer}>
-                  <svg
-                    className={styles.checkmark}
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 52 52"
-                  >
-                    <circle
-                      className={styles.checkmarkCircle}
-                      cx="26"
-                      cy="26"
-                      r="25"
-                      fill="none"
-                    />
-                    <path
-                      className={styles.checkmarkCheck}
-                      fill="none"
-                      d="M14.1 27.2l7.1 7.2 16.7-16.8"
-                    />
-                  </svg>
-                </div>
-                <p className={styles.successMessage}>Payment Successful!</p>
-              </div>
+      {isPaymentSuccess ? (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className={`${styles.successContainer} text-center`}>
+            <div className={styles.checkmarkContainer}>
+              <svg
+                className={styles.checkmark}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 52 52"
+              >
+                <circle
+                  className={styles.checkmarkCircle}
+                  cx="26"
+                  cy="26"
+                  r="25"
+                  fill="none"
+                />
+                <path
+                  className={styles.checkmarkCheck}
+                  fill="none"
+                  d="M14.1 27.2l7.1 7.2 16.7-16.8"
+                />
+              </svg>
             </div>
-          ) : (
-            <>
-              <div className={styles.modalHeader}>
-                <div className="flex justify-between items-center">
-                  <h2 className={styles.modalTitle}>
-                    Checkout - Table{" "}
-                    {order?.data?.table?.tableNo || table?.data?.tableNo}
-                  </h2>
-                  <button onClick={onClose} className="p-1 -mr-1">
-                    <X size={18} />
+            <p className={styles.successMessage}>Payment Successful!</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            className={
+              variant === "page" ? styles.pageHeader : styles.modalHeader
+            }
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                {variant === "page" && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                    aria-label="Back"
+                  >
+                    <ArrowLeft size={18} />
                   </button>
-                </div>
+                )}
+                <h2
+                  className={
+                    variant === "page" ? styles.pageTitle : styles.modalTitle
+                  }
+                >
+                  {pageTitle}
+                </h2>
               </div>
-              <div className={styles.modalBody}>
+              {variant !== "page" && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="-mr-1 p-1"
+                  aria-label="Close checkout"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+          </div>
+          <div
+            className={variant === "page" ? styles.pageBody : styles.modalBody}
+          >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
                 {/* Left column: Order details and member section */}
                 <div className="flex flex-col gap-4 lg:col-span-2">
@@ -1668,18 +1730,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </>
           )}
+    </>
+  );
+
+  return (
+    <>
+      {variant === "page" ? (
+        <div className={styles.pageShell}>{body}</div>
+      ) : (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>{body}</div>
         </div>
-      </div>
-      {/* Preview Modal */}
-      {/* <CheckoutPreview
-        isOpen={showPreview}
-        onClose={handleClosePreview}
-        data={previewData}
-        onCompletePayment={async () => {
-          await handlePayment();
-          handleClosePreview();
-        }}
-      /> */}
+      )}
       <Bill
         ref={billRef}
         isOpen={showPreview}
@@ -1694,8 +1756,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }}
         className="bill-print"
       />
-    </>,
-    document.body,
+    </>
   );
 };
 
