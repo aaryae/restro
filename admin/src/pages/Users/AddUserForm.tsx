@@ -32,7 +32,7 @@ export default function AddUserForm({
   return (
     <div>
       {/* Tab Section */}
-      <div className="flex flex-wrap mt-[4rem] mb-[1.5rem]">
+      <div className="flex flex-wrap md:mt-[4rem] mt-0 mb-[1.5rem]">
         <button
           className={`flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem]  cursor-pointer ${
             tabSection === "profile" ? "bg-primaryColor text-white" : ""

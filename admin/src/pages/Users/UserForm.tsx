@@ -215,7 +215,7 @@ export default function UserForm({
         )}
       </div>
       <form
-        className="grid grid-cols-1 md:grid-cols-2 gap-[1.5rem]"
+        className="grid grid-cols-1 gap-[1.5rem] pb-24 md:grid-cols-2 md:pb-0"
         autoComplete="off"
         onSubmit={handleSubmit(onSubmit)}
       >
@@ -307,13 +307,16 @@ export default function UserForm({
           />
         )}
         {/* <Input label="Is Active" type="checkbox" /> */}
-        <div />
-        <Button type="submit" className="submit-button">
-          {" "}
-          <div className="flex justify-center items-center gap-[0.5rem] ">
-            {translate("Submit")}
-          </div>
-        </Button>
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] md:static md:col-span-2 md:flex md:justify-end md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+          <Button
+            type="submit"
+            className="submit-button min-h-11 w-full md:w-auto md:min-w-[7rem]"
+          >
+            <div className="flex items-center justify-center">
+              {translate("Submit")}
+            </div>
+          </Button>
+        </div>
       </form>
     </>
   );
