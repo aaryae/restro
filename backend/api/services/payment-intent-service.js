@@ -49,6 +49,8 @@ function buildSettlementLookupConditions(event) {
   return orConditions;
 }
 
+const INQUIRY_SUCCESS_CODES = new Set(["00", "0", "000", "success"]);
+
 function mapInquiryToGatewayEvent(inquiryData, billNumber) {
   if (!inquiryData || typeof inquiryData !== "object") {
     return null;
@@ -58,6 +60,14 @@ function mapInquiryToGatewayEvent(inquiryData, billNumber) {
     inquiryData.data ||
     inquiryData;
   const nested = row.data || row;
+  const responseCode = String(
+    nested.responseCode ?? row.responseCode ?? inquiryData.responseCode ?? "",
+  )
+    .trim()
+    .toLowerCase();
+  const responseStatus = String(
+    row.responseStatus ?? nested.responseStatus ?? inquiryData.responseStatus ?? "",
+  ).toUpperCase();
   const statusRaw = String(
     nested.status ||
       nested.txnStatus ||
@@ -65,27 +75,34 @@ function mapInquiryToGatewayEvent(inquiryData, billNumber) {
       row.responseStatus ||
       "",
   ).toLowerCase();
-  const paid = ["success", "successful", "paid", "completed", "00", "s"].includes(
-    statusRaw,
-  );
+  const paid =
+    responseStatus === "SUCCESS" ||
+    INQUIRY_SUCCESS_CODES.has(responseCode) ||
+    ["success", "successful", "paid", "completed", "00", "s"].includes(statusRaw);
   if (!paid) {
     return null;
   }
   const amount = Number(
-    nested.amount ?? nested.txnAmount ?? nested.transactionAmount,
+    nested.amount ??
+      nested.txnAmount ??
+      nested.transactionAmount ??
+      row.amount,
   );
   const gatewayTxnId =
     nested.gatewayTxnId ||
     nested.transactionId ||
     nested.txnId ||
     nested.nchlTxnId ||
+    row.gatewayTxnId ||
+    row.transactionId ||
     null;
   return {
+    source: "bank_inquiry",
     merchantTxnRef: billNumber,
     gatewayTxnId,
     amount: Number.isFinite(amount) ? amount : null,
     status: "paid",
-    signature: nested.signature || nested.sign || null,
+    signature: nested.signature || nested.sign || row.signature || null,
     raw: inquiryData,
   };
 }
@@ -346,6 +363,38 @@ const initiateQrPayment = async (req) => {
   }
 };
 
+async function reconcileAllPendingIntents() {
+  const pending = await paymentIntentModel.findAll({
+    where: {
+      status: "pending",
+      expiresAt: { [Op.gt]: new Date() },
+    },
+    order: [["createdAt", "ASC"]],
+    limit: 25,
+  });
+
+  for (const intent of pending) {
+    try {
+      await reconcilePendingIntent(intent);
+    } catch (err) {
+      logMachbankIssue("reconcilePendingIntent", {
+        intentId: intent.id,
+        message: err.message,
+      });
+    }
+  }
+
+  if (pending.length > 0) {
+    try {
+      await syncMachbankWebSocket();
+    } catch (wsErr) {
+      logMachbankIssue("syncMachbankWebSocket during reconcile", {
+        message: wsErr.message,
+      });
+    }
+  }
+}
+
 const getIntentStatus = async (req) => {
   let intent = await paymentIntentModel.findByPk(req.params.id, {
     include: [{ model: orderModel, as: "order", attributes: ["id", "paymentStatus", "payableAmount"] }],
@@ -355,6 +404,13 @@ const getIntentStatus = async (req) => {
   }
 
   if (intent.status === "pending") {
+    try {
+      await syncMachbankWebSocket();
+    } catch (wsErr) {
+      logMachbankIssue("syncMachbankWebSocket on status poll", {
+        message: wsErr.message,
+      });
+    }
     intent = (await reconcilePendingIntent(intent)) || intent;
   }
 
@@ -451,7 +507,11 @@ const settleFromGatewayEvent = async (event) => {
         logger.error("getpay signature verification failed");
         return { handled: false, reason: "invalid_signature" };
       }
-    } else if (!matchedByTrace && config.requireGetpaySignature) {
+    } else if (
+      !matchedByTrace &&
+      event.source !== "bank_inquiry" &&
+      config.requireGetpaySignature
+    ) {
       await transaction.rollback();
       logger.error(
         "Rejected paid event: no getpay signature and no validationTraceId match (MACHBANK_REQUIRE_GETPAY_SIGNATURE)",
@@ -555,4 +615,6 @@ module.exports = {
   getIntentStatus,
   cancelIntent,
   settleFromGatewayEvent,
+  reconcilePendingIntent,
+  reconcileAllPendingIntents,
 };

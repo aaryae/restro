@@ -22,6 +22,9 @@ const initiateQr = async (req, res, next) => {
 
 const getStatus = async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
     const result = await paymentIntentService.getIntentStatus(req);
     return responseHelper.sendResponse(
       res,

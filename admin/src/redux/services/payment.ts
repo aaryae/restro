@@ -46,7 +46,8 @@ const paymentApi = api.injectEndpoints({
       { success: boolean; data: PaymentIntentData },
       number
     >({
-      query: (id) => `payment/qr/${id}/status`,
+      query: (id) => `payment/qr/${id}/status?_=${Date.now()}`,
+      keepUnusedDataFor: 0,
     }),
     cancelQrPayment: builder.mutation<
       { success: boolean; data: PaymentIntentData },

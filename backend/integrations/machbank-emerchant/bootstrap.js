@@ -4,7 +4,7 @@ const { config, assertEnabledConfig, refreshMachbankConfig } = require("./config
 const { registerMachbankWebSocketHandler } = require("./ws-lifecycle");
 const { assertWsTokenKeyUsable } = require("./crypto/encrypt-ws-token");
 const paymentIntentService = require("../../api/services/payment-intent-service");
-const { expirePaymentIntentsJob } = require("../../jobs/expire-payment-intents");
+const { expirePaymentIntentsJob, reconcilePaymentIntentsJob } = require("../../jobs/expire-payment-intents");
 const logger = require("../../configs/logger");
 
 async function bootstrapMachbankEmerchant() {
@@ -32,6 +32,7 @@ async function bootstrapMachbankEmerchant() {
   assertWsTokenKeyUsable();
 
   expirePaymentIntentsJob.start();
+  reconcilePaymentIntentsJob.start();
   logger.info(
     `Machbank eMerchant ready (nqrws merchant_id=${config.wsMerchantId || "?"}; opens after successful QR generation)`,
   );

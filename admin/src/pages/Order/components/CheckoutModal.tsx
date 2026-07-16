@@ -1047,7 +1047,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     const poll = async () => {
       try {
-        const res = await fetchQrStatus(dynamicIntent.id).unwrap();
+        const res = await fetchQrStatus(dynamicIntent.id, false).unwrap();
         if (res.success && res.data) {
           setDynamicIntent(res.data);
           if (res.data.status === "paid") {
