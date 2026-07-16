@@ -19,6 +19,7 @@ import {
 } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import Toast from "@/components/Toast";
 import { LayoutGrid, List, Minus, Plus, ShoppingBasket, User } from "lucide-react";
 import {
   useCreateOrderMutation,
@@ -66,6 +67,42 @@ const orderTypeOptions = [
   // { value: "delivery", label: "Delivery" },
 ];
 
+const CREATE_ORDER_DRAFT_KEY = "nirvana-create-order-draft";
+
+type CreateOrderDraft = {
+  orderType?: OrderFormType["orderType"];
+  tableId?: string;
+  takeAwayName?: string;
+  orderNote?: string;
+  orderItems?: OrderItem[];
+};
+
+function readCreateOrderDraft(): CreateOrderDraft | null {
+  try {
+    const raw = sessionStorage.getItem(CREATE_ORDER_DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CreateOrderDraft;
+  } catch {
+    return null;
+  }
+}
+
+function writeCreateOrderDraft(draft: CreateOrderDraft) {
+  try {
+    sessionStorage.setItem(CREATE_ORDER_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+function clearCreateOrderDraft() {
+  try {
+    sessionStorage.removeItem(CREATE_ORDER_DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function AddEditOrder({
   isComponent = false,
   closeModal = () => {},
@@ -73,6 +110,7 @@ export default function AddEditOrder({
   const { tableId, orderId } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!orderId;
+  const draft = !isEditMode && !isComponent ? readCreateOrderDraft() : null;
 
   const {
     register,
@@ -86,27 +124,22 @@ export default function AddEditOrder({
   } = useForm<OrderFormType>({
     resolver: zodResolver(OrderSchema),
     defaultValues: {
-      orderType: "dineIn",
+      orderType: draft?.orderType || "dineIn",
+      tableId: draft?.tableId || tableId || "",
+      takeAwayName: draft?.takeAwayName || "",
+      orderNote: draft?.orderNote || "",
       orderItems: [],
     },
   });
 
   const [productSearchInput, setProductSearchInput] = useState("");
   const debouncedProductSearch = useDebounce(productSearchInput, 400);
+  const isSearching = Boolean(debouncedProductSearch.trim());
 
   const { query, handlePagination } = usePagination({
     page: 1,
-    limit: 6,
+    limit: 40,
   });
-
-  // Mobile: load more products at once to reduce paging taps.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.matchMedia("(max-width: 1023px)").matches) {
-      handlePagination({ page: 1, limit: 40 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Reset to first page when debounced search changes.
   useEffect(() => {
@@ -117,6 +150,9 @@ export default function AddEditOrder({
   }, [debouncedProductSearch]);
 
   const url = useMemo(() => {
+    if (!isSearching) {
+      return "product/top-selling?limit=8";
+    }
     return buildQueryString("product/list", {
       page: query.page,
       limit: query.limit,
@@ -124,9 +160,11 @@ export default function AddEditOrder({
         name: debouncedProductSearch,
       },
     });
-  }, [query, debouncedProductSearch]);
+  }, [query, debouncedProductSearch, isSearching]);
 
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>(
+    () => draft?.orderItems || [],
+  );
   const [totalAmount, setTotalAmount] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingData, setPendingData] = useState<OrderFormType | null>(null);
@@ -172,6 +210,28 @@ export default function AddEditOrder({
 
   const watchedOrderType = watch("orderType");
   const watchedTableId = watch("tableId");
+  const watchedTakeAwayName = watch("takeAwayName");
+  const watchedOrderNote = watch("orderNote");
+
+  // Keep create-order cart/form draft across refresh (create flow only)
+  useEffect(() => {
+    if (isEditMode || isComponent) return;
+    writeCreateOrderDraft({
+      orderType: watchedOrderType,
+      tableId: watchedTableId,
+      takeAwayName: watchedTakeAwayName,
+      orderNote: watchedOrderNote,
+      orderItems,
+    });
+  }, [
+    isEditMode,
+    isComponent,
+    watchedOrderType,
+    watchedTableId,
+    watchedTakeAwayName,
+    watchedOrderNote,
+    orderItems,
+  ]);
 
   const playAudio = () => {
     const a = beepRef.current;
@@ -418,10 +478,11 @@ export default function AddEditOrder({
   };
 
   const handleSuccess = () => {
+    clearCreateOrderDraft();
     if (isComponent) {
       closeModal();
     } else {
-      navigate(ORDER_LIST_ROUTE);
+      navigate(`${ORDER_LIST_ROUTE}?view=order`);
     }
   };
 
@@ -433,9 +494,10 @@ export default function AddEditOrder({
 
   const submitOrder = async (data: OrderFormType) => {
     try {
-      const payload = {
-        ...data,
-        orderNote: getValues("orderNote"),
+      const orderType = getValues("orderType") || data.orderType;
+      const payload: any = {
+        orderType,
+        orderNote: getValues("orderNote") || data.orderNote || "",
         orderItems: orderItems
           .filter((item: OrderItem) => item.status !== "cancelled")
           .map((item: OrderItem) => {
@@ -445,28 +507,30 @@ export default function AddEditOrder({
               departmentId: item.departmentId,
             } as any;
 
-            if (String(item.id).includes("newitem_")) {
-              return {
-                ...base,
-                addons: (item.addons || []).map((a) => ({
-                  addonId: a.addonId,
-                  quantity: a.quantity,
-                })),
-              };
+            if (item.specialInstructions) {
+              base.specialInstructions = item.specialInstructions;
             }
-            return {
-              id: item.id,
-              ...base,
-              addons: (item.addons || []).map((a) => ({
-                addonId: a.addonId,
-                quantity: a.quantity,
-              })),
-            };
+
+            const addons = (item.addons || []).map((a) => ({
+              addonId: a.addonId,
+              quantity: a.quantity,
+            }));
+
+            if (String(item.id).includes("newitem_")) {
+              return addons.length ? { ...base, addons } : base;
+            }
+            return addons.length
+              ? { id: item.id, ...base, addons }
+              : { id: item.id, ...base };
           }),
       };
-      if (getValues("orderType") !== "dineIn") {
-        delete payload.tableId;
+
+      if (orderType === "dineIn") {
+        payload.tableId = Number(data.tableId);
+      } else if (orderType === "takeaway") {
+        payload.takeAwayName = String(data.takeAwayName || "").trim();
       }
+
       const response = isEditMode
         ? await updateOrderApi({
             id: orderId,
@@ -477,10 +541,13 @@ export default function AddEditOrder({
           }).unwrap();
       handleResponse({
         res: response,
-        onSuccess: () => navigate(ORDER_LIST_ROUTE),
+        onSuccess: () => {
+          clearCreateOrderDraft();
+          navigate(`${ORDER_LIST_ROUTE}?view=order`);
+        },
       });
     } catch (error: any) {
-      handleError({ error });
+      handleError({ error, setError });
     }
   };
 
@@ -489,6 +556,7 @@ export default function AddEditOrder({
       setError("orderItems", {
         message: "At least one order item is required",
       });
+      Toast("Please add at least one item to the order", "error");
       return;
     }
     setPendingData(data);
@@ -508,9 +576,10 @@ export default function AddEditOrder({
     if (!pendingData) return;
     try {
       setIsConfirming(true);
+      const orderType = getValues("orderType") || pendingData.orderType;
       const payload: any = {
-        ...pendingData,
-        orderNote: getValues("orderNote"),
+        orderType,
+        orderNote: getValues("orderNote") || pendingData.orderNote || "",
         orderItems: orderItems
           .filter((item: OrderItem) => item.status !== "cancelled")
           .map((item: OrderItem) => {
@@ -519,6 +588,10 @@ export default function AddEditOrder({
               quantity: item.quantity,
               departmentId: item.departmentId,
             } as any;
+
+            if (item.specialInstructions) {
+              base.specialInstructions = item.specialInstructions;
+            }
 
             if (String(item.id).includes("newitem_")) {
               return base;
@@ -529,8 +602,10 @@ export default function AddEditOrder({
             };
           }),
       };
-      if (getValues("orderType") !== "dineIn") {
-        delete payload.tableId;
+      if (orderType === "dineIn") {
+        payload.tableId = Number(pendingData.tableId);
+      } else if (orderType === "takeaway") {
+        payload.takeAwayName = String(pendingData.takeAwayName || "").trim();
       }
 
       const response = isEditMode
@@ -564,7 +639,10 @@ export default function AddEditOrder({
                 }
               : null,
           createdBy: null,
-          takeAwayName: (pendingData as any)?.takeAwayName || null,
+          takeAwayName:
+            pendingData.orderType === "takeaway"
+              ? (pendingData as any)?.takeAwayName || null
+              : null,
         },
         orderItems: kotItems,
       };
@@ -577,7 +655,7 @@ export default function AddEditOrder({
 
       handleResponse({ res: response, onSuccess: handleSuccess });
     } catch (error) {
-      handleError({ error });
+      handleError({ error, setError });
     } finally {
       setIsConfirming(false);
       setIsConfirmOpen(false);
@@ -654,7 +732,15 @@ export default function AddEditOrder({
         <form
           ref={formRef}
           className={styles.grid}
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit, (formErrors) => {
+            const first = Object.values(formErrors)[0] as
+              | { message?: string }
+              | undefined;
+            Toast(
+              first?.message || "Please fix the highlighted fields",
+              "error",
+            );
+          })}
         >
           <div className={`${styles.panel} ${styles.panelPad} ${styles.menuPanel}`}>
             <div className={`${styles.panelHeader} ${styles.desktopOnly}`}>
@@ -723,7 +809,7 @@ export default function AddEditOrder({
                           placeholder="Select table"
                           triggerClassName={styles.mobileSelectTrigger}
                           contentClassName={styles.mobileSelectContent}
-                          required
+                          isRequired
                         />
                       )}
                     />
@@ -746,6 +832,7 @@ export default function AddEditOrder({
                         {...register("takeAwayName")}
                         error={errors.takeAwayName?.message}
                         className={styles.takeawayMobileInput}
+                        isRequired
                       />
                     </div>
                   </div>
@@ -783,7 +870,7 @@ export default function AddEditOrder({
                   <p className={styles.mobileMenuHint}>
                     {debouncedProductSearch
                       ? `${productData?.data?.data?.length} results`
-                      : "Menu"}
+                      : "Top selling"}
                   </p>
                   <div
                     className={styles.viewToggle}

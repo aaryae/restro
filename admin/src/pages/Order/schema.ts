@@ -48,7 +48,17 @@ export const OrderSchema = z
     ),
   })
   .superRefine((data, ctx) => {
-    if (data.orderType === "takeaway" && !data.takeAwayName) {
+    if (data.orderType === "dineIn" && !String(data.tableId || "").trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a table",
+        path: ["tableId"],
+      });
+    }
+    if (
+      data.orderType === "takeaway" &&
+      !String(data.takeAwayName || "").trim()
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Take away name is required for takeaway orders",

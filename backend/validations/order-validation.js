@@ -20,8 +20,8 @@ const createOrderValidation = async (req, res, next) => {
       .when("orderType", {
         is: "dineIn",
         then: joi.required().messages({
-          "any.required": "Table ID is required for dine-in orders",
-          "number.base": "Table ID must be a number",
+          "any.required": "Please select a table for dine-in orders",
+          "number.base": "Please select a table for dine-in orders",
         }),
         otherwise: joi.forbidden(),
       }),
@@ -149,7 +149,10 @@ const updateOrderStatusValidation = async (req, res, next) => {
           "cancelled",
         )
         .optional(),
-      paymentStatus: joi.string().valid("pending", "paid", "failed").optional(),
+      paymentStatus: joi
+        .string()
+        .valid("pending", "paid", "failed", "partially_paid")
+        .optional(),
       paymentMethod: joi.string().valid("cash", "card", "online").optional(),
     })
     .min(1);
@@ -257,8 +260,8 @@ const updateOrderItemsValidation = async (req, res, next) => {
       .when("orderType", {
         is: "dineIn",
         then: joi.required().messages({
-          "any.required": "Table ID is required for dine-in orders",
-          "number.base": "Table ID must be a number",
+          "any.required": "Please select a table for dine-in orders",
+          "number.base": "Please select a table for dine-in orders",
         }),
         otherwise: joi.forbidden(),
       }),
