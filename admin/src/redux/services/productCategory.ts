@@ -32,7 +32,7 @@ const productCategoryApi = api.injectEndpoints({
         url: `product-category/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["product-category"],
+      invalidatesTags: ["product-category", "trash"],
     }),
   }),
   overrideExisting: true,

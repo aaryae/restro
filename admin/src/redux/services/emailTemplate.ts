@@ -32,7 +32,7 @@ const emailTemplateApi = api.injectEndpoints({
         url: `email-template/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["email-template"],
+      invalidatesTags: ["email-template", "trash"],
     }),
     activeEmailTemplate: builder.mutation({
       query: (body) => ({

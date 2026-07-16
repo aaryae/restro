@@ -53,6 +53,7 @@ export const api = createApi({
     "kot",
     "transaction",
     "payment-integration",
+    "trash",
   ],
   endpoints: () => ({}),
 });

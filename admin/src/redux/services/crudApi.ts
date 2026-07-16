@@ -10,7 +10,10 @@ const crudApi = api.injectEndpoints({
       }),
       invalidatesTags: (_, __, { url }) => {
         const tag = url.split("/");
-        return [{ type: tag[0] }];
+        const type = tag[0];
+        // Restore should refresh trash list; other creates may archive nothing
+        if (type === "trash") return ["trash"];
+        return [{ type }];
       },
     }),
 
@@ -50,8 +53,11 @@ const crudApi = api.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (_, __, args) => {
-        const tag = args.split("/");
-        return [{ type: tag[0] }];
+        const tag = String(args).split("/");
+        const type = tag[0];
+        // Most deletes archive to Recently Deleted — keep that list fresh
+        if (type === "trash") return ["trash"];
+        return [{ type }, "trash"];
       },
     }),
   }),

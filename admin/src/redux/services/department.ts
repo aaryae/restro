@@ -31,7 +31,7 @@ const departmentApi = api.injectEndpoints({
         url: `department/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["department"],
+      invalidatesTags: ["department", "trash"],
     }),
     createCliparts: builder.mutation({
       query: (body) => ({

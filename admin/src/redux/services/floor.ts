@@ -30,7 +30,7 @@ const floorApi = api.injectEndpoints({
         url: `${FLOOR_URL}${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["table", "order", "floor"],
+      invalidatesTags: ["table", "order", "floor", "trash"],
     }),
     getFloor: builder.query({
       query: () => `${FLOOR_URL}`,

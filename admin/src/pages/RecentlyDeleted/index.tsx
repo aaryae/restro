@@ -26,8 +26,8 @@ type TrashItem = {
 
 const FILTER_OPTIONS = [
   { value: "", label: "All types" },
-  { value: "product", label: "Product" },
-  { value: "product_category", label: "Product Category" },
+  { value: "product", label: "Item" },
+  { value: "product_category", label: "Item Category" },
   { value: "customer", label: "Customer" },
   { value: "supplier", label: "Supplier" },
   { value: "addon", label: "Addon" },
@@ -53,7 +53,10 @@ export default function RecentlyDeleted() {
     return `${TRASH_URL}list?${params.toString()}`;
   }, [query.page, query.limit, resourceType]);
 
-  const { data, isLoading, isFetching, refetch } = useGetApiQuery({ url });
+  const { data, isLoading, isFetching, refetch } = useGetApiQuery(
+    { url },
+    { refetchOnMountOrArgChange: true },
+  );
   const [restoreItem] = useCreateApiMutation();
   const [deleteItem] = useDeleteApiMutation();
 

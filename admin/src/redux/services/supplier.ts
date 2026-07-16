@@ -44,7 +44,7 @@ const supplierApi = api.injectEndpoints({
         url: `/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["supplier"],
+      invalidatesTags: ["supplier", "trash"],
     }),
   }),
   overrideExisting: true,
