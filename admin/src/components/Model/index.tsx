@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import "./model.css"; // Assuming you want custom styles
 
 interface ModelProps {
@@ -11,7 +12,7 @@ interface ModelProps {
 const Model: React.FC<ModelProps> = ({ title, children, isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="popup-overlay" onClick={onClose}>
       <div className="popup-container" onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
@@ -22,7 +23,8 @@ const Model: React.FC<ModelProps> = ({ title, children, isOpen, onClose }) => {
         </div>
         <div className="popup-content">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

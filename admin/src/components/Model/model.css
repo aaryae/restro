@@ -8,6 +8,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  /* Above Radix Dialog (z-50); portal to body so parent transform/overflow cannot trap it */
   z-index: 1000;
 }
 

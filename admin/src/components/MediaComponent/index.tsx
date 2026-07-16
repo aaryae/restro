@@ -27,7 +27,6 @@ import {
 import { useAppSelector } from "../../redux/store/hooks";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
-import Model from "../Model";
 import Input from "../Input";
 import Button from "../Button";
 import { useForm } from "react-hook-form";
@@ -231,6 +230,7 @@ export default function MediaComponent({
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
+          setOpenModel(false);
           setCurrentFolder(null);
           if (isMultiSelect) {
             dispatch(setSelectMultipleMedia([]));
@@ -331,167 +331,177 @@ export default function MediaComponent({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             <div className="mt-2 w-full">
-              {/* Folder Grid - Responsive */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 md:gap-4">
-                {currentFolder === null && (
-                  <>
-                    {mediaCategory?.map(
-                      (each: { id: number; name: string }, index: number) => (
-                        <button
-                          key={index}
-                          className="relative border w-full aspect-square flex flex-col items-center justify-center px-2 md:px-4 py-3 md:py-4 cursor-pointer group"
-                          onDoubleClick={() => handleDoubleClick(each.id)}
-                          style={{ userSelect: "none" }}
-                        >
-                          {accessListFolder.includes("delete") && (
-                            <HiTrash
-                              size={18}
-                              className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteFolder(each.id);
-                              }}
-                            />
-                          )}
-                          {accessListFolder.includes("edit") && (
-                            <MdEditSquare
-                              size={18}
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditClick(index);
-                              }}
-                            />
-                          )}
-                          <FaFolder
-                            size={108}
-                            className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0"
+                {currentFolder === null &&
+                  mediaCategory?.map(
+                    (each: { id: number; name: string }, index: number) => (
+                      <button
+                        key={index}
+                        className="relative border w-full aspect-square flex flex-col items-center justify-center px-2 md:px-4 py-3 md:py-4 cursor-pointer group"
+                        onDoubleClick={() => handleDoubleClick(each.id)}
+                        style={{ userSelect: "none" }}
+                      >
+                        {accessListFolder.includes("delete") && (
+                          <HiTrash
+                            size={18}
+                            className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFolder(each.id);
+                            }}
                           />
-                          <textarea
-                            ref={(el) => (inputRefs.current[index] = el)}
-                            className="bg-inherit text-black w-full text-center text-xs sm:text-sm resize-none overflow-hidden break-words whitespace-pre-wrap"
-                            value={
-                              inputValues[index] !== undefined
-                                ? inputValues[index]
-                                : each.name
-                            }
-                            disabled={editingIndex !== index}
-                            onChange={(e) =>
-                              handleInputChange(index, e.target.value)
-                            }
-                            onKeyDown={(e) =>
-                              handleInputKeyDown(e, index, each.id)
-                            }
-                            rows={2}
+                        )}
+                        {accessListFolder.includes("edit") && (
+                          <MdEditSquare
+                            size={18}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(index);
+                            }}
                           />
-                        </button>
-                      ),
-                    )}
-                    {mediaCategorySuccess && (
-                      <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6">
-                        <Pagination
-                          media={mediaCategoryList}
-                          handlePageChange={handleMediaCategoryPageChange}
+                        )}
+                        <FaFolder
+                          size={108}
+                          className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0"
                         />
-                      </div>
-                    )}
-                  </>
-                )}
+                        <textarea
+                          ref={(el) => (inputRefs.current[index] = el)}
+                          className="bg-inherit text-black w-full text-center text-xs sm:text-sm resize-none overflow-hidden break-words whitespace-pre-wrap"
+                          value={
+                            inputValues[index] !== undefined
+                              ? inputValues[index]
+                              : each.name
+                          }
+                          disabled={editingIndex !== index}
+                          onChange={(e) =>
+                            handleInputChange(index, e.target.value)
+                          }
+                          onKeyDown={(e) =>
+                            handleInputKeyDown(e, index, each.id)
+                          }
+                          rows={2}
+                        />
+                      </button>
+                    ),
+                  )}
 
-                {/* Media Grid */}
-                {currentFolder !== null && (
-                  <>
-                    {media?.data?.data.map(
-                      (
-                        each: {
-                          id: number;
-                          path: string;
-                          name: string;
-                          type?: string;
-                        },
-                        index: number,
-                      ) => {
-                        const isVideo =
-                          each.path.match(/\.(mp4|webm|ogg|mov)$/i) ||
-                          each.type === "video";
-
-                        return (
-                          <button
-                            className={`relative border w-full aspect-square flex flex-col items-center justify-center p-2 md:p-3 cursor-pointer transition-all ${
-                              (typeof selectedImage === "string" &&
-                                each.path === selectedImage) ||
-                              (Array.isArray(selectedImage) &&
-                                selectedImage.includes(each.path))
-                                ? "border-2 border-black"
-                                : "border hover:border-gray-400"
-                            }`}
-                            key={index}
-                            onClick={() => handleImageSelect(each.path)}
-                          >
-                            {isVideo ? (
-                              <div className="relative w-full h-full max-h-[120px] sm:max-h-[140px]">
-                                <video
-                                  src={buildAssetUrl(each.path)}
-                                  className="w-full h-full object-cover"
-                                  crossOrigin="anonymous"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                                  <span className="text-white text-xl sm:text-2xl">
-                                    ▶
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <img
-                                src={buildAssetUrl(each.path)}
-                                alt="Gallery"
-                                className="w-full h-full max-h-[120px] sm:max-h-[140px] object-cover"
-                              />
-                            )}
-                            <p className="bg-inherit text-black w-full text-center text-xs sm:text-sm overflow-hidden line-clamp-1 mt-1 sm:mt-2">
-                              {each.name}
-                            </p>
-                          </button>
-                        );
+                {currentFolder !== null &&
+                  media?.data?.data?.map(
+                    (
+                      each: {
+                        id: number;
+                        path: string;
+                        name: string;
+                        type?: string;
                       },
-                    )}
-                    {mediaSuccess && (
-                      <div className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6">
-                        <Pagination
-                          media={media}
-                          handlePageChange={handlePageChange}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
+                      index: number,
+                    ) => {
+                      const isVideo =
+                        each.path.match(/\.(mp4|webm|ogg|mov)$/i) ||
+                        each.type === "video";
+
+                      return (
+                        <button
+                          className={`relative border w-full aspect-square flex flex-col items-center justify-center p-2 md:p-3 cursor-pointer transition-all ${
+                            (typeof selectedImage === "string" &&
+                              each.path === selectedImage) ||
+                            (Array.isArray(selectedImage) &&
+                              selectedImage.includes(each.path))
+                              ? "border-2 border-black"
+                              : "border hover:border-gray-400"
+                          }`}
+                          key={index}
+                          onClick={() => handleImageSelect(each.path)}
+                        >
+                          {isVideo ? (
+                            <div className="relative w-full h-full max-h-[120px] sm:max-h-[140px]">
+                              <video
+                                src={buildAssetUrl(each.path)}
+                                className="w-full h-full object-cover"
+                                crossOrigin="anonymous"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                <span className="text-white text-xl sm:text-2xl">
+                                  ▶
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={buildAssetUrl(each.path)}
+                              alt="Gallery"
+                              className="w-full h-full max-h-[120px] sm:max-h-[140px] object-cover"
+                            />
+                          )}
+                          <p className="bg-inherit text-black w-full text-center text-xs sm:text-sm overflow-hidden line-clamp-1 mt-1 sm:mt-2">
+                            {each.name}
+                          </p>
+                        </button>
+                      );
+                    },
+                  )}
               </div>
+
+              {currentFolder !== null &&
+                mediaSuccess &&
+                (!media?.data?.data || media.data.data.length === 0) && (
+                  <div className="flex min-h-[12rem] items-center justify-center px-4 py-10">
+                    <p className="text-sm text-slate-500">No images yet</p>
+                  </div>
+                )}
             </div>
-            <div className="absolute top-[25%] left-0 w-full px-[10%]">
-              <Model
-                title="Create Folder"
-                isOpen={openModel}
-                onClose={handleCloseModel}
-              >
-                <form onSubmit={handleSubmit(onSubmit)} className="py-10">
-                  <Input
-                    label="Create Folder"
-                    placeholder="Enter Folder Name"
-                    className="mb-[1rem]"
-                    {...register("name")}
-                  />
-                  <Button type="submit" className="submit-button">
-                    <div className="flex justify-center items-center gap-[0.5rem]">
-                      Submit
-                    </div>
-                  </Button>
-                </form>
-              </Model>
+          </div>
+
+          {currentFolder === null && mediaCategorySuccess && (
+            <div className="shrink-0 border-t border-slate-100">
+              <Pagination
+                media={mediaCategoryList}
+                handlePageChange={handleMediaCategoryPageChange}
+              />
             </div>
+          )}
+          {currentFolder !== null && mediaSuccess && (
+            <div className="shrink-0 border-t border-slate-100">
+              <Pagination
+                media={media}
+                handlePageChange={handlePageChange}
+              />
+            </div>
+          )}
         </div>
       </DialogContent>
+
+      <Dialog
+        open={openModel}
+        onOpenChange={(next) => {
+          if (!next) handleCloseModel();
+        }}
+      >
+        <DialogContent
+          className="z-[60] max-w-md"
+          overlayClassName="z-[60]"
+        >
+          <DialogHeader>
+            <DialogTitle>Create Folder</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <Input
+              label="Create Folder"
+              placeholder="Enter Folder Name"
+              {...register("name")}
+            />
+            <Button type="submit" className="submit-button">
+              <div className="flex justify-center items-center gap-[0.5rem]">
+                Submit
+              </div>
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
