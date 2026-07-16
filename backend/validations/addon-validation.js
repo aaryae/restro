@@ -18,8 +18,11 @@ const addonPostValidation = async (req, res, next) => {
       "number.min": "Price must be a non-negative number",
       "any.required": "Price is required",
     }),
-    imageUrl: joi.string().required().messages({
-      "any.required": "Image URL is required",
+    imageUrl: joi.string().trim().min(1).required().messages({
+      "string.base": "Image is required",
+      "string.empty": "Image is required",
+      "string.min": "Image is required",
+      "any.required": "Image is required",
     }),
   });
 

@@ -40,12 +40,13 @@ const AddEditAddons = () => {
     setValue,
     getValues,
     setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<AddonFormType>({
     resolver: zodResolver(AddonSchema as z.ZodTypeAny),
     defaultValues: {
       name: "",
-      price: 0,
+      price: undefined as unknown as number,
       imageUrl: "",
       mediaArr: [],
     },
@@ -74,7 +75,10 @@ const AddEditAddons = () => {
       const imageUrl = addonData.data.imageUrl || "";
       reset({
         name: addonData.data.name || "",
-        price: Number(addonData.data.price || 0),
+        price:
+          addonData.data.price != null && addonData.data.price !== ""
+            ? Number(addonData.data.price)
+            : (undefined as unknown as number),
         imageUrl: imageUrl,
       });
       setImage(
@@ -83,7 +87,12 @@ const AddEditAddons = () => {
           : imageUrl,
       );
     } else if (!id) {
-      reset({ name: "", price: 0, imageUrl: "", mediaArr: [] });
+      reset({
+        name: "",
+        price: undefined as unknown as number,
+        imageUrl: "",
+        mediaArr: [],
+      });
       setImage("");
     }
   }, [id, addonSuccess, addonData, reset]);
@@ -98,14 +107,16 @@ const AddEditAddons = () => {
       return;
     }
     setImage(selected);
-    setValue("imageUrl", selected);
+    setValue("imageUrl", selected, { shouldValidate: true });
+    clearErrors("imageUrl");
     setIsImageModalOpen(false);
   };
 
   const onSubmit = async (data: AddonFormType) => {
     const trimmedName = data.name?.trim();
+    const imageUrl = (data.imageUrl || image || "").trim();
 
-    if (!image) {
+    if (!imageUrl) {
       setError("imageUrl", {
         type: "manual",
         message: "Image is required",
@@ -116,7 +127,7 @@ const AddEditAddons = () => {
     const body = {
       name: trimmedName,
       price: Number(data.price || 0),
-      imageUrl: image,
+      imageUrl,
     };
     try {
       const response = id
@@ -144,6 +155,7 @@ const AddEditAddons = () => {
           className="w-1/2"
           {...register("name")}
           error={errors.name?.message}
+          isRequired
         />
 
         <Input
@@ -151,13 +163,19 @@ const AddEditAddons = () => {
           type="number"
           step={0.01}
           className="w-1/2"
-          placeholder="Enter price"
-          {...register("price", { valueAsNumber: true })}
+          placeholder="0"
+          {...register("price", {
+            setValueAs: (v) =>
+              v === "" || v === null || v === undefined ? undefined : Number(v),
+          })}
           error={errors.price?.message}
+          isRequired
         />
 
         <div className="flex flex-col items-start w-[20rem]">
-          <label className="input-label text-start mb-[2px]">Image</label>
+          <label className="input-label text-start mb-[2px]">
+            Image <span className="text-red-500">*</span>
+          </label>
           <MediaComponent
             title={<ImageInputUI image={image} imageMessage="Upload Image" />}
             isMultiSelect={false}
@@ -165,29 +183,9 @@ const AddEditAddons = () => {
             open={isImageModelOpen}
             setOpen={setIsImageModalOpen}
           />
-          {/* <div className="mt-[1rem] flex w-full justify-between">
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={handlePrevButton}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={() => setValue("mediaArr", [])}
-            >
-              Remove
-            </button>
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={handleNextButton}
-            >
-              Next
-            </button>
-          </div> */}
+          {errors.imageUrl?.message && (
+            <span className="input-error mt-1">{errors.imageUrl.message}</span>
+          )}
         </div>
 
         <div className="flex justify-start">
