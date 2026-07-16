@@ -13,14 +13,18 @@ import { MdShoppingCart } from "react-icons/md";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Beep from "@/assets/audio/beep.mp3";
 import DeleteBeep from "@/assets/audio/DeleteBeep.mp3";
-import {
-  useGetApiQuery,
-  usePatchApiMutation,
-} from "@/redux/services/crudApi";
+import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import Toast from "@/components/Toast";
-import { LayoutGrid, List, Minus, Plus, ShoppingBasket, User } from "lucide-react";
+import {
+  LayoutGrid,
+  List,
+  Minus,
+  Plus,
+  ShoppingBasket,
+  User,
+} from "lucide-react";
 import {
   useCreateOrderMutation,
   useUpdateOrderMutation,
@@ -772,7 +776,9 @@ export default function AddEditOrder({
             );
           })}
         >
-          <div className={`${styles.panel} ${styles.panelPad} ${styles.menuPanel}`}>
+          <div
+            className={`${styles.panel} ${styles.panelPad} ${styles.menuPanel}`}
+          >
             <div className={`${styles.panelHeader} ${styles.desktopOnly}`}>
               <h3 className={styles.panelTitle}>
                 <span className={styles.panelTitleIcon}>
@@ -791,7 +797,9 @@ export default function AddEditOrder({
             <div className={styles.mobileSetup}>
               <div className={styles.topRow}>
                 <div className={styles.fieldBlock}>
-                  <label className={`${styles.fieldLabel} ${styles.desktopOnly}`}>
+                  <label
+                    className={`${styles.fieldLabel} ${styles.desktopOnly}`}
+                  >
                     Order Type
                   </label>
                   <Controller
@@ -799,7 +807,11 @@ export default function AddEditOrder({
                     control={control}
                     defaultValue="dineIn"
                     render={({ field }) => (
-                      <div className={styles.typePills} role="group" aria-label="Order type">
+                      <div
+                        className={styles.typePills}
+                        role="group"
+                        aria-label="Order type"
+                      >
                         {orderTypeOptions.map((option) => {
                           const isActive = field.value === option.value;
                           return (
@@ -892,7 +904,9 @@ export default function AddEditOrder({
             ) : productData?.data?.data?.length > 0 ? (
               <div>
                 <div className={styles.menuToolbar}>
-                  <h4 className={`${styles.sectionLabel} ${styles.desktopOnly}`}>
+                  <h4
+                    className={`${styles.sectionLabel} ${styles.desktopOnly}`}
+                  >
                     {debouncedProductSearch
                       ? `Search Results (${productData?.data?.data?.length})`
                       : "Top Selling Menu Items"}
@@ -1080,7 +1094,9 @@ export default function AddEditOrder({
           <div
             ref={cartSheetRef}
             className={`${styles.panel} ${styles.cartPanel} ${
-              cartSheetExpanded ? styles.cartPanelExpanded : styles.cartPanelPeek
+              cartSheetExpanded
+                ? styles.cartPanelExpanded
+                : styles.cartPanelPeek
             } ${cartDragging ? styles.cartPanelDragging : ""}`}
             style={
               cartDragging
@@ -1138,7 +1154,9 @@ export default function AddEditOrder({
                   <div
                     key={item.id}
                     className={`${styles.cartItem} ${
-                      item.status === "cancelled" ? styles.cartItemCancelled : ""
+                      item.status === "cancelled"
+                        ? styles.cartItemCancelled
+                        : ""
                     }`}
                   >
                     <div
@@ -1156,8 +1174,7 @@ export default function AddEditOrder({
                           {" "}
                           · {CurrencySign}{" "}
                           {Number(
-                            item.subtotal ??
-                              item.quantity * item.productPrice,
+                            item.subtotal ?? item.quantity * item.productPrice,
                           ).toFixed(2)}
                         </span>
                       </p>
@@ -1437,9 +1454,7 @@ export default function AddEditOrder({
                 </div>
 
                 <div className={styles.modalNotes}>
-                  <label className={styles.modalNotesLabel}>
-                    Order notes
-                  </label>
+                  <label className={styles.modalNotesLabel}>Order notes</label>
                   <TextArea
                     rows={3}
                     placeholder="Any special instructions or notes"
@@ -1535,7 +1550,9 @@ export default function AddEditOrder({
               }}
             />
           ) : (
-            <p className="px-5 py-8 text-sm text-slate-500">No item selected.</p>
+            <p className="px-5 py-8 text-sm text-slate-500">
+              No item selected.
+            </p>
           )}
         </div>
       </Drawer>
@@ -1657,7 +1674,7 @@ function AddonPicker({
             No addons for this product.
           </p>
         ) : (
-              filtered.map((addon: any) => {
+          filtered.map((addon: any) => {
             const selectedAddon = local.find((a) => a.addonId === addon.id);
             const checked = Boolean(selectedAddon);
             return (
@@ -1755,7 +1772,7 @@ function AddonPicker({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
+      <div className="shrink-0 border-t border-slate-100 bg-white px-5 pt-4 pb-[15rem]">
         <div className="flex items-center gap-2">
           <button
             type="button"
