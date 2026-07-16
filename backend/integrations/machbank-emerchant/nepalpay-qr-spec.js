@@ -65,6 +65,13 @@ function buildMerchantQrGenerationRequest({
 
 /** Parse EMV QR tag 62 subfield 01 — NCHL bill number embedded in qrString (not merchantTxnRef). */
 function parseNchlBillNumberFromQrPayload(qrPayload) {
+  return parseEmvTag62Subfield(qrPayload, "01");
+}
+
+/** Same default as generateDynamicQr — inquiry must use the matching referenceLabel. */
+const DEFAULT_QR_REFERENCE_LABEL = "payment";
+
+function parseEmvTag62Subfield(qrPayload, subTag) {
   if (!qrPayload || typeof qrPayload !== "string") {
     return null;
   }
@@ -80,7 +87,7 @@ function parseNchlBillNumberFromQrPayload(qrPayload) {
     if (tag === "62") {
       let j = 0;
       while (j + 4 <= value.length) {
-        const subTag = value.slice(j, j + 2);
+        const st = value.slice(j, j + 2);
         const subLen = Number(value.slice(j + 2, j + 4));
         if (
           !Number.isFinite(subLen) ||
@@ -90,7 +97,7 @@ function parseNchlBillNumberFromQrPayload(qrPayload) {
           break;
         }
         const subValue = value.slice(j + 4, j + 4 + subLen);
-        if (subTag === "01" && subValue) {
+        if (st === subTag && subValue) {
           return subValue;
         }
         j += 4 + subLen;
@@ -102,12 +109,25 @@ function parseNchlBillNumberFromQrPayload(qrPayload) {
   return null;
 }
 
-function buildTransactionInquiryRequest({ merchantId, billNumber, referenceLabel }) {
-  return {
+function parseNchlReferenceLabelFromQrPayload(qrPayload) {
+  return parseEmvTag62Subfield(qrPayload, "05");
+}
+
+function buildTransactionInquiryRequest({
+  acquirerId,
+  merchantId,
+  billNumber,
+  referenceLabel,
+}) {
+  const body = {
     merchantId,
     billNumber,
-    referenceLabel: referenceLabel || billNumber,
+    referenceLabel: referenceLabel ?? DEFAULT_QR_REFERENCE_LABEL,
   };
+  if (acquirerId) {
+    body.acquirerId = acquirerId;
+  }
+  return body;
 }
 
 module.exports = {
@@ -115,7 +135,9 @@ module.exports = {
   POINT_OF_INIT_DYNAMIC,
   CURRENCY_NPR_NUMERIC,
   COUNTRY_NP,
+  DEFAULT_QR_REFERENCE_LABEL,
   buildMerchantQrGenerationRequest,
   buildTransactionInquiryRequest,
   parseNchlBillNumberFromQrPayload,
+  parseNchlReferenceLabelFromQrPayload,
 };

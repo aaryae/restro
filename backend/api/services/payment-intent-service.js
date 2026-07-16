@@ -14,7 +14,7 @@ const {
 } = require("../../integrations/machbank-emerchant/errors");
 const { verifyGetPaySignature } = require("../../integrations/machbank-emerchant/crypto/verify-getpay");
 const { syncMachbankWebSocket } = require("../../integrations/machbank-emerchant/ws-lifecycle");
-const { parseNchlBillNumberFromQrPayload } = require("../../integrations/machbank-emerchant/nepalpay-qr-spec");
+const { parseNchlBillNumberFromQrPayload, parseNchlReferenceLabelFromQrPayload, DEFAULT_QR_REFERENCE_LABEL } = require("../../integrations/machbank-emerchant/nepalpay-qr-spec");
 const { inquiryTransactionStatus } = require("../../integrations/machbank-emerchant/qr-inquiry.service");
 const orderService = require("./order-service");
 const { broadcastPaymentEvent } = require("../../helpers/send-notification");
@@ -50,6 +50,48 @@ function buildSettlementLookupConditions(event) {
 }
 
 const INQUIRY_SUCCESS_CODES = new Set(["00", "0", "000", "success"]);
+const INQUIRY_DEBIT_SUCCESS = new Set(["000", "00", "0"]);
+const INQUIRY_CREDIT_SUCCESS = new Set(["000", "999", "defer", "00", "0"]);
+
+function inquiryIndicatesPaid(row, nested) {
+  const responseCode = String(
+    nested?.responseCode ?? row?.responseCode ?? "",
+  )
+    .trim()
+    .toLowerCase();
+  const responseStatus = String(
+    row?.responseStatus ?? nested?.responseStatus ?? "",
+  ).toUpperCase();
+  const statusRaw = String(
+    nested?.status ||
+      nested?.txnStatus ||
+      nested?.transactionStatus ||
+      nested?.txn_status ||
+      row?.responseStatus ||
+      "",
+  ).toLowerCase();
+
+  if (responseStatus === "SUCCESS" || INQUIRY_SUCCESS_CODES.has(responseCode)) {
+    return true;
+  }
+
+  if (["success", "successful", "paid", "completed", "00", "s"].includes(statusRaw)) {
+    const debitStatus = String(nested?.debitStatus ?? nested?.debit_status ?? "")
+      .trim()
+      .toLowerCase();
+    const creditStatus = String(nested?.creditStatus ?? nested?.credit_status ?? "")
+      .trim()
+      .toLowerCase();
+    if (statusRaw === "completed") {
+      const debitOk = !debitStatus || INQUIRY_DEBIT_SUCCESS.has(debitStatus);
+      const creditOk = !creditStatus || INQUIRY_CREDIT_SUCCESS.has(creditStatus);
+      return debitOk && creditOk;
+    }
+    return true;
+  }
+
+  return false;
+}
 
 function mapInquiryToGatewayEvent(inquiryData, billNumber) {
   if (!inquiryData || typeof inquiryData !== "object") {
@@ -59,42 +101,27 @@ function mapInquiryToGatewayEvent(inquiryData, billNumber) {
     inquiryData.responses?.[0] ||
     inquiryData.data ||
     inquiryData;
-  const nested = row.data || row;
-  const responseCode = String(
-    nested.responseCode ?? row.responseCode ?? inquiryData.responseCode ?? "",
-  )
-    .trim()
-    .toLowerCase();
-  const responseStatus = String(
-    row.responseStatus ?? nested.responseStatus ?? inquiryData.responseStatus ?? "",
-  ).toUpperCase();
-  const statusRaw = String(
-    nested.status ||
-      nested.txnStatus ||
-      nested.transactionStatus ||
-      row.responseStatus ||
-      "",
-  ).toLowerCase();
-  const paid =
-    responseStatus === "SUCCESS" ||
-    INQUIRY_SUCCESS_CODES.has(responseCode) ||
-    ["success", "successful", "paid", "completed", "00", "s"].includes(statusRaw);
-  if (!paid) {
+  const nested = row?.data || row;
+
+  if (!inquiryIndicatesPaid(row, nested)) {
     return null;
   }
+
   const amount = Number(
-    nested.amount ??
-      nested.txnAmount ??
-      nested.transactionAmount ??
-      row.amount,
+    nested?.amount ??
+      nested?.txnAmount ??
+      nested?.transactionAmount ??
+      nested?.txn_amount ??
+      row?.amount,
   );
   const gatewayTxnId =
-    nested.gatewayTxnId ||
-    nested.transactionId ||
-    nested.txnId ||
-    nested.nchlTxnId ||
-    row.gatewayTxnId ||
-    row.transactionId ||
+    nested?.gatewayTxnId ||
+    nested?.transactionId ||
+    nested?.txnId ||
+    nested?.nchlTxnId ||
+    nested?.rrn ||
+    row?.gatewayTxnId ||
+    row?.transactionId ||
     null;
   return {
     source: "bank_inquiry",
@@ -102,9 +129,14 @@ function mapInquiryToGatewayEvent(inquiryData, billNumber) {
     gatewayTxnId,
     amount: Number.isFinite(amount) ? amount : null,
     status: "paid",
-    signature: nested.signature || nested.sign || row.signature || null,
+    signature: nested?.signature || nested?.sign || row?.signature || null,
     raw: inquiryData,
   };
+}
+
+function resolveInquiryReferenceLabels(intent) {
+  const fromQr = parseNchlReferenceLabelFromQrPayload(intent.qrPayload);
+  return [...new Set([fromQr, DEFAULT_QR_REFERENCE_LABEL, intent.merchantTxnRef].filter(Boolean))];
 }
 
 async function reconcilePendingIntent(intent) {
@@ -114,24 +146,33 @@ async function reconcilePendingIntent(intent) {
 
   const nchlBill = resolveNchlBillNumber(intent);
   const billNumbers = [...new Set([nchlBill, intent.merchantTxnRef].filter(Boolean))];
+  const referenceLabels = resolveInquiryReferenceLabels(intent);
 
   for (const billNumber of billNumbers) {
-    const inquiry = await inquiryTransactionStatus({
-      billNumber,
-      referenceLabel: billNumber,
-    });
-    const event = mapInquiryToGatewayEvent(inquiry, billNumber);
-    if (event) {
-      await settleFromGatewayEvent(event);
-      return paymentIntentModel.findByPk(intent.id, {
-        include: [
-          {
-            model: orderModel,
-            as: "order",
-            attributes: ["id", "paymentStatus", "payableAmount"],
-          },
-        ],
+    for (const referenceLabel of referenceLabels) {
+      const inquiry = await inquiryTransactionStatus({
+        billNumber,
+        referenceLabel,
       });
+      const event = mapInquiryToGatewayEvent(inquiry, billNumber);
+      if (event) {
+        const result = await settleFromGatewayEvent(event);
+        if (result.handled) {
+          return paymentIntentModel.findByPk(intent.id, {
+            include: [
+              {
+                model: orderModel,
+                as: "order",
+                attributes: ["id", "paymentStatus", "payableAmount"],
+              },
+            ],
+          });
+        }
+        logger.warn(
+          `[Machbank] inquiry showed paid for intent=${intent.id} bill=${billNumber} ` +
+            `but settlement was not applied (${result.reason || "unknown"})`,
+        );
+      }
     }
   }
 

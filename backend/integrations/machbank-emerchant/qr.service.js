@@ -107,8 +107,15 @@ function extractQrFromResponse(data) {
       : `data:image/png;base64,${qrImage}`;
   }
 
+  const responseRow = data.responses?.[0];
   const validationTraceId =
-    nested.validationTraceId || data.validationTraceId || null;
+    nested.validationTraceId ||
+    nested.validation_trace_id ||
+    responseRow?.validationTraceId ||
+    responseRow?.data?.validationTraceId ||
+    data.validationTraceId ||
+    data.validation_trace_id ||
+    null;
 
   return { qrPayload, qrImageUrl, validationTraceId };
 }

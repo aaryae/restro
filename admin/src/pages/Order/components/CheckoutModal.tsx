@@ -1040,8 +1040,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   useEffect(() => {
     if (!isOpen || !dynamicIntent || dynamicIntent.status !== "pending") return;
 
-    const POLL_INTERVAL_MS = 5000; // was 3000ms; reduce backend pressure on shared hosting
-    const MAX_POLL_ATTEMPTS = 24; // ~2 minutes total
+    const POLL_INTERVAL_MS = 5000;
+    const MAX_POLL_ATTEMPTS = 60; // ~5 minutes — bank inquiry can lag on shared hosting
     let attempts = 0;
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
