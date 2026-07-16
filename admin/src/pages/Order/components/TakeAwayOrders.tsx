@@ -3,51 +3,82 @@ import PageTitle from "@/components/PageTitle";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
+import { buildCheckoutPath } from "@/utils/checkoutNavigation";
+import { CurrencySign } from "@/constants";
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
-import { FaEye } from "react-icons/fa";
-import CheckoutModal from "./CheckoutModal";
+import { Eye, ShoppingBag, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ViewTakeawayOrders from "./ViewTakeawayOrders";
 
+function getCustomerName(order: any): string {
+  const takeAway = String(order?.takeAwayName || "").trim();
+  if (takeAway) return takeAway;
+
+  const customer = order?.customer;
+  if (customer) {
+    const fromParts = [customer.firstName, customer.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    if (fromParts) return fromParts;
+    if (customer.name) return String(customer.name).trim();
+  }
+
+  return "Guest";
+}
+
+function statusStyles(status: string) {
+  switch (status) {
+    case "prepared":
+      return {
+        badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+        accent: "bg-emerald-500",
+      };
+    case "preparing":
+      return {
+        badge: "bg-sky-50 text-sky-700 ring-sky-200",
+        accent: "bg-sky-500",
+      };
+    case "pending":
+      return {
+        badge: "bg-amber-50 text-amber-700 ring-amber-200",
+        accent: "bg-amber-500",
+      };
+    default:
+      return {
+        badge: "bg-slate-50 text-slate-600 ring-slate-200",
+        accent: "bg-slate-400",
+      };
+  }
+}
+
 function TakeAwayOrders() {
+  const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ limit: 6, page: 1 });
   const [orderId, setOrderId] = useState<number | null>(null);
   const [open, setOpen] = useState<boolean>(false);
-  const [openCheckout, setOpenCheckout] = useState<boolean>(false);
-  const [checkoutCtx, setCheckoutCtx] = useState<{
-    orderId: number | null;
-    tableId: number | null;
-  }>({
-    orderId: null,
-    tableId: null,
-  });
   const [queryStringOptions, _setQueryStringOptions] = useState({
     orderType: "takeaway",
     status: "pending,preparing,prepared", // Exclude completed orders
   });
-
-  // const url = buildQueryString(
-  //   "order/list",
-  //   {
-  //     page: query.page,
-  //     limit: query.limit,
-  //     search: queryStringOptions,
-  //   },
-  //   [query],
-  // );
 
   const handleViewOrder = (id: number) => {
     setOrderId(id);
     setOpen(true);
   };
 
-  const handleOpenCheckout = ( orderIdForCheckout: number,tableIdForCheckout?: number | null,) => {
-    setCheckoutCtx({
-      orderId: orderIdForCheckout ?? null,
-      tableId: tableIdForCheckout ?? null,
-    });
-
-    setOpenCheckout(true);
+  const handleOpenCheckout = (
+    orderIdForCheckout: number,
+    tableIdForCheckout?: number | null,
+  ) => {
+    setOpen(false);
+    navigate(
+      buildCheckoutPath({
+        orderId: orderIdForCheckout,
+        tableId: tableIdForCheckout ?? null,
+      }),
+    );
   };
 
   const url = useMemo(() => {
@@ -73,7 +104,6 @@ function TakeAwayOrders() {
     ? query.page < totalPages
     : items.length === query.limit;
 
-  // Sync total counts into the pagination hook (same pattern as KotList)
   useEffect(() => {
     if (allOrders?.data) {
       handlePagination({
@@ -83,7 +113,6 @@ function TakeAwayOrders() {
     }
   }, [allOrders, handlePagination]);
 
-  // Reset to first page on filter/search changes
   useEffect(() => {
     handlePagination({ page: 1 });
   }, [queryStringOptions, handlePagination]);
@@ -91,113 +120,134 @@ function TakeAwayOrders() {
   const handlePrev = () => {
     if (query.page > 1) handlePagination({ page: query.page - 1 });
   };
-  // const handleNext = () => {
-  //   if (canGoNext) {
-  //     handlePagination({ page: query.page + 1, limit: query.limit });
-  //   }
-  // };
 
   return (
     <>
-      <PageTitle title="Take Away Orders" className="mt-16 " />
-      <div className="mt-8">
-        {/* Cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <PageTitle title="Take Away Orders" />
+      <div className="mt-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {loading && (
-            <div className="col-span-full text-center text-gray-600 py-10">
+            <div className="col-span-full py-10 text-center text-slate-500">
               Loading take-away orders...
             </div>
           )}
 
           {!loading && items.length === 0 && (
-            <div className="col-span-full text-center text-gray-600 py-10">
-              No take-away orders found.
+            <div className="col-span-full rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
+              <ShoppingBag className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+              <p className="font-medium text-slate-700">No take-away orders</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Active takeaway orders will show up here.
+              </p>
             </div>
           )}
 
-          {items.map(
-            ({
+          {items.map((order: any) => {
+            const {
               id,
-              table,
-              orderType,
+              orderNumber,
               orderStartTime,
               status,
               totalAmount,
-            }: any) => (
+            } = order;
+            const customerName = getCustomerName(order);
+            const theme = statusStyles(status);
+            const cancelled = status === "cancelled";
+
+            return (
               <div
                 key={id}
-                className="rounded-xl p-4 shadow-sm border border-emerald-200 bg-[#E7F9E7]"
+                className={`relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md ${
+                  cancelled ? "opacity-60" : ""
+                }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">
-                    Takeaway
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      status === "prepared"
-                        ? "bg-green-100 text-green-700"
-                        : status === "preparing"
-                          ? "bg-blue-100 text-blue-700"
-                          : status === "pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {status}
-                  </span>
-                </div>
-
                 <div
-                  className={`${status === "cancelled" ? "line-through opacity-60" : ""}`}
-                >
-                  <div className="text-lg font-semibold text-gray-900">
-                    {table?.tableNo ? `Table ${table.tableNo}` : "No Table"}
-                  </div>
-                  <div className="text-sm text-gray-700 mt-1">
-                    Type: {orderType}
-                  </div>
-                  <div className="text-sm text-gray-700">
-                    Started: {format(new Date(orderStartTime), "PPp")}
-                  </div>
-                </div>
+                  className={`absolute bottom-0 left-0 top-0 w-1 ${theme.accent}`}
+                  aria-hidden
+                />
 
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-sm text-gray-800">
-                    Amount:{" "}
-                    <span className="font-semibold">
-                      {Number(totalAmount).toFixed(2)}
+                <div className="flex flex-col gap-3 p-4 pl-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        Takeaway
+                        {orderNumber ? ` · #${orderNumber}` : ` · #${id}`}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                          <User size={16} strokeWidth={2} />
+                        </span>
+                        <h3
+                          className={`truncate text-lg font-semibold text-slate-900 ${
+                            cancelled ? "line-through" : ""
+                          }`}
+                          title={customerName}
+                        >
+                          {customerName}
+                        </h3>
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset ${theme.badge}`}
+                    >
+                      {status}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="text-emerald-700 hover:text-emerald-800 text-sm inline-flex items-center gap-2"
-                    onClick={() => handleViewOrder(id)}
-                  >
-                    <FaEye /> View
-                  </button>
+
+                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                        Started
+                      </p>
+                      <p className="mt-0.5 font-medium text-slate-700">
+                        {orderStartTime
+                          ? format(new Date(orderStartTime), "dd MMM, hh:mm a")
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                        Amount
+                      </p>
+                      <p className="mt-0.5 font-semibold text-slate-900">
+                        {CurrencySign}
+                        {Number(totalAmount || 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                      onClick={() => handleViewOrder(id)}
+                    >
+                      <Eye size={15} />
+                      View order
+                    </button>
+                  </div>
                 </div>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
 
-        {/* Pagination */}
         {allOrders?.data?.data?.length > 0 && (
-          <div className="flex items-center justify-between gap-3 mt-6">
+          <div className="mt-6 flex items-center justify-between gap-3">
             <button
               type="button"
-              className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-50"
               onClick={handlePrev}
               disabled={query.page <= 1}
             >
               Prev
             </button>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-slate-500">
               Page {query.page} of {totalPages || 1}
             </div>
             <button
               type="button"
-              className="px-3 py-1.5 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-50"
               onClick={() =>
                 handlePagination({
                   page: totalPages
@@ -212,20 +262,14 @@ function TakeAwayOrders() {
           </div>
         )}
       </div>
-      <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
+      <Drawer
+        isOpen={open}
+        setIsOpen={setOpen}
+        width="w-full max-w-md sm:w-[400px]"
+        contentClassName="p-0"
+      >
         <ViewTakeawayOrders id={orderId} onOpenCheckout={handleOpenCheckout} />
       </Drawer>
-      {openCheckout && (
-        <CheckoutModal
-          isOpen={openCheckout}
-          onClose={() => {
-            setOpenCheckout(false);
-            setCheckoutCtx({ orderId: null, tableId: null });
-          }}
-          tableId={checkoutCtx.tableId}
-          orderId={checkoutCtx.orderId}
-        />
-      )}
     </>
   );
 }

@@ -1,8 +1,8 @@
 import Button from "@/components/Button";
-import PageTitle from "@/components/PageTitle";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
+import { StickyNote, UtensilsCrossed } from "lucide-react";
 import React, { useMemo } from "react";
 
 type ViewTakeawayOrdersProps = {
@@ -11,231 +11,219 @@ type ViewTakeawayOrdersProps = {
   onOpenCheckout?: (orderId: number, tableId?: number | null) => void;
 };
 
-const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({ id,orderId,onOpenCheckout,}) => {
-  
-  const { data: orderData, isLoading: loading, isSuccess: success,} = useGetApiQuery( { url: `${ORDER_URL}${id}` }, { skip: id === null || id === undefined },);
+function statusStyles(status?: string) {
+  switch ((status || "").toLowerCase()) {
+    case "pending":
+      return "bg-amber-50 text-amber-800";
+    case "preparing":
+      return "bg-sky-50 text-sky-800";
+    case "ready":
+    case "prepared":
+      return "bg-emerald-50 text-emerald-800";
+    case "served":
+    case "completed":
+      return "bg-slate-100 text-slate-700";
+    case "cancelled":
+      return "bg-rose-50 text-rose-800";
+    default:
+      return "bg-slate-50 text-slate-600";
+  }
+}
+
+function formatMoney(value: string | number | undefined) {
+  const n = Number(value ?? 0);
+  return `${CurrencySign}${Number.isFinite(n) ? n.toFixed(2) : "0.00"}`;
+}
+
+function getUnitPrice(item: any) {
+  if (Array.isArray(item.price)) {
+    return item.price.reduce(
+      (sum: number, priceObj: any) => sum + Number(priceObj.price || 0),
+      0,
+    );
+  }
+  return Number(item.price ?? item?.product?.price ?? 0);
+}
+
+function getAddonsTotal(item: any) {
+  if (!Array.isArray(item.addons)) return 0;
+  return item.addons.reduce(
+    (sum: number, addonItem: any) =>
+      sum +
+      Number(addonItem?.addon?.price || 0) * Number(addonItem?.quantity || 0),
+    0,
+  );
+}
+
+function getItemName(item: any) {
+  return item?.product?.name || item?.openItem?.name || "Item";
+}
+
+const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
+  id,
+  onOpenCheckout,
+}) => {
+  const {
+    data: orderData,
+    isLoading: loading,
+    isSuccess: success,
+  } = useGetApiQuery(
+    { url: `${ORDER_URL}${id}` },
+    { skip: id === null || id === undefined },
+  );
 
   const items = (success ? orderData?.data?.orderItems : []) || [];
   const orderNo = orderData?.data?.id || id;
+  const orderNote = String(orderData?.data?.orderNote || "").trim();
+  const customerName =
+    String(orderData?.data?.takeAwayName || "").trim() ||
+    [orderData?.data?.customer?.firstName, orderData?.data?.customer?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    "Guest";
 
   const itemsTotal = useMemo(
     () =>
       items.reduce((sum: number, item: any) => {
-        const unitPrice = Array.isArray(item.price)
-          ? item.price.reduce(
-              (s: number, priceObj: any) => s + Number(priceObj.price || 0),
-              0,
-            )
-          : Number(item.price ?? item?.product?.price ?? 0);
-        const addonsTotal = Array.isArray(item.addons)
-          ? item.addons.reduce(
-              (s: number, addonItem: any) =>
-                s +
-                Number(addonItem?.addon?.price || 0) *
-                  Number(addonItem?.quantity || 0),
-              0,
-            )
-          : 0;
         const qty = Number(item.quantity || 0);
-        return sum + unitPrice * qty + addonsTotal;
+        return sum + getUnitPrice(item) * qty + getAddonsTotal(item);
       }, 0),
     [items],
   );
 
-  return (
-    <>
-      <div className="mt-[2rem]">
-        <div className="flex justify-between items-center">
-          <PageTitle title={`Takeaway Order ${orderNo ? `#${orderNo}` : ""}`} />
-        </div>
+  const grandTotal = Number(orderData?.data?.totalAmount ?? itemsTotal);
 
-        {loading && <div className="text-gray-600 mt-4">Loading order...</div>}
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-14">
+        <h2 className="text-left text-base font-semibold text-slate-900">
+          Takeaway Order
+          {orderNo != null && (
+            <span className="ml-1.5 font-medium text-slate-400">#{orderNo}</span>
+          )}
+        </h2>
 
         {success && (
-          <div className="flex flex-col gap-2 md:h-[74vh] h-[68vh] overflow-y-auto pr-2 mt-4">
-            {items.length === 0 ? (
-              <div className="text-gray-600 text-center">
-                No items in this order
-              </div>
-            ) : (
-              items.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
-                >
-                  <div className="flex justify-between py-2">
-                    <p className="text-[14px] font-semibold">Item #{item.id}</p>
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        item.status === "prepared"
-                          ? "bg-green-100 text-green-800"
-                          : item.status === "preparing"
-                            ? "bg-blue-100 text-blue-800"
-                            : item.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {item.status?.charAt(0)?.toUpperCase() +
-                        item.status?.slice(1)}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="  py-2 gap-6 flex items-center">
-                      <div className="flex justify-between items-center w-full">
-                        <div className="leading-[1.5] text-gray-600 ">
-                          <p className="font-medium text-[14px] text-left">
-                            Item: {item?.product?.name}
-                          </p>
-                          <p className="flex text-[13px]">
-                            Qty: {item.quantity}
-                          </p>
-                          {item.specialInstructions && (
-                            <p className="text-xs italic text-left">
-                              Note: {item.specialInstructions}
-                            </p>
-                          )}
-                          {item.addons?.length > 0 ? (
-                            <div className="mt-1 text-left">
-                              <p className="text-xs font-medium">
-                                Addons ({item.addons.length}):
-                              </p>
-
-                              <ul className="text-xs pl-4 list-disc">
-                                {/* {item.addons.map((addon: any, idx: number) => {
-                                  const addonName =
-                                    addon?.addon?.name ||
-                                    addon?.name ||
-                                    "Unknown Addon";
-                                  const addonPrice =
-                                    addon?.price || addon?.addon?.price || 0;
-                                  const addonQuantity =
-                                    addon?.addon?.quantity || 1;
-                                  return (
-                                    <li key={idx}>
-                                      {addonName}
-                                      {` (+${CurrencySign}${Number(addonPrice).toFixed(2)})(x${Number(addonQuantity)})`}
-                                    </li>
-                                  );
-                                })} */}
-                                {item.addons.map(
-                                  (addonItem: any, index: number) => (
-                                    <li key={index} className="text-left">
-                                      {addonItem?.addon?.name || "No name"}
-                                      {addonItem?.addon?.price !== undefined &&
-                                        ` (+${CurrencySign}${Number(addonItem.addon.price).toFixed(2)})(×${addonItem.quantity})`}
-                                    </li>
-                                  ),
-                                )}
-                              </ul>
-                            </div>
-                          ) : (
-                            <div className="text-xs text-gray-400 mt-1 text-left">
-                              No addons
-                            </div>
-                          )}
-                        </div>
-                        <div className="leading-[1.5] text-gray-600 text-right">
-                          <p className="text-[14px]">
-                            {CurrencySign}
-                            {(() => {
-                              const unitPrice = Array.isArray(item.price)
-                                ? item.price.reduce(
-                                    (sum: number, priceObj: any) =>
-                                      sum + Number(priceObj.price || 0),
-                                    0,
-                                  )
-                                : Number(
-                                    item.price ?? item?.product?.price ?? 0,
-                                  );
-                              return (
-                                unitPrice * Number(item.quantity || 0)
-                              ).toFixed(2);
-                            })()}
-                          </p>
-                          {item.addons && item.addons.length > 0 && (
-                            <p className="text-xs text-gray-500">
-                              {item.addons && item.addons.length > 0 && (
-                                <div className="text-xs text-gray-600">
-                                  + {CurrencySign}
-                                  {item.addons
-                                    .reduce(
-                                      (sum: number, addonItem: any) =>
-                                        sum +
-                                        Number(addonItem?.addon?.price || 0) *
-                                          addonItem.quantity,
-                                      0,
-                                    )
-                                    .toFixed(2)}{" "}
-                                  addons
-                                </div>
-                              )}
-                            </p>
-                          )}
-                          <p className="text-[13px] font-medium">
-                            Subtotal: {CurrencySign}
-                            {(() => {
-                              const unitPrice = Array.isArray(item.price)
-                                ? item.price.reduce(
-                                    (sum: number, priceObj: any) =>
-                                      sum + Number(priceObj.price || 0),
-                                    0,
-                                  )
-                                : Number(
-                                    item.price ?? item?.product?.price ?? 0,
-                                  );
-                              const addonsTotal = Array.isArray(item.addons)
-                                ? item.addons.reduce(
-                                    (s: number, addonItem: any) =>
-                                      s +
-                                      Number(addonItem?.addon?.price || 0) *
-                                        Number(addonItem?.quantity || 0),
-                                    0,
-                                  )
-                                : 0;
-                              return (
-                                unitPrice * Number(item.quantity || 0) +
-                                addonsTotal
-                              ).toFixed(2);
-                            })()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="text-left">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">
+              Customer
+            </p>
+            <p className="mt-0.5 text-sm font-medium text-slate-800">
+              {customerName}
+            </p>
           </div>
         )}
-        <div className="flex justify-end">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-right">
-              <div className="text-lg text-gray-500 font-semibold">
-                Grand Total
-              </div>
-              <div className="text-xl font-bold text-green-600">
-                {CurrencySign}
-               
-                {Number(orderData?.data?.totalAmount ?? 0).toFixed(2)}
-              </div>
-            </div>
-            <Button
-              className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
-              handleClick={() => {
-                const orderid = Number(orderData?.data?.id ?? id ?? 0);
-                const tableid = orderData?.data?.table?.id ?? null;
-                if (onOpenCheckout) onOpenCheckout(orderid, tableid);
-              }}
-              disabled={items.length === 0}
-            >
-              Checkout
-            </Button>
+
+        {success && orderNote && (
+          <div className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900">
+            <StickyNote
+              size={14}
+              strokeWidth={2.2}
+              className="mt-0.5 shrink-0 text-amber-700"
+            />
+            <p className="whitespace-pre-wrap leading-relaxed">{orderNote}</p>
           </div>
-        </div>
+        )}
       </div>
-    </>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+        {loading && (
+          <p className="py-10 text-center text-sm text-slate-500">
+            Loading order…
+          </p>
+        )}
+
+        {success && items.length === 0 && (
+          <div className="px-4 py-10 text-center">
+            <UtensilsCrossed className="mx-auto mb-2 h-6 w-6 text-slate-300" />
+            <p className="text-sm text-slate-500">No items</p>
+          </div>
+        )}
+
+        {success && items.length > 0 && (
+          <ul className="divide-y divide-slate-100">
+            {items.map((item: any) => {
+              const unitPrice = getUnitPrice(item);
+              const qty = Number(item.quantity || 0);
+              const lineTotal = unitPrice * qty + getAddonsTotal(item);
+              const status = String(item.status || "");
+
+              return (
+                <li key={item.id} className="py-3 text-left first:pt-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-medium text-slate-900">
+                          {getItemName(item)}
+                        </h3>
+                        {status && (
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${statusStyles(status)}`}
+                          >
+                            {status}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {qty} × {formatMoney(unitPrice)}
+                      </p>
+                      {item.specialInstructions && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {item.specialInstructions}
+                        </p>
+                      )}
+                      {Array.isArray(item.addons) && item.addons.length > 0 && (
+                        <ul className="mt-1.5 space-y-0.5">
+                          {item.addons.map((addonItem: any, index: number) => (
+                            <li
+                              key={addonItem?.id ?? index}
+                              className="text-xs text-slate-500"
+                            >
+                              + {addonItem?.addon?.name || "Addon"}
+                              {addonItem?.quantity > 1
+                                ? ` ×${addonItem.quantity}`
+                                : ""}
+                              {addonItem?.addon?.price != null &&
+                                ` · ${formatMoney(addonItem.addon.price)}`}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <p className="shrink-0 text-sm font-medium text-slate-800">
+                      {formatMoney(lineTotal)}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {success && (
+        <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="text-sm text-slate-500">Total</span>
+            <span className="text-base font-semibold text-slate-900">
+              {formatMoney(grandTotal)}
+            </span>
+          </div>
+          <Button
+            className="h-10 w-full rounded-lg bg-primaryColor text-sm font-medium text-white hover:bg-primaryColor/90"
+            handleClick={() => {
+              const orderid = Number(orderData?.data?.id ?? id ?? 0);
+              const tableid = orderData?.data?.table?.id ?? null;
+              if (onOpenCheckout) onOpenCheckout(orderid, tableid);
+            }}
+            disabled={items.length === 0}
+          >
+            Checkout
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
