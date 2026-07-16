@@ -81,7 +81,8 @@ export default function OrderList() {
     refetch,
   } = useGetApiQuery({ url });
   useEffect(() => {
-    const interval = setInterval(refetch, 30000);
+    // Reduce backend load on shared hosting; refresh less frequently.
+    const interval = setInterval(refetch, 60000);
     return () => clearInterval(interval);
   }, []);
   const [patchStatus] = useUpdateOrderStatusMutation();

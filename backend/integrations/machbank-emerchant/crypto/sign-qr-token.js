@@ -51,6 +51,12 @@ function usesQrPrivateKeyFile() {
   return Boolean(keyPath && fs.existsSync(keyPath));
 }
 
+// These values are expensive to compute (PFX extraction via `openssl pkcs12`),
+// so cache them in-memory to avoid spawning child processes on every checkout.
+let cachedSigningPrivateKeyPem = null;
+let cachedQrSigningPublicKeyPem = null;
+let cachedPublicKeyPemForVerify = null;
+
 /**
  * Machbank / NCHL — same as buildSignatureString(request, userId).
  * @param {object} request - generateQR payload (MerchantQrGenerationRequestPayload)
@@ -206,7 +212,10 @@ function loadSigningKeyMaterial() {
 
 /** PEM string used for signing (normalized via getPrivateKey). */
 function loadSigningPrivateKeyPem() {
-  return getPrivateKey(loadSigningKeyMaterial());
+  if (cachedSigningPrivateKeyPem) return cachedSigningPrivateKeyPem;
+  const material = loadSigningKeyMaterial();
+  cachedSigningPrivateKeyPem = getPrivateKey(material);
+  return cachedSigningPrivateKeyPem;
 }
 
 function extractPublicKeyPemFromPfx(pfxPath, passphrase) {
@@ -240,24 +249,34 @@ function extractPublicKeyPemFromPfx(pfxPath, passphrase) {
 }
 
 function loadQrSigningPublicKeyPem() {
+  if (cachedQrSigningPublicKeyPem) return cachedQrSigningPublicKeyPem;
   const pfxPath = resolveQrSigningPfxPath();
   const pass = config.qrSigningPfxPassphrase || config.pfxPassphrase || "";
-  return extractPublicKeyPemFromPfx(pfxPath, pass);
+  cachedQrSigningPublicKeyPem = extractPublicKeyPemFromPfx(pfxPath, pass);
+  return cachedQrSigningPublicKeyPem;
 }
 
 function loadPublicKeyPemForVerify() {
+  if (cachedPublicKeyPemForVerify) return cachedPublicKeyPemForVerify;
+
   if (hasInlineQrPrivateKey() || usesQrPrivateKeyFile()) {
     try {
       const privateKeyPem = loadSigningPrivateKeyPem();
-      return crypto.createPublicKey(privateKeyPem).export({
-        type: "spki",
-        format: "pem",
-      });
+      cachedPublicKeyPemForVerify = crypto.createPublicKey(privateKeyPem).export(
+        {
+          type: "spki",
+          format: "pem",
+        }
+      );
+      return cachedPublicKeyPemForVerify;
     } catch (err) {
       return null;
     }
   }
-  return loadQrSigningPublicKeyPem();
+
+  const pem = loadQrSigningPublicKeyPem();
+  cachedPublicKeyPemForVerify = pem;
+  return pem;
 }
 
 /**
@@ -291,11 +310,10 @@ function signNchlTokenSteps(tokenString, privateKeyPem) {
  */
 function signSHA256RSA(tokenString, privateKeyString) {
   try {
-    const material =
+    const privateKeyPem =
       privateKeyString !== undefined && privateKeyString !== null
-        ? privateKeyString
-        : loadSigningKeyMaterial();
-    const privateKeyPem = getPrivateKey(material);
+        ? getPrivateKey(privateKeyString)
+        : loadSigningPrivateKeyPem();
     return signNchlTokenSteps(tokenString, privateKeyPem);
   } catch (error) {
     const message =

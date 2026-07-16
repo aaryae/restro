@@ -48,54 +48,12 @@ interface PaymentSource {
 }
 
 // Define interfaces
-interface OrderItem {
-  id: string;
-  productId: string;
-  productName: string;
-  productPrice: number;
-  quantity: number;
-  subtotal: number;
-  specialInstructions: string;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  orderType: "dineIn" | "takeaway" | "delivery";
-  tableId: string | null;
-  tableName: string | null;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  deliveryAddress?: string;
-  orderItems: OrderItem[];
-  totalAmount: number;
-  status: "preparing" | "ready" | "completed";
-  orderNote: string;
-  estimatedTime: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface Customer {
   id: number | string;
   firstName?: string;
   lastName?: string;
   email?: string;
   mobileNo?: string;
-}
-
-interface Table {
-  id: number;
-  floor: { id: number; floorNo: string };
-  tableNo: string;
-  name: string | null;
-  type: "indoor" | "outdoor" | "vip" | "regular";
-  capacity: number;
-  status: "available" | "occupied" | "reserved" | "maintenance";
-  currentSessionId: string | null;
-  sessionStartTime: string | null;
-  isActive: boolean;
 }
 
 interface CheckoutModalProps {
@@ -1082,12 +1040,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   useEffect(() => {
     if (!isOpen || !dynamicIntent || dynamicIntent.status !== "pending") return;
 
+    const POLL_INTERVAL_MS = 5000; // was 3000ms; reduce backend pressure on shared hosting
+    const MAX_POLL_ATTEMPTS = 24; // ~2 minutes total
+    let attempts = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const poll = async () => {
       try {
         const res = await fetchQrStatus(dynamicIntent.id).unwrap();
         if (res.success && res.data) {
           setDynamicIntent(res.data);
           if (res.data.status === "paid") {
+            if (intervalId) clearInterval(intervalId);
             handleResponse({
               res: { success: true, message: "NEPALPAY payment received" },
             });
@@ -1108,9 +1072,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     };
 
-    const interval = setInterval(poll, 3000);
-    poll();
-    return () => clearInterval(interval);
+    intervalId = setInterval(() => {
+      attempts += 1;
+      if (attempts > MAX_POLL_ATTEMPTS) {
+        if (intervalId) clearInterval(intervalId);
+        return;
+      }
+      void poll();
+    }, POLL_INTERVAL_MS);
+
+    // First poll immediately for faster UX.
+    void poll();
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [
     isOpen,
     dynamicIntent?.id,
