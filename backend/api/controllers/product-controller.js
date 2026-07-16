@@ -40,6 +40,25 @@ const list = async (req, res, next) => {
   }
 };
 
+const topSelling = async (req, res, next) => {
+  try {
+    const result = await productService.topSelling(req);
+
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const result = await productService.getById(req);
@@ -143,6 +162,7 @@ module.exports = {
   create,
   getById,
   list,
+  topSelling,
   deleteProduct,
   importFromExcel,
   update,

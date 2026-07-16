@@ -25,10 +25,12 @@ const {
   deleteProduct,
   updateByOrder,
   importFromExcel,
+  topSelling,
 } = require("../controllers/product-controller");
 
 router.post("/", authentication, authorization, productPostValidation, create);
 router.get("/list", paginationValidation, list);
+router.get("/top-selling", topSelling);
 router.get("/:id", idValidation, getById);
 router.put(
   "/update-order",
