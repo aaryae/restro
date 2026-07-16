@@ -68,6 +68,7 @@ const orderTypeOptions = [
 ];
 
 const CREATE_ORDER_DRAFT_KEY = "nirvana-create-order-draft";
+const CREATE_ORDER_RESTORE_FLAG = "nirvana-create-order-restore-draft";
 
 type CreateOrderDraft = {
   orderType?: OrderFormType["orderType"];
@@ -98,8 +99,20 @@ function writeCreateOrderDraft(draft: CreateOrderDraft) {
 function clearCreateOrderDraft() {
   try {
     sessionStorage.removeItem(CREATE_ORDER_DRAFT_KEY);
+    sessionStorage.removeItem(CREATE_ORDER_RESTORE_FLAG);
   } catch {
     // ignore
+  }
+}
+
+function consumeRestoreCreateOrderDraftFlag() {
+  try {
+    const shouldRestore =
+      sessionStorage.getItem(CREATE_ORDER_RESTORE_FLAG) === "1";
+    sessionStorage.removeItem(CREATE_ORDER_RESTORE_FLAG);
+    return shouldRestore;
+  } catch {
+    return false;
   }
 }
 
@@ -110,7 +123,10 @@ export default function AddEditOrder({
   const { tableId, orderId } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!orderId;
-  const draft = !isEditMode && !isComponent ? readCreateOrderDraft() : null;
+  const draft =
+    !isEditMode && !isComponent && consumeRestoreCreateOrderDraftFlag()
+      ? readCreateOrderDraft()
+      : null;
 
   const {
     register,
@@ -214,6 +230,20 @@ export default function AddEditOrder({
   const watchedOrderNote = watch("orderNote");
 
   // Keep create-order cart/form draft across refresh (create flow only)
+  useEffect(() => {
+    if (isEditMode || isComponent) return;
+
+    const onBeforeUnload = () => {
+      try {
+        sessionStorage.setItem(CREATE_ORDER_RESTORE_FLAG, "1");
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isEditMode, isComponent]);
+
   useEffect(() => {
     if (isEditMode || isComponent) return;
     writeCreateOrderDraft({
@@ -1280,16 +1310,17 @@ export default function AddEditOrder({
                 <h3 className={styles.modalTitle}>
                   Confirm {isEditMode ? "Update" : "Order"}
                 </h3>
-              </div>
-              <div className={styles.modalBody}>
                 <div className={styles.modalMeta}>
-                  <p>
-                    <span className="font-medium">Order Type:</span>{" "}
-                    {watchedOrderType}
-                  </p>
+                  <span className={styles.modalMetaChip}>
+                    {watchedOrderType === "dineIn"
+                      ? "Dine In"
+                      : watchedOrderType === "takeaway"
+                        ? "Takeaway"
+                        : watchedOrderType}
+                  </span>
                   {watchedOrderType === "dineIn" && (
-                    <p>
-                      <span className="font-medium">Table:</span>{" "}
+                    <span className={styles.modalMetaChip}>
+                      Table{" "}
                       {tableOptions.find(
                         (t: { value: string; label: string }) =>
                           t.value ===
@@ -1299,81 +1330,118 @@ export default function AddEditOrder({
                               "",
                           ),
                       )?.label || "-"}
-                    </p>
+                    </span>
                   )}
                   {pendingData?.deliveryAddress && (
-                    <p>
-                      <span className="font-medium">Delivery Address:</span>{" "}
+                    <span className={styles.modalMetaChip}>
                       {pendingData.deliveryAddress}
-                    </p>
-                  )}
-                  {pendingData?.orderNote && (
-                    <p>
-                      <span className="font-medium">Note:</span>{" "}
-                      {pendingData.orderNote}
-                    </p>
+                    </span>
                   )}
                 </div>
+              </div>
 
-                <div className={styles.modalTable}>
-                  <div className={styles.modalTableHead}>
-                    <div>Item</div>
-                    <div className={styles.rightAlign}>Qty</div>
-                    <div className={styles.rightAlign}>Price</div>
-                    <div className={styles.rightAlign}>Subtotal</div>
-                  </div>
-                  {visibleOrderItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`${styles.modalTableRow} ${
-                        item.status === "cancelled" ? "line-through" : ""
-                      }`}
-                    >
-                      <div className="truncate">
-                        {item.productName}
-                        {Array.isArray(item.addons) &&
-                          item.addons.length > 0 && (
-                            <span className="text-xs text-gray-500 ml-2">
-                              (+
-                              {item.addons
-                                .map((addon: any) => {
-                                  const name =
-                                    addon.name ||
-                                    addon.addon?.name ||
-                                    addon.addonName ||
-                                    String(addon.addonId ?? "");
-                                  const qty = addon.quantity ?? addon.qty ?? 1;
-                                  return qty && qty > 1
-                                    ? `${name} x${qty}`
-                                    : name;
-                                })
-                                .join(", ")}
-                              )
-                            </span>
-                          )}
-                      </div>
-                      <div className={styles.rightAlign}>{item.quantity}</div>
-                      <div className={styles.rightAlign}>
-                        {CurrencySign} {Number(item.productPrice).toFixed(2)}
-                      </div>
-                      <div className={styles.rightAlign}>
-                        {CurrencySign} {Number(item.subtotal).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-                  <div className={styles.modalTableFoot}>
-                    <div>Total</div>
-                    <div />
-                    <div />
-                    <div className={`${styles.rightAlign} text-primaryColor`}>
-                      {CurrencySign} {Number(totalAmount).toFixed(2)}
-                    </div>
-                  </div>
+              <div className={styles.modalBody}>
+                <div className={styles.modalTableWrap}>
+                  <table className={styles.modalTable}>
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th className={styles.modalTableQty}>Qty</th>
+                        <th className={styles.modalTableAmount}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleOrderItems.map((item) => {
+                        const addons = Array.isArray(item.addons)
+                          ? item.addons
+                          : [];
+                        const addonsUnit = addons.reduce(
+                          (s: number, a: any) =>
+                            s +
+                            Number(a.price || 0) *
+                              Number(a.quantity || a.qty || 0),
+                          0,
+                        );
+                        const lineTotal =
+                          Number(item.subtotal) ||
+                          Number(item.quantity) *
+                            (Number(item.productPrice) + addonsUnit);
+
+                        return (
+                          <tr
+                            key={item.id}
+                            className={
+                              item.status === "cancelled"
+                                ? "line-through"
+                                : undefined
+                            }
+                          >
+                            <td>
+                              <p className={styles.modalItemName}>
+                                {item.productName}
+                              </p>
+                              <p className={styles.modalPriceLine}>
+                                Item · {CurrencySign}
+                                {Number(item.productPrice).toFixed(2)}
+                                {Number(item.quantity) > 1
+                                  ? ` × ${item.quantity}`
+                                  : ""}
+                              </p>
+                              {addons.map((addon: any) => {
+                                const name =
+                                  addon.name ||
+                                  addon.addon?.name ||
+                                  addon.addonName ||
+                                  String(addon.addonId ?? "Addon");
+                                const addonQty = Number(
+                                  addon.quantity ?? addon.qty ?? 1,
+                                );
+                                const unit = Number(addon.price || 0);
+                                const itemQty = Number(item.quantity || 1);
+                                const times = addonQty * itemQty;
+                                return (
+                                  <p
+                                    key={`${item.id}_${addon.addonId || name}`}
+                                    className={styles.modalAddonLine}
+                                  >
+                                    Addon · {name} · {CurrencySign}
+                                    {unit.toFixed(2)}
+                                    {times > 1 ? ` × ${times}` : ""}
+                                  </p>
+                                );
+                              })}
+                            </td>
+                            <td className={styles.modalTableQty}>
+                              {item.quantity}
+                            </td>
+                            <td className={styles.modalTableAmount}>
+                              {CurrencySign}
+                              {lineTotal.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={2} className={styles.modalTableTotalLabel}>
+                          Total
+                        </td>
+                        <td className={styles.modalTableTotalValue}>
+                          {CurrencySign}
+                          {Number(totalAmount).toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
 
-                <div className="mt-4">
+                <div className={styles.modalNotes}>
+                  <label className={styles.modalNotesLabel}>
+                    Order notes
+                  </label>
                   <TextArea
-                    rows={4}
+                    rows={3}
                     placeholder="Any special instructions or notes"
                     className="w-full"
                     {...register("orderNote")}
@@ -1381,6 +1449,7 @@ export default function AddEditOrder({
                   />
                 </div>
               </div>
+
               <div className={styles.modalActions}>
                 <button
                   type="button"
@@ -1419,12 +1488,16 @@ export default function AddEditOrder({
       <Drawer
         isOpen={addonDrawerOpen}
         setIsOpen={setAddonDrawerOpen}
-        width="w-full lg:w-[40%]"
+        width="w-full max-w-md sm:w-[400px]"
+        contentClassName="p-0"
       >
-        <div className="p-4 flex flex-col gap-4">
-          <h3 className="text-lg font-semibold">
-            {activeAddonItem?.productName} - Addons
-          </h3>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="shrink-0 border-b border-slate-100 px-5 pb-3 pt-4">
+            <h3 className="text-left text-base font-semibold text-slate-900">
+              {activeAddonItem?.productName}
+            </h3>
+            <p className="mt-0.5 text-left text-sm text-slate-500">Addons</p>
+          </div>
           {activeAddonItem ? (
             <AddonPicker
               productId={activeAddonItem.productId}
@@ -1462,7 +1535,7 @@ export default function AddEditOrder({
               }}
             />
           ) : (
-            <p className="text-sm text-gray-600">No item selected.</p>
+            <p className="px-5 py-8 text-sm text-slate-500">No item selected.</p>
           )}
         </div>
       </Drawer>
@@ -1543,158 +1616,162 @@ function AddonPicker({
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-left">Addons</h3>
-          <p className="text-sm text-gray-500">
-            Enhance the item with complementary addons
-          </p>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">Tap a card to add or remove</p>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+              {(local || []).length} selected
+            </span>
+            {local.length > 0 && (
+              <button
+                type="button"
+                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+                onClick={() => setLocal([])}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
-        <div className="text-sm text-gray-700">
-          <span className="font-medium">{(local || []).length}</span>
-          <span className="ml-1">selected</span>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-2">
-        <div className="flex-1 relative">
+        <div className="relative">
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search addons..."
-            className="w-full p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primaryColor"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-slate-800 outline-none transition focus:border-primaryColor/40 focus:bg-white focus:ring-2 focus:ring-primaryColor/15"
           />
-          <FaSearch className="absolute right-3 top-2.5 text-gray-400" />
+          <FaSearch className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
         </div>
-        <button
-          type="button"
-          className="px-3 py-2 bg-gray-100 rounded-md text-sm"
-          onClick={() => setSearchTerm("")}
-        >
-          Clear
-        </button>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-6">Loading addons...</div>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-600">No addons for this product.</p>
-      ) : (
-        <div className="grid grid-cols-1  gap-3 max-h-[60vh] overflow-auto">
-          {filtered.map((addon: any) => {
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
+        {isLoading ? (
+          <p className="py-10 text-center text-sm text-slate-500">
+            Loading addons...
+          </p>
+        ) : filtered.length === 0 ? (
+          <p className="py-10 text-center text-sm text-slate-500">
+            No addons for this product.
+          </p>
+        ) : (
+              filtered.map((addon: any) => {
             const selectedAddon = local.find((a) => a.addonId === addon.id);
+            const checked = Boolean(selectedAddon);
             return (
               <div
                 key={addon.id}
-                className={`relative bg-white border rounded-lg p-3 flex gap-3 items-start hover:shadow-md transition-shadow`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={checked}
+                onClick={() => toggle(addon)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggle(addon);
+                  }
+                }}
+                className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition ${
+                  checked
+                    ? "border-primaryColor/40 bg-primaryColor/[0.04] ring-1 ring-primaryColor/20"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                }`}
               >
-                <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/80">
                   <img
                     src={
-                      `${IMAGE_BASE_URL}${addon.imageUrl}` || DishPlaceHolder
+                      addon.imageUrl
+                        ? `${IMAGE_BASE_URL}${addon.imageUrl}`
+                        : DishPlaceHolder
                     }
                     alt={addon.name}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = DishPlaceHolder;
                     }}
                   />
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">{addon.name}</h4>
-                    <div className="text-sm font-semibold text-primaryColor">
-                      Rs. {addon.price}
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="truncate text-sm font-medium text-slate-900">
+                      {addon.name}
+                    </h4>
+                    <span className="shrink-0 text-sm font-semibold text-slate-800">
+                      {CurrencySign}
+                      {Number(addon.price || 0).toFixed(2)}
+                    </span>
                   </div>
                   {addon.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
                       {addon.description}
                     </p>
                   )}
-
-                  <div className="mt-3 flex items-center justify-end gap-4">
-                    <div className="flex items-center gap-2">
-                      {selectedAddon ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="px-2 py-1 border rounded"
-                            onClick={() =>
-                              setQty(
-                                addon.id,
-                                (selectedAddon.quantity || 1) - 1,
-                              )
-                            }
-                          >
-                            -
-                          </button>
-                          <span className="w-8 text-center font-medium">
-                            {selectedAddon.quantity || 1}
-                          </span>
-                          <button
-                            type="button"
-                            className="px-2 py-1 border rounded"
-                            onClick={() =>
-                              setQty(
-                                addon.id,
-                                (selectedAddon.quantity || 1) + 1,
-                              )
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                  {checked && (
+                    <div
+                      className="mt-2 inline-flex items-center gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         type="button"
-                        onClick={() => toggle(addon)}
-                        className={`px-3 py-1 rounded-full text-sm border ${selectedAddon ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        onClick={() =>
+                          setQty(addon.id, (selectedAddon?.quantity || 1) - 1)
+                        }
                       >
-                        {selectedAddon ? "Selected" : "Add"}
+                        -
+                      </button>
+                      <span className="w-6 text-center text-sm font-medium">
+                        {selectedAddon?.quantity || 1}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        onClick={() =>
+                          setQty(addon.id, (selectedAddon?.quantity || 1) + 1)
+                        }
+                      >
+                        +
                       </button>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {selectedAddon && (
-                  <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                    ✓
-                  </div>
-                )}
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    checked
+                      ? "bg-primaryColor text-white"
+                      : "border border-slate-300 bg-white text-transparent"
+                  }`}
+                  aria-hidden
+                >
+                  ✓
+                </span>
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
 
-      <div className="flex justify-end gap-2 pt-3 border-t">
-        <button
-          type="button"
-          className="px-4 py-2 border rounded"
-          onClick={() => setLocal([])}
-        >
-          Clear All
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 border rounded"
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-          onClick={() => onSave(local)}
-        >
-          Save
-        </button>
+      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="h-10 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="h-10 flex-1 rounded-lg bg-primaryColor text-sm font-medium text-white transition hover:bg-primaryColor/90"
+            onClick={() => onSave(local)}
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -31,7 +31,6 @@ import { useForm } from "react-hook-form";
 const Account: React.FC = () => {
   const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const [searchTerm, setSearchTerm] = useState("");
   const [patchApi] = usePatchApiMutation();
   const [deleteAccount] = useDeleteApiMutation();
   const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
@@ -82,7 +81,7 @@ const Account: React.FC = () => {
     }
   };
 
-  const { control, handleSubmit, reset } = useForm({
+  const { control, handleSubmit, reset, setValue } = useForm({
     resolver: zodResolver(AccountFilterSchema),
     defaultValues: {
       name: "",
@@ -91,18 +90,22 @@ const Account: React.FC = () => {
   });
   const [filters, setFilters] = useState<Record<string, any>>({});
 
-  const AccountTypeFilter: React.FC<any> = ({ value, onChange }) => (
-    <FilterSelect
-      label="Account Type"
-      value={value}
-      handleChange={onChange}
-      options={[
-        { label: "Cash", value: "cash" },
-        { label: "Bank", value: "bank" },
-        { label: "Wallet", value: "wallet" },
-      ]}
-    />
-  );
+  const applyFilters = (qs: Record<string, any>) => {
+    setFilters(
+      Object.fromEntries(
+        Object.entries(qs).filter(
+          ([_, v]) => v !== undefined && v !== null && v !== "",
+        ),
+      ),
+    );
+    handlePagination({ page: 1, limit: query.limit });
+  };
+
+  const clearFilters = () => {
+    reset({ name: "", accountType: "" });
+    setFilters({});
+    handlePagination({ page: 1, limit: query.limit });
+  };
 
   const filterField = useMemo(
     () => [
@@ -115,36 +118,33 @@ const Account: React.FC = () => {
       {
         name: "accountType",
         label: "Account Type",
-        Component: AccountTypeFilter,
+        Component: FilterSelect,
         control,
-        className: "lg:col-start-4",
+        className: "w-full",
+        handleChange: (value: string) =>
+          setValue("accountType", value as "" | "cash" | "bank" | "wallet"),
+        options: [
+          { label: "Any", value: "" },
+          { label: "Cash", value: "cash" },
+          { label: "Bank", value: "bank" },
+          { label: "Wallet", value: "wallet" },
+        ],
       },
     ],
-    [control],
+    [control, setValue],
   );
 
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    (qs: Record<string, any>) => {
-      setFilters(
-        Object.fromEntries(
-          Object.entries(qs).filter(
-            ([_, v]) => v !== undefined && v !== null && v !== "",
-          ),
-        ),
-      );
-    },
-    reset,
+    applyFilters,
+    clearFilters,
   );
 
   const url = buildQueryString("account/list", {
     page: query.page,
     limit: query.limit,
-    search: {
-      ...filters,
-      ...(searchTerm ? { name: searchTerm } : {}),
-    },
+    search: filters,
   });
 
   const {
@@ -258,9 +258,7 @@ const Account: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
-        searchPlaceholder="Search accounts..."
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        showSearch={false}
         hasAddButton
         newButtonText="Add Account"
         handleNewButton={() => handleNewBank(null)}

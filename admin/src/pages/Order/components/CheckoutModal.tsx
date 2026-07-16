@@ -12,6 +12,7 @@ import {
   useInitiateQrPaymentMutation,
   useLazyGetQrPaymentStatusQuery,
 } from "@/redux/services/payment";
+import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import {
   amountsMatchWithinEpsilon,
@@ -23,9 +24,8 @@ import {
 } from "@/utils/checkoutPayload";
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
-import { useGetActiveIntegrationAccountsQuery } from "@/redux/services/paymentIntegration";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { Banknote, Contact, Mail, Printer, QrCode, Split, X, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Banknote, Mail, Phone, Printer, QrCode, Split, X } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -333,11 +333,43 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     data: allCustomers,
     isSuccess: customerSuccess,
     isLoading: customerDataLoading,
+    isError: customerSearchError,
     refetch: customerRefetch,
   } = useGetApiQuery(
     { url: customerUrl },
     { skip: !isOpen || checkoutType !== "member" },
   );
+
+  const customerResults = useMemo(
+    () => allCustomers?.data?.data ?? [],
+    [allCustomers],
+  );
+  const isSearchingMember = customerSearchTerm.trim().length > 0;
+
+  const getMemberDisplayName = useCallback((customer: Customer) => {
+    const name =
+      `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
+    return name || `Member ${customer.id}`;
+  }, []);
+
+  const getMemberInitials = useCallback(
+    (customer: Customer) => {
+      const name = getMemberDisplayName(customer);
+      const parts = name.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    },
+    [getMemberDisplayName],
+  );
+
+  const handleCustomerSearchChange = (value: string) => {
+    setCustomerSearchTerm(value);
+    if (value.trim()) {
+      setSelectedMember(null);
+    }
+  };
 
   const closeDialog = () => {
     setDialogOpen(false);
@@ -1403,7 +1435,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           <Input
                             value={customerSearchTerm}
                             onChange={(e) => {
-                              setCustomerSearchTerm(e.target.value);
+                              handleCustomerSearchChange(e.target.value);
                             }}
                             className="w-full sm:w-[75%]"
                           />
@@ -1414,66 +1446,86 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             Search
                           </button>
                         </div>
-                        {customerDataLoading ? (
+                        {customerDataLoading && isSearchingMember ? (
                           <p className="text-gray-500">Loading members...</p>
-                        ) : customerSuccess &&
-                          customerSearchTerm.trim().length > 0 ? (
-                          <div className="mt-2 max-h-60 overflow-y-auto">
-                            {allCustomers?.data?.data?.map((customer: any) => (
-                              <p
-                                key={customer.id}
-                                className={`mt-1 py-2 px-3 cursor-pointer rounded-sm ${
-                                  customer.id === selectedMember?.id
-                                    ? "bg-blue-50 text-blue-700"
-                                    : "hover:bg-gray-100"
-                                }`}
-                                onClick={() => {
-                                  setSelectedMember(customer);
-                                  setCustomerSearchTerm(""); // Clear search term to hide the list
-                                }}
-                              >
-                                {`${customer.firstName || ""} ${customer.lastName || ""}`.trim() ||
-                                  `Member ${customer.id}`}
-                                <br />
-                                <span className="text-sm text-gray-500">
-                                  {customer.mobileNo || "No phone"}
-                                </span>
+                        ) : isSearchingMember ? (
+                          customerSuccess && customerResults.length > 0 ? (
+                            <div className={styles.memberSearchResults}>
+                              {customerResults.map((customer: Customer) => (
+                                <button
+                                  key={customer.id}
+                                  type="button"
+                                  className={styles.memberSearchResult}
+                                  onClick={() => {
+                                    setSelectedMember(customer);
+                                    setCustomerSearchTerm("");
+                                  }}
+                                >
+                                  <span className={styles.memberSearchResultName}>
+                                    {getMemberDisplayName(customer)}
+                                  </span>
+                                  <span className={styles.memberSearchResultMeta}>
+                                    {customer.mobileNo || "No phone"}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : customerSuccess ? (
+                            <p className={styles.memberSearchEmpty}>
+                              No members found
+                            </p>
+                          ) : customerSearchError ? (
+                            <div>
+                              <p className={styles.memberSearchEmpty}>
+                                Could not search members
                               </p>
-                            ))}
-                          </div>
-                        ) : customerSearchTerm.trim().length > 0 ? (
-                          <div>
-                            <p className="text-red-500">No members found</p>
-                            <button
-                              onClick={customerRefetch}
-                              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                            >
-                              Retry
-                            </button>
-                          </div>
+                              <button
+                                type="button"
+                                onClick={customerRefetch}
+                                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                              >
+                                Retry
+                              </button>
+                            </div>
+                          ) : null
                         ) : null}
                       </div>
                     )}
-                    {selectedMember && (
-                      <div className="p-4 sm:p-6 lg:p-10 bg-gray-100 rounded-md flex flex-col sm:flex-row gap-4 sm:gap-8 lg:gap-11">
-                        <p className={styles.paymentLabel}>Selected Member:</p>
-                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 lg:gap-[8rem]">
-                          <p className="flex items-center justify-start gap-2 font-medium">
-                            <Contact size={17} />
-                            <span className={styles.paymentLabel}>Name: </span>
-
-                            {selectedMember.firstName +
-                              " " +
-                              selectedMember.lastName || "N/A"}
-                          </p>
-                          <p className="flex items-center justify-start gap-2 font-medium">
-                            <Mail size={17} />
-                            <span className={styles.paymentLabel}>
-                              Email:{" "}
-                            </span>{" "}
-                            {selectedMember.email || "N/A"}
-                          </p>
+                    {selectedMember && !isSearchingMember && (
+                      <div className={styles.selectedMemberCard}>
+                        <div className={styles.selectedMemberAvatar}>
+                          {getMemberInitials(selectedMember)}
                         </div>
+                        <div className={styles.selectedMemberInfo}>
+                          <p className={styles.selectedMemberLabel}>
+                            Selected Member
+                          </p>
+                          <p className={styles.selectedMemberName}>
+                            {getMemberDisplayName(selectedMember)}
+                          </p>
+                          <div className={styles.selectedMemberMeta}>
+                            {selectedMember.email ? (
+                              <span className={styles.selectedMemberMetaItem}>
+                                <Mail size={14} />
+                                {selectedMember.email}
+                              </span>
+                            ) : null}
+                            {selectedMember.mobileNo ? (
+                              <span className={styles.selectedMemberMetaItem}>
+                                <Phone size={14} />
+                                {selectedMember.mobileNo}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.selectedMemberClear}
+                          onClick={() => setSelectedMember(null)}
+                          aria-label="Remove selected member"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
                     )}
                   </div>

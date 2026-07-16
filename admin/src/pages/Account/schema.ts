@@ -44,8 +44,11 @@ const WalletAccount = BaseAccount.extend({
 });
 
 const AccountFilter = z.object({
-  name: z.string().optional(),
-  accountType: z.enum(["cash", "bank", "wallet"]).optional(),
+  name: z.string().optional().or(z.literal("")),
+  accountType: z
+    .enum(["cash", "bank", "wallet"])
+    .optional()
+    .or(z.literal("")),
 });
 
 export const AccountSchema = z

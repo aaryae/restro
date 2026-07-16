@@ -16,6 +16,8 @@ import PageContent from "@/components/PageContent";
 import TakeAwayOrders from "./TakeAwayOrders";
 import Select from "@/components/Select";
 import ViewTableOrder from "./ViewTableOrder";
+import CustomDialog from "@/components/Dialog";
+import ChooseTable from "./TransferModel/ChooseTable";
 import { Plus } from "lucide-react";
 import "./TableListCss.css";
 
@@ -133,6 +135,8 @@ export default function TableList() {
 
   const [restroTableId, setRestroTableId] = useState<number | null>(null);
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferTableId, setTransferTableId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   function handleCheckout(
@@ -157,6 +161,12 @@ export default function TableList() {
       setRestroTableId(id);
       setOpenDrawer(true);
     }
+  }
+
+  function handleOpenTransfer(tableId: number) {
+    setOpenDrawer(false);
+    setTransferTableId(tableId);
+    setTransferOpen(true);
   }
   return (
     <>
@@ -193,8 +203,21 @@ export default function TableList() {
             handleCheckout={handleCheckout}
             paidItemsByOrder={paidItemsByOrder}
             ordersRefresh={ordersRefresh}
+            onOpenTransfer={handleOpenTransfer}
           />
         </Drawer>
+        <CustomDialog
+          dialogOpen={transferOpen}
+          setDialogOpen={setTransferOpen}
+          title="Transfer Table"
+          titleDescription="Move orders from one table to another."
+          contentClassName="max-w-xl"
+        >
+          <ChooseTable
+            tableId={transferTableId}
+            onClose={() => setTransferOpen(false)}
+          />
+        </CustomDialog>
       </PageContent>
     </>
   );

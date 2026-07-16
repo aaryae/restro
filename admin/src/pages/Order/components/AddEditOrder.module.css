@@ -587,103 +587,183 @@
 
 .modal {
   width: 95%;
-  max-width: 40rem;
+  max-width: 36rem;
   background: #fff;
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   box-shadow: 0 20px 50px rgb(15 23 42 / 18%);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 40rem);
 }
 
 .modalHeader {
-  padding: 0.85rem 1rem;
+  padding: 1rem 1.1rem 0.85rem;
   border-bottom: 1px solid #f1f5f9;
 }
 
 .modalTitle {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .modalBody {
-  padding: 0.9rem 1rem;
-  max-height: 70vh;
+  padding: 0.9rem 1.1rem;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modalMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.modalMetaChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #f1f5f9;
   color: #475569;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+}
+
+.modalTableWrap {
+  overflow-x: auto;
+  border: 1px solid #e8edf3;
+  border-radius: 0.75rem;
 }
 
 .modalTable {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.55rem;
-  overflow: hidden;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
-.modalTableHead,
-.modalTableRow,
-.modalTableFoot {
-  display: grid;
-  grid-template-columns: 6fr 2fr 2fr 2fr;
-  gap: 0.4rem;
-  padding: 0.5rem 0.7rem;
-  font-size: 0.78rem;
-}
-
-.modalTableHead {
-  background: #f8fafc;
-  font-weight: 650;
-  color: #475569;
-}
-
-.modalTableRow {
-  border-top: 1px solid #f1f5f9;
-}
-
-.modalTableFoot {
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+.modalTable th {
+  text-align: left;
+  font-size: 0.72rem;
   font-weight: 700;
-  align-items: center;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #e8edf3;
+}
+
+.modalTable td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+  color: #0f172a;
+}
+
+.modalTable tbody tr:last-child td {
+  border-bottom: 1px solid #e8edf3;
+}
+
+.modalTableQty {
+  width: 3.5rem;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.modalTableAmount {
+  width: 6.5rem;
+  text-align: right !important;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.modalItemName {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.modalPriceLine {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.modalAddonLine {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.modalTable tfoot td {
+  border-bottom: none;
+  background: #f8fafc;
+  padding: 0.8rem 0.85rem;
+}
+
+.modalTableTotalLabel {
+  text-align: right;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.modalTableTotalValue {
+  text-align: right;
+  font-weight: 700;
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+.modalNotes {
+  margin-top: 0.85rem;
+}
+
+.modalNotesLabel {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
 }
 
 .modalActions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.4rem;
-  padding: 0.75rem 1rem;
+  gap: 0.45rem;
+  padding: 0.85rem 1.1rem;
   border-top: 1px solid #f1f5f9;
+  background: #fafbfc;
 }
 
 .modalSecondary {
   border: 1px solid #e2e8f0;
   background: #fff;
-  color: #475569;
-  border-radius: 0.45rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 550;
+  color: #334155;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .modalPrimary {
   border: none;
   background: var(--primary-color);
   color: #fff;
-  border-radius: 0.45rem;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.8rem;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
 .modalPrimary:disabled {
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 

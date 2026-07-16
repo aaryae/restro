@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
@@ -35,6 +35,23 @@ const Transaction: React.FC = () => {
     userName?: string;
   }>({ defaultValues: { name: "", userName: "" } });
 
+  const applyFilters = (qs: Record<string, any>) => {
+    setFilters(
+      Object.fromEntries(
+        Object.entries(qs).filter(
+          ([_, v]) => v !== undefined && v !== null && v !== "",
+        ),
+      ),
+    );
+    handlePagination({ page: 1, limit: query.limit });
+  };
+
+  const clearFilters = () => {
+    reset({ name: "", userName: "" });
+    setFilters({});
+    handlePagination({ page: 1, limit: query.limit });
+  };
+
   const filterField = useMemo(
     () => [
       {
@@ -56,20 +73,8 @@ const Transaction: React.FC = () => {
   const { Component } = PageFilterSample(
     filterField,
     handleSubmit,
-    (qs: Record<string, any>) => {
-      setFilters(
-        Object.fromEntries(
-          Object.entries(qs).filter(
-            ([_, v]) => v !== undefined && v !== null && v !== "",
-          ),
-        ),
-      );
-    },
-    () => {
-      reset({ name: "", userName: "" });
-      setFilters({});
-      handlePagination({ page: 1, limit: query.limit });
-    },
+    applyFilters,
+    clearFilters,
   );
 
   const url = buildQueryString("transaction/list", {
@@ -91,10 +96,6 @@ const Transaction: React.FC = () => {
     total: allTransactions?.data?.total ?? 0,
     totalPages: allTransactions?.data?.totalPages ?? 0,
   };
-
-  useEffect(() => {
-    refetch();
-  }, [filters]);
 
   const headers = ["Date", "Account", "Type", "Amount", "User", "Remarks"];
 

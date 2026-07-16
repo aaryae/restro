@@ -96,7 +96,7 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-14">
+      <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4 pt-4">
         <h2 className="text-left text-base font-semibold text-slate-900">
           Takeaway Order
           {orderNo != null && (

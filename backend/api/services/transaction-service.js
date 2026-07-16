@@ -138,10 +138,18 @@ const list = async (req) => {
     ];
 
     if (name) {
-      include[0].where = { ...include[0].where, name: { [Op.like]: `%${name}%` } };
+      include[0].required = true;
+      include[0].where = {
+        ...(include[0].where || {}),
+        name: { [Op.like]: `%${name}%` },
+      };
     }
     if (userName) {
-      include[1].where = { ...include[1].where, username: { [Op.like]: `%${userName}%` } };
+      include[1].required = true;
+      include[1].where = {
+        ...(include[1].where || {}),
+        username: { [Op.like]: `%${userName}%` },
+      };
     }
 
     if (accountId) filters.accountId = accountId;

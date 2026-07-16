@@ -97,6 +97,24 @@ function formatLabel(value?: string | null) {
   return String(value).replace(/_/g, " ");
 }
 
+function getAddonsTotal(item: OrderItem) {
+  if (!Array.isArray(item.addons) || item.addons.length === 0) return 0;
+  return item.addons.reduce((sum, addonItem: any) => {
+    const unit = Number(addonItem?.price ?? addonItem?.addon?.price ?? 0);
+    const qty = Number(addonItem?.quantity ?? 1);
+    return sum + unit * qty;
+  }, 0);
+}
+
+function getLineTotal(item: OrderItem) {
+  const base = Number(item.subtotal ?? 0);
+  const addons = getAddonsTotal(item);
+  const productOnly = Number(item.price ?? 0) * Number(item.quantity ?? 0);
+  if (Math.abs(base - (productOnly + addons)) < 0.01) return base;
+  if (Math.abs(base - productOnly) < 0.01) return base + addons;
+  return base + (addons > 0 && base < productOnly + addons ? addons : 0);
+}
+
 export default function ViewOrder({ id }: ViewCustomerProps) {
   const { data: orderData, isSuccess: success, isLoading } = useGetApiQuery(
     { url: `order/${id}` },
@@ -110,10 +128,10 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
   const orderNote = String(order?.orderNote || "").trim();
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-1 pt-6">
+    <div className="flex h-full min-h-0 flex-col px-4 pt-4">
       <div className="shrink-0 space-y-4 border-b border-slate-200/80 pb-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <PageTitle title="Order Details" />
             {order?.orderNumber && (
               <p className="mt-1 text-left text-xs font-medium text-slate-400">
@@ -123,7 +141,7 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
           </div>
           {order?.status && (
             <span
-              className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize ${statusStyles(order.status)}`}
+              className={`mt-1 shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize ${statusStyles(order.status)}`}
             >
               {formatLabel(order.status)}
             </span>
@@ -240,14 +258,43 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
 
                   <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm text-slate-600">
                     <span>
-                      Qty <span className="font-semibold text-slate-800">{item.quantity}</span>
+                      Qty{" "}
+                      <span className="font-semibold text-slate-800">
+                        {item.quantity}
+                      </span>
                     </span>
                     <span className="text-slate-300">·</span>
-                    <span>{formatMoney(item.price)} each</span>
+                    <span>Item {formatMoney(item.price)} each</span>
                   </div>
 
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {formatMoney(item.subtotal)}
+                  {Array.isArray(item.addons) && item.addons.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {item.addons.map((addonItem: any, index: number) => (
+                        <li
+                          key={addonItem?.id ?? index}
+                          className="flex items-center justify-between gap-2 text-xs text-slate-500"
+                        >
+                          <span>
+                            +{" "}
+                            {addonItem?.addon?.name ||
+                              addonItem?.name ||
+                              "Addon"}
+                            {addonItem?.quantity > 1
+                              ? ` ×${addonItem.quantity}`
+                              : ""}
+                          </span>
+                          <span className="shrink-0 font-medium text-slate-600">
+                            {formatMoney(
+                              addonItem?.price ?? addonItem?.addon?.price,
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    Line total {formatMoney(getLineTotal(item))}
                   </p>
 
                   {item.department?.name && (
@@ -261,27 +308,6 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
                       <span className="font-medium text-slate-700">Note: </span>
                       {item.specialInstructions}
                     </p>
-                  )}
-
-                  {Array.isArray(item.addons) && item.addons.length > 0 && (
-                    <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2">
-                      {item.addons.map((addonItem: any, index: number) => (
-                        <li
-                          key={addonItem?.id ?? index}
-                          className="flex items-center justify-between gap-2 text-xs text-slate-500"
-                        >
-                          <span>
-                            + {addonItem?.addon?.name || addonItem?.name || "Addon"}
-                            {addonItem?.quantity > 1
-                              ? ` ×${addonItem.quantity}`
-                              : ""}
-                          </span>
-                          <span className="shrink-0 font-medium text-slate-600">
-                            {formatMoney(addonItem?.price ?? addonItem?.addon?.price)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
                   )}
                 </div>
               </div>

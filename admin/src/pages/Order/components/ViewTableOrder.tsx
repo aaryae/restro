@@ -1,12 +1,10 @@
 import Button from "@/components/Button";
-import CustomDialog from "@/components/Dialog";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import React, { useState } from "react";
+import React from "react";
 import { LuChefHat } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import ChooseTable from "./TransferModel/ChooseTable";
 
 interface Addon {
   id: number;
@@ -35,19 +33,19 @@ interface Order {
 }
 interface ViewTableOrderProps {
   id: number | null;
-  tableNo: number | null;
-  orderId: number | null;
+  tableNo?: number | null;
+  orderId?: number | null;
   handleCheckout: (
     tableId: number,
     orderId: number | null | number[],
   ) => void;
+  onOpenTransfer?: (tableId: number) => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   id,
-  tableNo,
-  orderId,
   handleCheckout,
+  onOpenTransfer,
 }) => {
   const {
     data: tableOrder,
@@ -59,8 +57,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
       skip: id == null || Number.isNaN(Number(id)),
     },
   );
-  const [dialogOpen, setDialogOpen] = useState(false);
-
   const { data: table } = useGetApiQuery(
     { url: `${TABLE_URL}${id}` },
     {
@@ -88,7 +84,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
             </Link>
             <Button
               className="w-fit bg-[#c343dc] text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base"
-              handleClick={() => setDialogOpen(true)}
+              handleClick={() => id != null && onOpenTransfer?.(id)}
             >
               Transfer Table
             </Button>
@@ -277,15 +273,6 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           </div>
         </div>
       </div>
-      <CustomDialog
-        dialogOpen={dialogOpen}
-        setDialogOpen={setDialogOpen}
-        title="Transfer Table"
-        titleDescription="Move orders from one table to another."
-        contentClassName="max-w-xl"
-      >
-        <ChooseTable tableId={id} onClose={() => setDialogOpen(false)} />
-      </CustomDialog>
     </>
   );
 };

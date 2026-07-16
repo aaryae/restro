@@ -6,7 +6,7 @@ import { MultipleImageInputUI } from "@/components/ImageComponent";
 import Input from "@/components/Input";
 import MediaComponent from "@/components/MediaComponent";
 import Select from "@/components/Select";
-import { IMAGE_BASE_URL } from "@/constants";
+import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import useImageHandler from "@/hooks/useImageHandler";
 import useTranslation from "@/locale/useTranslation";
@@ -429,26 +429,33 @@ export default function ProductForm() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="bg-primaryColor text-white px-4 py-2 rounded"
+              className="inline-flex items-center rounded-lg bg-primaryColor px-4 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
               onClick={() => setAddonDrawerOpen(true)}
             >
               Select Addons
             </button>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-slate-500">
               {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
               selected
             </span>
           </div>
-          {/* Simple chips preview */}
           <div className="flex flex-wrap gap-2">
             {(addonListData?.data?.data || [])
               .filter((a: any) => (selectedAddons || []).includes(a.id))
               .map((a: any) => (
                 <span
                   key={a.id}
-                  className="px-2 py-1 text-xs rounded bg-gray-100 border"
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
                 >
                   {a.name}
+                  <button
+                    type="button"
+                    aria-label={`Remove ${a.name}`}
+                    className="ml-0.5 text-slate-400 hover:text-slate-700"
+                    onClick={() => toggleAddon(a.id)}
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
           </div>
@@ -557,43 +564,62 @@ export default function ProductForm() {
       <Drawer
         isOpen={addonDrawerOpen}
         setIsOpen={setAddonDrawerOpen}
-        width="w-full lg:w-[40%]"
+        width="w-full max-w-md sm:w-[400px]"
+        contentClassName="p-0"
       >
-        <div className="p-4 flex flex-col gap-4 h-full">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-semibold text-left">Select Addons</h3>
-              <p className="text-sm text-gray-500">
-                Choose complementary items
-              </p>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4 pt-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-left text-base font-semibold text-slate-900">
+                  Select Addons
+                </h3>
+                <p className="mt-0.5 text-left text-sm text-slate-500">
+                  Tap a card to add or remove
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
+                  selected
+                </span>
+                {!!selectedAddons?.length && (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+                    onClick={() => {
+                      setValue("addons", [], {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="text-sm text-gray-700">
-              <span className="font-medium">
-                {Array.isArray(selectedAddons) ? selectedAddons.length : 0}
-              </span>
-              <span className="ml-1">selected</span>
+
+            <div className="relative">
+              <input
+                value={addonSearch}
+                onChange={(e) => setAddonSearch(e.target.value)}
+                placeholder="Search addons..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-3 pr-16 text-sm text-slate-800 outline-none transition focus:border-primaryColor/40 focus:bg-white focus:ring-2 focus:ring-primaryColor/15"
+              />
+              {addonSearch && (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-200/70 hover:text-slate-700"
+                  onClick={() => setAddonSearch("")}
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              value={addonSearch}
-              onChange={(e) => setAddonSearch(e.target.value)}
-              placeholder="Search addons..."
-              className="flex-1 p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primaryColor"
-            />
-            <button
-              type="button"
-              className="px-3 py-2 bg-gray-100 rounded-md text-sm"
-              onClick={() => {
-                setAddonSearch("");
-              }}
-            >
-              Clear
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-auto max-h-[60vh]">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
             {(addonListData?.data?.data || [])
               .filter((a: any) =>
                 a.name.toLowerCase().includes(addonSearch.toLowerCase()),
@@ -601,11 +627,18 @@ export default function ProductForm() {
               .map((addon: any) => {
                 const checked = (selectedAddons || []).includes(addon.id);
                 return (
-                  <div
+                  <button
                     key={addon.id}
-                    className={`relative flex items-center gap-3 p-3 border rounded-lg hover:shadow-lg transition-shadow bg-white`}
+                    type="button"
+                    onClick={() => toggleAddon(addon.id)}
+                    aria-pressed={checked}
+                    className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                      checked
+                        ? "border-primaryColor/40 bg-primaryColor/[0.04] ring-1 ring-primaryColor/20"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    }`}
                   >
-                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/80">
                       <img
                         src={
                           addon.imageUrl?.startsWith("http")
@@ -613,73 +646,68 @@ export default function ProductForm() {
                             : `${IMAGE_BASE_URL}${addon.imageUrl}`
                         }
                         alt={addon.name}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = DishPlaceHolder;
                         }}
                       />
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{addon.name}</h4>
-                        <div className="text-sm font-semibold text-primaryColor">
-                          Rs. {addon.price}
-                        </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="truncate text-sm font-medium text-slate-900">
+                          {addon.name}
+                        </h4>
+                        <span className="shrink-0 text-sm font-semibold text-slate-800">
+                          {CurrencySign}
+                          {Number(addon.price || 0).toFixed(2)}
+                        </span>
                       </div>
                       {addon.description && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
                           {addon.description}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleAddon(addon.id)}
-                          className={`px-3 py-1 rounded-full text-sm border ${checked ? "bg-primaryColor text-white border-primaryColor" : "bg-white text-gray-700"}`}
-                        >
-                          {checked ? "Selected" : "Add"}
-                        </button>
-                      </div>
                     </div>
 
-                    {checked && (
-                      <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                        ✓
-                      </div>
-                    )}
-                  </div>
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                        checked
+                          ? "bg-primaryColor text-white"
+                          : "border border-slate-300 bg-white text-transparent"
+                      }`}
+                      aria-hidden
+                    >
+                      ✓
+                    </span>
+                  </button>
                 );
               })}
+
+            {(addonListData?.data?.data || []).filter((a: any) =>
+              a.name.toLowerCase().includes(addonSearch.toLowerCase()),
+            ).length === 0 && (
+              <p className="py-10 text-center text-sm text-slate-500">
+                No addons found
+              </p>
+            )}
           </div>
 
-          <div className="mt-auto pt-3 border-t flex items-center justify-between gap-2">
-            <button
-              type="button"
-              className="px-4 py-2 rounded border text-sm"
-              onClick={() => {
-                setValue("addons", [], {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                });
-              }}
-            >
-              Clear All
-            </button>
-            <div className="flex gap-2">
+          <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="px-4 py-2 rounded border text-sm"
+                className="h-10 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                 onClick={() => setAddonDrawerOpen(false)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded bg-primaryColor text-white text-sm"
+                className="h-10 flex-1 rounded-lg bg-primaryColor text-sm font-medium text-white transition hover:bg-primaryColor/90"
                 onClick={() => setAddonDrawerOpen(false)}
               >
-                Save Selection
+                Done
               </button>
             </div>
           </div>

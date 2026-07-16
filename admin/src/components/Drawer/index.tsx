@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { RxCross2 } from "react-icons/rx";
+import { cn } from "../../lib/utils";
 
 interface DrawerType {
   isOpen: boolean;
@@ -63,25 +64,34 @@ export default function Drawer({
         />
       )}
       <div
-        className={`fixed inset-y-0 z-[70] ${
-          position === "right" ? "right-0" : "left-0"
-        } h-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+        className={cn(
+          "fixed inset-y-0 z-[70] flex h-screen max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          position === "right" ? "right-0" : "left-0",
           isOpen
             ? "visible translate-x-0 pointer-events-auto"
             : position === "right"
               ? "invisible translate-x-full pointer-events-none"
-              : "invisible -translate-x-full pointer-events-none"
-        } ${width} ${className ?? ""}`}
+              : "invisible -translate-x-full pointer-events-none",
+          width,
+          className,
+        )}
       >
-        <button
-          onClick={toggleDrawer}
-          className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-700"
-        >
-          <RxCross2 size={18} />
-        </button>
+        <div className="flex h-12 shrink-0 items-center justify-end border-b border-slate-100 px-3">
+          <button
+            type="button"
+            onClick={toggleDrawer}
+            aria-label="Close drawer"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+          >
+            <RxCross2 size={18} />
+          </button>
+        </div>
 
         <div
-          className={`drawer-content flex h-full flex-col overflow-y-auto ${contentClassName}`}
+          className={cn(
+            "drawer-content flex min-h-0 flex-1 flex-col overflow-y-auto",
+            contentClassName,
+          )}
         >
           {children}
         </div>

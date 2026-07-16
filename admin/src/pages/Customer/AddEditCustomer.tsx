@@ -68,7 +68,6 @@ export default function AddEditCustomer({
     }
   };
 
-  console.log("data", errors, isValid);
 
   const onSubmit = async (data: CustomerFormType) => {
     const body = { ...data };
@@ -95,7 +94,6 @@ export default function AddEditCustomer({
 
   useEffect(() => {
     if (isEditMode && customerData && customerData?.data) {
-      console.log(customerData?.data, "custoemr id data");
       reset({
         firstName: customerData?.data.firstName,
         lastName: customerData?.data.lastName,

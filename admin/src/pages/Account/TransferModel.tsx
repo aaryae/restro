@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Input from "@/components/Input";
@@ -10,9 +10,10 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store/store";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import TransferSchema from "./transferschema";
+import { createTransferSchema } from "./transferschema";
 
-type TransferFormType = z.infer<typeof TransferSchema>;
+type TransferFormInput = z.input<ReturnType<typeof createTransferSchema>>;
+type TransferFormValues = z.infer<ReturnType<typeof createTransferSchema>>;
 
 interface Props {
   isOpen: boolean;
@@ -20,47 +21,79 @@ interface Props {
   onSuccess?: () => void;
 }
 
+const initialValues: TransferFormInput = {
+  fromAccountId: "",
+  toAccountId: "",
+  amount: "",
+  remarks: "",
+};
+
 const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   const userId = useSelector((state: RootState) => state.auth.id);
 
-  const initialValues = {
-    fromAccountId: "",
-    toAccountId: "",
-    amount: "" as any,
-    remarks: "",
-  } as const;
+  const url = buildQueryString("account/list", { page: 1, limit: 100 });
+  const { data: accountsData } = useGetApiQuery({ url });
+  const accounts = accountsData?.data?.data || [];
+
+  const accountBalanceById = useMemo(() => {
+    const map = new Map<string, number>();
+    accounts.forEach((acc: any) => {
+      map.set(String(acc.id), Number(acc.currentBalance) || 0);
+    });
+    return map;
+  }, [accounts]);
+
+  const transferSchema = useMemo(
+    () =>
+      createTransferSchema((accountId) => accountBalanceById.get(accountId)),
+    [accountBalanceById],
+  );
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<TransferFormType>({
-    resolver: zodResolver(TransferSchema),
+  } = useForm<TransferFormInput, unknown, TransferFormValues>({
+    resolver: zodResolver(transferSchema),
     defaultValues: initialValues,
   });
+
+  const watchedFromAccountId = watch("fromAccountId");
+
   useEffect(() => {
     if (isOpen) {
       reset(initialValues);
     }
   }, [isOpen, reset]);
 
-  const url = buildQueryString("account/list", { page: 1, limit: 100 });
-  const { data: accountsData } = useGetApiQuery({ url });
-  const accounts = accountsData?.data?.data || [];
-
   const accountOptions = useMemo(
     () =>
       accounts.map((acc: any) => ({
         value: String(acc.id),
-        label: `${acc.name} (${acc.accountType}) - Bal: ${acc.currentBalance}`,
+        label: `${acc.name} (${acc.accountType}) - Bal: ${Number(acc.currentBalance || 0).toFixed(2)}`,
+        disabled: acc.status !== "active",
       })),
     [accounts],
   );
 
+  const destinationOptions = useMemo(
+    () =>
+      accountOptions.filter(
+        (option) => option.value !== watchedFromAccountId,
+      ),
+    [accountOptions, watchedFromAccountId],
+  );
+
+  const sourceBalance = watchedFromAccountId
+    ? accountBalanceById.get(watchedFromAccountId)
+    : undefined;
+
   const [createTransfer, { isLoading }] = useCreateTransferMutation();
 
-  const onSubmit = async (data: TransferFormType) => {
+  const onSubmit = async (data: TransferFormValues) => {
     try {
       if (!userId) throw new Error("User not identified");
       const payload = {
@@ -68,7 +101,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
         toAccountId: Number(data.toAccountId),
         userId: Number(userId),
         amount: Number(data.amount),
-        remarks: data.remarks,
+        remarks: data.remarks.trim(),
       };
       const res = await createTransfer(payload).unwrap();
       handleResponse({ res, onSuccess: () => onSuccess?.() });
@@ -91,38 +124,63 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
           onSubmit={handleSubmit(onSubmit)}
           className="p-6 md:p-8 space-y-4 md:space-y-5"
         >
-          <Select
-            label="From Account"
-            {...register("fromAccountId")}
-            options={accountOptions}
-            error={errors.fromAccountId?.message}
-            isRequired
-        />
-          <Select
-            label="To Account"
-            {...register("toAccountId")}
-            options={accountOptions}
-            error={errors.toAccountId?.message}
-            isRequired
-        />
+          <Controller
+            name="fromAccountId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="From Account"
+                value={field.value ?? ""}
+                onBlur={field.onBlur}
+                name={field.name}
+                options={accountOptions}
+                error={errors.fromAccountId?.message}
+                placeholder="Select source account"
+                onValueChange={field.onChange}
+                isRequired
+              />
+            )}
+          />
+          <Controller
+            name="toAccountId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="To Account"
+                value={field.value ?? ""}
+                onBlur={field.onBlur}
+                name={field.name}
+                options={destinationOptions}
+                error={errors.toAccountId?.message}
+                placeholder="Select destination account"
+                onValueChange={field.onChange}
+                isRequired
+              />
+            )}
+          />
           <Input
             label="Amount"
             type="number"
             step="0.01"
-            {...register("amount", {
-              setValueAs: (v) =>
-                v === "" || v === null ? undefined : Number(v),
-            })}
+            min="0.01"
+            max={sourceBalance != null ? String(sourceBalance) : undefined}
+            placeholder="0.00"
+            {...register("amount")}
             error={errors.amount?.message}
             isRequired
-        />
+          />
+          {sourceBalance != null ? (
+            <p className="text-xs text-slate-500 -mt-2">
+              Available balance: {sourceBalance.toFixed(2)}
+            </p>
+          ) : null}
           <Input
             label="Remarks"
             placeholder="Reason for transfer"
             {...register("remarks")}
             error={errors.remarks?.message}
             isRequired
-        />
+          />
 
           <div className="flex justify-end gap-3 pt-2 border-t mt-4">
             <button

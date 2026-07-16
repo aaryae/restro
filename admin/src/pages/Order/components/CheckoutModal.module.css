@@ -606,3 +606,143 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.memberSearchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 15rem;
+  margin-top: 0.5rem;
+  overflow-y: auto;
+}
+
+.memberSearchResult {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--ck-border, #e5e7eb);
+  border-radius: 0.65rem;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.memberSearchResult:hover {
+  border-color: var(--ck-primary-border, #c7d2fe);
+  background: var(--ck-primary-soft, #eff6ff);
+}
+
+.memberSearchResultName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.memberSearchResultMeta {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.memberSearchEmpty {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.selectedMemberCard {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ck-primary-border, #c7d2fe);
+  border-radius: 0.75rem;
+  background: var(--ck-primary-soft, #eff6ff);
+  min-width: 0;
+}
+
+.selectedMemberAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--ck-primary, #032768);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.selectedMemberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.selectedMemberLabel {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.selectedMemberName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedMemberMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.selectedMemberMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.8rem;
+  color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedMemberClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.75);
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.selectedMemberClear:hover {
+  background: #fff;
+  color: #dc2626;
+}
