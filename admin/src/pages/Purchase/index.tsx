@@ -25,9 +25,11 @@ import { ADToBS } from "bikram-sambat-js";
 import { PurchaseFilterSchema, type PurchaseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { subDays } from "date-fns";
+import { checkAccess } from "@/utils/accessHelper";
 
 const Purchase: React.FC = () => {
   const navigate = useNavigate();
+  const accessList = checkAccess("Purchase");
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteApi] = useDeleteApiMutation();
@@ -200,8 +202,11 @@ const Purchase: React.FC = () => {
     "Paid or Credit",
     "Status",
     "Payment Source",
-    "Actions",
-  ];
+    (accessList.includes("view-one") ||
+      accessList.includes("edit") ||
+      accessList.includes("delete")) &&
+      "Actions",
+  ].filter(Boolean) as string[];
 
   const handleNewUser = (id: number | null) => {
     id === null
@@ -231,6 +236,11 @@ const Purchase: React.FC = () => {
       setOpen(false);
     }
   };
+
+  const showActions =
+    accessList.includes("view-one") ||
+    accessList.includes("edit") ||
+    accessList.includes("delete");
 
   const data = supplierFilteredRows.map((r: any, index: number) => {
     const id = r?.id ?? r?.purchaseId ?? r?.purchase_id;
@@ -306,7 +316,7 @@ const Purchase: React.FC = () => {
       return "-";
     })();
 
-    return [
+    const row = [
       index + 1 + (pagination.page - 1) * pagination.limit,
       dateAD,
       dateBS,
@@ -322,44 +332,57 @@ const Purchase: React.FC = () => {
       paymentTermsDisplay,
       statusDisplay,
       paymentSourceName,
-      <TableRowActions>
-        <button
-          type="button"
-          onClick={() => handleViewPurchase(id)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
-          title="View purchase"
-        >
-          <Eye size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={() => !isCompleted && handleNewUser(id)}
-          title={isCompleted ? "Completed purchases cannot be edited" : "Edit"}
-          disabled={isCompleted}
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100 ${
-            isCompleted ? "cursor-not-allowed opacity-50" : ""
-          }`}
-        >
-          <MdEditSquare size={16} />
-        </button>
-        <DeleteModal
-          compact
-          open={open}
-          setOpen={setOpen}
-                  itemId={id}
-                  activeId={deleteId}
-          handleDeleteTrigger={() => handleDeleteTrigger(id)}
-          handleConfirmDelete={handleDelete}
-        />
-      </TableRowActions>,
     ];
+
+    if (showActions) {
+      row.push(
+        <TableRowActions>
+          {accessList.includes("view-one") && (
+            <button
+              type="button"
+              onClick={() => handleViewPurchase(id)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+              title="View purchase"
+            >
+              <Eye size={16} />
+            </button>
+          )}
+          {accessList.includes("edit") && (
+            <button
+              type="button"
+              onClick={() => !isCompleted && handleNewUser(id)}
+              title={isCompleted ? "Completed purchases cannot be edited" : "Edit"}
+              disabled={isCompleted}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100 ${
+                isCompleted ? "cursor-not-allowed opacity-50" : ""
+              }`}
+            >
+              <MdEditSquare size={16} />
+            </button>
+          )}
+          {accessList.includes("delete") && (
+            <DeleteModal
+              compact
+              open={open}
+              setOpen={setOpen}
+              itemId={id}
+              activeId={deleteId}
+              handleDeleteTrigger={() => handleDeleteTrigger(id)}
+              handleConfirmDelete={handleDelete}
+            />
+          )}
+        </TableRowActions>,
+      );
+    }
+
+    return row;
   });
 
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Purchase"
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
@@ -378,14 +401,20 @@ const Purchase: React.FC = () => {
 
       <PageFilterWrapper title="Purchase Filters">{Component}</PageFilterWrapper>
 
+      {accessList.includes("view") ? (
       <Table
         headers={headers}
         data={data}
         pagination={pagination}
         handlePagination={(p) => handlePagination({ ...p, total })}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view purchases.
+        </div>
+      )}
 
-      {openDrawer ? (
+      {accessList.includes("view-one") && openDrawer ? (
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black/40"

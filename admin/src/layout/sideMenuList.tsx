@@ -253,6 +253,12 @@ export const SideMenuList: SideListMenuType[] = [
       },
       {
         key: 9.4,
+        name: "Ledger",
+        path: "/admin/ledger/list",
+        icon: <ClipboardList size={12} />,
+      },
+      {
+        key: 9.5,
         name: "Recently Deleted",
         path: "/admin/recently-deleted",
         icon: <MdOutlineFactCheck />,

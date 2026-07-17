@@ -42,7 +42,7 @@ router.get(
 router.put(
   "/:id",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   // add specific validation later if needed
   updateAccount,
@@ -65,7 +65,7 @@ router.patch(
 router.delete(
   "/:id",
   authentication,
-  // authorization,
+  authorization,
   idValidation,
   require("../controllers/account-controller").deleteAccount,
 );

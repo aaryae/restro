@@ -22,9 +22,11 @@ import { FilterSelect } from "@/components/Select/FilterSelect";
 import { ExpenseFilterSchema, type ExpenseFilterInput } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { checkAccess } from "@/utils/accessHelper";
 
 const Expenses: React.FC = () => {
   const navigate = useNavigate();
+  const accessList = checkAccess("Expense");
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
@@ -135,6 +137,9 @@ const Expenses: React.FC = () => {
     totalPages: apiData?.data?.totalPages ?? 1,
   };
 
+  const showActions =
+    accessList.includes("edit") || accessList.includes("delete");
+
   const headers = [
     "Expense ID",
     "Date (AD)",
@@ -144,8 +149,8 @@ const Expenses: React.FC = () => {
     "Amount",
     "Cash or Credit",
     "Payment Source",
-    "Actions",
-  ];
+    (showActions) && "Actions",
+  ].filter(Boolean) as string[];
 
   const handleNewExpense = (id: number | null) => {
     if (id === null) {
@@ -177,7 +182,8 @@ const Expenses: React.FC = () => {
   };
 
   const data = success
-    ? apiData?.data?.data?.map((expense: any) => [
+    ? apiData?.data?.data?.map((expense: any) => {
+        const row = [
         expense?.id,
         format(expense.createdAt, "yyyy-MM-dd"),
         ADToBS(expense.createdAt),
@@ -191,33 +197,45 @@ const Expenses: React.FC = () => {
         </span>,
         expense?.cash_or_credit,
         expense?.account?.name,
-        <TableRowActions>
-          <button
-            type="button"
-            onClick={() => handleNewExpense(expense?.id)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-            title="Edit expense"
-          >
-            <MdEditSquare size={16} />
-          </button>
-          <DeleteModal
-            compact
-            open={open}
-            setOpen={setOpen}
+        ];
+
+        if (showActions) {
+          row.push(
+            <TableRowActions>
+              {accessList.includes("edit") && (
+                <button
+                  type="button"
+                  onClick={() => handleNewExpense(expense?.id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                  title="Edit expense"
+                >
+                  <MdEditSquare size={16} />
+                </button>
+              )}
+              {accessList.includes("delete") && (
+                <DeleteModal
+                  compact
+                  open={open}
+                  setOpen={setOpen}
                   itemId={expense?.id}
                   activeId={deleteId}
-            handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
-            handleConfirmDelete={handleDelete}
-          />
-        </TableRowActions>,
-      ])
+                  handleDeleteTrigger={() => handleDeleteTrigger(expense?.id)}
+                  handleConfirmDelete={handleDelete}
+                />
+              )}
+            </TableRowActions>,
+          );
+        }
+
+        return row;
+      })
     : [];
 
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Expense"
         handleNewButton={() => handleNewExpense(null)}
         handleReloadButton={() => refetch()}
@@ -236,6 +254,7 @@ const Expenses: React.FC = () => {
 
       <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
+      {accessList.includes("view") ? (
       <Table
         headers={headers}
         data={data}
@@ -244,6 +263,11 @@ const Expenses: React.FC = () => {
           handlePagination({ ...p, total: apiData?.data?.total ?? 0 })
         }
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view expenses.
+        </div>
+      )}
     </div>
   );
 };

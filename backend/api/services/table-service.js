@@ -3,6 +3,47 @@ const { Op } = require("sequelize");
 const paginate = require("../../utils/paginate");
 const generateUUID = require("../../utils/uuidGenerator");
 
+const ACTIVE_ORDER_STATUSES = ["completed", "cancelled"];
+
+const reconcileOccupiedTablesWithoutOrders = async (tables = []) => {
+  const occupiedTables = tables.filter((table) => table.status === "occupied");
+  if (occupiedTables.length === 0) return tables;
+
+  const occupiedIds = occupiedTables.map((table) => table.id);
+  const activeOrders = await orderModel.findAll({
+    where: {
+      tableId: { [Op.in]: occupiedIds },
+      status: { [Op.notIn]: ACTIVE_ORDER_STATUSES },
+    },
+    attributes: ["tableId"],
+    raw: true,
+  });
+
+  const tablesWithActiveOrders = new Set(
+    activeOrders.map((order) => order.tableId),
+  );
+  const staleTableIds = occupiedIds.filter(
+    (id) => !tablesWithActiveOrders.has(id),
+  );
+
+  if (staleTableIds.length === 0) return tables;
+
+  await tableModel.update(
+    { status: "available", sessionId: null, sessionStartTime: null },
+    { where: { id: { [Op.in]: staleTableIds } } },
+  );
+
+  tables.forEach((table) => {
+    if (staleTableIds.includes(table.id)) {
+      table.status = "available";
+      table.sessionId = null;
+      table.sessionStartTime = null;
+    }
+  });
+
+  return tables;
+};
+
 const create = async (req) => {
   try {
     const isNameUsed = await tableModel.findOne({
@@ -61,6 +102,10 @@ const list = async (req) => {
       filters,
       include,
     });
+
+    if (result?.data?.length) {
+      await reconcileOccupiedTablesWithoutOrders(result.data);
+    }
 
     if (!result) {
       return {

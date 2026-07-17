@@ -118,6 +118,106 @@ const getAccountNetChange = (
   return overAllRevenue - (overAllPurchase + overAllExpense);
 };
 
+const COUNTER_CASH_ACCOUNT_ID = 1;
+
+const resolveCounterCashAccountId = async () => {
+  const defaultCashAccount = await accountModel.findOne({
+    where: { accountType: "cash", isDefault: true, status: "active" },
+    attributes: ["id"],
+    raw: true,
+  });
+
+  return defaultCashAccount?.id || COUNTER_CASH_ACCOUNT_ID;
+};
+
+const sumCounterCashRevenue = async (accountId, range) => {
+  const amount = await revenueModel.sum("amount", {
+    where: {
+      accountId,
+      createdAt: range,
+    },
+  });
+
+  return Number(amount || 0);
+};
+
+const sumCounterCashExpenses = async (accountId, range) => {
+  const amount = await expenseModel.sum("amount", {
+    where: {
+      accountId,
+      createdAt: range,
+    },
+  });
+
+  return Number(amount || 0);
+};
+
+const sumCounterCashPurchases = async (accountId, range) => {
+  const [cashPurchases, creditPayments] = await Promise.all([
+    purchaseModel.sum("totalAmount", {
+      where: {
+        accountId,
+        status: "completed",
+        paymentTerms: { [Op.ne]: "credit" },
+        invoiceDate: range,
+      },
+    }),
+    purchaseModel.sum("totalAmount", {
+      where: {
+        accountId,
+        status: "completed",
+        paymentTerms: "credit",
+        paymentDate: range,
+      },
+    }),
+  ]);
+
+  return Number(cashPurchases || 0) + Number(creditPayments || 0);
+};
+
+module.exports.getCounterCashSummary = async (req) => {
+  try {
+    const { start, end } = getDateRange(req);
+    const accountId = await resolveCounterCashAccountId();
+    const periodRange = { [Op.between]: [start, end] };
+
+    const [cashRevenue, cashPurchases, cashExpenses, account] =
+      await Promise.all([
+        sumCounterCashRevenue(accountId, periodRange),
+        sumCounterCashPurchases(accountId, periodRange),
+        sumCounterCashExpenses(accountId, periodRange),
+        accountModel.findByPk(accountId, {
+          attributes: ["id", "name", "accountType"],
+          raw: true,
+        }),
+      ]);
+
+    const cashOutflow = cashPurchases + cashExpenses;
+
+    return {
+      status: 200,
+      success: true,
+      message: "Counter cash summary retrieved successfully",
+      data: {
+        accountId,
+        accountName: account?.name || "Counter Cash",
+        cashRevenue,
+        cashPurchases,
+        cashExpenses,
+        cashOutflow,
+      },
+    };
+  } catch (error) {
+    console.error("Counter cash summary error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve counter cash summary",
+      error: error.message,
+    };
+  }
+};
+
 module.exports.getDailySummary = async (req) => {
   try {
     const accountsRevenue = await getAccountsRevenue();

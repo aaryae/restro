@@ -23,8 +23,10 @@ import {
   useDeleteSupplierByIdMutation,
   useGetListAllSupplierQuery,
 } from "@/redux/services/supplier";
+import { checkAccess } from "@/utils/accessHelper";
 
 export default function Supplier() {
+  const accessList = checkAccess("Supplier");
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -164,8 +166,11 @@ export default function Supplier() {
     "PAN/VAT",
     "Contact Person",
     "Contact Number",
-    "Actions",
-  ];
+    (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
+  ].filter(Boolean) as string[];
+
+  const showActions =
+    accessList.includes("edit") || accessList.includes("delete");
 
   const tableData =
     success && allSupplier?.data?.data
@@ -177,32 +182,45 @@ export default function Supplier() {
             pan_vat_number,
             contact_person,
             contact_number,
-          }: any) => [
-            <span className="text-sm font-semibold text-slate-800">{name}</span>,
-            address,
-            pan_vat_number,
-            contact_person,
-            contact_number,
-            <TableRowActions>
-              <button
-                type="button"
-                onClick={() => handleNewButton(id)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-                title="Edit supplier"
-              >
-                <MdEditSquare size={16} />
-              </button>
-              <DeleteModal
-                compact
-                open={deleteModelOpen}
-                setOpen={setDeleteModelOpen}
-                  itemId={id}
-                  activeId={deleteId}
-                handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                handleConfirmDelete={handleDelete}
-              />
-            </TableRowActions>,
-          ],
+          }: any) => {
+            const row = [
+              <span className="text-sm font-semibold text-slate-800">{name}</span>,
+              address,
+              pan_vat_number,
+              contact_person,
+              contact_number,
+            ];
+
+            if (showActions) {
+              row.push(
+                <TableRowActions>
+                  {accessList.includes("edit") && (
+                    <button
+                      type="button"
+                      onClick={() => handleNewButton(id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                      title="Edit supplier"
+                    >
+                      <MdEditSquare size={16} />
+                    </button>
+                  )}
+                  {accessList.includes("delete") && (
+                    <DeleteModal
+                      compact
+                      open={deleteModelOpen}
+                      setOpen={setDeleteModelOpen}
+                      itemId={id}
+                      activeId={deleteId}
+                      handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                      handleConfirmDelete={handleDelete}
+                    />
+                  )}
+                </TableRowActions>,
+              );
+            }
+
+            return row;
+          },
         )
       : [];
 
@@ -216,13 +234,14 @@ export default function Supplier() {
         searchPlaceholder="Search suppliers..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Supplier"
         handleNewButton={() => handleNewButton(null)}
         handleReloadButton={() => refetch()}
         subText="Manage vendor details for purchase entries."
       />
       <PageFilterWrapper title="Supplier Filters">{Component}</PageFilterWrapper>
+      {accessList.includes("view") ? (
       <Table
         headers={tableHeaders}
         data={tableData}
@@ -230,6 +249,11 @@ export default function Supplier() {
         pagination={pagination}
         handlePagination={handlePagination}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view suppliers.
+        </div>
+      )}
     </div>
   );
 }

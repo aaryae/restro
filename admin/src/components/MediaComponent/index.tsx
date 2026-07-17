@@ -482,8 +482,8 @@ export default function MediaComponent({
         }}
       >
         <DialogContent
-          className="z-[60] max-w-md"
-          overlayClassName="z-[60]"
+          className="z-[110] max-w-md"
+          overlayClassName="z-[100]"
         >
           <DialogHeader>
             <DialogTitle>Create Folder</DialogTitle>

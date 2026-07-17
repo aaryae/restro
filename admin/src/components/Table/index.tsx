@@ -93,7 +93,11 @@ const Table: React.FC<TableProps> = ({
                             : "text-center"
                         }`}
                       >
-                        {React.isValidElement(cell) ? cell : `${cell}`}
+                        {cell == null || cell === false
+                          ? null
+                          : React.isValidElement(cell)
+                            ? cell
+                            : `${cell}`}
                       </td>
                     ))}
                   </tr>

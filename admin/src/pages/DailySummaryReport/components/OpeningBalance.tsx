@@ -1,33 +1,49 @@
-import { useEffect, useState } from "react";
-import { appToast } from "@/components/Toast";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDownLeft, ArrowUpRight, Banknote, Check } from "lucide-react";
 import Input from "@/components/Input";
+import { appToast } from "@/components/Toast";
 import { CurrencySign } from "@/constants";
+import { useGetApiQuery } from "@/redux/services/crudApi";
+import { ReportSection } from "./ReportUI";
 
-const STORAGE_KEY = "openingBalance";
-
-interface Revenue {
-  accountId: number;
-  accountName: string;
-  accountType: string;
-  totalRevenue: number;
-  transactionCount: number;
-}
+const STORAGE_PREFIX = "counterCashOpening";
 
 interface OpeningBalanceProps {
-  revenues?: Revenue[];
+  dateParams?: string;
+}
+
+function getDateKey(dateParams: string) {
+  const match = dateParams.match(/(?:^|&)start=([^&]+)/);
+  return match?.[1] || new Date().toISOString().slice(0, 10);
+}
+
+function storageKeyForDate(dateKey: string) {
+  return `${STORAGE_PREFIX}:${dateKey}`;
+}
+
+function formatAmount(amount: number) {
+  return `${CurrencySign}${amount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
-  revenues = [],
+  dateParams = "",
 }) => {
+  const dateKey = useMemo(() => getDateKey(dateParams), [dateParams]);
   const [value, setValue] = useState("");
   const [savedValue, setSavedValue] = useState("");
 
+  const { data, isFetching } = useGetApiQuery({
+    url: `report/counter-cash${dateParams ? `?${dateParams}` : ""}`,
+  });
+
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) ?? "";
+    const saved = localStorage.getItem(storageKeyForDate(dateKey)) ?? "";
     setValue(saved);
     setSavedValue(saved);
-  }, []);
+  }, [dateKey]);
 
   const hasChanges = value.trim() !== savedValue.trim();
 
@@ -35,61 +51,151 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
     if (!hasChanges) return;
 
     const next = value.trim();
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(storageKeyForDate(dateKey), next);
     setValue(next);
     setSavedValue(next);
-
-    appToast.success("Opening balance updated successfully");
+    appToast.success("Opening balance updated");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleUpdate();
   };
 
-  const openingValue = parseFloat(value) || 0;
-  const counterCashRevenue =
-    revenues.find((r: Revenue) => r.accountId === 1)?.totalRevenue || 0;
-  const totalCounterCash = Number(openingValue) + Number(counterCashRevenue);
+  const openingBalance = parseFloat(value) || 0;
+  const cashRevenue = Number(data?.data?.cashRevenue || 0);
+  const cashPurchases = Number(data?.data?.cashPurchases || 0);
+  const cashExpenses = Number(data?.data?.cashExpenses || 0);
+  const totalCounterCash =
+    openingBalance + cashRevenue - cashPurchases - cashExpenses;
+
+  const rows = [
+    {
+      key: "in",
+      label: "Cash in",
+      hint: "Sales paid to Counter Cash",
+      amount: cashRevenue,
+      tone: "in" as const,
+      Icon: ArrowDownLeft,
+    },
+    {
+      key: "purchase",
+      label: "Purchases",
+      hint: "Paid from Counter Cash",
+      amount: cashPurchases,
+      tone: "out" as const,
+      Icon: ArrowUpRight,
+    },
+    {
+      key: "expense",
+      label: "Expenses",
+      hint: "Paid from Counter Cash",
+      amount: cashExpenses,
+      tone: "out" as const,
+      Icon: ArrowUpRight,
+    },
+  ];
 
   return (
-    <div>
-      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-slate-500">
-        Counter cash
-      </h2>
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <label className="w-full text-[12px] font-medium text-slate-500 sm:w-auto sm:shrink-0">
-            Opening balance
-          </label>
-          <div className="min-w-[140px] flex-1 sm:max-w-[220px]">
-            <Input
-              type="text"
-              placeholder="0.00"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+    <ReportSection title="Counter cash" total={totalCounterCash} totalTone="green">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm ring-1 ring-slate-200/80">
+              <Banknote size={16} strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-[13px] font-medium text-slate-800">
+                Opening balance
+              </p>
+              <p className="text-[12px] text-slate-500">
+                Starting cash in the drawer for this day
+              </p>
+            </div>
           </div>
-          <button
-            className="h-10 shrink-0 rounded-lg bg-primaryColor px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            type="button"
-            onClick={handleUpdate}
-            disabled={!hasChanges}
-          >
-            Update
-          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="w-full sm:w-[180px]">
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                leftSection={
+                  <span className="text-[13px] font-medium text-slate-400">
+                    {CurrencySign}
+                  </span>
+                }
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleUpdate}
+              disabled={!hasChanges}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Check size={15} strokeWidth={2.25} />
+              Save
+            </button>
+          </div>
         </div>
 
-        <div className="shrink-0 sm:text-right">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-            Total counter cash
-          </p>
-          <p className="text-lg font-bold tabular-nums text-emerald-600">
-            {CurrencySign}
-            {totalCounterCash.toLocaleString()}
+        <div className="divide-y divide-slate-100">
+          {rows.map(({ key, label, hint, amount, tone, Icon }) => {
+            const isOut = tone === "out";
+            const display = isFetching
+              ? "…"
+              : `${isOut ? "−" : "+"} ${formatAmount(amount)}`;
+
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
+                      isOut
+                        ? "bg-rose-50 text-rose-600"
+                        : "bg-emerald-50 text-emerald-600"
+                    }`}
+                  >
+                    <Icon size={14} strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-slate-700">
+                      {label}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-400">{hint}</p>
+                  </div>
+                </div>
+                <p
+                  className={`shrink-0 text-[13px] font-semibold tabular-nums ${
+                    isOut ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                >
+                  {display}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-emerald-50/40 px-4 py-3.5">
+          <div>
+            <p className="text-[13px] font-semibold text-slate-800">
+              Total counter cash
+            </p>
+            <p className="text-[11px] text-slate-500">
+              Opening + cash in − purchases − expenses
+            </p>
+          </div>
+          <p className="text-xl font-bold tabular-nums text-emerald-700">
+            {formatAmount(totalCounterCash)}
           </p>
         </div>
       </div>
-    </div>
+    </ReportSection>
   );
 };

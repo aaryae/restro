@@ -170,13 +170,11 @@ export default function Roles() {
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {allRoles.data.data.map(({ id, title, updatedAt, isActive }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => handleEditRole(id)}
-                  className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:shadow"
-                >
+              {allRoles.data.data.map(({ id, title, updatedAt, isActive }) => {
+                const cardClassName =
+                  "rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition";
+                const cardContent = (
+                  <>
                   <h2 className="text-sm font-semibold text-primaryColor">
                     {title}
                   </h2>
@@ -192,8 +190,24 @@ export default function Roles() {
                   >
                     {isActive ? "Active" : "Inactive"}
                   </span>
+                  </>
+                );
+
+                return accessList.includes("edit") ? (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleEditRole(id)}
+                  className={`${cardClassName} hover:border-slate-300 hover:shadow`}
+                >
+                  {cardContent}
                 </button>
-              ))}
+                ) : (
+                <div key={id} className={cardClassName}>
+                  {cardContent}
+                </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -203,7 +217,12 @@ export default function Roles() {
         </div>
       )}
 
-      <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-[100%] md:w-[50%]">
+      <Drawer
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        width="w-full md:w-[50%] xl:w-[44rem]"
+        contentClassName="p-0"
+      >
         {drawerType === "add" ? (
           <AddRoleForm isOpen={isOpen} setIsOpen={setIsOpen} />
         ) : (

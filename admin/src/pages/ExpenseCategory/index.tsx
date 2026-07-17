@@ -13,10 +13,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EXPENSE_CATEGORY_URL } from "@/constants/apiUrlConstants";
+import { checkAccess } from "@/utils/accessHelper";
 
 const ExpenseCategory: React.FC = () => {
   const translate = useTranslation();
   const navigate = useNavigate();
+  const accessList = checkAccess("Expense Category");
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,7 +67,11 @@ const ExpenseCategory: React.FC = () => {
     totalPages: apiData?.data?.totalPages,
   };
 
-  const headers = ["Title", "Description", "Actions"];
+  const headers = [
+    "Title",
+    "Description",
+    (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
+  ].filter(Boolean) as string[];
 
   const handleNewExpenseCategory = (id: number | null) => {
     if (id === null) {
@@ -75,29 +81,45 @@ const ExpenseCategory: React.FC = () => {
     }
   };
 
-  const data = rows.map((row: any) => [
-    <span className="text-sm font-semibold text-slate-800">{row.name}</span>,
-    <span className="text-slate-600">{row.description || "—"}</span>,
-    <TableRowActions>
-      <button
-        type="button"
-        onClick={() => handleNewExpenseCategory(row.id)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-        title="Edit expense category"
-      >
-        <MdEditSquare size={16} />
-      </button>
-      <DeleteModal
-        compact
-        open={deleteModelOpen}
-        setOpen={setDeleteModelOpen}
-                  itemId={row.id}
-                  activeId={deleteId}
-        handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
-        handleConfirmDelete={handleDelete}
-      />
-    </TableRowActions>,
-  ]);
+  const showActions =
+    accessList.includes("edit") || accessList.includes("delete");
+
+  const data = rows.map((row: any) => {
+    const cells = [
+      <span className="text-sm font-semibold text-slate-800">{row.name}</span>,
+      <span className="text-slate-600">{row.description || "—"}</span>,
+    ];
+
+    if (showActions) {
+      cells.push(
+        <TableRowActions>
+          {accessList.includes("edit") && (
+            <button
+              type="button"
+              onClick={() => handleNewExpenseCategory(row.id)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+              title="Edit expense category"
+            >
+              <MdEditSquare size={16} />
+            </button>
+          )}
+          {accessList.includes("delete") && (
+            <DeleteModal
+              compact
+              open={deleteModelOpen}
+              setOpen={setDeleteModelOpen}
+              itemId={row.id}
+              activeId={deleteId}
+              handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
+              handleConfirmDelete={handleDelete}
+            />
+          )}
+        </TableRowActions>,
+      );
+    }
+
+    return cells;
+  });
 
   return (
     <div className="min-w-0 max-w-full">
@@ -105,18 +127,24 @@ const ExpenseCategory: React.FC = () => {
         searchPlaceholder="Search expense categories..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add Expense Category")}
         handleNewButton={() => handleNewExpenseCategory(null)}
         handleReloadButton={() => refetch()}
         subText="Organize expense entries into categories."
       />
+      {accessList.includes("view") ? (
       <Table
         data={data}
         headers={headers}
         handlePagination={handlePagination}
         pagination={pagination}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view expense categories.
+        </div>
+      )}
     </div>
   );
 };

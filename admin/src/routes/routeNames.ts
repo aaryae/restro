@@ -11,6 +11,7 @@ export const MEDIA_LIST_ROUTE = "/admin/media/";
 export const SEO_LIST_ROUTE = "/admin/seo/list";
 
 export const SETTINGS_ROUTE = "/admin/settings/list";
+export const LEDGER_LIST_ROUTE = "/admin/ledger/list";
 
 export const QNA_ROUTE = "/admin/faq";
 

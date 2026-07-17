@@ -13,10 +13,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
+import { checkAccess } from "@/utils/accessHelper";
 
 const PurchaseCategory: React.FC = () => {
   const translate = useTranslation();
   const navigate = useNavigate();
+  const accessList = checkAccess("Purchase Category");
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,7 +70,11 @@ const PurchaseCategory: React.FC = () => {
     totalPages: apiData?.data?.totalPages,
   };
 
-  const headers = ["Title", "Description", "Actions"];
+  const headers = [
+    "Title",
+    "Description",
+    (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
+  ].filter(Boolean) as string[];
 
   const handleNewUser = (id: number | null) => {
     id === null
@@ -76,29 +82,45 @@ const PurchaseCategory: React.FC = () => {
       : navigate(`${PURCHASE_CATEGORY_ADD_ROUTE}${id}`);
   };
 
-  const data = rows.map((r: any) => [
-    <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
-    <span className="text-slate-600">{r.description || "—"}</span>,
-    <TableRowActions>
-      <button
-        type="button"
-        onClick={() => handleNewUser(r.id)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-        title="Edit purchase category"
-      >
-        <MdEditSquare size={16} />
-      </button>
-      <DeleteModal
-        compact
-        open={deleteModelOpen}
-        setOpen={setDeleteModelOpen}
-                  itemId={r.id}
-                  activeId={deleteId}
-        handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
-        handleConfirmDelete={handleDelete}
-      />
-    </TableRowActions>,
-  ]);
+  const showActions =
+    accessList.includes("edit") || accessList.includes("delete");
+
+  const data = rows.map((r: any) => {
+    const cells = [
+      <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
+      <span className="text-slate-600">{r.description || "—"}</span>,
+    ];
+
+    if (showActions) {
+      cells.push(
+        <TableRowActions>
+          {accessList.includes("edit") && (
+            <button
+              type="button"
+              onClick={() => handleNewUser(r.id)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+              title="Edit purchase category"
+            >
+              <MdEditSquare size={16} />
+            </button>
+          )}
+          {accessList.includes("delete") && (
+            <DeleteModal
+              compact
+              open={deleteModelOpen}
+              setOpen={setDeleteModelOpen}
+              itemId={r.id}
+              activeId={deleteId}
+              handleDeleteTrigger={() => handleDeleteTrigger(r.id)}
+              handleConfirmDelete={handleDelete}
+            />
+          )}
+        </TableRowActions>,
+      );
+    }
+
+    return cells;
+  });
 
   return (
     <div className="min-w-0 max-w-full">
@@ -106,18 +128,24 @@ const PurchaseCategory: React.FC = () => {
         searchPlaceholder="Search purchase categories..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add Purchase Category")}
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
         subText="Organize purchase entries into categories."
       />
+      {accessList.includes("view") ? (
       <Table
         data={data}
         headers={headers}
         handlePagination={handlePagination}
         pagination={pagination}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view purchase categories.
+        </div>
+      )}
     </div>
   );
 };

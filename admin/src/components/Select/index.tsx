@@ -40,6 +40,7 @@ interface SelectProps {
   onBlur?: React.FocusEventHandler;
   onChange?: (event: { target: { value: string; name?: string } }) => void;
   onValueChange?: (value: string) => void;
+  resolveLabel?: (value: string) => string | undefined;
 }
 
 const Select = forwardRef<HTMLButtonElement, SelectProps>(
@@ -64,6 +65,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
       onBlur,
       onChange,
       onValueChange,
+      resolveLabel,
     },
     ref,
   ) => {
@@ -93,9 +95,9 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
       return list;
     }, [options]);
 
-    const selectedLabel = flatOptions.find(
-      (option) => option.value === stringValue,
-    )?.label;
+    const selectedLabel =
+      (stringValue ? resolveLabel?.(stringValue) : undefined) ??
+      flatOptions.find((option) => option.value === stringValue)?.label;
 
     const commit = (next: string) => {
       if (value === undefined) setUncontrolled(next);

@@ -27,9 +27,12 @@ import TransferModel from "./TransferModel";
 import { AccountFilterSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { checkAccess } from "@/utils/accessHelper";
 
 const Account: React.FC = () => {
   const navigate = useNavigate();
+  const accessList = checkAccess("Account");
+  const transferAccess = checkAccess("Transfer");
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [patchApi] = usePatchApiMutation();
   const [deleteAccount] = useDeleteApiMutation();
@@ -161,11 +164,27 @@ const Account: React.FC = () => {
     totalPages: allAccount?.data?.totalPages,
   };
 
-  const headers = ["Name", "Type", "Balance", "Status", "Primary", "Actions"];
+  const headers = [
+    "Name",
+    "Type",
+    "Balance",
+    "Status",
+    "Primary",
+    (accessList.includes("edit") ||
+      accessList.includes("edit-status") ||
+      accessList.includes("delete")) &&
+      "Actions",
+  ].filter(Boolean) as string[];
+
+  const showActions =
+    accessList.includes("edit") ||
+    accessList.includes("edit-status") ||
+    accessList.includes("delete");
 
   const data =
     success && allAccount?.data?.data
-      ? (allAccount?.data?.data as any[]).map((row: any) => [
+      ? (allAccount?.data?.data as any[]).map((row: any) => {
+          const cells = [
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
             {row?.name || "-"}
             {row?.isDefault ? (
@@ -191,80 +210,101 @@ const Account: React.FC = () => {
           >
             {row?.status || "-"}
           </span>,
-          <button
-            type="button"
-            className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
-              row?.status !== "active"
-                ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
-                : row?.isDefault
-                  ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-            }`}
-            onClick={() =>
-              row?.status === "active" && handleTogglePrimary(row?.id)
-            }
-            title={
-              row?.status !== "active"
-                ? "Activate this account first to mark it as primary"
-                : row?.isDefault
-                  ? "Remove from checkout payment options"
-                  : "Show in checkout payment options"
-            }
-            disabled={row?.status !== "active"}
-          >
-            {row?.isDefault ? "Primary" : "Make Primary"}
-          </button>,
-          <TableRowActions>
+          accessList.includes("edit-default") ? (
             <button
               type="button"
-              onClick={() => handleNewBank(row?.id)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-              title="Edit account"
-            >
-              <MdEditSquare size={16} />
-            </button>
-            <button
-              type="button"
-              className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
-                row?.isDefault
+              className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                row?.status !== "active"
                   ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
-                  : row?.status === "active"
-                    ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : row?.isDefault
+                    ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
-              onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
-              title={
-                row?.isDefault
-                  ? "Primary account cannot be deactivated"
-                  : "Toggle status"
+              onClick={() =>
+                row?.status === "active" && handleTogglePrimary(row?.id)
               }
-              disabled={row?.isDefault}
+              title={
+                row?.status !== "active"
+                  ? "Activate this account first to mark it as primary"
+                  : row?.isDefault
+                    ? "Remove from checkout payment options"
+                    : "Show in checkout payment options"
+              }
+              disabled={row?.status !== "active"}
             >
-              {row?.status === "active" ? "Deactivate" : "Activate"}
+              {row?.isDefault ? "Primary" : "Make Primary"}
             </button>
-            <DeleteModal
-              compact
-              open={deleteModelOpen}
-              setOpen={setDeleteModelOpen}
-                  itemId={row?.id}
-                  activeId={deleteId}
-              handleDeleteTrigger={() => handleDeleteTrigger(row?.id)}
-              handleConfirmDelete={handleDelete}
-            />
-          </TableRowActions>,
-        ])
+          ) : (
+            <span className="text-slate-500">
+              {row?.isDefault ? "Primary" : "—"}
+            </span>
+          ),
+          ];
+
+          if (showActions) {
+            cells.push(
+              <TableRowActions>
+                {accessList.includes("edit") && (
+                  <button
+                    type="button"
+                    onClick={() => handleNewBank(row?.id)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                    title="Edit account"
+                  >
+                    <MdEditSquare size={16} />
+                  </button>
+                )}
+                {accessList.includes("edit-status") && (
+                  <button
+                    type="button"
+                    className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                      row?.isDefault
+                        ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                        : row?.status === "active"
+                          ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    }`}
+                    onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
+                    title={
+                      row?.isDefault
+                        ? "Primary account cannot be deactivated"
+                        : "Toggle status"
+                    }
+                    disabled={row?.isDefault}
+                  >
+                    {row?.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                )}
+                {accessList.includes("delete") && (
+                  <DeleteModal
+                    compact
+                    open={deleteModelOpen}
+                    setOpen={setDeleteModelOpen}
+                    itemId={row?.id}
+                    activeId={deleteId}
+                    handleDeleteTrigger={() => handleDeleteTrigger(row?.id)}
+                    handleConfirmDelete={handleDelete}
+                  />
+                )}
+              </TableRowActions>,
+            );
+          }
+
+          return cells;
+        })
       : [];
 
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Account"
         handleNewButton={() => handleNewBank(null)}
         handleReloadButton={() => refetch()}
         subText="Manage cash drawers, bank accounts, and wallet balances."
         extraActions={
+          transferAccess.includes("add") ? (
           <button
             type="button"
             onClick={() => setTransferOpen(true)}
@@ -273,6 +313,7 @@ const Account: React.FC = () => {
             <BiTransfer size={16} />
             Transfer
           </button>
+          ) : undefined
         }
       />
 
@@ -280,7 +321,7 @@ const Account: React.FC = () => {
 
       {isFetching ? (
         <Spinner className="flex h-full items-center justify-center" />
-      ) : (
+      ) : accessList.includes("view") ? (
         <Table
           isSN
           headers={headers}
@@ -288,6 +329,10 @@ const Account: React.FC = () => {
           pagination={pagination}
           handlePagination={handlePagination}
         />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view accounts.
+        </div>
       )}
 
       <TransferModel

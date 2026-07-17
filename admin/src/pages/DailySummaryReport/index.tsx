@@ -69,7 +69,6 @@ export const DailySummaryReport = () => {
     url: `${EXPENSE_URL}expense-today?${dateParams}`,
   });
 
-  const revenues = revenueData?.data?.revenues || [];
   const totalRevenue = Number(revenueData?.data?.totalRevenue || 0);
   const totalPurchase = Number(purchaseData?.data?.totalPurchase || 0);
   const totalExpense = Number(expenseData?.data?.totalExpense || 0);
@@ -191,7 +190,7 @@ export const DailySummaryReport = () => {
       <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
         <TotalRevenue dateParams={dateParams} periodLabel={periodLabel} />
         <div className="border-t border-slate-100 pt-5">
-          <OpeningBalance revenues={revenues} />
+          <OpeningBalance dateParams={dateParams} />
         </div>
         <div className="grid gap-6 border-t border-slate-100 pt-5 lg:grid-cols-2">
           <TotalPurchase dateParams={dateParams} periodLabel={periodLabel} />

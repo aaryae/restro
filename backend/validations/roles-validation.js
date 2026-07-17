@@ -13,7 +13,7 @@ const {
 const rolesPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
     title: joi.string().required().label("Title"),
-    description: joi.string().optional().label("Description"),
+    description: joi.string().optional().allow(null, "").label("Description"),
     roleType: joi
       .string()
       .optional()
@@ -39,7 +39,7 @@ const rolesPostValidation = async (req, res, next) => {
 const rolesPutValidation = async (req, res, next) => {
   let joiModel = joi.object({
     title: joi.string().optional().label("Title"),
-    description: joi.string().optional().label("Description"),
+    description: joi.string().optional().allow(null, "").label("Description"),
     roleType: joi
       .string()
       .optional()

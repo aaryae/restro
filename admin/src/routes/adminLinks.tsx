@@ -16,6 +16,7 @@ const Roles = lazy(() => import("@/pages/Roles"));
 const Users = lazy(() => import("@/pages/Users"));
 const ApproveRequest = lazy(() => import("@/pages/ApproveRequest"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const Ledger = lazy(() => import("@/pages/Ledger"));
 const EmailTemplate = lazy(() => import("@/pages/EmailTemplate"));
 const AddEditEmailTemplate = lazy(
   () => import("@/pages/EmailTemplate/AddEditEmailTemplate"),
@@ -127,6 +128,10 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
   {
     path: "/settings/list",
     element: <Settings />,
+  },
+  {
+    path: "/ledger/list",
+    element: <Ledger />,
   },
   {
     path: "/recently-deleted",

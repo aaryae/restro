@@ -118,10 +118,22 @@ export default function Users() {
             roles?.title ? roles.title : "—",
             <span className="capitalize text-slate-600">{gender}</span>,
             <div key={id} className="flex justify-center">
+              {accessList.includes("toggle-isActive") ? (
               <ToggleSwitch
                 isActive={isActive}
                 onToggle={(value) => handleToggle(id, value)}
               />
+              ) : (
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                    isActive
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                      : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                  }`}
+                >
+                  {isActive ? "Active" : "Inactive"}
+                </span>
+              )}
             </div>,
             <TableRowActions>
               {accessList.includes("edit") && (
@@ -183,7 +195,7 @@ export default function Users() {
               handlePagination={handlePagination}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
               {allUsers?.data?.data.map(
                 ({
                   id,
@@ -193,10 +205,14 @@ export default function Users() {
                   imageUrl,
                   mobileNo,
                   email,
+                  username,
+                  roles,
+                  isActive,
                 }) => (
                   <Card1
                     key={id}
                     handleNewUser={(id) => handleNewUser(id)}
+                    canEdit={accessList.includes("edit")}
                     imageUrl={imageUrl}
                     id={id}
                     firstName={firstName}
@@ -204,6 +220,9 @@ export default function Users() {
                     gender={gender}
                     email={email}
                     mobileNo={mobileNo}
+                    username={username}
+                    roleTitle={roles?.title}
+                    isActive={isActive}
                   />
                 ),
               )}
@@ -216,7 +235,12 @@ export default function Users() {
         </div>
       )}
 
-      <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-full lg:w-[50%]">
+      <Drawer
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        width="w-full lg:w-[50%] xl:w-[42rem]"
+        contentClassName="p-0"
+      >
         <AddUserForm editId={editId} isOpen={isOpen} setIsOpen={setIsOpen} />
       </Drawer>
     </div>

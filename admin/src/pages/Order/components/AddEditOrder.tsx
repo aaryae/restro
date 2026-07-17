@@ -29,6 +29,7 @@ import {
   useCreateOrderMutation,
   useUpdateOrderMutation,
 } from "@/redux/services/orders";
+import { buildTableSelectOptions } from "@/utils/tableSelectOptions";
 import { buildQueryString } from "@/utils/generalHelper";
 import usePagination from "@/hooks/usePagination";
 import useDebounce from "@/hooks/useDebounce";
@@ -196,15 +197,7 @@ export default function AddEditOrder({
     null,
   );
   const [cartSheetExpanded, setCartSheetExpanded] = useState(false);
-  const [cartDragY, setCartDragY] = useState(0);
-  const [cartDragging, setCartDragging] = useState(false);
   const [menuView, setMenuView] = useState<"card" | "list">("card");
-  const cartSheetRef = useRef<HTMLDivElement>(null);
-  const cartDragStartY = useRef(0);
-  const cartDragOriginExpanded = useRef(false);
-  const cartDraggingRef = useRef(false);
-  const cartDidDragRef = useRef(false);
-  const cartDragYRef = useRef(0);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
@@ -402,15 +395,10 @@ export default function AddEditOrder({
 
   const [patchStatus] = usePatchApiMutation();
 
-  const tableOptions = useMemo(() => {
-    if (!tableData?.data) return [];
-
-    return tableData.data.data
-      ?.filter((table: { status?: string }) => table.status !== "maintenance")
-      .map((table: { id: string | number; tableNo: string }) => ({
-        value: String(table.id),
-        label: `${table.tableNo}`,
-      }));
+  const { options: tableOptions, getTableLabel } = useMemo(() => {
+    return buildTableSelectOptions(tableData?.data?.data ?? [], {
+      groupByFloor: true,
+    });
   }, [tableData]);
 
   const addProductToOrder = (product: {
@@ -663,13 +651,9 @@ export default function AddEditOrder({
           table:
             pendingData.orderType === "dineIn"
               ? {
-                  tableNo: tableOptions.find(
-                    (t: any) =>
-                      t.value ===
-                      String(
-                        (pendingData as any)?.tableId ?? watchedTableId ?? "",
-                      ),
-                  )?.label,
+                  tableNo: getTableLabel(
+                    (pendingData as any)?.tableId ?? watchedTableId ?? "",
+                  ),
                 }
               : null,
           createdBy: null,
@@ -709,47 +693,7 @@ export default function AddEditOrder({
       )
       .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
-  const onCartSheetTouchStart = (e: React.TouchEvent) => {
-    cartDragStartY.current = e.touches[0].clientY;
-    cartDragOriginExpanded.current = cartSheetExpanded;
-    cartDraggingRef.current = true;
-    cartDidDragRef.current = false;
-    cartDragYRef.current = 0;
-    setCartDragging(true);
-    setCartDragY(0);
-  };
-
-  const onCartSheetTouchMove = (e: React.TouchEvent) => {
-    if (!cartDraggingRef.current) return;
-    const dy = e.touches[0].clientY - cartDragStartY.current;
-    if (Math.abs(dy) > 6) cartDidDragRef.current = true;
-    const next = cartDragOriginExpanded.current
-      ? Math.max(0, dy)
-      : Math.min(0, dy);
-    cartDragYRef.current = next;
-    setCartDragY(next);
-  };
-
-  const onCartSheetTouchEnd = () => {
-    if (!cartDraggingRef.current) return;
-    const dy = cartDragYRef.current;
-    const threshold = 48;
-    if (cartDragOriginExpanded.current) {
-      if (dy > threshold) setCartSheetExpanded(false);
-    } else if (dy < -threshold) {
-      setCartSheetExpanded(true);
-    }
-    cartDraggingRef.current = false;
-    cartDragYRef.current = 0;
-    setCartDragging(false);
-    setCartDragY(0);
-  };
-
   const onCartSheetToggleClick = () => {
-    if (cartDidDragRef.current) {
-      cartDidDragRef.current = false;
-      return;
-    }
     setCartSheetExpanded((open) => !open);
   };
 
@@ -847,6 +791,7 @@ export default function AddEditOrder({
                         <Select
                           {...field}
                           options={tableOptions}
+                          resolveLabel={getTableLabel}
                           error={errors.tableId?.message}
                           placeholder="Select table"
                           triggerClassName={styles.mobileSelectTrigger}
@@ -1092,24 +1037,14 @@ export default function AddEditOrder({
           )}
 
           <div
-            ref={cartSheetRef}
             className={`${styles.panel} ${styles.cartPanel} ${
               cartSheetExpanded
                 ? styles.cartPanelExpanded
                 : styles.cartPanelPeek
-            } ${cartDragging ? styles.cartPanelDragging : ""}`}
-            style={
-              cartDragging
-                ? { transform: `translate3d(0, ${cartDragY}px, 0)` }
-                : undefined
-            }
+            }`}
           >
             <div
-              className={styles.cartDragZone}
-              onTouchStart={onCartSheetTouchStart}
-              onTouchMove={onCartSheetTouchMove}
-              onTouchEnd={onCartSheetTouchEnd}
-              onTouchCancel={onCartSheetTouchEnd}
+              className={styles.cartSheetHeader}
               onClick={onCartSheetToggleClick}
               role="button"
               tabIndex={0}
@@ -1338,15 +1273,9 @@ export default function AddEditOrder({
                   {watchedOrderType === "dineIn" && (
                     <span className={styles.modalMetaChip}>
                       Table{" "}
-                      {tableOptions.find(
-                        (t: { value: string; label: string }) =>
-                          t.value ===
-                          String(
-                            (pendingData as any)?.tableId ??
-                              watchedTableId ??
-                              "",
-                          ),
-                      )?.label || "-"}
+                      {getTableLabel(
+                        (pendingData as any)?.tableId ?? watchedTableId ?? "",
+                      )}
                     </span>
                   )}
                   {pendingData?.deliveryAddress && (

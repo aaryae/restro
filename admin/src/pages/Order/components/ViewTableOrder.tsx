@@ -6,32 +6,8 @@ import React, { useEffect } from "react";
 import { LuChefHat } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import styles from "./ViewTableOrder.module.css";
 
-interface Addon {
-  id: number;
-  name: string;
-  price: number | string;
-}
-
-interface OrderItem {
-  id: number;
-  product: {
-    id: number;
-    name: string;
-    price: number | string;
-  };
-  quantity: number;
-  subtotal: number | string;
-  specialInstructions?: string;
-  addons?: Addon[];
-}
-
-interface Order {
-  id: number;
-  status: "pending" | "completed" | "cancelled";
-  orderItems: OrderItem[];
-  totalAmount: number | string;
-}
 interface ViewTableOrderProps {
   id: number | null;
   tableNo?: number | null;
@@ -42,6 +18,61 @@ interface ViewTableOrderProps {
   ) => void;
   onOpenTransfer?: (tableId: number) => void;
   onTableCleared?: () => void;
+  onClose?: () => void;
+}
+
+function paymentStatusClass(status: string) {
+  switch (status) {
+    case "paid":
+      return styles.statusPaid;
+    case "partially_paid":
+      return styles.statusPartial;
+    case "failed":
+      return styles.statusFailed;
+    default:
+      return styles.statusUnpaid;
+  }
+}
+
+function formatPaymentStatusLabel(status: string) {
+  switch (status) {
+    case "pending":
+      return "Unpaid";
+    case "partially_paid":
+      return "Partially paid";
+    case "paid":
+      return "Paid";
+    case "failed":
+      return "Failed";
+    default:
+      return status.replace(/_/g, " ");
+  }
+}
+
+function shouldShowPaymentStatus(
+  orderStatus: string,
+  paymentStatus?: string | null,
+) {
+  if (!paymentStatus) return false;
+  // Default unpaid state is redundant while the order is still in progress.
+  if (paymentStatus === "pending" && orderStatus === "pending") return false;
+  return true;
+}
+
+function orderStatusClass(status: string) {
+  switch (status) {
+    case "completed":
+      return styles.statusCompleted;
+    case "cancelled":
+      return styles.statusCancelled;
+    case "pending":
+      return styles.statusPending;
+    case "prepared":
+    case "ready":
+      return styles.statusPrepared;
+    default:
+      return styles.statusDefault;
+  }
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
@@ -49,6 +80,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   handleCheckout,
   onOpenTransfer,
   onTableCleared,
+  onClose,
 }) => {
   const [updateTable, { isLoading: clearingTable }] = useUpdateApiMutation();
   const {
@@ -73,18 +105,26 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   const allOrderIds = orders.map(({ id: orderId }: { id: number }) => orderId);
   const tableStatus =
     tableOrder?.data?.table?.status ?? table?.data?.status ?? null;
+  const hasOrders = orders.length > 0;
   const isStuckOccupied =
-    success && orders.length === 0 && tableStatus === "occupied";
+    success && !hasOrders && tableStatus === "occupied";
+  const tableLabel = table?.data?.tableNo || id;
 
   useEffect(() => {
-    if (
-      success &&
-      orders.length === 0 &&
-      tableOrder?.data?.table?.status === "available"
-    ) {
-      onTableCleared?.();
+    if (!success || hasOrders) return;
+
+    onTableCleared?.();
+
+    if (tableOrder?.data?.table?.status === "available") {
+      onClose?.();
     }
-  }, [success, orders.length, tableOrder?.data?.table?.status, onTableCleared]);
+  }, [
+    success,
+    hasOrders,
+    tableOrder?.data?.table?.status,
+    onTableCleared,
+    onClose,
+  ]);
 
   const handleMarkAvailable = async () => {
     if (id == null) return;
@@ -100,6 +140,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
         onSuccess: () => {
           refetchOrders();
           onTableCleared?.();
+          onClose?.();
         },
       });
     } catch (error) {
@@ -108,226 +149,203 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   };
 
   return (
-    <>
-      <div className="p-4 ">
-        <div className="flex justify-between items-center mt-[4rem] mb-[1.5rem]">
-          <h2 className="text-[20px] font-bold text-primaryColor ">
-            {table?.data?.tableNo || id}
-          </h2>
-          <div className="flex gap-2">
-            <Link
-              to={`/admin/order/${id}`}
-              className="flex items-center gap-1 px-3 py-1.5 sm:px-5 sm:py-2 rounded-[0.25rem] bg-primaryColor text-white text-sm sm:text-[15px]"
-            >
-              <LuChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="font-medium">Add Order</span>
+    <div className={styles.panel}>
+      <header className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.tableBadge}>
+            <span className={styles.tableBadgeDot} aria-hidden />
+            {tableLabel}
+          </div>
+          <div className={styles.actions}>
+            <Link to={`/admin/order/${id}`} className={styles.addOrderBtn}>
+              <LuChefHat className="h-4 w-4" />
+              <span>Add Order</span>
             </Link>
             <Button
-              className="w-fit bg-[#c343dc] text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base"
+              className={`${styles.transferBtn} w-fit text-white disabled:cursor-not-allowed disabled:opacity-50`}
               handleClick={() => id != null && onOpenTransfer?.(id)}
+              disabled={!hasOrders}
             >
               Transfer Table
             </Button>
           </div>
         </div>
-        <div className="flex flex-col justify-between gap-8">
-          {loading ? (
-            <div className="text-gray-600">Loading...</div>
-          ) : (
-            <div className="flex flex-col gap-2 md:h-[74vh] h-[68vh] overflow-y-auto pr-2 ">
-              {orders?.length === 0 ? (
-                <div className="text-gray-600 text-center space-y-4">
-                  <p>No orders for this table</p>
-                  {isStuckOccupied && (
-                    <div className="space-y-2">
-                      <p className="text-sm text-amber-700">
-                        This table is marked occupied but has no active orders.
-                      </p>
-                      <Button
-                        className="mx-auto bg-green-600 text-white px-4 py-2 hover:bg-green-700"
-                        handleClick={handleMarkAvailable}
-                        disabled={clearingTable}
+      </header>
+
+      <div className={styles.body}>
+        {loading ? (
+          <div className={styles.loading}>Loading orders...</div>
+        ) : (
+          <div className={styles.ordersList}>
+            {orders.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyTitle}>No active orders for this table</p>
+                {isStuckOccupied ? (
+                  <div className={styles.stuckCard}>
+                    <p className={styles.stuckText}>
+                      This table is still marked as occupied but has no orders.
+                      Free it so new customers can be seated here.
+                    </p>
+                    <Button
+                      className="mx-auto bg-green-600 px-5 py-2 text-white hover:bg-green-700"
+                      handleClick={handleMarkAvailable}
+                      disabled={clearingTable}
+                    >
+                      {clearingTable ? "Freeing table..." : "Free Table"}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className={styles.emptyHint}>
+                    The table should now be available for the next customer.
+                  </p>
+                )}
+              </div>
+            ) : (
+              orders.map((order: any) => (
+                <article key={order.id} className={styles.orderCard}>
+                  <div className={styles.orderCardHeader}>
+                    <p className={styles.orderNumber}>Order No: {order.id}</p>
+                    <div className={styles.statusGroup}>
+                      <span
+                        className={`${styles.statusPill} ${orderStatusClass(order.status)}`}
                       >
-                        {clearingTable ? "Clearing..." : "Mark Available"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                orders?.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <StatusTag status={order.status} orderId={order.id} />
-                      {order.paymentStatus && (
+                        {(order.status || "unknown").charAt(0).toUpperCase() +
+                          (order.status || "unknown").slice(1)}
+                      </span>
+                      {shouldShowPaymentStatus(order.status, order.paymentStatus) && (
                         <span
-                          className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${
-                            order.paymentStatus === "paid"
-                              ? "bg-green-100 text-green-800"
-                              : order.paymentStatus === "partially_paid"
-                                ? "bg-blue-100 text-blue-800"
-                                : order.paymentStatus === "failed"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                          }`}
+                          className={`${styles.statusPill} ${paymentStatusClass(order.paymentStatus)}`}
                         >
-                          {String(order.paymentStatus).replace(/_/g, " ")}
+                          {formatPaymentStatusLabel(order.paymentStatus)}
                         </span>
                       )}
                     </div>
+                  </div>
 
-                    {String(order.orderNote || "").trim() && (
-                      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-950">
-                        <span className="font-semibold text-amber-800">
-                          Order notes:{" "}
-                        </span>
-                        {String(order.orderNote).trim()}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      {order.orderItems.map((item: any) => {
-                        const itemName =
-                          item?.product?.name ||
-                          item?.openItem?.name ||
-                          "Unknown item";
-                        const unitPrice = Number(
-                          item?.product?.price ??
-                            item?.openItem?.price ??
-                            item?.price ??
-                            0,
-                        );
-                        return (
-                          <div
-                            key={item.id}
-                            className=" border-b border-gray-200 py-2 gap-6 flex items-center"
-                          >
-                            <div className="flex justify-between w-full">
-                              <div className="leading-[1.5] text-gray-600 ">
-                                <p className="font-medium text-[14px] text-left">
-                                  Item: {itemName}
-                                </p>
-                                <p className="flex text-[13px]">
-                                  Qty: {item.quantity}
-                                </p>
-                                {item.specialInstructions && (
-                                  <p className="text-xs italic">
-                                    Note: {item.specialInstructions}
-                                  </p>
-                                )}
-                                {item.addons && item.addons.length > 0 ? (
-                                  <div className="mt-1">
-                                    <p className="text-xs font-medium text-left">
-                                      Addons ({item.addons.length}):
-                                    </p>
-                                    <ul className="text-xs pl-4 list-disc">
-                                      {item.addons.map(
-                                        (addonItem: any, index: number) => (
-                                          <li key={index} className="text-left">
-                                            {addonItem?.addon?.name ||
-                                              "No name"}
-                                            {addonItem?.addon?.price !==
-                                              undefined &&
-                                              `(+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
-                                            {addonItem?.quantity > 1 &&
-                                              ` (x${addonItem.quantity})`}
-                                          </li>
-                                        ),
-                                      )}
-                                    </ul>
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-gray-400 mt-1 text-left">
-                                    No addons
-                                  </div>
-                                )}
-                              </div>
-                              <div className="leading-[1.5] text-gray-600 text-right flex flex-col justify-between">
-                                <p className="text-[14px]">
-                                  Rs. {unitPrice.toFixed(2)} each
-                                </p>
-                                {item.addons && item.addons.length > 0 && (
-                                  <p className="text-xs text-gray-500">
-                                    <span className="text-xs text-gray-600">
-                                      + {CurrencySign}
-                                      {item.addons
-                                        .reduce(
-                                          (sum: number, addonItem: any) =>
-                                            sum +
-                                            Number(
-                                              addonItem?.addon?.price || 0,
-                                            ) *
-                                              Number(addonItem?.quantity || 1),
-                                          0,
-                                        )
-                                        .toFixed(2)}{" "}
-                                      addons
-                                    </span>
-                                  </p>
-                                )}
-
-                                <p className="text-[13px] font-medium">
-                                  Subtotal: Rs.
-                                  {Number(item.itemTotal ?? item.subtotal ?? 0).toFixed(
-                                    2,
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {String(order.orderNote || "").trim() && (
+                    <div className={styles.orderNote}>
+                      <span className={styles.orderNoteLabel}>Order notes: </span>
+                      {String(order.orderNote).trim()}
                     </div>
-                    <div className="flex justify-between items-center mt-4">
-                      <div className="flex gap-2">
-                        {order.status !== "completed" && (
-                          <>
-                            <button
-                              onClick={() => handleCheckout(id!, order.id)}
-                              className="flex items-center gap-[6px] px-[10px] py-[4px] md:px-[20px] md:py-[8px] rounded-[0.25rem] bg-green-600 text-white hover:bg-green-700 "
-                            >
-                              <span className="font-[500] text-[13px] md:text-[15px]">
-                                Checkout
-                              </span>
-                            </button>
-                            {order.status !== "prepared" &&
-                              order.status !== "completed" && (
+                  )}
+
+                  <div className={styles.itemsList}>
+                    {order.orderItems.map((item: any) => {
+                      const itemName =
+                        item?.product?.name ||
+                        item?.openItem?.name ||
+                        "Unknown item";
+                      const unitPrice = Number(
+                        item?.product?.price ??
+                          item?.openItem?.price ??
+                          item?.price ??
+                          0,
+                      );
+                      return (
+                        <div key={item.id} className={styles.itemRow}>
+                          <div className={styles.itemMain}>
+                            <p className={styles.itemName}>{itemName}</p>
+                            <p className={styles.itemMeta}>Qty: {item.quantity}</p>
+                            {item.specialInstructions && (
+                              <p className={styles.itemNote}>
+                                Note: {item.specialInstructions}
+                              </p>
+                            )}
+                            {item.addons && item.addons.length > 0 ? (
+                              <div className={styles.addons}>
+                                <p>Addons ({item.addons.length}):</p>
+                                <ul>
+                                  {item.addons.map(
+                                    (addonItem: any, index: number) => (
+                                      <li key={index}>
+                                        {addonItem?.addon?.name || "No name"}
+                                        {addonItem?.addon?.price !== undefined &&
+                                          `(+Rs.${Number(addonItem.addon.price).toFixed(2)})`}
+                                        {addonItem?.quantity > 1 &&
+                                          ` (x${addonItem.quantity})`}
+                                      </li>
+                                    ),
+                                  )}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className={styles.itemPricing}>
+                            <p className={styles.unitPrice}>
+                              Rs. {unitPrice.toFixed(2)} each
+                            </p>
+                            {item.addons && item.addons.length > 0 && (
+                              <p className={styles.unitPrice}>
+                                + {CurrencySign}
+                                {item.addons
+                                  .reduce(
+                                    (sum: number, addonItem: any) =>
+                                      sum +
+                                      Number(addonItem?.addon?.price || 0) *
+                                        Number(addonItem?.quantity || 1),
+                                    0,
+                                  )
+                                  .toFixed(2)}{" "}
+                                addons
+                              </p>
+                            )}
+                            <p className={styles.subtotal}>
+                              Rs.{" "}
+                              {Number(
+                                item.itemTotal ?? item.subtotal ?? 0,
+                              ).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className={styles.orderFooter}>
+                    <div className={styles.orderActions}>
+                      {order.status !== "completed" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleCheckout(id!, order.id)}
+                            className={styles.checkoutBtn}
+                          >
+                            Checkout
+                          </button>
+                          {order.status !== "prepared" &&
+                            order.status !== "completed" && (
                               <Link
                                 to={`/admin/order/${id}/${order.id}`}
-                                className="flex items-center gap-[6px] px-[10px] py-[4px] md:px-[20px] md:py-[8px] rounded-[0.25rem] bg-blue-600 text-white hover:bg-blue-700"
+                                className={styles.updateBtn}
                               >
-                                <span className="font-[500] text-[13px] md:text-[15px]">
-                                  Update
-                                </span>
+                                Update
                               </Link>
                             )}
-                          </>
-                        )}
-                      </div>
-                      <p className="text-lg font-semibold text-gray-800">
-                        Total: Rs. {Number(order.calculatedTotal).toFixed(2)}
-                      </p>
+                        </>
+                      )}
                     </div>
+                    <p className={styles.orderTotal}>
+                      Total: Rs. {Number(order.calculatedTotal).toFixed(2)}
+                    </p>
                   </div>
-                ))
-              )}
-            </div>
-          )}
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-              <Button
-                className="px-4 py-2 bg-primaryColor text-white hover:bg-primaryColor/80 text-[15px]"
-                handleClick={() => handleCheckout(id!, allOrderIds)}
-              >
-                Checkout ALL
-              </Button>
-            </div>
+                </article>
+              ))
+            )}
           </div>
-        </div>
+        )}
+
+        {hasOrders && (
+          <div className={styles.footerBar}>
+            <Button
+              className={`${styles.checkoutAllBtn} bg-primaryColor text-white hover:bg-primaryColor/80`}
+              handleClick={() => handleCheckout(id!, allOrderIds)}
+            >
+              Checkout ALL
+            </Button>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
@@ -341,21 +359,10 @@ export function StatusTag({
   orderId: number;
 }) {
   return (
-    <div className="flex justify-between py-2">
-      <p className="text-[14px] font-semibold">Order No: {orderId}</p>
+    <div className={styles.orderCardHeader}>
+      <p className={styles.orderNumber}>Order No: {orderId}</p>
       <span
-        className={`px-4 py-2 text-xs font-semibold rounded-full 
-            ${
-              status === "completed"
-                ? "bg-green-100 text-green-800"
-                : status === "cancelled"
-                  ? "bg-red-100 text-red-800"
-                  : status === "pending"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : status === "prepared" || status === "ready"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-gray-100 text-gray-800"
-            }`}
+        className={`${styles.statusPill} ${orderStatusClass(status)}`}
       >
         {(status || "unknown").charAt(0).toUpperCase() +
           (status || "unknown").slice(1)}

@@ -6,7 +6,7 @@ import { useLoginMutation } from "./redux/services/authentication";
 import { handleError, handleResponse } from "./utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { deleteToken, getToken, setToken } from "./utils/tokenHandler";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Toast from "./components/Toast";
 import { useDispatch } from "react-redux";
 import { setAuthData } from "./redux/feature/authSlice";
@@ -30,6 +30,7 @@ interface FormValues {
   username: string;
   password: string;
   captchaToken?: string;
+  rememberMe?: boolean;
 }
 
 interface DecodedToken {
@@ -49,6 +50,20 @@ interface AuthSlide {
 
 const SLIDE_INTERVAL_MS = 5500;
 const SLIDE_COUNT = 3;
+const REMEMBER_USERNAME_KEY = "auth_remember_username";
+const REMEMBER_ME_KEY = "auth_remember_me";
+
+function shadeHexColor(hex: string, amount: number): string {
+  const normalized = hex.replace("#", "");
+  if (!/^[0-9A-F]{6}$/i.test(normalized)) return hex;
+
+  const num = parseInt(normalized, 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00ff) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0x0000ff) + amount));
+
+  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+}
 
 function buildSlides(brandName: string): AuthSlide[] {
   return [
@@ -102,13 +117,19 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideAnimKey, setSlideAnimKey] = useState(0);
+  const [logoFailed, setLogoFailed] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const brandName = settings?.data?.brand_name || PROJECT_NAME;
+  const brandColor =
+    settings?.data?.primaryColor && /^#[0-9A-F]{6}$/i.test(settings.data.primaryColor)
+      ? settings.data.primaryColor
+      : localStorage.getItem("brandColor") || "#032768";
   const slides = buildSlides(brandName);
-  const logoSrc = settings?.data?.brandingImage
-    ? buildAssetUrl(settings.data.brandingImage)
-    : Logo;
+  const logoSrc =
+    !logoFailed && settings?.data?.brandingImage
+      ? buildAssetUrl(settings.data.brandingImage)
+      : Logo;
 
   const goToSlide = useCallback((index: number) => {
     setSlideIndex(index % SLIDE_COUNT);
@@ -164,6 +185,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.style.setProperty("--primary-color", brandColor);
+    localStorage.setItem("brandColor", brandColor);
+  }, [brandColor]);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [settings?.data?.brandingImage]);
+
+  useEffect(() => {
     const href = settings?.data?.fav_icon
       ? buildAssetUrl(settings.data.fav_icon)
       : "/fav.webp";
@@ -181,16 +211,34 @@ export default function App() {
     }
   }, [settings]);
 
+  const rememberedUsername = localStorage.getItem(REMEMBER_USERNAME_KEY) || "";
+  const rememberedFlag = localStorage.getItem(REMEMBER_ME_KEY) === "true";
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>();
+  } = useForm<FormValues>({
+    defaultValues: {
+      username: rememberedUsername,
+      rememberMe: rememberedFlag,
+    },
+  });
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     try {
       const trimmedData = trimFormData(data);
-      const response = await login(trimmedData).unwrap();
+      const { rememberMe, ...credentials } = trimmedData;
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_USERNAME_KEY, credentials.username);
+        localStorage.setItem(REMEMBER_ME_KEY, "true");
+      } else {
+        localStorage.removeItem(REMEMBER_USERNAME_KEY);
+        localStorage.setItem(REMEMBER_ME_KEY, "false");
+      }
+
+      const response = await login(credentials).unwrap();
       setToken("token", response.data.token);
       dispatch(setAuthData(response.data));
       handleResponse({
@@ -204,9 +252,15 @@ export default function App() {
 
   const activeSlide = slides[slideIndex];
   const SlideIcon = activeSlide.icon;
+  const authThemeStyle = {
+    "--auth-primary": brandColor,
+    "--auth-primary-hover": shadeHexColor(brandColor, -24),
+    "--auth-primary-soft": `${brandColor}22`,
+    "--auth-primary-glow": `${brandColor}66`,
+  } as CSSProperties;
 
   return (
-    <main className="auth-page">
+    <main className="auth-page" style={authThemeStyle}>
       <section
         className="auth-brand-panel"
         aria-label="Cafe admin portal"
@@ -291,7 +345,11 @@ export default function App() {
         <div className="auth-card">
           <form className="auth-card__form" onSubmit={handleSubmit(onSubmit)} noValidate>
             <div className="auth-card__logo auth-anim-card" style={{ animationDelay: "0.1s" }}>
-              <img src={logoSrc} alt={`${brandName} logo`} />
+              <img
+                src={logoSrc}
+                alt={`${brandName} logo`}
+                onError={() => setLogoFailed(true)}
+              />
             </div>
 
             <h2 className="auth-card__title auth-anim-card" style={{ animationDelay: "0.16s" }}>
@@ -342,10 +400,24 @@ export default function App() {
               )}
             </div>
 
+            <label
+              className="auth-remember auth-anim-card"
+              style={{ animationDelay: "0.32s" }}
+              htmlFor="rememberMe"
+            >
+              <input
+                id="rememberMe"
+                type="checkbox"
+                className="auth-remember__checkbox"
+                {...register("rememberMe")}
+              />
+              <span>Remember me</span>
+            </label>
+
             <Button
               type="submit"
               className="auth-submit auth-anim-card"
-              style={{ animationDelay: "0.34s" }}
+              style={{ animationDelay: "0.38s" }}
             >
               <span className="auth-submit__label">
                 Login

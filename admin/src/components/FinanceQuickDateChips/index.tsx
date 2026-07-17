@@ -1,7 +1,7 @@
 interface FinanceQuickDateChipsProps {
   selected: string | null;
   onSelect: (value: string) => void;
-  onClear: () => void;
+  onClear?: () => void;
   options?: { label: string; value: string }[];
 }
 
@@ -33,7 +33,7 @@ export default function FinanceQuickDateChips({
           {item.label}
         </button>
       ))}
-      {selected ? (
+      {selected && onClear ? (
         <button
           type="button"
           onClick={onClear}

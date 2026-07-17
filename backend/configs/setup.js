@@ -201,7 +201,7 @@ internal.saveFinanceAccess = async (req) => {
       // where list is Account, Transfer and Revenue
       where: {
         list: {
-          [Op.in]: ["Account", "Transfer", "Revenue"],
+          [Op.in]: ["Account", "Transfer", "Revenue", "Ledger"],
         },
       },
     });

@@ -9,6 +9,7 @@ const generalConstant = require("../../constants/general-constant");
 
 const paginate = require("../../utils/paginate");
 const { Op } = require("sequelize");
+const { normalizeRoleActionIds } = require("../../helpers/permissionDependencies");
 
 const createRole = async (req, roleDataPost) => {
   try {
@@ -149,17 +150,32 @@ const editSingleRole = async (req) => {
 
     // If role actions are provided, handle them
     if (req.body.role_actions?.length > 0) {
+      const allRoleMenuActions = await roleMenuActionModel.findAll({
+        where: { isDeleted: false },
+        attributes: ["id", "key", "list"],
+        raw: true,
+        transaction,
+      });
+
+      const requestedIds = req.body.role_actions.map(
+        (action) => +action.roleMenuActionId,
+      );
+      const normalizedIds = normalizeRoleActionIds(
+        allRoleMenuActions,
+        requestedIds,
+      );
+
       // Delete existing role actions
       await roleActionModel.destroy({
         where: { roleId },
         transaction,
       });
       // Create new role actions
-      const roleActions = req.body.role_actions.map((action) => ({
+      const roleActions = normalizedIds.map((roleMenuActionId) => ({
         roleId,
-        roleMenuActionId: +action.roleMenuActionId,
-        requiredApproval: false, // Static value for now
-        createdBy: req.user.id, // Assuming `req.user.id` holds the current user ID
+        roleMenuActionId,
+        requiredApproval: false,
+        createdBy: req.user.id,
       }));
 
       const result = await roleActionModel.bulkCreate(roleActions, {

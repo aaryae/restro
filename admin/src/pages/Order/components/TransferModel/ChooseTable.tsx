@@ -4,6 +4,7 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useMemo, useState } from "react";
 import ChooseItems from "./ChooseItems";
 import CustomDialog from "@/components/Dialog";
+import { buildTableSelectOptions } from "@/utils/tableSelectOptions";
 import { ArrowRightLeft } from "lucide-react";
 
 function ChooseTable({
@@ -20,14 +21,13 @@ function ChooseTable({
   >(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const tableOptions = useMemo(
-    () => [
-      { value: "", label: "Select Table" },
-      ...(table?.data?.data?.map((t: any) => ({
-        value: String(t.id),
-        label: `${t.floor?.name} - ${t.tableNo}`,
-      })) || []),
-    ],
+  const { options: tableOptions, getTableLabel } = useMemo(
+    () =>
+      buildTableSelectOptions(table?.data?.data ?? [], {
+        includeEmptyOption: true,
+        emptyOptionLabel: "Select Table",
+        groupByFloor: true,
+      }),
     [table],
   );
 
@@ -68,6 +68,7 @@ function ChooseTable({
             label="Current Table"
             value={selectedTable ?? ""}
             options={tableOptions}
+            resolveLabel={getTableLabel}
             onValueChange={(next) =>
               setSelectedTable(next ? Number(next) : null)
             }
@@ -78,6 +79,7 @@ function ChooseTable({
               label="Desired Table"
               value={selectedDesiredTable ?? ""}
               options={tableOptions}
+              resolveLabel={getTableLabel}
               onValueChange={(next) =>
                 setSelectedDesiredTable(next ? Number(next) : null)
               }

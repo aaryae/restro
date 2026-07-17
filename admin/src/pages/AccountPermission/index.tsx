@@ -11,8 +11,10 @@ import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ACCOUNT_PERMISSION_ADD_ROUTE } from "@/routes/routeNames";
+import { checkAccess } from "@/utils/accessHelper";
 
 const AccountPermission = () => {
+  const accessList = checkAccess("Account Permission");
   const tableHeaders = [
     "Account ID",
     "Account Name",
@@ -20,8 +22,8 @@ const AccountPermission = () => {
     "Can View",
     "Can Edit",
     "Can Delete",
-    "Actions",
-  ];
+    (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
+  ].filter(Boolean) as string[];
 
   const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
@@ -90,6 +92,9 @@ const AccountPermission = () => {
     </span>
   );
 
+  const showActions =
+    accessList.includes("edit") || accessList.includes("delete");
+
   const data =
     success && items
       ? items.map((row: any) => {
@@ -100,7 +105,7 @@ const AccountPermission = () => {
           const accountLabel = row?.account?.name ?? row?.accountId;
           const accountId = row?.account?.id ?? row?.accountId;
 
-          return [
+          const cells = [
             accountId,
             <span className="text-sm font-medium text-slate-800">
               {accountLabel}
@@ -109,26 +114,37 @@ const AccountPermission = () => {
             boolBadge(Boolean(row?.canView)),
             boolBadge(Boolean(row?.canEdit)),
             boolBadge(Boolean(row?.canDelete)),
-            <TableRowActions>
-              <button
-                type="button"
-                onClick={() => navigate(`/admin/account-permission/${row.id}`)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-                title="Edit permission"
-              >
-                <MdEditSquare size={16} />
-              </button>
-              <DeleteModal
-                compact
-                open={open}
-                setOpen={setOpen}
-                  itemId={row.id}
-                  activeId={deleteId}
-                handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
-                handleConfirmDelete={handleDelete}
-              />
-            </TableRowActions>,
           ];
+
+          if (showActions) {
+            cells.push(
+              <TableRowActions>
+                {accessList.includes("edit") && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/account-permission/${row.id}`)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                    title="Edit permission"
+                  >
+                    <MdEditSquare size={16} />
+                  </button>
+                )}
+                {accessList.includes("delete") && (
+                  <DeleteModal
+                    compact
+                    open={open}
+                    setOpen={setOpen}
+                    itemId={row.id}
+                    activeId={deleteId}
+                    handleDeleteTrigger={() => handleDeleteTrigger(row.id)}
+                    handleConfirmDelete={handleDelete}
+                  />
+                )}
+              </TableRowActions>,
+            );
+          }
+
+          return cells;
         })
       : [];
 
@@ -136,12 +152,13 @@ const AccountPermission = () => {
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Permission"
         handleNewButton={handleNew}
         handleReloadButton={() => refetch()}
         subText="Control which users can view, edit, or delete each cash and bank account."
       />
+      {accessList.includes("view") ? (
       <Table
         isSN
         headers={tableHeaders}
@@ -149,6 +166,11 @@ const AccountPermission = () => {
         pagination={pagination}
         handlePagination={handlePagination}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view account permissions.
+        </div>
+      )}
     </div>
   );
 };

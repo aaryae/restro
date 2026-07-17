@@ -321,12 +321,16 @@ export default function SideMenu({
 
           const visibleSubItems =
             (each.menu as SideListMenuType[] | undefined)?.filter((item) => {
-              if (item.name === "Recently Deleted") {
+              if (
+                item.name === "Recently Deleted" ||
+                item.name === "Ledger"
+              ) {
                 return (
                   viewAccess.includes("Company Settings") ||
                   viewAccess.includes("Email Template") ||
                   viewAccess.includes("Email SMTP") ||
-                  viewAccess.includes("Recently Deleted")
+                  viewAccess.includes("Recently Deleted") ||
+                  viewAccess.includes("Ledger")
                 );
               }
               return viewAccess.includes(item.name);

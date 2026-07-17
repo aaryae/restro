@@ -858,10 +858,10 @@
         },
         {
           "title": "Delete Customer",
-          "key": "block",
-          "clientPath": "/customer-auth/soft-delete/:id",
-          "serverPath": "/customer-auth/soft-delete/:id",
-          "requestMethod": "PATCH",
+          "key": "delete",
+          "clientPath": "/customer-auth/:id",
+          "serverPath": "/customer-auth/:id",
+          "requestMethod": "DELETE",
           "list": "Customer"
         }
       ]
@@ -1165,6 +1165,22 @@
           "serverPath": "/account/list",
           "requestMethod": "GET",
           "list": "Account"
+        },
+        {
+          "title": "Edit Account",
+          "key": "edit",
+          "clientPath": "/account/:id",
+          "serverPath": "/account/:id",
+          "requestMethod": "PUT",
+          "list": "Account"
+        },
+        {
+          "title": "Delete Account",
+          "key": "delete",
+          "clientPath": "/account/:id",
+          "serverPath": "/account/:id",
+          "requestMethod": "DELETE",
+          "list": "Account"
         }
       ]
     },
@@ -1271,6 +1287,30 @@
           "serverPath": "/purchase/category-summary",
           "requestMethod": "GET",
           "list": "Purchase"
+        },
+        {
+          "title": "View One Purchase",
+          "key": "view-one",
+          "clientPath": "/purchase/:id",
+          "serverPath": "/purchase/:id",
+          "requestMethod": "GET",
+          "list": "Purchase"
+        },
+        {
+          "title": "Edit Purchase",
+          "key": "edit",
+          "clientPath": "/purchase/:id",
+          "serverPath": "/purchase/:id",
+          "requestMethod": "PUT",
+          "list": "Purchase"
+        },
+        {
+          "title": "Delete Purchase",
+          "key": "delete",
+          "clientPath": "/purchase/:id",
+          "serverPath": "/purchase/:id",
+          "requestMethod": "DELETE",
+          "list": "Purchase"
         }
       ]
     },
@@ -1292,6 +1332,30 @@
           "clientPath": "/purchase-category/list",
           "serverPath": "/purchase-category/list",
           "requestMethod": "GET",
+          "list": "Purchase Category"
+        },
+        {
+          "title": "View One Purchase Category",
+          "key": "view-one",
+          "clientPath": "/purchase-category/:id",
+          "serverPath": "/purchase-category/:id",
+          "requestMethod": "GET",
+          "list": "Purchase Category"
+        },
+        {
+          "title": "Edit Purchase Category",
+          "key": "edit",
+          "clientPath": "/purchase-category/:id",
+          "serverPath": "/purchase-category/:id",
+          "requestMethod": "PUT",
+          "list": "Purchase Category"
+        },
+        {
+          "title": "Delete Purchase Category",
+          "key": "delete",
+          "clientPath": "/purchase-category/:id",
+          "serverPath": "/purchase-category/:id",
+          "requestMethod": "DELETE",
           "list": "Purchase Category"
         }
       ]
@@ -1331,6 +1395,30 @@
           "serverPath": "/expense/category-summary",
           "requestMethod": "GET",
           "list": "Expense"
+        },
+        {
+          "title": "View One Expense",
+          "key": "view-one",
+          "clientPath": "/expense/:id",
+          "serverPath": "/expense/:id",
+          "requestMethod": "GET",
+          "list": "Expense"
+        },
+        {
+          "title": "Edit Expense",
+          "key": "edit",
+          "clientPath": "/expense/:id",
+          "serverPath": "/expense/:id",
+          "requestMethod": "PUT",
+          "list": "Expense"
+        },
+        {
+          "title": "Delete Expense",
+          "key": "delete",
+          "clientPath": "/expense/:id",
+          "serverPath": "/expense/:id",
+          "requestMethod": "DELETE",
+          "list": "Expense"
         }
       ]
     },
@@ -1365,8 +1453,8 @@
         {
           "title": "Edit Expense Category",
           "key": "edit",
-          "clientPath": "/expense-category/update/:id",
-          "serverPath": "/expense-category/update/:id",
+          "clientPath": "/expense-category/:id",
+          "serverPath": "/expense-category/:id",
           "requestMethod": "PUT",
           "list": "Expense Category"
         },
@@ -1571,6 +1659,20 @@
           "serverPath": "/account-permission/user/:userId",
           "requestMethod": "GET",
           "list": "Account Permission"
+        }
+      ]
+    },
+    {
+      "title": "Ledger",
+      "key": "ledger",
+      "actions": [
+        {
+          "title": "View Ledger",
+          "key": "view",
+          "clientPath": "/ledger/list",
+          "serverPath": "/ledger/list",
+          "requestMethod": "GET",
+          "list": "Ledger"
         }
       ]
     },

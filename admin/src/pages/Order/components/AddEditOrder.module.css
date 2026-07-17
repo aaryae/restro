@@ -794,8 +794,11 @@
 .mobileSelectTrigger,
 .mobileSelectContent,
 .cartPanelPeek,
-.cartPanelExpanded,
-.cartPanelDragging {
+.cartPanelExpanded {
+  /* desktop defaults */
+}
+
+.cartSheetHeader {
   /* desktop defaults */
 }
 
@@ -829,7 +832,7 @@
     top: 0;
     z-index: 20;
     margin: 0;
-    padding: 0.6rem 0.7rem 0.65rem;
+    padding: 0.75rem 1rem 0.75rem;
     background: #fff;
     border-bottom: 1px solid #ebeff3;
   }
@@ -960,6 +963,13 @@
 
   .searchRow {
     margin-bottom: 0;
+    padding: 0;
+  }
+
+  .searchInner {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .searchInner :global(.input-container) {
@@ -967,9 +977,12 @@
   }
 
   .searchInner :global(.input-wrapper) {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     height: 2.75rem !important;
     min-height: 2.75rem;
-    padding: 0 0.85rem 0 2.55rem !important;
+    padding: 0 1rem 0 2.55rem !important;
     border: 1px solid #d8dee7 !important;
     border-radius: 10px !important;
     background: #f4f5f7 !important;
@@ -989,7 +1002,7 @@
   }
 
   .searchIcon {
-    left: 0.9rem;
+    left: 1rem;
     color: #7b8696;
   }
 
@@ -1004,7 +1017,7 @@
   }
 
   .menuToolbar {
-    margin: 0.55rem 0.7rem 0.35rem;
+    margin: 0.75rem 1rem 0.5rem;
   }
 
   .viewToggleBtn {
@@ -1020,7 +1033,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
-    padding: 0 0.7rem 0.75rem;
+    padding: 0 1rem 0.75rem;
   }
 
   .productGridList {
@@ -1202,7 +1215,7 @@
     background: rgb(15 23 42 / 35%);
   }
 
-  /* Draggable order sheet — peek by default, drag/tap to expand */
+  /* Fixed order sheet — peek at bottom, tap header to expand */
   .cartPanel {
     position: fixed !important;
     left: 0;
@@ -1219,7 +1232,7 @@
     background: #fff;
     box-shadow: 0 -8px 28px rgb(15 23 42 / 12%);
     transition: max-height 260ms cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, max-height;
+    transform: none !important;
   }
 
   .cartPanelPeek {
@@ -1230,15 +1243,10 @@
     max-height: min(82vh, 40rem);
   }
 
-  .cartPanelDragging {
-    transition: none !important;
-  }
-
-  .cartDragZone {
+  .cartSheetHeader {
     display: block;
     flex-shrink: 0;
-    cursor: grab;
-    touch-action: none;
+    cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -1257,7 +1265,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.45rem 0.85rem 0.55rem;
+    padding: 0.45rem 1rem 0.55rem;
     border-bottom: 1px solid #eef1f5;
   }
 
@@ -1317,7 +1325,7 @@
   }
 
   .cartFooter {
-    padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+    padding: 0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     flex-shrink: 0;
     border-top: 1px solid #eef1f5;
   }

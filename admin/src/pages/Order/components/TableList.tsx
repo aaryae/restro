@@ -197,14 +197,14 @@ export default function TableList() {
           setIsOpen={setOpenDrawer}
           width="w-full"
           className="drawer-container"
+          contentClassName="p-0"
         >
           <ViewTableOrder
             id={restroTableId}
             handleCheckout={handleCheckout}
-            paidItemsByOrder={paidItemsByOrder}
-            ordersRefresh={ordersRefresh}
             onOpenTransfer={handleOpenTransfer}
             onTableCleared={refetchTables}
+            onClose={() => setOpenDrawer(false)}
           />
         </Drawer>
         <CustomDialog

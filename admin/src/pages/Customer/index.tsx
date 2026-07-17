@@ -23,8 +23,10 @@ import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { CUSTOMER_URL } from "@/constants/apiUrlConstants";
 import { UserRound, Mail } from "lucide-react";
+import { checkAccess } from "@/utils/accessHelper";
 
 export default function Customer() {
+  const accessList = checkAccess("Customer");
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -141,47 +143,70 @@ export default function Customer() {
     "Email",
     "Mobile Number",
     "Created At",
-    "Actions",
-  ];
+    (accessList.includes("view-one") ||
+      accessList.includes("edit") ||
+      accessList.includes("delete")) &&
+      "Actions",
+  ].filter(Boolean) as string[];
+
+  const showActions =
+    accessList.includes("view-one") ||
+    accessList.includes("edit") ||
+    accessList.includes("delete");
 
   const tableData =
     success && allCustomers?.data?.data
       ? allCustomers?.data?.data.map(
-          ({ id, firstName, lastName, email, mobileNo, createdAt }) => [
-            <span className="text-sm font-semibold text-slate-800">
-              {`${firstName} ${lastName}`}
-            </span>,
-            email,
-            mobileNo,
-            moment(createdAt).format("MMM DD, YYYY"),
-            <TableRowActions>
-              <button
-                type="button"
-                onClick={() => handleViewCustomer(id)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
-                title="View customer"
-              >
-                <Eye size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNewButton(id)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-                title="Edit customer"
-              >
-                <MdEditSquare size={16} />
-              </button>
-              <DeleteModal
-                compact
-                open={deleteModelOpen}
-                setOpen={setDeleteModelOpen}
-                  itemId={id}
-                  activeId={deleteId}
-                handleDeleteTrigger={() => handleDeleteTrigger(id)}
-                handleConfirmDelete={handleDelete}
-              />
-            </TableRowActions>,
-          ],
+          ({ id, firstName, lastName, email, mobileNo, createdAt }) => {
+            const row = [
+              <span className="text-sm font-semibold text-slate-800">
+                {`${firstName} ${lastName}`}
+              </span>,
+              email,
+              mobileNo,
+              moment(createdAt).format("MMM DD, YYYY"),
+            ];
+
+            if (showActions) {
+              row.push(
+                <TableRowActions>
+                  {accessList.includes("view-one") && (
+                    <button
+                      type="button"
+                      onClick={() => handleViewCustomer(id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                      title="View customer"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  )}
+                  {accessList.includes("edit") && (
+                    <button
+                      type="button"
+                      onClick={() => handleNewButton(id)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                      title="Edit customer"
+                    >
+                      <MdEditSquare size={16} />
+                    </button>
+                  )}
+                  {accessList.includes("delete") && (
+                    <DeleteModal
+                      compact
+                      open={deleteModelOpen}
+                      setOpen={setDeleteModelOpen}
+                      itemId={id}
+                      activeId={deleteId}
+                      handleDeleteTrigger={() => handleDeleteTrigger(id)}
+                      handleConfirmDelete={handleDelete}
+                    />
+                  )}
+                </TableRowActions>,
+              );
+            }
+
+            return row;
+          },
         )
       : [];
 
@@ -195,13 +220,14 @@ export default function Customer() {
         searchPlaceholder="Search by name, email, or phone..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        hasAddButton
+        hasAddButton={accessList.includes("add")}
         newButtonText="Add Customer"
         handleNewButton={() => handleNewButton(null)}
         handleReloadButton={() => refetch()}
         subText="Manage guest profiles, contact details, and membership records."
       />
       <PageFilterWrapper title="Customer Filters">{Component}</PageFilterWrapper>
+      {accessList.includes("view") ? (
       <Table
         headers={tableHeaders}
         data={tableData}
@@ -209,6 +235,11 @@ export default function Customer() {
         pagination={pagination}
         handlePagination={handlePagination}
       />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+          You do not have permission to view customers.
+        </div>
+      )}
       <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-full lg:w-[70%]">
         <ViewCustomer id={customerId} isOpen={isOpen} setIsOpen={setIsOpen} />
       </Drawer>

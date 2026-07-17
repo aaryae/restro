@@ -67,6 +67,7 @@ const crudApi = api.injectEndpoints({
 export const {
   useCreateApiMutation,
   useGetApiQuery,
+  useLazyGetApiQuery,
   useUpdateApiMutation,
   useDeleteApiMutation,
   usePatchApiMutation,
