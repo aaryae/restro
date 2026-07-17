@@ -1,10 +1,11 @@
 import Button from "@/components/Button";
 import { CurrencySign } from "@/constants";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
-import { useGetApiQuery } from "@/redux/services/crudApi";
-import React from "react";
+import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
+import React, { useEffect } from "react";
 import { LuChefHat } from "react-icons/lu";
 import { Link } from "react-router-dom";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 interface Addon {
   id: number;
@@ -40,17 +41,21 @@ interface ViewTableOrderProps {
     orderId: number | null | number[],
   ) => void;
   onOpenTransfer?: (tableId: number) => void;
+  onTableCleared?: () => void;
 }
 
 const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
   id,
   handleCheckout,
   onOpenTransfer,
+  onTableCleared,
 }) => {
+  const [updateTable, { isLoading: clearingTable }] = useUpdateApiMutation();
   const {
     data: tableOrder,
     isSuccess: success,
     isLoading: loading,
+    refetch: refetchOrders,
   } = useGetApiQuery(
     { url: `${ORDER_URL}active-orders/${id}` },
     {
@@ -66,6 +71,41 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
 
   const orders = tableOrder?.data?.orders ?? [];
   const allOrderIds = orders.map(({ id: orderId }: { id: number }) => orderId);
+  const tableStatus =
+    tableOrder?.data?.table?.status ?? table?.data?.status ?? null;
+  const isStuckOccupied =
+    success && orders.length === 0 && tableStatus === "occupied";
+
+  useEffect(() => {
+    if (
+      success &&
+      orders.length === 0 &&
+      tableOrder?.data?.table?.status === "available"
+    ) {
+      onTableCleared?.();
+    }
+  }, [success, orders.length, tableOrder?.data?.table?.status, onTableCleared]);
+
+  const handleMarkAvailable = async () => {
+    if (id == null) return;
+
+    try {
+      const response = await updateTable({
+        url: `${TABLE_URL}${id}`,
+        body: { status: "available" },
+      }).unwrap();
+
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          refetchOrders();
+          onTableCleared?.();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
+    }
+  };
 
   return (
     <>
@@ -96,8 +136,22 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           ) : (
             <div className="flex flex-col gap-2 md:h-[74vh] h-[68vh] overflow-y-auto pr-2 ">
               {orders?.length === 0 ? (
-                <div className="text-gray-600 text-center">
-                  No orders for this table
+                <div className="text-gray-600 text-center space-y-4">
+                  <p>No orders for this table</p>
+                  {isStuckOccupied && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-amber-700">
+                        This table is marked occupied but has no active orders.
+                      </p>
+                      <Button
+                        className="mx-auto bg-green-600 text-white px-4 py-2 hover:bg-green-700"
+                        handleClick={handleMarkAvailable}
+                        disabled={clearingTable}
+                      >
+                        {clearingTable ? "Clearing..." : "Mark Available"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 orders?.map((order) => (

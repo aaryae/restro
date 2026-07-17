@@ -1006,75 +1006,82 @@ const getTableActiveOrders = async (req) => {
       };
     }
 
-    // Check if table has an active session
-    if (!table.sessionId) {
-      return {
-        status: 200,
-        success: true,
-        message: "No active session for this table",
-        data: {
-          table: {
-            id: table.id,
-            tableNo: table.tableNo,
-            status: table.status,
-            sessionId: null,
-            sessionStartTime: null,
-          },
-          orders: [],
-          sessionTotal: 0,
+    const orderInclude = [
+      {
+        model: orderItemModel,
+        as: "orderItems",
+        where: {
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+          isAddon: false,
         },
-      };
-    }
-
-    // Find all active orders for this table's session
-    const orders = await orderModel.findAll({
-      where: {
-        tableId: tableId,
-        sessionId: table.sessionId,
-        status: { [Op.notIn]: ["completed", "cancelled"] },
-      },
-      include: [
-        {
-          model: orderItemModel,
-          as: "orderItems",
-          where: {
-            status: { [Op.notIn]: ["completed", "cancelled"] },
-            isAddon: false, // Only get main items
-          },
-          required: false, // LEFT JOIN to include orders even without items
-          include: [
-            {
-              model: productModel,
-              as: "product",
-              include: [
-                {
-                  model: productMediaModel,
-                  as: "mediaArr",
-                },
-              ],
-              required: false,
-            },
-            // Include addons for each order item
-            {
-              model: orderItemModel,
-              as: "addons",
-              where: {
-                status: { [Op.notIn]: ["completed", "cancelled"] },
+        required: false,
+        include: [
+          {
+            model: productModel,
+            as: "product",
+            include: [
+              {
+                model: productMediaModel,
+                as: "mediaArr",
               },
-              required: false, // LEFT JOIN to include items even without addons
-              include: [
-                {
-                  model: addonModel,
-                  as: "addon",
-                  required: false,
-                },
-              ],
+            ],
+            required: false,
+          },
+          {
+            model: orderItemModel,
+            as: "addons",
+            where: {
+              status: { [Op.notIn]: ["completed", "cancelled"] },
             },
-          ],
-        },
-      ],
+            required: false,
+            include: [
+              {
+                model: addonModel,
+                as: "addon",
+                required: false,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const activeOrderWhere = {
+      tableId,
+      status: { [Op.notIn]: ["completed", "cancelled"] },
+    };
+
+    let orders = await orderModel.findAll({
+      where: table.sessionId
+        ? { ...activeOrderWhere, sessionId: table.sessionId }
+        : activeOrderWhere,
+      include: orderInclude,
       order: [["createdAt", "ASC"]],
     });
+
+    if (orders.length === 0 && table.sessionId) {
+      orders = await orderModel.findAll({
+        where: activeOrderWhere,
+        include: orderInclude,
+        order: [["createdAt", "ASC"]],
+      });
+
+      if (orders.length > 0 && orders[0].sessionId) {
+        await table.update({ sessionId: orders[0].sessionId });
+        table.sessionId = orders[0].sessionId;
+      }
+    }
+
+    if (orders.length === 0 && table.status === "occupied") {
+      await table.update({
+        status: "available",
+        sessionId: null,
+        sessionStartTime: null,
+      });
+      table.status = "available";
+      table.sessionId = null;
+      table.sessionStartTime = null;
+    }
 
     // Transform the orders to include calculated totals
     let sessionTotal = 0;
@@ -2382,7 +2389,7 @@ const updateOrderStatus = async (req) => {
       // If no active orders remain, make the table available
       if (activeOrdersCount === 0) {
         await tableModel.update(
-          { status: "available" },
+          { status: "available", sessionId: null, sessionStartTime: null },
           {
             where: { id: order.tableId },
             transaction: t,
@@ -2608,7 +2615,7 @@ const updateOrderItemsStatus = async (req) => {
                 await tableModel.update(
                   {
                     status: "available",
-                    currentSessionId: null, // Clear any session data
+                    sessionId: null,
                     sessionStartTime: null,
                   },
                   {

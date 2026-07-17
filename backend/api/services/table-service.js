@@ -168,11 +168,11 @@ const updateTableStatus = async (req) => {
     }
 
     if (status === "available" || status === "maintenance") {
-      table.currentSessionId = null;
+      table.sessionId = null;
       table.sessionStartTime = null;
     } else if (status === "occupied") {
-      if (!table.currentSessionId) {
-        table.currentSessionId = generateUUID.generateUUID();
+      if (!table.sessionId) {
+        table.sessionId = generateUUID.generateUUID();
         table.sessionStartTime = new Date();
       } else {
         return {
@@ -282,9 +282,11 @@ const moveOrders = async (req) => {
       };
     }
 
-    // Update orders with new tableId
+    const destSessionId = generateUUID.generateUUID();
+
+    // Update orders with new tableId and session
     await orderModel.update(
-      { tableId: destinationTableId },
+      { tableId: destinationTableId, sessionId: destSessionId },
       {
         where: { id: ordersToMove.map((order) => order.id) },
         transaction,
@@ -297,7 +299,7 @@ const moveOrders = async (req) => {
       await sourceTable.update(
         {
           status: "available",
-          currentSessionId: null,
+          sessionId: null,
           sessionStartTime: null,
         },
         { transaction },
@@ -308,7 +310,7 @@ const moveOrders = async (req) => {
     await destinationTable.update(
       {
         status: "occupied",
-        currentSessionId: generateUUID.generateUUID(),
+        sessionId: destSessionId,
         sessionStartTime: new Date(),
       },
       { transaction },

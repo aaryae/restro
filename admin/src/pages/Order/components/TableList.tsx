@@ -80,7 +80,7 @@ export default function TableList() {
     return buildQueryString(`${TABLE_URL}list`, query);
   }, [query]);
 
-  const { data: allTables } = useGetApiQuery({
+  const { data: allTables, refetch: refetchTables } = useGetApiQuery({
     url: queryString,
   });
 
@@ -204,6 +204,7 @@ export default function TableList() {
             paidItemsByOrder={paidItemsByOrder}
             ordersRefresh={ordersRefresh}
             onOpenTransfer={handleOpenTransfer}
+            onTableCleared={refetchTables}
           />
         </Drawer>
         <CustomDialog
