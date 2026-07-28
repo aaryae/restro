@@ -4,43 +4,63 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 type DateInputProps = {
   label: string;
-  value: Date;
-  handleChange: (value: Date) => void;
+  value?: Date | string | null;
+  handleChange?: (value: Date) => void;
+  onChange?: (value: Date) => void;
 };
 
 export default function DateInput({
   label,
   value,
   handleChange,
+  onChange,
 }: DateInputProps) {
+  const selected =
+    value instanceof Date
+      ? value
+      : value
+        ? new Date(value)
+        : undefined;
+
+  const hasValue = Boolean(selected && !Number.isNaN(selected.getTime()));
+
+  const handleSelect = (date?: Date) => {
+    if (!date) return;
+    onChange?.(date);
+    handleChange?.(date);
+  };
+
   return (
     <div className="relative">
       <Popover>
         <PopoverTrigger asChild>
-          <button className="w-full h-full px-3 py-3 border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out text-left focus:border-bg-inputBg focus:ring-1 focus:ring-bg-inputBg focus:outline-none hover:border-gray-400">
-            <div className="flex items-center justify-between">
-              <span
-                className={`transition-all duration-200 ${value ? "text-gray-900" : "text-transparent"}`}
-              >
-                {value ? value.toLocaleDateString() : ""}
-              </span>
-              <Calendar className="h-4 w-4 text-gray-500" />
-            </div>
+          <button
+            type="button"
+            className="flex h-[42px] w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm transition-all duration-200 ease-in-out focus:border-bg-inputBg focus:outline-none focus:ring-1 focus:ring-bg-inputBg hover:border-gray-400"
+          >
+            <span
+              className={`transition-all duration-200 ${hasValue ? "text-gray-900" : "text-transparent"}`}
+            >
+              {hasValue ? selected!.toLocaleDateString() : ""}
+            </span>
+            <Calendar className="h-4 w-4 shrink-0 text-gray-500" />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <CalendarComponent
             mode="single"
             required={true}
-            selected={value}
-            onSelect={handleChange}
+            selected={selected}
+            onSelect={handleSelect}
           />
         </PopoverContent>
       </Popover>
 
       <label
-        className={`absolute left-3 transition-all duration-200 ease-in-out pointer-events-none text-gray-500 bg-white px-1 ${
-          value ? "-top-2 text-xs text-black font-medium" : "top-3 text-base"
+        className={`pointer-events-none absolute left-3 bg-white px-1 text-gray-500 transition-all duration-200 ease-in-out ${
+          hasValue
+            ? "-top-2 text-xs font-medium text-black"
+            : "top-2.5 text-sm"
         }`}
       >
         {label}

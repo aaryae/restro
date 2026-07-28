@@ -29,9 +29,9 @@ export const FilterSelect = forwardRef<HTMLDivElement, FloatingSelectProps>(
             <button
               type="button"
               className={cn(
-                "flex h-11 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 outline-none transition",
-                "hover:border-slate-300 focus-visible:border-primaryColor/40 focus-visible:ring-2 focus-visible:ring-primaryColor/15",
-                isOpen && "border-primaryColor/40 ring-2 ring-primaryColor/15",
+                "flex h-[42px] w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm text-slate-700 outline-none transition",
+                "hover:border-gray-400 focus-visible:border-primaryColor/40 focus-visible:ring-1 focus-visible:ring-primaryColor/15",
+                isOpen && "border-primaryColor/40 ring-1 ring-primaryColor/15",
               )}
             >
               <span className={cn("truncate", !hasValue && "text-transparent")}>
@@ -77,7 +77,7 @@ export const FilterSelect = forwardRef<HTMLDivElement, FloatingSelectProps>(
             "pointer-events-none absolute left-3 bg-white px-1 text-slate-500 transition-all duration-200",
             isOpen || hasValue
               ? "-top-2 text-xs font-medium text-slate-700"
-              : "top-3 text-sm",
+              : "top-2.5 text-sm",
           )}
         >
           {label}

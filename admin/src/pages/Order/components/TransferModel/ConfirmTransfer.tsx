@@ -1,18 +1,49 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useMoveOrderItemsMutation } from "@/redux/services/orders";
 import { ArrowRightLeft } from "lucide-react";
+import { CurrencySign } from "@/constants";
+
+export type TransferOrderSummary = {
+  id: number;
+  orderNumber?: string | null;
+  totalAmount?: number | string | null;
+  paymentStatus?: string | null;
+  orderItems?: { id?: number; quantity?: number; status?: string }[];
+};
 
 interface ConfirmTransferProps {
   selectedOrders: number[];
+  selectedOrderDetails: TransferOrderSummary[];
+  sourceTableLabel: string;
+  destinationTableLabel: string;
   sourceTableId: number | null;
   destinationTableId: number | null;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
+function formatPaymentStatus(status?: string | null) {
+  if (!status) return "-";
+  switch (status) {
+    case "pending":
+      return "Unpaid";
+    case "partially_paid":
+      return "Partially paid";
+    case "paid":
+      return "Paid";
+    case "failed":
+      return "Failed";
+    default:
+      return status.replace(/_/g, " ");
+  }
+}
+
 function ConfirmTransfer({
   selectedOrders,
+  selectedOrderDetails,
+  sourceTableLabel,
+  destinationTableLabel,
   sourceTableId,
   destinationTableId,
   onSuccess,
@@ -21,6 +52,43 @@ function ConfirmTransfer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [moveOrderItems] = useMoveOrderItemsMutation();
+
+  const summary = useMemo(() => {
+    const orderNumbers = selectedOrderDetails
+      .map((o) => o.orderNumber || `#${o.id}`)
+      .filter(Boolean);
+
+    const totalItems = selectedOrderDetails.reduce((sum, order) => {
+      const items = Array.isArray(order.orderItems) ? order.orderItems : [];
+      return (
+        sum +
+        items
+          .filter((item) => item.status !== "cancelled")
+          .reduce((itemSum, item) => itemSum + Number(item.quantity || 0), 0)
+      );
+    }, 0);
+
+    const grandTotal = selectedOrderDetails.reduce(
+      (sum, order) => sum + Number(order.totalAmount || 0),
+      0,
+    );
+
+    const paymentStatuses = [
+      ...new Set(
+        selectedOrderDetails.map((o) =>
+          formatPaymentStatus(o.paymentStatus),
+        ),
+      ),
+    ];
+
+    return {
+      orderNumber:
+        orderNumbers.length > 0 ? orderNumbers.join(", ") : `${selectedOrders.length} selected`,
+      totalItems,
+      grandTotal,
+      paymentStatus: paymentStatuses.join(", ") || "-",
+    };
+  }, [selectedOrderDetails, selectedOrders.length]);
 
   const handleConfirmTransfer = async () => {
     if (!sourceTableId || !destinationTableId || selectedOrders.length === 0) {
@@ -51,6 +119,34 @@ function ConfirmTransfer({
     }
   };
 
+  const rows = [
+    {
+      label: "Source Table",
+      value:
+        sourceTableLabel !== "-"
+          ? sourceTableLabel
+          : sourceTableId
+            ? `Table ID ${sourceTableId}`
+            : "-",
+    },
+    {
+      label: "Destination Table",
+      value:
+        destinationTableLabel !== "-"
+          ? destinationTableLabel
+          : destinationTableId
+            ? `Table ID ${destinationTableId}`
+            : "-",
+    },
+    { label: "Order Number", value: summary.orderNumber },
+    { label: "Total Items", value: String(summary.totalItems) },
+    {
+      label: "Grand total",
+      value: `${CurrencySign}${summary.grandTotal.toFixed(2)}`,
+    },
+    { label: "Payment Status", value: summary.paymentStatus },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
@@ -59,20 +155,14 @@ function ConfirmTransfer({
           Transfer summary
         </div>
         <dl className="space-y-2 text-sm text-slate-600">
-          <div className="flex justify-between gap-3">
-            <dt>Source table ID</dt>
-            <dd className="font-medium text-slate-800">{sourceTableId}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Destination table ID</dt>
-            <dd className="font-medium text-slate-800">{destinationTableId}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Orders to move</dt>
-            <dd className="font-medium text-slate-800">
-              {selectedOrders.length}
-            </dd>
-          </div>
+          {rows.map((row) => (
+            <div key={row.label} className="flex justify-between gap-3">
+              <dt>{row.label}</dt>
+              <dd className="max-w-[60%] text-right font-medium text-slate-800">
+                {row.value}
+              </dd>
+            </div>
+          ))}
         </dl>
       </div>
 

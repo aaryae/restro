@@ -1,4 +1,3 @@
-// admin/src/pages/PurchaseCategory/AddEditPurchaseCategory.tsx
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -17,6 +16,7 @@ import {
 } from "@/redux/services/crudApi";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { Tags } from "lucide-react";
 
 const PurchaseCategorySchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -85,44 +85,69 @@ const AddPurchaseCategory: React.FC = () => {
     }
   };
 
+  const saving = isSubmitting || creating || updating;
+
   return (
-    <>
+    <div className="flex min-w-0 w-full flex-col gap-5 pb-6">
       <PageTitle
         title={isEdit ? "Edit Purchase Category" : "Add Purchase Category"}
         isBack
       />
-      <form
-        className="grid grid-cols-1 gap-[2rem] mt-[1rem] form-container"
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <Input
-          label={translate("Purchase Category Title")}
-          placeholder="Enter purchase category title"
-          className="w-full md:w-1/2"
-          {...register("title")}
-          error={errors.title?.message}
-          isRequired
-        />
-        <TextArea
-          label={translate("Purchase Category Description")}
-          placeholder="Enter purchase category description"
-          className="w-full md:w-1/2"
-          {...register("description")}
-          error={errors.description?.message}
-        />
-        <div className="flex justify-end">
-          <Button
-            type="submit"
-            className="submit-button w-[5rem]"
-            disabled={isSubmitting || creating || updating}
-          >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white">
-              {translate(isEdit ? "Update" : "Submit")}
+
+      <form className="min-w-0 w-full" onSubmit={handleSubmit(onSubmit)}>
+        <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor">
+              <Tags size={18} strokeWidth={2} />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-slate-800">
+                Category details
+              </h2>
+              <p className="text-xs text-slate-500">
+                Title and optional description for this purchase category
+              </p>
             </div>
-          </Button>
-        </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 p-4 sm:gap-5 sm:p-5">
+            <Input
+              label={translate("Purchase Category Title")}
+              placeholder="Enter purchase category title"
+              className="w-full"
+              {...register("title")}
+              error={errors.title?.message}
+              isRequired
+            />
+            <TextArea
+              label={translate("Purchase Category Description")}
+              placeholder="Enter purchase category description"
+              className="w-full"
+              {...register("description")}
+              error={errors.description?.message}
+            />
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-5">
+            <button
+              type="button"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={() => navigate(-1)}
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              className="submit-button inline-flex h-10 w-full items-center justify-center rounded-lg px-5 text-sm font-medium sm:w-auto"
+              disabled={saving}
+              isLoading={saving}
+            >
+              {translate(isEdit ? "Update" : "Submit")}
+            </Button>
+          </div>
+        </section>
       </form>
-    </>
+    </div>
   );
 };
 

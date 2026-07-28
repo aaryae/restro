@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -24,11 +24,64 @@ import {
   chartTooltipStyle,
   formatChartValue,
   formatCompactAxis,
+  getBarXAxisConfig,
+  truncateChartLabel,
 } from "./chartTheme";
 
 interface ChartData {
   name: string;
   [key: string]: unknown;
+}
+
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(`(max-width: ${breakpoint}px)`).matches,
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const onChange = () => setIsMobile(mediaQuery.matches);
+    onChange();
+    mediaQuery.addEventListener("change", onChange);
+    return () => mediaQuery.removeEventListener("change", onChange);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+function BarXAxisTick({
+  x = 0,
+  y = 0,
+  payload,
+  angle,
+  maxChars,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+  angle: number;
+  maxChars: number;
+}) {
+  const label = truncateChartLabel(String(payload?.value ?? ""), maxChars);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={angle === 0 ? 14 : 4}
+        textAnchor={angle === 0 ? "middle" : "end"}
+        fill={axisTickStyle.fill}
+        fontSize={axisTickStyle.fontSize}
+        fontWeight={axisTickStyle.fontWeight}
+        transform={angle === 0 ? undefined : `rotate(${angle})`}
+      >
+        {label}
+      </text>
+    </g>
+  );
 }
 
 interface BarChartProps {
@@ -66,6 +119,23 @@ const BarChartComponent: React.FC<BarChartProps> = ({
   responsive = true,
   margin = chartMargins.bar,
 }) => {
+  const isMobile = useIsMobile();
+  const labels = useMemo(
+    () => data.map((item) => String(item[nameKey] ?? "")),
+    [data, nameKey],
+  );
+  const xAxisConfig = useMemo(
+    () => getBarXAxisConfig(labels, isMobile),
+    [labels, isMobile],
+  );
+  const chartMargin = useMemo(
+    () => ({
+      ...margin,
+      bottom: xAxisConfig.bottom,
+    }),
+    [margin, xAxisConfig.bottom],
+  );
+
   const barColors = useMemo(() => {
     if (dataKeys.length > 1) {
       return dataKeys.map((_, i) => colorScale[i % colorScale.length]);
@@ -109,8 +179,8 @@ const BarChartComponent: React.FC<BarChartProps> = ({
           width={responsive ? undefined : width}
           height={height}
           data={data}
-          margin={margin}
-          barCategoryGap="18%"
+          margin={chartMargin}
+          barCategoryGap={isMobile ? "12%" : "18%"}
         >
           {showGrid && (
             <CartesianGrid
@@ -121,20 +191,23 @@ const BarChartComponent: React.FC<BarChartProps> = ({
           )}
           <XAxis
             dataKey={nameKey}
-            tick={axisTickStyle}
+            tick={
+              <BarXAxisTick
+                angle={xAxisConfig.angle}
+                maxChars={xAxisConfig.maxChars}
+              />
+            }
             tickLine={false}
             axisLine={{ stroke: chartGridStroke }}
             interval={0}
-            angle={data.length > 5 ? -25 : 0}
-            textAnchor={data.length > 5 ? "end" : "middle"}
-            height={data.length > 5 ? 56 : 36}
+            height={xAxisConfig.height}
           />
           <YAxis
             tick={axisTickStyle}
             tickLine={false}
             axisLine={false}
             tickFormatter={formatCompactAxis}
-            width={48}
+            width={isMobile ? 40 : 48}
           />
           {showTooltip && (
             <Tooltip
@@ -147,6 +220,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                       name,
                     ]
               }
+              labelFormatter={(label) => String(label)}
               contentStyle={chartTooltipStyle}
             />
           )}

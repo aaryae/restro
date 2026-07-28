@@ -29,8 +29,7 @@ const Revenue: React.FC = () => {
   const [queryStringOptions, setQueryStringOptions] = useState({
     start: "",
     end: "",
-    paymentStatus: "",
-    orderStatus: "",
+    paymentMethod: "",
     cash_or_credit: "",
   });
 

@@ -21,8 +21,10 @@ import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
 import Select from "@/components/Select";
 import { useGetRoleQuery } from "@/redux/services/role";
+import { Camera, RotateCcw } from "lucide-react";
 
 type UserFormType = z.infer<typeof UserSchema>;
+
 export default function BasicInfo() {
   const translate = useTranslation();
   const dispatch = useDispatch();
@@ -33,7 +35,7 @@ export default function BasicInfo() {
     reset,
     control,
     setError,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<UserFormType>({ resolver: zodResolver(UserSchema) });
 
   const { data: getUser, isSuccess: success } = useGetProfileQuery("");
@@ -44,9 +46,8 @@ export default function BasicInfo() {
   });
   const userId = useAppSelector((state) => state.auth.id);
 
-  // image component
-  const [image, setImage] = useState<string>("");
-  const [openMedia, setOpenMedia] = useState<boolean>(false);
+  const [image, setImage] = useState("");
+  const [openMedia, setOpenMedia] = useState(false);
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
 
   const [roleOptions, setRoleOptions] = useState<
@@ -55,20 +56,24 @@ export default function BasicInfo() {
 
   useEffect(() => {
     if (roleSuccess && roles?.data?.data) {
-      const options = roles?.data?.data.map((each) => ({
-        label: each.title,
-        value: each.id,
-      }));
-      setRoleOptions(options);
+      setRoleOptions(
+        roles.data.data.map((each: { title: string; id: string | number }) => ({
+          label: each.title,
+          value: String(each.id),
+        })),
+      );
     }
   }, [roles, roleSuccess]);
 
   useEffect(() => {
     if (getUser?.data) {
-      reset({ ...getUser.data });
+      reset({
+        ...getUser.data,
+        roleId: getUser.data.roleId != null ? String(getUser.data.roleId) : "",
+      });
       setImage(getUser.data.imageUrl || "");
     }
-  }, [getUser, success]);
+  }, [getUser, reset, success]);
 
   const handleConfirmImage = () => {
     setImage(selectedImage);
@@ -81,7 +86,7 @@ export default function BasicInfo() {
     navigate("/admin/dashboard");
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: UserFormType) => {
     const trimmedData = trimFormData(data);
     const body = {
       ...trimmedData,
@@ -98,138 +103,186 @@ export default function BasicInfo() {
     }
   };
 
+  const displayName =
+    [getUser?.data?.firstName, getUser?.data?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    getUser?.data?.username ||
+    "Your profile";
+
   return (
-    <div className="relative">
-      <div className="flex gap-[1.5rem] mb-[2.5rem] md:p-[1.5rem] border w-fit rounded-[0.25rem]">
-        <div className="border h-[100px] w-[100px] rounded-[6px]">
-          <img
-            src={image ? buildAssetUrl(image) : userImage}
-            alt="User"
-            className="h-[100px] w-[100px] overflow-hidden object-cover"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = userImage;
-            }}
-          />
-        </div>
-        <div className="space-y-[1rem]">
-          <div className="flex gap-[1rem]">
-            <button className="bg-primaryColor px-[20px] py-[8px] rounded-[6px] text-white">
-              <p className="font-[500] text-[15px]">
+    <div className="min-w-0">
+      <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+        <h2 className="text-sm font-semibold text-slate-800">
+          {translate("Basic Information")}
+        </h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Update your photo and personal details
+        </p>
+      </div>
+
+      <div className="space-y-5 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:flex-row sm:items-center sm:gap-5">
+          <div className="mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:mx-0 sm:h-28 sm:w-28">
+            <img
+              src={image ? buildAssetUrl(image) : userImage}
+              alt={displayName}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = userImage;
+              }}
+            />
+          </div>
+
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <p className="truncate text-sm font-semibold text-slate-800">
+              {displayName}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              {getUser?.data?.email || "Update your profile photo"}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <div className="inline-flex h-9 items-center rounded-lg bg-primaryColor px-3.5 text-sm font-medium text-white transition hover:bg-primaryColor/90">
                 <MediaComponent
-                  title="Upload New Photo"
+                  title={
+                    <span className="inline-flex items-center gap-1.5">
+                      <Camera size={15} />
+                      {translate("Upload New Photo")}
+                    </span>
+                  }
                   handleConfirmImage={handleConfirmImage}
                   open={openMedia}
                   setOpen={setOpenMedia}
                 />
-              </p>
-            </button>
-            <button
-              className="bg-[#EBEEF0] px-[20px] py-[8px] rounded-[6px] "
-              onClick={() => setImage("")}
-            >
-              <p className="font-[500] text-[15px]">{translate("Reset")}</p>
-            </button>
-          </div>
-          <div>
-            <p className="font-[400] text-[15px] text-[#646e78]">
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                onClick={() => setImage("")}
+              >
+                <RotateCcw size={14} />
+                {translate("Reset")}
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
               {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
             </p>
           </div>
         </div>
-      </div>
-      <form
-        className="grid grid-cols-1 md:grid-cols-2 gap-[1.5rem]"
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <Input
-          label="Username"
-          placeholder="Username"
-          type="text"
-          {...register("username")}
-          error={errors.username?.message}
-          isRequired
-        />
-        <Input
-          label="Email"
-          placeholder="Email"
-          type="text"
-          {...register("email")}
-          error={errors?.email?.message}
-          isRequired
-        />
-        <Input
-          label="First Name"
-          placeholder="John"
-          type="text"
-          {...register("firstName")}
-          error={errors?.firstName?.message}
-          isRequired
-        />
-        <Input
-          label="Last Name"
-          placeholder="Doe"
-          type="text"
-          {...register("lastName")}
-          error={errors?.lastName?.message}
-          isRequired
-        />
-        <Input
-          label="Mobile No"
-          placeholder="98********"
-          type="text"
-          {...register("mobileNo")}
-          error={errors.mobileNo}
-          isRequired
-        />
-        <Input
-          label="Mobile Prefix"
-          placeholder="+81"
-          type="text"
-          {...register("mobilePrefix")}
-          error={errors.mobilePrefix}
-          isRequired
-        />
-        <Controller
-          name="roleId"
-          control={control}
-          render={({ field }) => (
-            <Select {...field} options={roleOptions} label="Role Type"
-          isRequired
-        />
-          )}
-        />
-        {/* <Input label="Role" placeholder="SuperAdmin" type="text" {...register("roleId")} disabled error={errors.roleId}
-          isRequired
-        /> */}
-        <Input
-          label="Gender"
-          placeholder="Male"
-          type="text"
-          {...register("gender")}
-          error={errors.gender}
-          isRequired
-        />
-        <div />
-        <div className="flex justify-end gap-[1rem]">
-          <Button type="submit" className="submit-button">
-            {" "}
-            <div className="flex justify-center items-center gap-[0.5rem] ">
-              {translate("Submit")}
-            </div>
-          </Button>
-          <button
-            type="button"
-            className="bg-gray-400 rounded-[6px] px-[20px] py-[0.5rem]"
-            onClick={handleDiscardButton}
-          >
-            {" "}
-            <div className="flex justify-center items-center gap-[0.5rem] ">
+
+        <form
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <Input
+            label="Username"
+            placeholder="Username"
+            type="text"
+            {...register("username")}
+            error={errors.username?.message}
+            isRequired
+          />
+          <Input
+            label="Email"
+            placeholder="Email"
+            type="text"
+            {...register("email")}
+            error={errors?.email?.message}
+            isRequired
+          />
+          <Input
+            label="First Name"
+            placeholder="John"
+            type="text"
+            {...register("firstName")}
+            error={errors?.firstName?.message}
+            isRequired
+          />
+          <Input
+            label="Last Name"
+            placeholder="Doe"
+            type="text"
+            {...register("lastName")}
+            error={errors?.lastName?.message}
+            isRequired
+          />
+          <Input
+            label="Mobile No"
+            placeholder="98********"
+            type="text"
+            {...register("mobileNo")}
+            error={
+              typeof errors.mobileNo === "string"
+                ? errors.mobileNo
+                : errors.mobileNo?.message
+            }
+            isRequired
+          />
+          <Input
+            label="Mobile Prefix"
+            placeholder="+81"
+            type="text"
+            {...register("mobilePrefix")}
+            error={
+              typeof errors.mobilePrefix === "string"
+                ? errors.mobilePrefix
+                : errors.mobilePrefix?.message
+            }
+            isRequired
+          />
+          <Controller
+            name="roleId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                value={field.value != null ? String(field.value) : ""}
+                options={roleOptions}
+                label="Role Type"
+                error={
+                  typeof errors.roleId === "string"
+                    ? errors.roleId
+                    : errors.roleId?.message
+                }
+                isRequired
+              />
+            )}
+          />
+          <Input
+            label="Gender"
+            placeholder="Male"
+            type="text"
+            {...register("gender")}
+            error={
+              typeof errors.gender === "string"
+                ? errors.gender
+                : errors.gender?.message
+            }
+            isRequired
+          />
+
+          <div className="col-span-full flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+            <button
+              type="button"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={handleDiscardButton}
+            >
               {translate("Discard")}
-            </div>
-          </button>
-        </div>
-      </form>
+            </button>
+            <Button
+              type="submit"
+              className="submit-button inline-flex h-10 w-full items-center justify-center rounded-lg px-5 text-sm font-medium sm:w-auto"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : translate("Submit")}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

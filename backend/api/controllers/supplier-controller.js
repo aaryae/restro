@@ -86,7 +86,7 @@ const deleteById = async (req, res, next) => {
 
     return responseHelper.sendResponse(
       res,
-      result.status | 200,
+      result.status || 200,
       result.success,
       result.data,
       result.errors,

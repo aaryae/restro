@@ -30,48 +30,45 @@ export default function Layout() {
   }, [settings]);
 
   return (
-    <>
-      {/* Docked sidebar from tablet up */}
-      <div className="hidden min-h-screen w-full overflow-x-hidden bg-[#f2f6fa] md:block">
-        <div
-          className={`fixed left-0 top-0 z-50 h-screen overflow-visible border-r border-slate-200/80 transition-all duration-300 ${
-            sideMenuOpen ? "w-80" : "w-20"
-          }`}
-        >
-          <SideMenu
-            setToggleState={setSideMenuOpen}
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#f2f6fa]">
+      {/* Desktop/tablet: docked sidebar */}
+      <div
+        className={`fixed left-0 top-0 z-50 hidden h-screen overflow-visible border-r border-slate-200/80 transition-all duration-300 md:block ${
+          sideMenuOpen ? "w-80" : "w-20"
+        }`}
+      >
+        <SideMenu
+          setToggleState={setSideMenuOpen}
+          sideMenuOpen={sideMenuOpen}
+        />
+      </div>
+
+      {/* Mobile: top bar + drawer menu */}
+      <div className="md:hidden">
+        <TopMenuMobile />
+      </div>
+
+      {/* Single content shell — one Outlet so resize does not remount pages */}
+      <div
+        className={`min-h-screen min-w-0 transition-all duration-300 ${
+          sideMenuOpen
+            ? "md:ml-80 md:w-[calc(100%-20rem)]"
+            : "md:ml-20 md:w-[calc(100%-5rem)]"
+        }`}
+      >
+        <div className="hidden min-w-0 md:block">
+          <TopMenu
             sideMenuOpen={sideMenuOpen}
+            setSideMenuOpen={setSideMenuOpen}
           />
         </div>
 
-        <div
-          className={`min-h-screen min-w-0 transition-all duration-300 ${
-            sideMenuOpen ? "ml-80 w-[calc(100%-20rem)]" : "ml-20 w-[calc(100%-5rem)]"
-          }`}
-        >
-          <div className="min-w-0">
-            <TopMenu
-              sideMenuOpen={sideMenuOpen}
-              setSideMenuOpen={setSideMenuOpen}
-            />
-          </div>
-          <div className="relative min-w-0 overflow-x-hidden overflow-y-auto px-[1.5rem] py-[1rem]">
-            <Suspense fallback={<Loader />}>
-              <Outlet />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-      {/* Phone: overlay drawer */}
-      <div className="block overflow-x-hidden md:hidden">
-        <TopMenuMobile />
-
-        <div className="relative min-h-[87vh] overflow-x-hidden overflow-y-auto p-4">
+        <div className="relative min-h-[87vh] min-w-0 overflow-x-hidden overflow-y-auto p-4 md:px-[1.5rem] md:py-[1rem]">
           <Suspense fallback={<Loader />}>
             <Outlet />
           </Suspense>
         </div>
       </div>
-    </>
+    </div>
   );
 }

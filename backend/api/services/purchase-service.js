@@ -9,8 +9,42 @@ const {
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 const { Sequelize } = require("sequelize");
+const { Op } = Sequelize;
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { getLocalDateRange } = require("../../utils/timezone");
+
+/**
+ * Ensure invoice numbers stay unique among active purchases.
+ * Cancelled purchases are ignored so the number can be reused.
+ */
+const findConflictingInvoice = async (
+  invoiceNumber,
+  { excludeId = null, transaction } = {},
+) => {
+  const normalized = String(invoiceNumber || "").trim();
+  if (!normalized) return null;
+
+  const where = {
+    invoiceNumber: normalized,
+    status: { [Op.ne]: "cancelled" },
+  };
+  if (excludeId != null) {
+    where.id = { [Op.ne]: Number(excludeId) };
+  }
+
+  return purchaseModel.findOne({
+    where,
+    attributes: ["id", "invoiceNumber", "status"],
+    transaction,
+  });
+};
+
+const invoiceConflictResponse = (existingPurchase) => ({
+  status: 400,
+  success: false,
+  message: `Invoice number already exists on a ${existingPurchase.status} purchase (#${existingPurchase.id})`,
+  data: null,
+});
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -25,6 +59,10 @@ const create = async (req) => {
       items,
       notes,
     } = req.body;
+
+    const normalizedInvoiceNumber = invoiceNumber
+      ? String(invoiceNumber).trim()
+      : null;
 
     // Validate references
     const supplier = await supplierModel.findByPk(supplierId, { transaction });
@@ -43,13 +81,22 @@ const create = async (req) => {
       };
     }
 
-    // Check invoiceNumber uniqueness
+    if (normalizedInvoiceNumber) {
+      const existingPurchase = await findConflictingInvoice(
+        normalizedInvoiceNumber,
+        { transaction },
+      );
+      if (existingPurchase) {
+        await transaction.rollback();
+        return invoiceConflictResponse(existingPurchase);
+      }
+    }
 
     const purchase = await purchaseModel.create(
       {
         supplierId,
         invoiceDate,
-        invoiceNumber,
+        invoiceNumber: normalizedInvoiceNumber,
         paymentTerms,
         accountId,
         enteredByUserId: req.user.id,
@@ -174,13 +221,15 @@ const list = async (req) => {
     if (supplierId) filters.supplierId = supplierId;
     if (status) filters.status = status;
 
-    // Handle date filtering
+    // Handle date filtering — invoiceDate is stored as UTC midnight of the calendar date
     if (date) {
-      const dateRange = getLocalDateRange(date, date);
-      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+      const start = new Date(`${date}T00:00:00.000Z`);
+      const end = new Date(`${date}T23:59:59.999Z`);
+      filters.invoiceDate = { [Sequelize.Op.between]: [start, end] };
     } else if (start && end) {
-      const dateRange = getLocalDateRange(start, end);
-      filters.invoiceDate = { [Sequelize.Op.between]: [dateRange.start, dateRange.end] };
+      const rangeStart = new Date(`${start}T00:00:00.000Z`);
+      const rangeEnd = new Date(`${end}T23:59:59.999Z`);
+      filters.invoiceDate = { [Sequelize.Op.between]: [rangeStart, rangeEnd] };
     }
 
     const include = [
@@ -332,27 +381,29 @@ const updateById = async (req) => {
         };
       }
     }
-    if (invoiceNumber) {
-      const existingPurchase = await purchaseModel.findOne({
-        where: { invoiceNumber, id: { [Sequelize.Op.ne]: purchase.id } },
-        transaction,
-      });
-      if (existingPurchase) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: "Invoice number already exists",
-          data: null,
-        };
+    const updateData = {};
+
+    if (invoiceNumber !== undefined) {
+      const normalizedInvoiceNumber = invoiceNumber
+        ? String(invoiceNumber).trim()
+        : null;
+
+      if (normalizedInvoiceNumber) {
+        const existingPurchase = await findConflictingInvoice(
+          normalizedInvoiceNumber,
+          { excludeId: purchase.id, transaction },
+        );
+        if (existingPurchase) {
+          await transaction.rollback();
+          return invoiceConflictResponse(existingPurchase);
+        }
       }
+
+      updateData.invoiceNumber = normalizedInvoiceNumber;
     }
 
-    // Update purchase
-    const updateData = {};
     if (supplierId) updateData.supplierId = supplierId;
     if (invoiceDate) updateData.invoiceDate = invoiceDate;
-    if (invoiceNumber) updateData.invoiceNumber = invoiceNumber;
     if (paymentTerms) updateData.paymentTerms = paymentTerms;
     if (accountId) updateData.accountId = accountId;
     if (discountAmount !== undefined)
@@ -441,11 +492,6 @@ const completePurchase = async (req) => {
       };
     }
 
-    await purchase.update(
-      { status: "completed", paymentDate: new Date() },
-      { transaction },
-    );
-
     if (purchase.paymentTerms !== "credit") {
       const account = await accountModel.findByPk(purchase.accountId, {
         transaction,
@@ -461,10 +507,8 @@ const completePurchase = async (req) => {
         };
       }
 
-      // Refreshing the account to get the latest balance
       await account.reload({ transaction });
 
-      // Convert to numbers for proper comparison
       const availableBalance = parseFloat(account.currentBalance);
       const requiredAmount = parseFloat(purchase.totalAmount);
 
@@ -477,11 +521,17 @@ const completePurchase = async (req) => {
           data: null,
         };
       }
+
       await account.decrement("currentBalance", {
         by: purchase.totalAmount,
         transaction,
       });
     }
+
+    await purchase.update(
+      { status: "completed", paymentDate: new Date() },
+      { transaction },
+    );
 
     const result = await purchaseModel.findByPk(purchase.id, {
       include: [

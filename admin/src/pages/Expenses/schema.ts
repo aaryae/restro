@@ -5,9 +5,15 @@ export const ExpenseSchema = z.object({
     required_error: "Payment method is required",
   }),
   accountId: z.string().min(1, "Payment source is required"),
-  amount: z.coerce
-    .number({ message: "Amount must be a number" })
-    .positive("Amount must be positive"),
+  amount: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? undefined : val),
+    z.coerce
+      .number({
+        required_error: "Amount is required",
+        invalid_type_error: "Amount must be a number",
+      })
+      .positive("Amount must be positive"),
+  ),
   categoryId: z.string().min(1, "Category is required"),
   supplierId: z.string().optional(),
   remarks: z.string().optional().or(z.literal("")),

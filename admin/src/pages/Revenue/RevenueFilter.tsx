@@ -8,8 +8,7 @@ import Select from "@/components/Select";
 interface RevenueFilterPropsType {
   start: string;
   end: string;
-  paymentStatus: string;
-  orderStatus: string;
+  paymentMethod: string;
   cash_or_credit: string;
 }
 
@@ -64,10 +63,10 @@ export default function RevenueFilter({
     setShowDatePicker(false);
   };
 
-  const handleCashOrCreditChange = (cash_or_credit: string) => {
+  const handlePaymentMethodChange = (paymentMethod: string) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      cash_or_credit,
+      paymentMethod,
     });
   };
 
@@ -146,14 +145,15 @@ export default function RevenueFilter({
 
         <div className="w-[160px]">
           <Select
-            id="cash_or_credit"
+            id="paymentMethod"
             label="Payment method"
-            value={queryStringOptions.cash_or_credit}
-            onValueChange={handleCashOrCreditChange}
+            value={queryStringOptions.paymentMethod}
+            onValueChange={handlePaymentMethodChange}
             options={[
               { value: "", label: "All" },
               { value: "cash", label: "Cash" },
-              { value: "credit", label: "Credit" },
+              { value: "card", label: "Card" },
+              { value: "online", label: "Online" },
             ]}
             triggerClassName="h-8 text-[12px]"
           />

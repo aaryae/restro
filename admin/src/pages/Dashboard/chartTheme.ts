@@ -76,3 +76,30 @@ export const chartGridStroke = "#e2e8f0";
 
 /** Tooltip / bar hover highlight */
 export const chartCursorFill = "rgba(127, 29, 29, 0.06)";
+
+export function truncateChartLabel(label: string, maxLength: number) {
+  const text = String(label || "").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(maxLength - 1, 1))}…`;
+}
+
+export function getBarXAxisConfig(labels: string[], isMobile: boolean) {
+  const count = labels.length;
+  const maxLabelLength = labels.reduce(
+    (max, label) => Math.max(max, String(label || "").length),
+    0,
+  );
+
+  if (isMobile) {
+    const maxChars = count >= 6 ? 7 : count >= 4 ? 9 : 11;
+    const angle = count > 2 || maxLabelLength > 8 ? -55 : -40;
+    const height = angle <= -55 ? 78 : 64;
+    return { maxChars, angle, height, bottom: height - 24 };
+  }
+
+  const needsAngle = count > 4 || maxLabelLength > 12;
+  const angle = needsAngle ? -28 : count > 3 ? -18 : 0;
+  const height = angle !== 0 ? 58 : 36;
+  const maxChars = angle !== 0 ? 14 : 20;
+  return { maxChars, angle, height, bottom: angle !== 0 ? 18 : 8 };
+}

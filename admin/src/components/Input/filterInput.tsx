@@ -24,7 +24,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={cn(
-            "peer w-full px-3 py-3 border border-gray-300 rounded-md bg-white transition-all duration-200 ease-in-out",
+            "peer h-[42px] w-full rounded-md border border-gray-300 bg-white px-3 text-sm transition-all duration-200 ease-in-out",
             "focus:border-[0.5px] focus:border-inputBg focus:ring-[0.5px] focus:ring-inputBg focus:outline-none",
             "placeholder-transparent",
             icon && "pl-10",
@@ -40,10 +40,10 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
               "absolute left-3 transition-all duration-200 ease-in-out",
               isFocused || hasValue
                 ? "top-2 text-black"
-                : "top-3 text-gray-500",
+                : "top-2.5 text-gray-500",
             )}
           >
-            <div className="h-4 w-4 mt-[4px]">{icon}</div>
+            <div className="mt-0.5 h-4 w-4">{icon}</div>
           </div>
         )}
 
@@ -54,7 +54,7 @@ export const FilterInput = forwardRef<HTMLInputElement, FloatingInputProps>(
             icon && "left-10",
             isFocused || hasValue
               ? "-top-2 text-xs text-black font-medium"
-              : "top-3 text-base",
+              : "top-2.5 text-sm",
           )}
         >
           {label}

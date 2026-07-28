@@ -31,20 +31,14 @@ import {
   ColorThumb,
   parseColor,
   Label,
-  SliderOutput,
   SliderTrack,
   FieldError,
 } from "react-aria-components";
 import isValidHex from "@/utils/isValidHex";
 import { PRIMARY_COLOR } from "@/constants/projectConstants";
+import { Building2, ImageIcon, Palette } from "lucide-react";
 
 type SettingFormType = z.infer<typeof SettingSchema>;
-
-interface SocialType {
-  social_title: string;
-  social_url: string;
-  fav_icon: string;
-}
 
 export default function Settings() {
   const dispatch = useDispatch();
@@ -58,37 +52,35 @@ export default function Settings() {
     setValue,
     setError,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<SettingFormType>({
     resolver: zodResolver(SettingSchema),
     defaultValues: {
-      primaryColor: PRIMARY_COLOR, // Default color matching initial colorValue
+      primaryColor: PRIMARY_COLOR,
     },
   });
 
-  // State for image
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
-  const [isFaviconOpen, setIsFavIconOpen] = useState<boolean>(false);
-  const [isBrandingImage, setIsBrandingImage] = useState<boolean>(false);
-  const [isBrandingFooterImage, setIsBrandingFooterImage] =
-    useState<boolean>(false);
+  const [isFaviconOpen, setIsFavIconOpen] = useState(false);
+  const [isBrandingImage, setIsBrandingImage] = useState(false);
+  const [isBrandingFooterImage, setIsBrandingFooterImage] = useState(false);
 
   const fav_icon = watch("fav_icon");
   const brandingImage = watch("brandingImage");
   const brandingFooterImage = watch("brandingFooterImage");
+  const primaryColor = watch("primaryColor");
 
   const {
     data: settings,
     isSuccess: success,
     isLoading: loading,
-    refetch,
   } = useGetSettingQuery("");
   const [updateSetting] = useUpdateSettingMutation();
 
   const [colorValue, setColorValue] = React.useState(
     parseColor(getValues("primaryColor") || "#5100FF"),
   );
-  const [colorFieldValue, setColorFieldValue] = useState<string>("");
+  const [colorFieldValue, setColorFieldValue] = useState("");
 
   useEffect(() => {
     if (settings?.data) {
@@ -101,7 +93,7 @@ export default function Settings() {
         }
       }
     }
-  }, [refetch, reset, success]);
+  }, [reset, settings?.data, success]);
 
   const handleConfirmImage = (field: string) => {
     switch (field) {
@@ -121,6 +113,13 @@ export default function Settings() {
         break;
     }
     dispatch(clearSelectedMedia());
+  };
+
+  const applyColor = (value: typeof colorValue) => {
+    setColorValue(value);
+    setValue("primaryColor", value.toString("hex").toUpperCase(), {
+      shouldValidate: true,
+    });
   };
 
   const onSubmit = async (data: SettingFormType) => {
@@ -143,76 +142,96 @@ export default function Settings() {
   };
 
   if (loading) {
-    return <Spinner className="flex justify-center items-center h-full" />;
+    return <Spinner className="flex h-full items-center justify-center" />;
   }
 
   return (
     <form
-      className="flex flex-col gap-[2rem]"
+      className="flex min-w-0 w-full flex-col gap-5 pb-6"
       onSubmit={handleSubmit(onSubmit)}
     >
-      {/* Brands */}
-      <div className="shadow-xl rounded-[0.5rem]">
-        <h2 className="text-start w-full p-[1rem]">
-          {translate("Brand Setting")}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[1rem] px-[1rem] pb-[3rem] pt-[1rem]">
+      <div className="min-w-0">
+        <h1 className="text-lg font-semibold text-slate-800 sm:text-xl">
+          {translate("Company Settings")}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Update your brand details, contact info, logos, and theme color.
+        </p>
+      </div>
+
+      {/* Brand details */}
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor">
+            <Building2 size={18} strokeWidth={2} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-slate-800">
+              {translate("Brand Setting")}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Business identity and contact information
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 xl:grid-cols-3">
           <Input
             label="Brand Name"
             placeholder="Brand Name"
             type="text"
             {...register("brand_name")}
             error={errors?.brand_name?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Email"
             placeholder="Email"
             type="text"
             {...register("email")}
             error={errors?.email?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Primary Phone"
             placeholder="Primary Phone Number"
             type="text"
             {...register("primary_phone")}
             error={errors?.primary_phone?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Secondary Phone"
             placeholder="Secondary Phone"
             type="text"
             {...register("secondary_phone")}
             error={errors?.secondary_phone?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Address"
             placeholder="Address"
             type="text"
             {...register("address")}
             error={errors?.address?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Footer Description"
             placeholder="Footer Description"
             type="text"
             {...register("footer_desc")}
             error={errors?.footer_desc?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Google Analytics"
             placeholder="Google Analytics"
             type="text"
             {...register("google_analytics")}
             error={errors?.google_analytics?.message}
-          isRequired
-        />
+            isRequired
+          />
           <Input
             label="Map Url"
             placeholder="url from google map"
@@ -235,184 +254,193 @@ export default function Settings() {
             error={errors?.openingBalance?.message}
           />
         </div>
-      </div>
-      {/* Images */}
-      <div className="shadow-xl rounded-[0.5rem]">
-        <h2 className="text-start w-full p-[1rem]">
-          {translate("Image Settings")}
-        </h2>
-        <div className="flex flex-wrap lg:gap-[4rem] gap-[2rem] px-[1rem] py-[3rem]">
-          <div className="flex flex-col items-start">
-            <label className="font-[400] text-[0.75rem] text-start mb-[2px] text-[#626c78]">
-              {translate("Favicon Image")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <MediaComponent
-              title={<ImageInputUI type="large" image={fav_icon} />}
-              handleConfirmImage={() => handleConfirmImage("fav_icon")}
-              open={isFaviconOpen}
-              setOpen={setIsFavIconOpen}
-            />
-          </div>
-          <div className="flex flex-col items-start">
-            <label className="font-[400] text-[0.75rem] text-start mb-[2px] text-[#626c78]">
-              {translate("Branding Image")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <MediaComponent
-              title={<ImageInputUI type="large" image={brandingImage} />}
-              handleConfirmImage={() => handleConfirmImage("brandingImage")}
-              open={isBrandingImage}
-              setOpen={setIsBrandingImage}
-            />
-          </div>
-          <div className="flex flex-col items-start">
-            <label className="font-[400] text-[0.75rem] text-start mb-[2px] text-[#626c78]">
-              {translate("Footer Branding Image")}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <MediaComponent
-              title={<ImageInputUI type="large" image={brandingFooterImage} />}
-              handleConfirmImage={() =>
-                handleConfirmImage("brandingFooterImage")
-              }
-              open={isBrandingFooterImage}
-              setOpen={setIsBrandingFooterImage}
-            />
-          </div>
-          <div className="flex flex-col items-start">
-            <label className="font-[400] text-[0.75rem] text-start mb-[2px] text-[#626c78]">
-              {translate("Primary Color")}{" "}
-            </label>
-            <ColorPicker
-              value={colorValue}
-              onChange={(value) => {
-                setColorValue(value);
-                setValue("primaryColor", value.toString("hex").toUpperCase(), {
-                  shouldValidate: true,
-                });
-              }}
-            >
-              <DialogTrigger>
-                <AriaBtn className="flex items-center gap-3 px-4 py-2">
-                  <ColorSwatch className="size-8 rounded" />
-                  <span className="text-sm font-medium">Primary Color</span>
-                </AriaBtn>
-                <Popover
-                  placement="bottom start"
-                  className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-64 sm:w-80 transition-all duration-200 ease-in-out"
-                >
-                  <Dialog className="flex flex-col gap-4">
-                    <ColorArea
-                      colorSpace="hsb"
-                      xChannel="saturation"
-                      yChannel="brightness"
-                      value={colorValue}
-                      onChange={(value) => {
-                        setColorValue(value);
-                        setValue(
-                          "primaryColor",
-                          value.toString("hex").toUpperCase(),
-                          {
-                            shouldValidate: true,
-                          },
-                        );
-                      }}
-                      className="size-48 sm:size-64 rounded-md"
-                    >
-                      <ColorThumb
-                        className={`size-8 rounded-full border-2 border-white`}
-                      >
-                        <div className="size-full rounded-full border-2 border-black"></div>
-                      </ColorThumb>
-                    </ColorArea>
-                    <ColorSlider
-                      colorSpace="hsb"
-                      channel="hue"
-                      value={colorValue}
-                      onChange={(value) => {
-                        setColorValue(value);
-                        setValue(
-                          "primaryColor",
-                          value.toString("hex").toUpperCase(),
-                          {
-                            shouldValidate: true,
-                          },
-                        );
-                      }}
-                      className={`w-full h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-cyan-500 to-blue-500`}
-                    >
-                      <SliderTrack className={`w-full h-4 relative`}>
-                        <ColorThumb
-                          className={`size-8 absolute top-[50%] translate-y-[50%] rounded-full border-2 border-white`}
-                        >
-                          <div className="size-full rounded-full border-2 border-black"></div>
-                        </ColorThumb>
-                      </SliderTrack>
-                    </ColorSlider>
-                    <ColorField
-                      value={colorValue}
-                      onChange={(value) => {
-                        setColorValue(value);
-                        setValue(
-                          "primaryColor",
-                          value.toString("hex").toUpperCase(),
-                          {
-                            shouldValidate: true,
-                          },
-                        );
-                      }}
-                      className="flex flex-col gap-1"
-                    >
-                      <Label className="text-sm font-medium text-gray-700">
-                        Hex Color
-                      </Label>
-                      <Input
-                        value={
-                          colorFieldValue.trim().length > 0
-                            ? colorFieldValue
-                            : colorValue.toString("hex").toUpperCase()
-                        }
-                        onChange={(e) => {
-                          const hex = e.target.value.replace("#", "");
-                          setColorFieldValue(hex);
-                          if (isValidHex(hex)) {
-                            const newColor = parseColor(`#${hex}`);
-                            setColorValue(newColor);
-                            setValue(
-                              "primaryColor",
-                              newColor.toString("hex").toUpperCase(),
-                              {
-                                shouldValidate: true,
-                              },
-                            );
-                          }
-                        }}
-                        placeholder="#RRGGBB"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors duration-150"
-                      />
-                      <FieldError className="text-sm text-red-500">
-                        {errors?.primaryColor?.message}
-                      </FieldError>
-                    </ColorField>
-                  </Dialog>
-                </Popover>
-              </DialogTrigger>
-            </ColorPicker>
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <Button type="submit" className="submit-button w-fit">
-        <div className="flex justify-center items-center gap-[0.5rem] text-white px-[1.5rem] py-[0.5rem]">
-          {translate("Submit")}
+      {/* Images & theme */}
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+            <ImageIcon size={18} strokeWidth={2} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-slate-800">
+              {translate("Image Settings")}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Logos, favicon, and brand color
+            </p>
+          </div>
         </div>
-      </Button>
+
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 xl:grid-cols-4">
+          <ImageField
+            label={translate("Favicon Image")}
+            required
+            open={isFaviconOpen}
+            setOpen={setIsFavIconOpen}
+            image={fav_icon}
+            onConfirm={() => handleConfirmImage("fav_icon")}
+          />
+          <ImageField
+            label={translate("Branding Image")}
+            required
+            open={isBrandingImage}
+            setOpen={setIsBrandingImage}
+            image={brandingImage}
+            onConfirm={() => handleConfirmImage("brandingImage")}
+          />
+          <ImageField
+            label={translate("Footer Branding Image")}
+            required
+            open={isBrandingFooterImage}
+            setOpen={setIsBrandingFooterImage}
+            image={brandingFooterImage}
+            onConfirm={() => handleConfirmImage("brandingFooterImage")}
+          />
+
+          <div className="flex min-w-0 flex-col">
+            <label className="mb-2 text-left text-xs font-medium text-slate-600">
+              {translate("Primary Color")}
+            </label>
+            <div className="flex min-h-[11.5rem] flex-1 flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
+                  <Palette size={18} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800">
+                    Theme color
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Used across buttons and accents
+                  </p>
+                </div>
+              </div>
+
+              <ColorPicker value={colorValue} onChange={applyColor}>
+                <DialogTrigger>
+                  <AriaBtn className="mt-4 inline-flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-white">
+                    <ColorSwatch className="h-9 w-9 shrink-0 rounded-lg shadow-sm ring-1 ring-black/5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-slate-800">
+                        {translate("Primary Color")}
+                      </span>
+                      <span className="block truncate font-mono text-xs text-slate-500">
+                        {(primaryColor || colorValue.toString("hex")).toUpperCase()}
+                      </span>
+                    </div>
+                  </AriaBtn>
+                  <Popover
+                    placement="bottom start"
+                    className="z-50 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
+                  >
+                    <Dialog className="flex flex-col gap-4 outline-none">
+                      <ColorArea
+                        colorSpace="hsb"
+                        xChannel="saturation"
+                        yChannel="brightness"
+                        value={colorValue}
+                        onChange={applyColor}
+                        className="aspect-square w-full max-w-[16rem] rounded-lg"
+                      >
+                        <ColorThumb className="size-7 rounded-full border-2 border-white shadow">
+                          <div className="size-full rounded-full border border-black/40" />
+                        </ColorThumb>
+                      </ColorArea>
+                      <ColorSlider
+                        colorSpace="hsb"
+                        channel="hue"
+                        value={colorValue}
+                        onChange={applyColor}
+                        className="h-4 w-full rounded-full"
+                      >
+                        <SliderTrack className="relative h-4 w-full rounded-full bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444)]">
+                          <ColorThumb className="absolute top-1/2 size-7 -translate-y-1/2 rounded-full border-2 border-white shadow">
+                            <div className="size-full rounded-full border border-black/40" />
+                          </ColorThumb>
+                        </SliderTrack>
+                      </ColorSlider>
+                      <ColorField
+                        value={colorValue}
+                        onChange={applyColor}
+                        className="flex flex-col gap-1"
+                      >
+                        <Label className="text-sm font-medium text-slate-700">
+                          Hex Color
+                        </Label>
+                        <Input
+                          value={
+                            colorFieldValue.trim().length > 0
+                              ? colorFieldValue
+                              : colorValue.toString("hex").toUpperCase()
+                          }
+                          onChange={(e) => {
+                            const hex = e.target.value.replace("#", "");
+                            setColorFieldValue(hex);
+                            if (isValidHex(hex)) {
+                              applyColor(parseColor(`#${hex}`));
+                            }
+                          }}
+                          placeholder="#RRGGBB"
+                        />
+                        <FieldError className="text-sm text-red-500">
+                          {errors?.primaryColor?.message}
+                        </FieldError>
+                      </ColorField>
+                    </Dialog>
+                  </Popover>
+                </DialogTrigger>
+              </ColorPicker>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex justify-end pt-1">
+        <Button
+          type="submit"
+          className="submit-button inline-flex h-10 w-fit items-center gap-2 rounded-lg px-5 text-sm font-medium"
+          disabled={isSubmitting}
+          isLoading={isSubmitting}
+        >
+          {isSubmitting ? "Saving..." : translate("Submit")}
+        </Button>
+      </div>
     </form>
   );
 }
 
-const ImageInputUI = ({ type, image }: { type: string; image?: string }) => {
+function ImageField({
+  label,
+  required,
+  open,
+  setOpen,
+  image,
+  onConfirm,
+}: {
+  label: string;
+  required?: boolean;
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  image?: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <label className="mb-2 text-left text-xs font-medium text-slate-600">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <MediaComponent
+        title={<ImageInputUI image={image} />}
+        handleConfirmImage={onConfirm}
+        open={open}
+        setOpen={setOpen}
+      />
+    </div>
+  );
+}
+
+function ImageInputUI({ image }: { image?: string }) {
   const translate = useTranslation();
   const src = image ? buildAssetUrl(image) : "";
   const [failed, setFailed] = React.useState(false);
@@ -424,32 +452,29 @@ const ImageInputUI = ({ type, image }: { type: string; image?: string }) => {
   const showPreview = Boolean(src) && !failed;
 
   return (
-    <>
-      <div
-        className={`flex h-[180px] items-center justify-center rounded-[6px] border border-dashed border-[#C9CBD1] bg-white ${
-          type === "small" ? "w-[147px]" : "w-[307px]"
-        }`}
-      >
+    <div className="w-full text-left">
+      <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 transition hover:border-slate-400 hover:bg-slate-100/80 sm:h-44">
         {showPreview ? (
           <img
             src={src}
             alt="Preview"
-            className="max-h-[140px] w-full object-contain px-4 py-3"
+            className="max-h-full w-full object-contain p-3"
             onError={() => setFailed(true)}
           />
         ) : (
-          <img
-            src={galleryIcon}
-            alt="Gallery Icon"
-            className="h-[3rem] w-[5rem] object-contain"
-          />
+          <div className="flex flex-col items-center gap-2 px-3 text-slate-400">
+            <img
+              src={galleryIcon}
+              alt=""
+              className="h-10 w-14 object-contain opacity-70"
+            />
+            <span className="text-[11px] font-medium">Click to upload</span>
+          </div>
         )}
       </div>
-      {type === "large" && (
-        <p className="mt-[2px] text-start text-[0.75rem] font-[400] text-[#626c78]">
-          {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
-        </p>
-      )}
-    </>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+        {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
+      </p>
+    </div>
   );
-};
+}

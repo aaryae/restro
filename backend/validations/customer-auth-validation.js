@@ -9,11 +9,25 @@ const isEmpty = require("../helpers/is-empty-helper");
 
 const createValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    email: joi.string().optional().label("email"),
-    password: joi.string().required().min(1).label("password"),
-    firstName: joi.string().required().label("firstName"),
-    lastName: joi.string().optional().label("lastName"),
-    mobileNo: joi.string().required().min(10).label("mobileNo"),
+    email: joi.string().optional().allow("", null).label("email"),
+    password: joi.string().optional().min(1).label("password"),
+    firstName: joi.string().optional().allow("", null).label("firstName"),
+    lastName: joi.string().optional().allow("", null).label("lastName"),
+    mobileNo: joi
+      .string()
+      .required()
+      .pattern(/^\d+$/)
+      .min(10)
+      .max(15)
+      .messages({
+        "any.required": "Mobile number is required",
+        "string.empty": "Mobile number is required",
+        "string.pattern.base": "Mobile number must contain only digits",
+        "string.min": "Mobile number must be at least 10 digits",
+        "string.max": "Mobile number cannot exceed 15 digits",
+      })
+      .label("mobileNo"),
+    createdAt: joi.any().optional(),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
@@ -35,7 +49,18 @@ const updateValidation = async (req, res, next) => {
     password: joi.string().optional().min(1).label("password"),
     firstName: joi.string().optional().label("firstName"),
     lastName: joi.string().optional().label("lastName"),
-    mobileNo: joi.string().optional().min(10).label("mobileNo"),
+    mobileNo: joi
+      .string()
+      .optional()
+      .pattern(/^\d+$/)
+      .min(10)
+      .max(15)
+      .messages({
+        "string.pattern.base": "Mobile number must contain only digits",
+        "string.min": "Mobile number must be at least 10 digits",
+        "string.max": "Mobile number cannot exceed 15 digits",
+      })
+      .label("mobileNo"),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {

@@ -47,8 +47,11 @@ export const PurchaseSchema = z.object({
 });
 
 export const PurchaseFilterSchema = z.object({
-  // Accept Date object from DateInput or empty string
-  date: z.union([z.date(), z.string()]).optional().or(z.literal("")),
+  date: z
+    .union([z.date(), z.string().min(1)])
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   supplierName: z.string().optional().or(z.literal("")),
   status: z.string().optional().or(z.literal("")),
 });

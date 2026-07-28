@@ -23,7 +23,9 @@ const createOrderValidation = async (req, res, next) => {
           "any.required": "Please select a table for dine-in orders",
           "number.base": "Please select a table for dine-in orders",
         }),
-        otherwise: joi.forbidden(),
+        // Optional for takeaway so a dine-in customer can add a takeaway
+        // order that still stays on the same table/session.
+        otherwise: joi.optional(),
       }),
     customerDetails: joi
       .object({
@@ -263,7 +265,7 @@ const updateOrderItemsValidation = async (req, res, next) => {
           "any.required": "Please select a table for dine-in orders",
           "number.base": "Please select a table for dine-in orders",
         }),
-        otherwise: joi.forbidden(),
+        otherwise: joi.optional(),
       }),
   });
   const errors = await validateRequestBody(req, res, joiModel);

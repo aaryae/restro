@@ -171,23 +171,37 @@ const update = async (id, data) => {
 };
 
 const deleteById = async (id, req) => {
+  const supplierId = Number(id);
+
   try {
     // Prevent delete if supplier is referenced in purchases or expenses
     const [purchaseCount, expenseCount] = await Promise.all([
-      purchaseModel.count({ where: { supplierId: id } }),
-      expenseModel.count({ where: { supplierId: id } }),
+      purchaseModel.count({ where: { supplierId } }),
+      expenseModel.count({ where: { supplierId } }),
     ]);
 
     if (purchaseCount > 0 || expenseCount > 0) {
+      const linkedTo = [];
+      if (purchaseCount > 0) {
+        linkedTo.push(
+          `${purchaseCount} purchase record${purchaseCount > 1 ? "s" : ""}`,
+        );
+      }
+      if (expenseCount > 0) {
+        linkedTo.push(
+          `${expenseCount} expense record${expenseCount > 1 ? "s" : ""}`,
+        );
+      }
+
       return {
-        status: 406,
+        status: 400,
         success: false,
-        message: "Supplier is used and cannot be deleted",
+        message: `This supplier cannot be deleted because it is linked to ${linkedTo.join(" and ")}.`,
         data: null,
       };
     }
 
-    const supplier = await supplierModel.findByPk(id);
+    const supplier = await supplierModel.findByPk(supplierId);
     if (!supplier) {
       return {
         ...generalConstant.EN.SUPPLIER.DELETE_FAILURE,
@@ -211,6 +225,18 @@ const deleteById = async (id, req) => {
       data: null,
     };
   } catch (error) {
+    if (
+      error?.name === "SequelizeForeignKeyConstraintError" ||
+      error?.original?.code === "ER_ROW_IS_REFERENCED_2"
+    ) {
+      return {
+        status: 400,
+        success: false,
+        message:
+          "This supplier cannot be deleted because it is linked to purchases or expenses.",
+        data: null,
+      };
+    }
     throw error;
   }
 };

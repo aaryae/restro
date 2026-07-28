@@ -23,6 +23,9 @@ type DeleteModalProps = {
   itemId?: number | string | null;
   /** Currently selected delete id from the parent */
   activeId?: number | string | null;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
 };
 
 export default function DeleteModal({
@@ -33,6 +36,9 @@ export default function DeleteModal({
   compact = false,
   itemId,
   activeId,
+  title,
+  description,
+  confirmLabel,
 }: DeleteModalProps) {
   const translate = useTranslation();
 
@@ -74,12 +80,16 @@ export default function DeleteModal({
             <AlertTriangle size={22} strokeWidth={2} />
           </span>
           <DialogTitle className="text-base sm:text-center">
-            {translate("Do you want to delete this Item?")}
+            {title
+              ? translate(title)
+              : translate("Do you want to delete this Item?")}
           </DialogTitle>
           <DialogDescription className="sm:text-center">
-            {translate(
-              "Are you sure you want to delete this item? You can restore it later from Settings → Recently Deleted (kept for 30 days).",
-            )}
+            {description
+              ? translate(description)
+              : translate(
+                  "Are you sure you want to delete this item? You can restore it later from Settings → Recently Deleted (kept for 30 days).",
+                )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-center">
@@ -95,7 +105,7 @@ export default function DeleteModal({
             className="inline-flex h-10 items-center justify-center rounded-lg bg-rose-600 px-5 text-sm font-medium text-white transition hover:bg-rose-700"
             onClick={handleConfirmDelete}
           >
-            {translate("Delete")}
+            {confirmLabel ? translate(confirmLabel) : translate("Delete")}
           </button>
         </DialogFooter>
       </DialogContent>

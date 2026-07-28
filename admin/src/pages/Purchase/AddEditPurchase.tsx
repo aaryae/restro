@@ -9,7 +9,7 @@ import { useAppSelector } from "@/redux/store/hooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
 import { buildQueryString } from "@/utils/generalHelper";
-import { useGetApiQuery } from "@/redux/services/crudApi";
+import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
 import { useGetListAllSupplierQuery } from "@/redux/services/supplier";
 import {
   useCreatePurchaseMutation,
@@ -34,6 +34,33 @@ import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import { Controller } from "react-hook-form";
 import Select from "@/components/Select";
+import Toast from "@/components/Toast";
+
+const computeBackendPurchaseTotal = (items: PurchaseItemInput[]) =>
+  items.reduce((total, item) => {
+    const amount = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+    const tax = item.isTaxable !== false ? amount * 0.13 : 0;
+    return total + amount + tax;
+  }, 0);
+
+const getInsufficientBalanceMessage = (
+  accounts: any[],
+  accountId: number | string,
+  requiredAmount: number,
+  paymentTerm: string,
+) => {
+  if (paymentTerm === "credit") return null;
+
+  const account = accounts.find((row) => Number(row.id) === Number(accountId));
+  if (!account) return "Selected payment account was not found.";
+
+  const available = Number(account.currentBalance || 0);
+  if (available < requiredAmount) {
+    return `Insufficient account balance. Available: ${available.toFixed(2)}, Required: ${requiredAmount.toFixed(2)}`;
+  }
+
+  return null;
+};
 
 type ItemRow = PurchaseItemInput;
 
@@ -61,8 +88,8 @@ const AddEditPurchase: React.FC = () => {
         {
           particulars: "",
           categoryId: "",
-          qty: 1,
-          rate: 0,
+          qty: undefined as any,
+          rate: undefined as any,
           discountPercent: 0,
           taxPercent: 13,
           isTaxable: false,
@@ -81,6 +108,7 @@ const AddEditPurchase: React.FC = () => {
   const [updatePurchase, { isLoading: updating }] =
     useUpdatePurchaseByIdMutation();
   const [completePurchase] = useCompletePurchaseByIdMutation();
+  const [deletePurchase] = useDeleteApiMutation();
   const { data: purchaseData, isSuccess: purchaseFetched } =
     useGetPurchaseByIdQuery(id as string, { skip: !isEdit });
   const isCompleted = useMemo(() => {
@@ -104,7 +132,7 @@ const AddEditPurchase: React.FC = () => {
   } | null>(null);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   // Extra summary discount amount applied on top of line totals
-  const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(0);
+  const [summaryDiscountPct, setSummaryDiscountPct] = useState<string>("");
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
 
   const closeDialog = () => {
@@ -191,15 +219,20 @@ const AddEditPurchase: React.FC = () => {
     url: `${ACCOUNT_URL}list?page=1&limit=100`,
   });
 
+  const accountRows = useMemo(
+    () => AccountsData?.data?.data || [],
+    [AccountsData],
+  );
+
   useEffect(() => {
-    if (AccountsData?.data?.data) {
-      const accountOptions = AccountsData.data.data.map((account: any) => ({
+    if (accountRows.length > 0) {
+      const accountOptions = accountRows.map((account: any) => ({
         value: account.id,
         label: account.name,
       }));
       setAccounts(accountOptions);
     }
-  }, [AccountsData]);
+  }, [accountRows]);
 
   // Purchase Categories dropdown
 
@@ -303,9 +336,10 @@ const AddEditPurchase: React.FC = () => {
   );
 
   // Summary discount amount (fixed amount, capped to grand total)
-  const summaryDiscountAmount = isNaN(summaryDiscountPct)
+  const summaryDiscountValue = Number(summaryDiscountPct || 0);
+  const summaryDiscountAmount = Number.isNaN(summaryDiscountValue)
     ? 0
-    : Math.max(0, Math.min(totals.grand, Number(summaryDiscountPct)));
+    : Math.max(0, Math.min(totals.grand, summaryDiscountValue));
   const grandAfterSummaryDiscount = Math.max(
     0,
     totals.grand - summaryDiscountAmount,
@@ -353,6 +387,23 @@ const AddEditPurchase: React.FC = () => {
       notes: undefined,
     } as any;
 
+    const purchaseTotal = computeBackendPurchaseTotal(data.items);
+
+    if (submitMode === "complete") {
+      const balanceError = getInsufficientBalanceMessage(
+        accountRows,
+        data.accountId,
+        purchaseTotal,
+        data.paymentTerm,
+      );
+      if (balanceError) {
+        Toast(balanceError, "error");
+        return;
+      }
+    }
+
+    let createdDraftId: number | null = null;
+
     try {
       if (isEdit) {
         const response = await updatePurchase({
@@ -372,20 +423,22 @@ const AddEditPurchase: React.FC = () => {
           body: payload,
         }).unwrap();
 
-        const createdId =
+        createdDraftId =
           (response as any)?.data?.id ??
           (response as any)?.data?.data?.id ??
-          (response as any)?.id;
+          (response as any)?.id ??
+          null;
 
         if (submitMode === "complete") {
-          if (!createdId) {
-            console.warn(
-              "Could not determine created purchase ID to complete.",
-              response,
+          if (!createdDraftId) {
+            Toast(
+              "Purchase was created but could not be completed automatically.",
+              "error",
             );
-          } else {
-            await completePurchase(createdId).unwrap();
+            return;
           }
+
+          await completePurchase(createdDraftId).unwrap();
         }
 
         handleResponse({
@@ -394,6 +447,13 @@ const AddEditPurchase: React.FC = () => {
         });
       }
     } catch (error: any) {
+      if (createdDraftId && submitMode === "complete") {
+        try {
+          await deletePurchase(`${PURCHASE_URL}${createdDraftId}`).unwrap();
+        } catch {
+          // Best-effort cleanup if completion fails after draft creation.
+        }
+      }
       handleError({ error });
     }
   };
@@ -414,7 +474,7 @@ const AddEditPurchase: React.FC = () => {
                 </h3>
                 <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 <div className="flex flex-col">
                   <label className="text-sm text-gray-700 mb-1 flex justify-start">
                     Invoice Date
@@ -435,13 +495,12 @@ const AddEditPurchase: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col relative">
-                  <div className="flex items-center gap-2 justify-between">
+                <div className="flex flex-col">
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                     <label className="text-sm text-gray-700 mb-1 flex justify-start">
                       Supplier
                     </label>
-                    <div className="relative">
-                      <div className="flex gap-2 absolute right-0 bottom-[-8px]">
+                    <div className="flex flex-wrap gap-2">
                         <CustomDialog
                           buttonTitle={
                             <button
@@ -475,7 +534,6 @@ const AddEditPurchase: React.FC = () => {
                         >
                           View All
                         </button>
-                      </div>
 
                       {/* View Suppliers Dialog */}
                       <CustomDialog
@@ -762,8 +820,8 @@ const AddEditPurchase: React.FC = () => {
                           particulars: "",
                           hsCode: "",
                           categoryId: "",
-                          qty: 1,
-                          rate: 0,
+                          qty: undefined as any,
+                          rate: undefined as any,
                           discountPercent: 0,
                           taxPercent: 13,
                           isTaxable: true,
@@ -793,8 +851,8 @@ const AddEditPurchase: React.FC = () => {
                         const row = items[idx] || {
                           particulars: "",
                           hsCode: "",
-                          qty: 0,
-                          rate: 0,
+                          qty: undefined as any,
+                          rate: undefined as any,
                           discountPercent: 0,
                           taxPercent: 13,
                         };
@@ -919,11 +977,11 @@ const AddEditPurchase: React.FC = () => {
                     </h3>
                   </div>
 
-                  {/* Stats grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {/* Summary grid */}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                       <div className="text-[11px] font-medium text-gray-500">
-                        Taxable Amount
+                        Taxable Items Total
                       </div>
                       <div className="mt-1 text-lg font-semibold text-blue-600">
                         {CurrencySign}
@@ -933,7 +991,7 @@ const AddEditPurchase: React.FC = () => {
 
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                       <div className="text-[11px] font-medium text-gray-500">
-                        Non-Taxable
+                        Non-Taxable Items Total
                       </div>
                       <div className="mt-1 text-lg font-semibold text-purple-600">
                         {CurrencySign}
@@ -954,9 +1012,7 @@ const AddEditPurchase: React.FC = () => {
                             max={totals.grand}
                             step="0.01"
                             value={summaryDiscountPct}
-                            onChange={(e) =>
-                              setSummaryDiscountPct(Number(e.target.value) || 0)
-                            }
+                            onChange={(e) => setSummaryDiscountPct(e.target.value)}
                             className="w-20 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-right text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                             title="Discount amount"
                             aria-label="Discount amount"
@@ -968,26 +1024,12 @@ const AddEditPurchase: React.FC = () => {
                         {summaryDiscountAmount.toFixed(2)}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-[11px] font-medium text-gray-500">
-                        Subtotal
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-gray-900">
-                        {CurrencySign}
-                        {totals.subtotal.toFixed(2)}
-                      </div>
-                    </div>
                   </div>
                   <div className="w-full sm:w-[48%] lg:w-[30%] xl:w-[20%] rounded-xl border border-amber-100 bg-amber-50 p-3 sm:p-4 shadow-sm mt-4">
                     <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
                       <div className="w-full sm:w-auto">
                         <div className="text-[12px] sm:text-[10px] font-medium text-amber-700">
-                          Tax (
-                          {watch("items").some((i) => i.isTaxable !== false)
-                            ? watch("items").find((i) => i.isTaxable !== false)
-                                ?.taxPercent || 13
-                            : 0}
-                          %)
+                          Tax (13%)
                         </div>
                         <div className="mt-1 font-semibold text-amber-700 text-lg">
                           {CurrencySign}
@@ -1009,28 +1051,10 @@ const AddEditPurchase: React.FC = () => {
                   {/* Divider */}
                   <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
-                  {/* Grand total row */}
-                  <div className="flex items-start justify-between gap-3 ">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
-                        Entry By: {username || "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[14px] font-bold text-gray-600">
-                        Grand Total
-                      </div>
-                      <div className="mt-1 text-2xl font-extrabold tracking-tight text-gray-900">
-                        {CurrencySign}
-                        {grandAfterSummaryDiscount.toFixed(2)}
-                      </div>
-                      {summaryDiscountAmount > 0 && (
-                        <div className="text-xs text-gray-500 line-through">
-                          {CurrencySign}
-                          {totals.grand.toFixed(2)}
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
+                      Entry By: {username || "-"}
+                    </span>
                   </div>
                 </div>
               </div>

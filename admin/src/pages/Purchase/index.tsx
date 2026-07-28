@@ -39,7 +39,7 @@ const Purchase: React.FC = () => {
     null,
   );
 
-  const { control, handleSubmit, reset, setValue, getValues } =
+  const { control, handleSubmit, reset, setValue } =
     useForm<PurchaseFilterInput>({
       resolver: zodResolver(PurchaseFilterSchema),
       defaultValues: {
@@ -49,10 +49,49 @@ const Purchase: React.FC = () => {
       },
     });
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
+
+  const toLocalDateString = (value: Date | string) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const normalizeFilters = (raw: Record<string, any>) => {
+    const next = { ...raw };
+    if (next.date) {
+      next.date = toLocalDateString(next.date);
+    }
+    return Object.fromEntries(
+      Object.entries(next).filter(
+        ([, value]) => value !== undefined && value !== null && value !== "",
+      ),
+    );
+  };
 
   const handleDateChange = (value: Date) => {
-    setValue("date", value);
+    setValue("date", value, { shouldDirty: true, shouldValidate: true });
     setSelectedDateFilter(null);
+  };
+
+  const applyFilters = (raw: Record<string, any>) => {
+    setFilters(normalizeFilters(raw));
+    setSelectedDateFilter(null);
+    handlePagination({ page: 1, limit: query.limit });
+  };
+
+  const handleClearFilters = () => {
+    reset({
+      date: undefined as any,
+      supplierName: "",
+      status: "",
+    });
+    setFilters({});
+    setSelectedDateFilter(null);
+    handlePagination({ page: 1, limit: query.limit });
   };
 
   const handleViewPurchase = (id: number) => {
@@ -68,7 +107,6 @@ const Purchase: React.FC = () => {
         Component: DateInput,
         control,
         handleChange: handleDateChange,
-        value: getValues("date"),
       },
       {
         name: "supplierName",
@@ -82,7 +120,8 @@ const Purchase: React.FC = () => {
         label: "Status",
         Component: FilterSelect,
         className: "w-full",
-        handleChange: (v: string) => setValue("status", v as any),
+        handleChange: (v: string) =>
+          setValue("status", v as any, { shouldDirty: true }),
         options: [
           { label: "Any", value: "" },
           { label: "Draft", value: "draft" },
@@ -92,28 +131,28 @@ const Purchase: React.FC = () => {
         control,
       },
     ],
-    [control, getValues],
+    [control],
   );
 
   const { Component } = PageFilterSample(
     filterFields,
     handleSubmit,
-    (query: Record<string, any>) => setFilters(query),
-    reset,
+    applyFilters,
+    handleClearFilters,
   );
-
-  const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
   const serverUrl = useMemo(() => {
     const search: Record<string, any> = {};
     if (filters?.date) {
-      const iso = new Date(filters.date).toISOString().slice(0, 10);
-      search.date = iso;
+      search.date =
+        typeof filters.date === "string"
+          ? filters.date
+          : toLocalDateString(filters.date);
     } else if (selectedDateFilter) {
       const today = new Date();
       const date =
         selectedDateFilter === "yesterday" ? subDays(today, 1) : today;
-      search.date = date.toISOString().slice(0, 10);
+      search.date = toLocalDateString(date);
     }
     if (filters?.status) {
       search.status = String(filters.status).toLowerCase();
@@ -393,8 +432,13 @@ const Purchase: React.FC = () => {
             onSelect={(value) => {
               setSelectedDateFilter(value);
               setValue("date", undefined as any);
+              setFilters({});
+              handlePagination({ page: 1, limit: query.limit });
             }}
-            onClear={() => setSelectedDateFilter(null)}
+            onClear={() => {
+              setSelectedDateFilter(null);
+              handlePagination({ page: 1, limit: query.limit });
+            }}
           />
         }
       />

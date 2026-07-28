@@ -46,13 +46,22 @@ export default function AddEditSupplier({
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
+  const controlKeys = new Set([
+    "Backspace",
+    "Delete",
+    "ArrowLeft",
+    "ArrowRight",
+    "Tab",
+    "Home",
+    "End",
+  ]);
 
   const {
     register,
     handleSubmit,
     setError,
     reset,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
   } = useForm<SupplierFormType>({
     resolver: zodResolver(SupplierSchema),
   });
@@ -73,8 +82,6 @@ export default function AddEditSupplier({
       navigate(SUPPLIER_LIST_ROUTE);
     }
   };
-
-  console.log("data", errors, isValid);
 
   const onSubmit = async (data: SupplierFormType) => {
     // Convert empty strings to null for nullable fields
@@ -180,9 +187,31 @@ export default function AddEditSupplier({
               </label>
               <div className="absolute left-3 top-10 text-gray-400"></div>
               <Input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={20}
                 placeholder="9800000000"
                 className="w-full pl-9"
-                {...register("contact_number")}
+                {...register("contact_number", {
+                  setValueAs: (value) =>
+                    typeof value === "string" ? value.replace(/\D/g, "") : value,
+                  onChange: (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, "");
+                  },
+                })}
+                onKeyDown={(e) => {
+                  if (controlKeys.has(e.key) || e.ctrlKey || e.metaKey) return;
+                  if (!/^\d$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData("text");
+                  if (!/^\d*$/.test(pasted)) {
+                    e.preventDefault();
+                  }
+                }}
                 error={errors.contact_number?.message}
               />
             </div>

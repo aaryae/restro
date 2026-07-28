@@ -200,7 +200,7 @@ export default function MediaComponent({
     }
   };
 
-  const handleDoubleClick = (id: number) => {
+  const handleOpenFolder = (id: number) => {
     setCurrentFolder(id);
   };
 
@@ -241,8 +241,12 @@ export default function MediaComponent({
       }}
     >
       <DialogTrigger asChild>
-        <button onClick={() => setOpen(true)} className="">
-          {translate(title)}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left"
+        >
+          {typeof title === "string" ? translate(title) : title}
         </button>
       </DialogTrigger>
       <DialogContent
@@ -339,15 +343,16 @@ export default function MediaComponent({
                   mediaCategory?.map(
                     (each: { id: number; name: string }, index: number) => (
                       <button
-                        key={index}
+                        key={each.id}
+                        type="button"
                         className="relative border w-full aspect-square flex flex-col items-center justify-center px-2 md:px-4 py-3 md:py-4 cursor-pointer group"
-                        onDoubleClick={() => handleDoubleClick(each.id)}
+                        onClick={() => handleOpenFolder(each.id)}
                         style={{ userSelect: "none" }}
                       >
                         {accessListFolder.includes("delete") && (
                           <HiTrash
                             size={18}
-                            className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
+                            className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteFolder(each.id);
@@ -357,7 +362,7 @@ export default function MediaComponent({
                         {accessListFolder.includes("edit") && (
                           <MdEditSquare
                             size={18}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
+                            className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEditClick(index);
@@ -366,11 +371,13 @@ export default function MediaComponent({
                         )}
                         <FaFolder
                           size={108}
-                          className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0"
+                          className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0 pointer-events-none"
                         />
                         <textarea
                           ref={(el) => (inputRefs.current[index] = el)}
-                          className="bg-inherit text-black w-full text-center text-xs sm:text-sm resize-none overflow-hidden break-words whitespace-pre-wrap"
+                          className={`bg-inherit text-black w-full text-center text-xs sm:text-sm resize-none overflow-hidden break-words whitespace-pre-wrap ${
+                            editingIndex !== index ? "pointer-events-none" : ""
+                          }`}
                           value={
                             inputValues[index] !== undefined
                               ? inputValues[index]
@@ -383,6 +390,7 @@ export default function MediaComponent({
                           onKeyDown={(e) =>
                             handleInputKeyDown(e, index, each.id)
                           }
+                          onClick={(e) => e.stopPropagation()}
                           rows={2}
                         />
                       </button>

@@ -163,8 +163,8 @@ const createOrder = async (req) => {
     let table = null;
     let sessionId = null;
 
-    // Handle table and session for dine-in orders
-    if (orderType === "dineIn") {
+    // Handle table and session for dine-in orders, or takeaway linked to a table
+    if (orderType === "dineIn" || (orderType === "takeaway" && tableId)) {
       table = await tableModel.findByPk(tableId, { transaction });
       if (!table) {
         await transaction.rollback();
@@ -356,6 +356,11 @@ const createOrder = async (req) => {
       orderData.tableId = tableId;
     } else if (orderType === "takeaway") {
       orderData.takeAwayName = takeAwayName;
+      // Keep takeaway on the same table session when placed for a dine-in guest
+      if (tableId) {
+        orderData.tableId = tableId;
+        orderData.sessionId = sessionId;
+      }
     }
 
     // Create the order
@@ -1662,10 +1667,11 @@ const checkoutOrder = async (req) => {
           };
         }
       } else {
-        // Takeaway: checkoutAll without a table -> all active takeaway orders
+        // Takeaway: checkoutAll without a table -> standalone takeaway orders only
         orders = await orderModel.findAll({
           where: {
             orderType: { [Op.like]: "%takeaway%" },
+            tableId: null,
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
           include: [
@@ -2251,7 +2257,12 @@ const listOrders = async (req) => {
     if (paymentMethod)
       filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
     if (orderType) filters.orderType = { [Op.like]: `%${orderType}%` };
-    if (tableId) filters.tableId = tableId;
+    if (tableId) {
+      filters.tableId = tableId;
+    } else if (orderType && String(orderType).toLowerCase().includes("takeaway")) {
+      // Standalone takeaway list: exclude takeaways already linked to a table session
+      filters.tableId = null;
+    }
 
     // if (orderDate) {
     //   const date = new Date(orderDate);
@@ -2366,12 +2377,8 @@ const updateOrderStatus = async (req) => {
       ]);
     }
 
-    // If order is being cancelled and it's a dine-in order with a table
-    if (
-      status === "cancelled" &&
-      order.orderType === "dineIn" &&
-      order.tableId
-    ) {
+    // If order is being cancelled and it's linked to a table
+    if (status === "cancelled" && order.tableId) {
       // Check if there are any other active orders for this table
       const activeOrdersCount = await orderModel.count({
         where: {
@@ -2582,10 +2589,9 @@ const updateOrderItemsStatus = async (req) => {
           },
         );
 
-        // If it's a dine-in order with a table, and we're marking the order as completed/cancelled
+        // If the order is linked to a table, and we're marking it completed/cancelled
         if (
           (status === "cancelled" || status === "completed") &&
-          orderItem.order?.orderType === "dineIn" &&
           orderItem.order?.tableId
         ) {
           try {

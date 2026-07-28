@@ -197,7 +197,7 @@ export default function TableList() {
           setIsOpen={setOpenDrawer}
           width="w-full"
           className="drawer-container"
-          contentClassName="p-0"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
         >
           <ViewTableOrder
             id={restroTableId}

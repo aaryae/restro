@@ -222,6 +222,37 @@ const deleteRevenue = async (req) => {
       };
     }
 
+    // Reverse account balance impact added during revenue creation
+    const account = await accountModel.findByPk(revenue.accountId, {
+      transaction,
+      lock: true,
+    });
+    if (!account) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: `Account not found for ID: ${revenue.accountId}`,
+      };
+    }
+
+    await account.reload({ transaction });
+    const currentBalance = Number(account.currentBalance) || 0;
+    const revenueAmount = Number(revenue.amount) || 0;
+    const nextBalance = currentBalance - revenueAmount;
+
+    if (nextBalance < 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message:
+          "Cannot delete revenue because it would make account balance negative",
+      };
+    }
+
+    await account.update({ currentBalance: nextBalance }, { transaction });
+
     // Delete the revenue entry
     await revenue.destroy({ transaction });
 

@@ -97,6 +97,12 @@ function formatLabel(value?: string | null) {
   return String(value).replace(/_/g, " ");
 }
 
+function formatStatusLabel(value?: string | null) {
+  const normalized = String(value || "").toLowerCase();
+  if (!normalized) return "—";
+  return normalized === "ready" ? "prepared" : normalized;
+}
+
 function getAddonsTotal(item: OrderItem) {
   if (!Array.isArray(item.addons) || item.addons.length === 0) return 0;
   return item.addons.reduce((sum, addonItem: any) => {
@@ -252,7 +258,7 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
                     <span
                       className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${statusStyles(item.status)}`}
                     >
-                      {formatLabel(item.status)}
+                      {formatStatusLabel(item.status)}
                     </span>
                   </div>
 

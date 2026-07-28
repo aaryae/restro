@@ -148,13 +148,17 @@ export default function Media() {
           {mediaCategory?.map(
             (each: { id: number; name: string }, index: number) => (
               <button
-                key={index}
+                key={each.id}
+                type="button"
                 className="relative border w-fit px-[1.5rem] pt-[1.5rem] pb-[1rem] cursor-pointer group"
-                onDoubleClick={() => navigate(`${MEDIA_LIST_ROUTE}${each.id}`)}
+                onClick={() => navigate(`${MEDIA_LIST_ROUTE}${each.id}`)}
                 style={{ userSelect: "none" }}
               >
                 {accessList.includes("delete") && (
-                  <div className="absolute top-[0.5rem] left-[0.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-red-500">
+                  <div
+                    className="absolute top-[0.5rem] left-[0.5rem] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <DeleteModal
                       open={open}
                       setOpen={setOpen}
@@ -167,8 +171,11 @@ export default function Media() {
                 )}
                 {accessList.includes("edit") && (
                   <MdEditSquare
-                    className="absolute top-[0.5rem] right-[0.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[#0090DD]"
-                    onClick={() => handleEditClick(index)} // Trigger edit mode and focus
+                    className="absolute top-[0.5rem] right-[0.5rem] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-[#0090DD]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(index);
+                    }}
                   />
                 )}
                 <FaFolder
@@ -177,7 +184,9 @@ export default function Media() {
                 />
                 <textarea
                   ref={(el) => (inputRefs.current[index] = el)}
-                  className="bg-inherit text-black w-[6rem] text-center resize-none overflow-hidden break-words whitespace-pre-wrap"
+                  className={`bg-inherit text-black w-[6rem] text-center resize-none overflow-hidden break-words whitespace-pre-wrap ${
+                    editingIndex !== index ? "pointer-events-none" : ""
+                  }`}
                   value={
                     inputValues[index] !== undefined
                       ? inputValues[index]
@@ -186,6 +195,7 @@ export default function Media() {
                   disabled={editingIndex !== index}
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleInputKeyDown(e, index, each.id)}
+                  onClick={(e) => e.stopPropagation()}
                   rows={2}
                 />
               </button>

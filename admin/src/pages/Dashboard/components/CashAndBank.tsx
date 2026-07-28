@@ -3,6 +3,10 @@ import { CurrencySign } from "@/constants";
 import { PiggyBank, Wallet, Building2 } from "lucide-react";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import SummaryCard from "@/components/SummaryCard";
+import {
+  formatCurrencyAmount,
+  sumAccountBalances,
+} from "@/utils/formatCurrency";
 
 const accountTones = ["emerald", "sky", "violet", "teal", "indigo", "amber"] as const;
 
@@ -28,6 +32,7 @@ function CashAndBank() {
   }
 
   const accounts = totalAndBalancesData?.data?.accounts || [];
+  const totalBalance = sumAccountBalances(accounts);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -39,7 +44,7 @@ function CashAndBank() {
                 Total Balance
               </p>
               <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-slate-900 sm:text-3xl">
-                {`${CurrencySign}${totalAndBalancesData?.data?.totalBalance.toLocaleString()}`}
+                {`${CurrencySign}${formatCurrencyAmount(totalBalance)}`}
               </p>
               <p className="mt-1.5 text-[12px] text-slate-500">
                 Across {accounts.length} account
@@ -57,7 +62,8 @@ function CashAndBank() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {accounts.map((account: any, index: number) => {
             const isBank =
-              (account?.accountType || "").toLowerCase() === "bank";
+              (account?.accountType || account?.type || "").toLowerCase() ===
+              "bank";
             const Icon = isBank ? Building2 : Wallet;
             const tone = accountTones[index % accountTones.length];
 
@@ -65,7 +71,7 @@ function CashAndBank() {
               <SummaryCard
                 key={account.id}
                 title={account.name}
-                value={`${CurrencySign}${account.currentBalance.toLocaleString()}`}
+                value={`${CurrencySign}${formatCurrencyAmount(account.currentBalance)}`}
                 tone={tone}
                 Icon={Icon}
               />

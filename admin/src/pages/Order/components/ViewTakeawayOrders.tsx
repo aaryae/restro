@@ -30,6 +30,12 @@ function statusStyles(status?: string) {
   }
 }
 
+function formatStatusLabel(status?: string) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "ready") return "prepared";
+  return normalized;
+}
+
 function formatMoney(value: string | number | undefined) {
   const n = Number(value ?? 0);
   return `${CurrencySign}${Number.isFinite(n) ? n.toFixed(2) : "0.00"}`;
@@ -161,7 +167,7 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
                           <span
                             className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${statusStyles(status)}`}
                           >
-                            {status}
+                            {formatStatusLabel(status)}
                           </span>
                         )}
                       </div>

@@ -136,6 +136,7 @@ export default function AddEditCustomer({
         <div className="flex max-lg:flex-col gap-4">
           <Input
             label="Email"
+            type="email"
             placeholder="Enter Email"
             className="w-full"
             {...register("email")}
@@ -143,10 +144,54 @@ export default function AddEditCustomer({
           />
           <Input
             label="Mobile Number"
+            type="tel"
+            inputMode="numeric"
             placeholder="Enter Mobile Number"
             className="w-full"
-            {...register("mobileNo")}
+            maxLength={15}
+            {...register("mobileNo", {
+              setValueAs: (value) =>
+                value == null ? "" : String(value).replace(/\D/g, ""),
+            })}
+            onKeyDown={(e) => {
+              const allowedKeys = [
+                "Backspace",
+                "Delete",
+                "Tab",
+                "Escape",
+                "Enter",
+                "ArrowLeft",
+                "ArrowRight",
+                "Home",
+                "End",
+              ];
+              if (
+                allowedKeys.includes(e.key) ||
+                e.ctrlKey ||
+                e.metaKey ||
+                e.altKey
+              ) {
+                return;
+              }
+              if (!/^\d$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const text = e.clipboardData.getData("text").replace(/\D/g, "");
+              const target = e.currentTarget;
+              const start = target.selectionStart ?? target.value.length;
+              const end = target.selectionEnd ?? target.value.length;
+              const next = `${target.value.slice(0, start)}${text}${target.value.slice(end)}`.slice(
+                0,
+                15,
+              );
+              target.value = next;
+              target.dispatchEvent(new Event("input", { bubbles: true }));
+            }}
             error={errors.mobileNo?.message}
+            isRequired
           />
         </div>
 

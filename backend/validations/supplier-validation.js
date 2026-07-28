@@ -32,6 +32,7 @@ const supplierPostValidation = async (req, res, next) => {
     contact_number: joi
       .string()
       .trim()
+      .pattern(/^\d+$/)
       .min(10)
       .max(20)
       .optional()
@@ -39,8 +40,9 @@ const supplierPostValidation = async (req, res, next) => {
       .messages({
         "string.base": "Contact number must be a string",
         "string.empty": "Contact number cannot be empty",
-        "string.min": "Contact number must be at least 10 characters",
-        "string.max": "Contact number cannot exceed 20 characters",
+        "string.pattern.base": "Contact number must contain only digits",
+        "string.min": "Contact number must be at least 10 digits",
+        "string.max": "Contact number cannot exceed 20 digits",
       }),
     email: joi.string().email().optional().allow(null).messages({
       "string.base": "Email must be a string",
@@ -85,7 +87,19 @@ const supplierPutValidation = async (req, res, next) => {
           "Supplier code must start with a letter and contain only alphanumeric characters",
       }),
     address: joi.string().trim().min(2).optional().allow(null),
-    contact_number: joi.string().trim().min(10).max(20).optional().allow(null),
+    contact_number: joi
+      .string()
+      .trim()
+      .pattern(/^\d+$/)
+      .min(10)
+      .max(20)
+      .optional()
+      .allow(null)
+      .messages({
+        "string.pattern.base": "Contact number must contain only digits",
+        "string.min": "Contact number must be at least 10 digits",
+        "string.max": "Contact number cannot exceed 20 digits",
+      }),
     email: joi.string().email().optional().allow(null),
     pan_vat_number: joi.string().trim().optional().allow(null),
     contact_person: joi.string().trim().min(2).optional().allow(null),

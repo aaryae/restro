@@ -1,15 +1,5 @@
 import { z } from "zod";
 
-export const SupplierFilterSchema = z.object({
-  name: z.string().optional().nullable(),
-  supplier_code: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  contact_number: z.string().optional().nullable(),
-  email: z.string().optional().nullable(),
-  pan_vat_number: z.string().optional().nullable(),
-  contact_person: z.string().optional().nullable(),
-});
-
 export const SupplierSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
   supplier_code: z
@@ -21,10 +11,16 @@ export const SupplierSchema = z.object({
     )
     .optional(),
   address: z.string().optional().nullable(),
-  contact_number: z
+  contact_number: z.preprocess((val) => {
+    if (val === "" || val === undefined) return null;
+    return val;
+  }, z
     .string()
-    .min(10, "Contact number must be at least 10 characters")
-    .optional(),
+    .regex(/^\d+$/, "Contact number must contain only digits")
+    .min(10, "Contact number must be at least 10 digits")
+    .max(20, "Contact number cannot exceed 20 digits")
+    .nullable()
+    .optional()),
   email: z.preprocess((val) => {
     if (val === "" || val === undefined) return null;
     return val;
@@ -32,5 +28,3 @@ export const SupplierSchema = z.object({
   pan_vat_number: z.string().optional().nullable(),
   contact_person: z.string().optional().nullable(),
 });
-
-export type SupplierFilterType = z.infer<typeof SupplierFilterSchema>;

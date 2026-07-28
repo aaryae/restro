@@ -123,6 +123,24 @@ const paginationValidation = async (req, res, next) => {
       }, "accountType validation"),
     contact_person: joi.string().optional().label("contact_person"),
     contact_number: joi.number().optional().label("contact_number"),
+    resourceType: joi
+      .string()
+      .optional()
+      .valid(
+        "product",
+        "product_category",
+        "customer",
+        "supplier",
+        "addon",
+        "open_item",
+        "department",
+        "floor",
+        "table",
+        "expense_category",
+        "purchase_category",
+        "email_template",
+      )
+      .label("resourceType"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

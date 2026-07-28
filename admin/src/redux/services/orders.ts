@@ -33,7 +33,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "revenue", "kot"],
+      invalidatesTags: ["table", "order", "revenue", "kot", "account"],
     }),
     moveOrderItems: builder.mutation({
       query: ({ body }) => ({
@@ -41,7 +41,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "revenue", "kot"],
+      invalidatesTags: ["table", "order", "revenue", "kot", "account"],
     }),
   }),
   overrideExisting: true,

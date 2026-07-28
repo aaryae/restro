@@ -43,24 +43,27 @@ export default function PageFilterSample(
             className,
             icon,
             handleChange,
-            value,
           }: FilterField) => (
             <Controller
               key={name}
               name={name}
               control={control}
-              render={({ field }) => (
-                <Component
-                  {...(value && { value })}
-                  {...(options && { options })}
-                  {...(className && { className })}
-                  {...(icon && { icon })}
-                  {...field}
-                  {...(handleChange && { handleChange })}
-                  label={label}
-                  control={control}
-                />
-              )}
+              render={({ field }) => {
+                const { value: fieldValue, onChange, ...restField } = field;
+                return (
+                  <Component
+                    {...restField}
+                    value={fieldValue}
+                    onChange={onChange}
+                    {...(options && { options })}
+                    {...(className && { className })}
+                    {...(icon && { icon })}
+                    {...(handleChange && { handleChange })}
+                    label={label}
+                    control={control}
+                  />
+                );
+              }}
             />
           ),
         )}

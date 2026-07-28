@@ -452,11 +452,12 @@ export default function AddEditOrder({
   };
 
   const calcSubtotal = (item: OrderItem) => {
-    const addonsUnitSum = (item.addons || []).reduce(
+    // Addons are charged by their own quantity only — not multiplied by item qty.
+    const addonsTotal = (item.addons || []).reduce(
       (s, a) => s + Number(a.price || 0) * Number(a.quantity || 0),
       0,
     );
-    return Number(item.quantity) * (Number(item.productPrice) + addonsUnitSum);
+    return Number(item.quantity) * Number(item.productPrice) + addonsTotal;
   };
 
   const updateOrderItemQuantity = (itemId: string, newQuantity: number) => {
@@ -551,6 +552,11 @@ export default function AddEditOrder({
         payload.tableId = Number(data.tableId);
       } else if (orderType === "takeaway") {
         payload.takeAwayName = String(data.takeAwayName || "").trim();
+        // When creating takeaway from an occupied table, keep it on that session
+        const linkedTableId = data.tableId || tableId;
+        if (linkedTableId) {
+          payload.tableId = Number(linkedTableId);
+        }
       }
 
       const response = isEditMode
@@ -628,6 +634,10 @@ export default function AddEditOrder({
         payload.tableId = Number(pendingData.tableId);
       } else if (orderType === "takeaway") {
         payload.takeAwayName = String(pendingData.takeAwayName || "").trim();
+        const linkedTableId = pendingData.tableId || tableId;
+        if (linkedTableId) {
+          payload.tableId = Number(linkedTableId);
+        }
       }
 
       const response = isEditMode
@@ -649,10 +659,15 @@ export default function AddEditOrder({
           orderType: pendingData.orderType,
           orderStartTime: new Date().toISOString(),
           table:
-            pendingData.orderType === "dineIn"
+            pendingData.orderType === "dineIn" ||
+            (pendingData.orderType === "takeaway" &&
+              (pendingData.tableId || tableId))
               ? {
                   tableNo: getTableLabel(
-                    (pendingData as any)?.tableId ?? watchedTableId ?? "",
+                    (pendingData as any)?.tableId ??
+                      watchedTableId ??
+                      tableId ??
+                      "",
                   ),
                 }
               : null,
@@ -822,6 +837,15 @@ export default function AddEditOrder({
                         isRequired
                       />
                     </div>
+                    {(watchedTableId || tableId) && (
+                      <p className="mt-1.5 text-left text-xs text-slate-500">
+                        Linked to table{" "}
+                        <span className="font-semibold text-slate-700">
+                          {getTableLabel(watchedTableId || tableId || "")}
+                        </span>{" "}
+                        — will appear with that table&apos;s orders
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1135,8 +1159,8 @@ export default function AddEditOrder({
                         </div>
                       )}
                     </div>
-                    <div className="flex items-start gap-2">
-                      <div className="flex flex-col items-center">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-start sm:gap-2">
+                      <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-center">
                         <div
                           className={`${styles.qtyRow} ${
                             item.status === "cancelled" ? "hidden" : ""
@@ -1175,15 +1199,19 @@ export default function AddEditOrder({
                         </div>
                         <button
                           type="button"
+                          disabled={item.status === "cancelled"}
                           onClick={() => {
                             setActiveAddonItem(item);
                             setAddonDrawerOpen(true);
                           }}
-                          className={styles.addonBtn}
+                          className={`${styles.addonBtn} max-sm:flex-1`}
                         >
-                          {item.addons?.length
-                            ? `Edit Addons (${item.addons.length})`
-                            : "Add Addons"}
+                          <span className="inline-flex items-center justify-center gap-1">
+                            <Plus size={14} strokeWidth={2.5} />
+                            {item.addons?.length
+                              ? `Edit Addons (${item.addons.length})`
+                              : "Add Addon"}
+                          </span>
                         </button>
                       </div>
                       <button
@@ -1196,7 +1224,7 @@ export default function AddEditOrder({
                           removeOrderItem(item.id);
                           playDeleteAudio();
                         }}
-                        className={styles.removeBtn}
+                        className={`${styles.removeBtn} max-sm:absolute max-sm:right-2 max-sm:top-2`}
                       >
                         <Plus className="rotate-45 w-5 h-5" />
                       </button>
@@ -1278,6 +1306,28 @@ export default function AddEditOrder({
                       )}
                     </span>
                   )}
+                  {watchedOrderType === "takeaway" &&
+                    (watchedTableId || tableId) && (
+                      <span className={styles.modalMetaChip}>
+                        Table{" "}
+                        {getTableLabel(
+                          (pendingData as any)?.tableId ??
+                            watchedTableId ??
+                            tableId ??
+                            "",
+                        )}
+                      </span>
+                    )}
+                  {watchedOrderType === "takeaway" &&
+                    String(
+                      pendingData?.takeAwayName || watchedTakeAwayName || "",
+                    ).trim() && (
+                      <span className={styles.modalMetaChip}>
+                        {String(
+                          pendingData?.takeAwayName || watchedTakeAwayName || "",
+                        ).trim()}
+                      </span>
+                    )}
                   {pendingData?.deliveryAddress && (
                     <span className={styles.modalMetaChip}>
                       {pendingData.deliveryAddress}
@@ -1301,17 +1351,8 @@ export default function AddEditOrder({
                         const addons = Array.isArray(item.addons)
                           ? item.addons
                           : [];
-                        const addonsUnit = addons.reduce(
-                          (s: number, a: any) =>
-                            s +
-                            Number(a.price || 0) *
-                              Number(a.quantity || a.qty || 0),
-                          0,
-                        );
                         const lineTotal =
-                          Number(item.subtotal) ||
-                          Number(item.quantity) *
-                            (Number(item.productPrice) + addonsUnit);
+                          Number(item.subtotal) || calcSubtotal(item);
 
                         return (
                           <tr
@@ -1343,8 +1384,6 @@ export default function AddEditOrder({
                                   addon.quantity ?? addon.qty ?? 1,
                                 );
                                 const unit = Number(addon.price || 0);
-                                const itemQty = Number(item.quantity || 1);
-                                const times = addonQty * itemQty;
                                 return (
                                   <p
                                     key={`${item.id}_${addon.addonId || name}`}
@@ -1352,7 +1391,7 @@ export default function AddEditOrder({
                                   >
                                     Addon · {name} · {CurrencySign}
                                     {unit.toFixed(2)}
-                                    {times > 1 ? ` × ${times}` : ""}
+                                    {addonQty > 1 ? ` × ${addonQty}` : ""}
                                   </p>
                                 );
                               })}
@@ -1459,18 +1498,7 @@ export default function AddEditOrder({
                       ? {
                           ...it,
                           addons,
-                          subtotal: (function () {
-                            const addonsUnit = addons.reduce(
-                              (s, a) =>
-                                s +
-                                Number(a.price || 0) * Number(a.quantity || 0),
-                              0,
-                            );
-                            return (
-                              Number(it.quantity) *
-                              (Number(it.productPrice) + addonsUnit)
-                            );
-                          })(),
+                          subtotal: calcSubtotal({ ...it, addons }),
                         }
                       : it,
                   ),
@@ -1565,7 +1593,9 @@ function AddonPicker({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">Tap a card to add or remove</p>
+          <p className="text-sm text-slate-500">
+            Choose addons for this item
+          </p>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
               {(local || []).length} selected
@@ -1609,20 +1639,10 @@ function AddonPicker({
             return (
               <div
                 key={addon.id}
-                role="button"
-                tabIndex={0}
-                aria-pressed={checked}
-                onClick={() => toggle(addon)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggle(addon);
-                  }
-                }}
-                className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition ${
+                className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                   checked
                     ? "border-primaryColor/40 bg-primaryColor/[0.04] ring-1 ring-primaryColor/20"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/80">
@@ -1656,13 +1676,10 @@ function AddonPicker({
                     </p>
                   )}
                   {checked && (
-                    <div
-                      className="mt-2 inline-flex items-center gap-1.5"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="mt-2 inline-flex items-center gap-1.5">
                       <button
                         type="button"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
                         onClick={() =>
                           setQty(addon.id, (selectedAddon?.quantity || 1) - 1)
                         }
@@ -1674,7 +1691,7 @@ function AddonPicker({
                       </span>
                       <button
                         type="button"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"
                         onClick={() =>
                           setQty(addon.id, (selectedAddon?.quantity || 1) + 1)
                         }
@@ -1685,37 +1702,48 @@ function AddonPicker({
                   )}
                 </div>
 
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                <button
+                  type="button"
+                  aria-pressed={checked}
+                  onClick={() => toggle(addon)}
+                  className={`inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${
                     checked
-                      ? "bg-primaryColor text-white"
-                      : "border border-slate-300 bg-white text-transparent"
+                      ? "border border-rose-200 bg-rose-50 text-rose-700"
+                      : "bg-primaryColor text-white hover:bg-primaryColor/90"
                   }`}
-                  aria-hidden
                 >
-                  ✓
-                </span>
+                  {checked ? (
+                    "Remove"
+                  ) : (
+                    <>
+                      <Plus size={14} strokeWidth={2.5} />
+                      Add
+                    </>
+                  )}
+                </button>
               </div>
             );
           })
         )}
       </div>
 
-      <div className="shrink-0 border-t border-slate-100 bg-white px-5 pt-4 pb-[15rem]">
+      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="h-10 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            className="h-11 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             onClick={onCancel}
           >
             Cancel
           </button>
           <button
             type="button"
-            className="h-10 flex-1 rounded-lg bg-primaryColor text-sm font-medium text-white transition hover:bg-primaryColor/90"
+            className="h-11 flex-1 rounded-lg bg-primaryColor text-sm font-semibold text-white transition hover:bg-primaryColor/90"
             onClick={() => onSave(local)}
           >
-            Done
+            {local.length > 0
+              ? `Add ${local.length} Addon${local.length === 1 ? "" : "s"}`
+              : "Save"}
           </button>
         </div>
       </div>

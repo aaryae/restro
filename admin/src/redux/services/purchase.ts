@@ -10,7 +10,7 @@ const purchaseApi = api.injectEndpoints({
       }),
       invalidatesTags: (_, __, { url }) => {
         const tag = url.split("/");
-        return [{ type: tag[0] }];
+        return [{ type: tag[0] }, "account"];
       },
     }),
 
@@ -35,7 +35,7 @@ const purchaseApi = api.injectEndpoints({
       }),
       invalidatesTags: (_, __, { url }) => {
         const tag = url.split("/");
-        return [{ type: tag[0] }];
+        return [{ type: tag[0] }, "account"];
       },
     }),
 
@@ -45,7 +45,7 @@ const purchaseApi = api.injectEndpoints({
         method: "PUT",
         body: {},
       }),
-      invalidatesTags: ["purchase"],
+      invalidatesTags: ["purchase", "account"],
     }),
 
     payPurchaseById: builder.mutation({
@@ -54,7 +54,7 @@ const purchaseApi = api.injectEndpoints({
         method: "PUT",
         body: {},
       }),
-      invalidatesTags: ["purchase"],
+      invalidatesTags: ["purchase", "account"],
     }),
 
     cancelPurchaseById: builder.mutation({
@@ -63,7 +63,7 @@ const purchaseApi = api.injectEndpoints({
         method: "PUT",
         body: {},
       }),
-      invalidatesTags: ["purchase"],
+      invalidatesTags: ["purchase", "account"],
     }),
 
     getUnpaidCredits: builder.query({

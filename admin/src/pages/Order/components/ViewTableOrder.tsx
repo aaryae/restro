@@ -206,6 +206,13 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                   <div className={styles.orderCardHeader}>
                     <p className={styles.orderNumber}>Order No: {order.id}</p>
                     <div className={styles.statusGroup}>
+                      {order.orderType === "takeaway" && (
+                        <span
+                          className={`${styles.statusPill} ${styles.statusTakeaway}`}
+                        >
+                          Takeaway
+                        </span>
+                      )}
                       <span
                         className={`${styles.statusPill} ${orderStatusClass(order.status)}`}
                       >
@@ -221,6 +228,14 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {order.orderType === "takeaway" &&
+                    String(order.takeAwayName || "").trim() && (
+                      <div className={styles.orderNote}>
+                        <span className={styles.orderNoteLabel}>Takeaway: </span>
+                        {String(order.takeAwayName).trim()}
+                      </div>
+                    )}
 
                   {String(order.orderNote || "").trim() && (
                     <div className={styles.orderNote}>
@@ -333,18 +348,18 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
             )}
           </div>
         )}
-
-        {hasOrders && (
-          <div className={styles.footerBar}>
-            <Button
-              className={`${styles.checkoutAllBtn} bg-primaryColor text-white hover:bg-primaryColor/80`}
-              handleClick={() => handleCheckout(id!, allOrderIds)}
-            >
-              Checkout ALL
-            </Button>
-          </div>
-        )}
       </div>
+
+      {hasOrders && (
+        <div className={styles.footerBar}>
+          <Button
+            className={`${styles.checkoutAllBtn} bg-primaryColor text-white hover:bg-primaryColor/80`}
+            handleClick={() => handleCheckout(id!, allOrderIds)}
+          >
+            Checkout ALL
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

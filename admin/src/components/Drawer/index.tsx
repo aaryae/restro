@@ -41,16 +41,59 @@ export default function Drawer({
   useEffect(() => {
     if (!isOpen) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const body = document.body;
+    const html = document.documentElement;
+    const scrollY = window.scrollY;
+
+    const previous = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      bodyPaddingRight: body.style.paddingRight,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+
+    // Prevent layout shift when the scrollbar disappears.
+    const scrollbarGap = window.innerWidth - html.clientWidth;
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    if (scrollbarGap > 0) {
+      body.style.paddingRight = `${scrollbarGap}px`;
+    }
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.position = previous.bodyPosition;
+      body.style.top = previous.bodyTop;
+      body.style.left = previous.bodyLeft;
+      body.style.right = previous.bodyRight;
+      body.style.width = previous.bodyWidth;
+      body.style.paddingRight = previous.bodyPaddingRight;
+      html.style.overflow = previous.htmlOverflow;
+      html.style.overscrollBehavior = previous.htmlOverscroll;
+      window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
 
   const toggleDrawer = () => {
     setIsOpen(false);
+  };
+
+  const stopBackgroundScroll = (
+    event: React.TouchEvent | React.WheelEvent,
+  ) => {
+    event.preventDefault();
   };
 
   return createPortal(
@@ -59,13 +102,15 @@ export default function Drawer({
         <button
           type="button"
           aria-label="Close drawer backdrop"
-          className="fixed inset-0 z-[60] bg-slate-900/25 backdrop-blur-[1px]"
+          className="fixed inset-0 z-[60] touch-none bg-slate-900/25 backdrop-blur-[1px]"
           onClick={toggleDrawer}
+          onTouchMove={stopBackgroundScroll}
+          onWheel={stopBackgroundScroll}
         />
       )}
       <div
         className={cn(
-          "fixed inset-y-0 z-[70] flex h-screen max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 z-[70] flex h-[100dvh] max-h-[100dvh] max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
           position === "right" ? "right-0" : "left-0",
           isOpen
             ? "visible translate-x-0 pointer-events-auto"
@@ -89,7 +134,7 @@ export default function Drawer({
 
         <div
           className={cn(
-            "drawer-content flex min-h-0 flex-1 flex-col overflow-y-auto",
+            "drawer-content flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain",
             contentClassName,
           )}
         >

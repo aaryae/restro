@@ -1,5 +1,20 @@
 import { api } from "../store/api";
 
+const BALANCE_AFFECTING_TYPES = new Set(["expense", "revenue", "transaction"]);
+
+const getMutationInvalidationTags = (
+  url: string,
+  extraTags: Array<string | { type: string }> = [],
+) => {
+  const type = url.split("/")[0];
+  if (type === "trash") return ["trash"];
+  const tags: Array<string | { type: string }> = [{ type }, ...extraTags];
+  if (BALANCE_AFFECTING_TYPES.has(type)) {
+    tags.push("account");
+  }
+  return tags;
+};
+
 const crudApi = api.injectEndpoints({
   endpoints: (builder) => ({
     createApi: builder.mutation({
@@ -8,13 +23,7 @@ const crudApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (_, __, { url }) => {
-        const tag = url.split("/");
-        const type = tag[0];
-        // Restore should refresh trash list; other creates may archive nothing
-        if (type === "trash") return ["trash"];
-        return [{ type }];
-      },
+      invalidatesTags: (_, __, { url }) => getMutationInvalidationTags(url),
     }),
 
     getApi: builder.query({
@@ -31,10 +40,7 @@ const crudApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: (_, __, { url }) => {
-        const tag = url.split("/");
-        return [{ type: tag[0] }];
-      },
+      invalidatesTags: (_, __, { url }) => getMutationInvalidationTags(url),
     }),
     patchApi: builder.mutation({
       query: ({ url, body }) => ({
@@ -42,23 +48,15 @@ const crudApi = api.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (_, __, { url }) => {
-        const tag = url.split("/");
-        return [{ type: tag[0] }];
-      },
+      invalidatesTags: (_, __, { url }) => getMutationInvalidationTags(url),
     }),
     deleteApi: builder.mutation({
       query: (url) => ({
         url,
         method: "DELETE",
       }),
-      invalidatesTags: (_, __, args) => {
-        const tag = String(args).split("/");
-        const type = tag[0];
-        // Most deletes archive to Recently Deleted — keep that list fresh
-        if (type === "trash") return ["trash"];
-        return [{ type }, "trash"];
-      },
+      invalidatesTags: (_, __, args) =>
+        getMutationInvalidationTags(String(args), ["trash"]),
     }),
   }),
   overrideExisting: true,

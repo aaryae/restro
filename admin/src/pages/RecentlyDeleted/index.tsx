@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import Table from "@/components/Table";
 import Loader from "@/components/Loader";
+import DeleteModal from "@/components/DeleteModal";
 import usePagination from "@/hooks/usePagination";
 import { TRASH_URL } from "@/constants/apiUrlConstants";
 import {
@@ -44,6 +45,8 @@ export default function RecentlyDeleted() {
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [resourceType, setResourceType] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const url = useMemo(() => {
     const params = new URLSearchParams();
@@ -87,21 +90,24 @@ export default function RecentlyDeleted() {
     }
   };
 
-  const handlePermanentDelete = async (id: number) => {
-    if (
-      !window.confirm(
-        "Permanently delete this item? This cannot be undone.",
-      )
-    ) {
-      return;
-    }
-    setBusyId(id);
+  const handleDeleteTrigger = (id: number) => {
+    setDeleteId(id);
+    setDeleteOpen(true);
+  };
+
+  const handlePermanentDelete = async () => {
+    if (deleteId == null) return;
+    setBusyId(deleteId);
     try {
-      const res = await deleteItem(`${TRASH_URL}${id}`).unwrap();
+      const res = await deleteItem(`${TRASH_URL}${deleteId}`).unwrap();
       handleResponse({
         res,
         successMessage: "Permanently deleted",
-        onSuccess: () => refetch(),
+        onSuccess: () => {
+          setDeleteOpen(false);
+          setDeleteId(null);
+          refetch();
+        },
       });
     } catch (error) {
       handleError({ error });
@@ -130,15 +136,18 @@ export default function RecentlyDeleted() {
       >
         <RotateCcw size={15} />
       </button>
-      <button
-        type="button"
-        title="Delete permanently"
-        disabled={busyId === item.id}
-        onClick={() => handlePermanentDelete(item.id)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-      >
-        <Trash2 size={15} />
-      </button>
+      <DeleteModal
+        compact
+        open={deleteOpen}
+        setOpen={setDeleteOpen}
+        itemId={item.id}
+        activeId={deleteId}
+        handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
+        handleConfirmDelete={handlePermanentDelete}
+        title="Permanently delete this item?"
+        description="This cannot be undone. The item will be removed forever and cannot be restored."
+        confirmLabel="Delete permanently"
+      />
     </div>,
   ]);
 

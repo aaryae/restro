@@ -9,5 +9,5 @@ export function isNepalPayAccount(account: {
 } | null | undefined): boolean {
   if (!account) return false;
   const label = `${account.name ?? ""} ${account.accountName ?? ""}`.toUpperCase();
-  return label.includes("NEPALPAY") || label.includes("NEPAL PAY");
+  return label.includes("NEPALPAY") || label.includes("NEPAL PAY") || label.includes("Nepal Pay") || label.includes("Nepal pay");
 }

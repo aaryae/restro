@@ -4,8 +4,17 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import { StatusTag } from "../ViewTableOrder";
 import CustomDialog from "@/components/Dialog";
 import ConfirmTransfer from "./ConfirmTransfer";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CurrencySign } from "@/constants";
+
+function formatTableLabel(table?: {
+  floor?: { name?: string } | null;
+  tableNo?: string | number;
+} | null) {
+  if (!table) return "-";
+  const floor = table.floor?.name ? `${table.floor.name} ` : "";
+  return `${floor}Table ${table.tableNo ?? ""}`.trim() || "-";
+}
 
 export default function ChooseItems({
   selectedTable,
@@ -22,11 +31,22 @@ export default function ChooseItems({
     url: `${ORDER_URL}active-orders/${selectedTable}`,
   });
 
-  const { data: selectedTableData } = useGetApiQuery({
-    url: `${TABLE_URL}${selectedTable}`,
-  });
+  const { data: selectedTableData } = useGetApiQuery(
+    { url: `${TABLE_URL}${selectedTable}` },
+    { skip: !selectedTable },
+  );
+
+  const { data: destinationTableData } = useGetApiQuery(
+    { url: `${TABLE_URL}${selectedDesiredTable}` },
+    { skip: !selectedDesiredTable },
+  );
 
   const orders = tableOrder?.data?.orders || [];
+
+  const selectedOrderDetails = useMemo(
+    () => orders.filter((order: any) => selectedOrders.includes(order.id)),
+    [orders, selectedOrders],
+  );
 
   const handleOrderSelect = (orderId: number, checked: boolean) => {
     if (checked) {
@@ -42,15 +62,18 @@ export default function ChooseItems({
     }
   };
 
+  const sourceTableLabel = formatTableLabel(selectedTableData?.data);
+  const destinationTableLabel = formatTableLabel(destinationTableData?.data);
   const tableLabel = selectedTableData?.data
-    ? `${selectedTableData.data.floor?.name || ""} Table ${selectedTableData.data.tableNo}`
+    ? sourceTableLabel
     : "selected table";
 
   return (
     <>
       <div className="space-y-4">
         <p className="text-sm text-slate-600">
-          Active orders on <span className="font-medium text-slate-800">{tableLabel}</span>
+          Active orders on{" "}
+          <span className="font-medium text-slate-800">{tableLabel}</span>
         </p>
 
         {loading ? (
@@ -154,6 +177,9 @@ export default function ChooseItems({
       >
         <ConfirmTransfer
           selectedOrders={selectedOrders}
+          selectedOrderDetails={selectedOrderDetails}
+          sourceTableLabel={sourceTableLabel}
+          destinationTableLabel={destinationTableLabel}
           sourceTableId={selectedTable}
           destinationTableId={selectedDesiredTable}
           onCancel={() => setDialogOpen(false)}

@@ -2,22 +2,15 @@
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
-import { useForm } from "react-hook-form";
 import Spinner from "@/components/Spinner";
 import { MdEditSquare } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import usePagination from "@/hooks/usePagination";
 import DeleteModal from "@/components/DeleteModal";
-import { useEffect, useMemo, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { buildQueryString } from "@/utils/generalHelper";
 import { SUPPLIER_ADD_ROUTE } from "@/routes/routeNames";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
-import { FilterInput } from "@/components/Input/filterInput";
-import PageFilterSample from "@/components/PageFilterSample";
-import PageFilterWrapper from "@/components/PageFilterWrapper";
-import { SupplierFilterSchema, SupplierFilterType } from "./schema";
-import { MapPin, IdCard, UserRound, Phone } from "lucide-react";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import {
   useDeleteSupplierByIdMutation,
@@ -35,21 +28,6 @@ export default function Supplier() {
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const navigate = useNavigate();
-
-  const { control, handleSubmit, reset } = useForm<SupplierFilterType>({
-    resolver: zodResolver(SupplierFilterSchema),
-    defaultValues: {
-      name: "",
-      supplier_code: "",
-      address: "",
-      contact_number: "",
-      email: "",
-      pan_vat_number: "",
-      contact_person: "",
-    },
-  });
-
-  const [queryString, setQueryString] = useState<Record<string, any>>({});
 
   const handleNewButton = (id: number | null) => {
     if (id === null) {
@@ -79,65 +57,20 @@ export default function Supplier() {
         },
       });
     } catch (error: any) {
-      handleError({ error });
+      handleError({
+        error,
+        defaultMessage:
+          "Unable to delete this supplier. It may be linked to purchases or expenses.",
+      });
     } finally {
       setDeleteModelOpen(false);
     }
   };
 
-  const filterField = useMemo(
-    () => [
-      {
-        name: "name",
-        label: "Name of Entity",
-        Component: FilterInput,
-        control,
-        icon: <UserRound className="h-4 w-4" />,
-      },
-      {
-        name: "address",
-        label: "Address",
-        Component: FilterInput,
-        control,
-        icon: <MapPin className="h-4 w-4" />,
-      },
-      {
-        name: "pan_vat_number",
-        label: "PAN Number",
-        Component: FilterInput,
-        control,
-        icon: <IdCard className="h-4 w-4" />,
-      },
-      {
-        name: "contact_person",
-        label: "Name of Supplier",
-        Component: FilterInput,
-        control,
-        icon: <IdCard className="h-4 w-4" />,
-      },
-      {
-        name: "contact_number",
-        label: "Contact Number",
-        Component: FilterInput,
-        control,
-        icon: <Phone className="h-4 w-4" />,
-      },
-    ],
-    [control],
-  );
-
-  const { Component } = PageFilterSample(
-    filterField,
-    handleSubmit,
-    (query: Record<string, any>) => setQueryString(query),
-    reset,
-  );
-
   const url = buildQueryString("supplier/list", {
     page: query.page,
     limit: query.limit,
     search: {
-      ...queryString,
       ...(searchTerm ? { name: searchTerm } : {}),
     },
   });
@@ -151,7 +84,7 @@ export default function Supplier() {
 
   useEffect(() => {
     refetch();
-  }, [queryString, searchTerm]);
+  }, [searchTerm]);
 
   const pagination = {
     page: allSupplier?.data?.total === 0 ? 0 : allSupplier?.data?.page,
@@ -240,15 +173,14 @@ export default function Supplier() {
         handleReloadButton={() => refetch()}
         subText="Manage vendor details for purchase entries."
       />
-      <PageFilterWrapper title="Supplier Filters">{Component}</PageFilterWrapper>
       {accessList.includes("view") ? (
-      <Table
-        headers={tableHeaders}
-        data={tableData}
-        isSN
-        pagination={pagination}
-        handlePagination={handlePagination}
-      />
+        <Table
+          headers={tableHeaders}
+          data={tableData}
+          isSN
+          pagination={pagination}
+          handlePagination={handlePagination}
+        />
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view suppliers.

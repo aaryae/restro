@@ -28,6 +28,10 @@ import DashboardChartCard from "./DashboardChartCard";
 import { type ChartType } from "./ChartTypeTabs";
 import { buildQueryString } from "@/utils/generalHelper";
 import { CHART_BRAND, CHART_FISCAL_COLORS } from "../chartTheme";
+import {
+  formatCurrencyAmount,
+  sumAccountBalances,
+} from "@/utils/formatCurrency";
 
 function OverviewCards() {
   const revenueAccessList = checkAccess("Revenue");
@@ -81,6 +85,8 @@ function OverviewCards() {
   const profit =
     totalRevenueData?.data?.total -
     (totalPurchaseData?.data?.total + totalExpenseData?.data?.total);
+  const accountBalances = totalAndBalancesData?.data?.accounts || [];
+  const totalCollectionBalance = sumAccountBalances(accountBalances);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -147,7 +153,7 @@ function OverviewCards() {
         {totalAndBalancesData?.success && (
           <SummaryCard
             title="Total Collection Till Date"
-            value={`${CurrencySign}${Number(totalAndBalancesData?.data?.totalBalance).toLocaleString()}`}
+            value={`${CurrencySign}${formatCurrencyAmount(totalCollectionBalance)}`}
             tone="indigo"
             Icon={Landmark}
           />

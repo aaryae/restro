@@ -65,12 +65,12 @@ export default function Order() {
 
   return (
     <>
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-3">
+      <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm lg:flex-row lg:items-center lg:justify-between lg:p-3">
         <Controller
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="flex w-full rounded-full bg-slate-100 p-1 sm:w-auto">
+            <div className="flex min-w-0 w-full shrink-0 rounded-full bg-slate-100 p-1 lg:w-auto">
               {headerOptions.map((option) => {
                 const Icon = option.icon;
                 const isActive = field.value === option.value;
@@ -78,40 +78,40 @@ export default function Order() {
                   <button
                     key={option.value}
                     type="button"
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-all duration-200 sm:flex-none sm:min-w-[104px] sm:px-5 ${
+                    className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium transition-all duration-200 sm:px-4 lg:flex-none lg:min-w-[104px] lg:px-5 ${
                       isActive
                         ? "bg-primaryColor text-white shadow-sm"
                         : "text-slate-500 hover:bg-white/70 hover:text-slate-700"
                     }`}
                     onClick={() => field.onChange(option.value)}
                   >
-                    <Icon size={15} />
-                    {option.label}
+                    <Icon size={15} className="shrink-0" />
+                    <span className="truncate">{option.label}</span>
                   </button>
                 );
               })}
             </div>
           )}
         />
-        <div className="flex grow items-center gap-2 md:justify-end">
+        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
           {["table", "order", "kot"].includes(selectedView) && (
             <button
               type="button"
               onClick={() => navigate(ORDER_ADD_ROUTE)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-primaryColor bg-primaryColor px-3.5 text-[13px] font-medium text-white transition-all duration-200 hover:bg-primaryColor/90"
+              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-primaryColor bg-primaryColor px-3.5 text-[13px] font-medium text-white transition-all duration-200 hover:bg-primaryColor/90 sm:flex-none"
             >
-              <Plus size={15} strokeWidth={2.25} />
-              Create Order
+              <Plus size={15} strokeWidth={2.25} className="shrink-0" />
+              <span className="truncate">Create Order</span>
             </button>
           )}
           {selectedView === "table" && (
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-[13px] font-medium text-slate-700 transition-all duration-200 hover:border-slate-400 hover:bg-slate-50"
+              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-[13px] font-medium text-slate-700 transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 sm:flex-none"
             >
-              <Repeat size={14} strokeWidth={2.25} />
-              Transfer Table
+              <Repeat size={14} strokeWidth={2.25} className="shrink-0" />
+              <span className="truncate">Transfer Table</span>
             </button>
           )}
         </div>

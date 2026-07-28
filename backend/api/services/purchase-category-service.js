@@ -54,7 +54,7 @@ const list = async (req) => {
     if (name) {
       filters.name = { [Sequelize.Op.like]: `%${name}%` };
     }
-    const order = [["name", "ASC"]];
+    const order = [["createdAt", "DESC"], ["id", "DESC"]];
 
     const result = await paginate(purchaseCategoryModel, {
       limit,
