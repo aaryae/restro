@@ -17,6 +17,7 @@ const {
 } = require("../../models");
 
 const { withTransaction } = require("../../helpers/order/transaction");
+const { awardLoyaltyPoints } = require("../../helpers/loyalty/award-points");
 
 const paginate = require("../../utils/paginate");
 const paginateWithAggregate = require("../../utils/paginateWithAggregate");
@@ -413,21 +414,13 @@ const checkoutOrder = async (req) => {
       finalCustomerId = customer.id;
     }
 
-    // Calculate and update loyalty points
-    if (!isGuestOrder && finalCustomerId && combinedTotalAmount > 0) {
-      const pointsToAdd = Math.floor(combinedTotalAmount / 100);
-      if (pointsToAdd > 0) {
-        await customerModel.update(
-          {
-            loyaltyPoints: customer.loyaltyPoints + pointsToAdd,
-          },
-          {
-            where: { id: finalCustomerId },
-            transaction,
-          },
-        );
-      }
-    }
+    // Award loyalty points: floor(amount / 100)
+    const loyaltyPointsAdded = await awardLoyaltyPoints({
+      customerId: finalCustomerId,
+      amount: combinedTotalAmount,
+      transaction,
+      isGuestOrder,
+    });
 
     // Update all orders and create revenue entries
     const updatedOrders = [];
@@ -499,10 +492,7 @@ const checkoutOrder = async (req) => {
         orders: updatedOrders,
         // revenueEntries, // Include revenue entries in response
         combinedTotalAmount,
-        loyaltyPointsAdded:
-          !isGuestOrder && finalCustomerId
-            ? Math.floor(combinedTotalAmount / 100)
-            : 0,
+        loyaltyPointsAdded,
       },
     };
   } catch (error) {

@@ -5,7 +5,7 @@ const {
   supplierModel,
   sequelize,
 } = require("../../models");
-const { Op } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { getLocalDateRange } = require("../../utils/timezone");
 const generalConstant = require("../../constants/general-constant");
@@ -156,26 +156,35 @@ const categorySummary = async (req) => {
     if (start && end) {
       const startDate = startOfDay(parseISO(start));
       const endDate = endOfDay(parseISO(end));
-      where.createdAt = { [Sequelize.Op.between]: [startDate, endDate] };
+      where.createdAt = { [Op.between]: [startDate, endDate] };
     }
 
     const rows = await expenseModel.findAll({
       attributes: [
         "categoryId",
-        [Sequelize.fn("SUM", Sequelize.col("amount")), "value"],
+        [Sequelize.col("category.name"), "name"],
+        [Sequelize.fn("SUM", Sequelize.col("Expense.amount")), "value"],
       ],
       include: [
-        { model: expenseCategoryModel, as: "category", attributes: ["name"] },
+        {
+          model: expenseCategoryModel,
+          as: "category",
+          attributes: [],
+          required: false,
+        },
       ],
       where,
       group: ["categoryId", "category.id", "category.name"],
+      order: [[Sequelize.fn("SUM", Sequelize.col("Expense.amount")), "DESC"]],
       raw: true,
     });
 
-    const data = rows.map((row) => ({
-      name: row["category.name"],
-      value: Number(row.value) || 0,
-    }));
+    const data = rows
+      .map((row) => ({
+        name: row.name || "Uncategorized",
+        value: Number(row.value) || 0,
+      }))
+      .filter((row) => row.value > 0);
 
     return {
       status: 200,

@@ -404,8 +404,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       const memberFields =
         checkoutType === "member" && selectedMember
-          ? { customerId: selectedMember.id }
-          : {};
+          ? {
+              customerId: selectedMember.id,
+              isGuestOrder: false,
+            }
+          : {
+              isGuestOrder: true,
+            };
 
       const selectiveItemIds = [
         ...selectedIds.map(Number),
@@ -615,6 +620,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           customerId: memberCustomerId,
           sessionId: table?.data?.sessionId ?? null,
         });
+
+        splitBody.isGuestOrder = !(
+          checkoutType === "member" && selectedMember
+        );
 
         // Takeaway full-order settle uses orderId path (not partial item pay)
         if (isTakeaway && resolvedOrderId && !isPartialSelection) {

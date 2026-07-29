@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import PageTitle from "@/components/PageTitle";
 import { useForm, useFieldArray } from "react-hook-form";
 import { CurrencySign } from "@/constants";
-import { Trash } from "lucide-react";
-import MediaComponent from "@/components/MediaComponent";
-import { ImageInputUI } from "@/components/ImageComponent";
+import { Trash2 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
@@ -50,21 +48,22 @@ const getInsufficientBalanceMessage = (
   paymentTerm: string,
 ) => {
   if (paymentTerm === "credit") return null;
-
   const account = accounts.find((row) => Number(row.id) === Number(accountId));
   if (!account) return "Selected payment account was not found.";
-
   const available = Number(account.currentBalance || 0);
   if (available < requiredAmount) {
     return `Insufficient account balance. Available: ${available.toFixed(2)}, Required: ${requiredAmount.toFixed(2)}`;
   }
-
   return null;
 };
 
 type ItemRow = PurchaseItemInput;
-
 type FormValues = PurchaseFormInput;
+
+const labelClass =
+  "mb-1 text-sm font-medium text-gray-700 flex items-center gap-1.5";
+const inputClass =
+  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-primaryColor focus:outline-none focus:ring-1 focus:ring-primaryColor/30";
 
 const AddEditPurchase: React.FC = () => {
   const { id } = useParams();
@@ -103,7 +102,6 @@ const AddEditPurchase: React.FC = () => {
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const navigate = useNavigate();
 
-  // API
   const [createPurchase, { isLoading: creating }] = useCreatePurchaseMutation();
   const [updatePurchase, { isLoading: updating }] =
     useUpdatePurchaseByIdMutation();
@@ -122,7 +120,6 @@ const AddEditPurchase: React.FC = () => {
     return raw === "completed" || raw === "complete";
   }, [purchaseData]);
 
-  // Suppliers dropdown
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
@@ -131,13 +128,10 @@ const AddEditPurchase: React.FC = () => {
     label: string;
   } | null>(null);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
-  // Extra summary discount amount applied on top of line totals
   const [summaryDiscountPct, setSummaryDiscountPct] = useState<string>("");
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
 
-  const closeDialog = () => {
-    setSupplierDialogOpen(false);
-  };
+  const closeDialog = () => setSupplierDialogOpen(false);
 
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
@@ -152,35 +146,15 @@ const AddEditPurchase: React.FC = () => {
     refetch: refetchSuppliers,
   } = useGetListAllSupplierQuery(
     { url: supplierUrl },
-    {
-      // Skip only if not showing all suppliers and search term is too short
-      skip: !showAllSuppliers && supplierSearchTerm.trim().length < 2,
-    },
+    { skip: !showAllSuppliers && supplierSearchTerm.trim().length < 2 },
   );
-  const supplierOptions = useMemo(() => {
-    let rows: any[] = [];
-    if (suppliersOk) {
-      const raw: any = (suppliersResp as any)?.data;
-      if (Array.isArray(raw)) {
-        rows = raw;
-      } else if (Array.isArray(raw?.data)) {
-        rows = raw.data;
-      }
-    }
-    return [{ label: "Select Supplier", value: "" }].concat(
-      rows.map((s: any) => ({ label: s.name, value: String(s.id) })),
-    );
-  }, [suppliersOk, suppliersResp]);
 
-  // Extract suppliers from API response
   const suppliers = useMemo(() => {
     if (!suppliersOk && !showAllSuppliers) return [];
     const raw: any = (suppliersResp as any)?.data;
     let data = [];
     if (Array.isArray(raw)) data = raw;
     else if (Array.isArray(raw?.data)) data = raw.data;
-
-    // Filter by search term if not showing all suppliers
     if (supplierSearchTerm.trim().length > 0 && !showAllSuppliers) {
       const term = supplierSearchTerm.toLowerCase();
       return data.filter(
@@ -190,11 +164,9 @@ const AddEditPurchase: React.FC = () => {
           s.email?.toLowerCase().includes(term),
       );
     }
-
     return data;
   }, [suppliersOk, suppliersResp, supplierSearchTerm, showAllSuppliers]);
 
-  // Normalized supplier rows for dropdown
   const supplierRows = useMemo(() => {
     let rows: any[] = [];
     if (suppliersOk) {
@@ -214,11 +186,9 @@ const AddEditPurchase: React.FC = () => {
   const [accounts, setAccounts] = useState<{ value: string; label: string }[]>(
     [],
   );
-
   const { data: AccountsData } = useGetApiQuery({
     url: `${ACCOUNT_URL}list?page=1&limit=100`,
   });
-
   const accountRows = useMemo(
     () => AccountsData?.data?.data || [],
     [AccountsData],
@@ -226,15 +196,14 @@ const AddEditPurchase: React.FC = () => {
 
   useEffect(() => {
     if (accountRows.length > 0) {
-      const accountOptions = accountRows.map((account: any) => ({
-        value: account.id,
-        label: account.name,
-      }));
-      setAccounts(accountOptions);
+      setAccounts(
+        accountRows.map((account: any) => ({
+          value: account.id,
+          label: account.name,
+        })),
+      );
     }
   }, [accountRows]);
-
-  // Purchase Categories dropdown
 
   const [purchaseCategories, setPurchaseCategories] = useState<
     { value: string; label: string }[]
@@ -245,30 +214,26 @@ const AddEditPurchase: React.FC = () => {
 
   useEffect(() => {
     if (PurchaseCategoriesData?.data?.data) {
-      const categoryOptions = PurchaseCategoriesData.data.data.map(
-        (category: any) => ({
+      setPurchaseCategories(
+        PurchaseCategoriesData.data.data.map((category: any) => ({
           value: category.id,
           label: category.name,
-        }),
+        })),
       );
-      setPurchaseCategories(categoryOptions);
     }
   }, [PurchaseCategoriesData]);
 
   const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
-
-  const { data: usersData } = useGetAllUserQuery({
-    page: 1,
-    limit: 100,
-  });
+  const { data: usersData } = useGetAllUserQuery({ page: 1, limit: 100 });
 
   useEffect(() => {
     if (usersData?.data?.data) {
-      const userOptions = usersData.data.data.map((user: any) => ({
-        value: user.id,
-        label: user.username,
-      }));
-      setUsers(userOptions);
+      setUsers(
+        usersData.data.data.map((user: any) => ({
+          value: user.id,
+          label: user.username,
+        })),
+      );
     }
   }, [usersData]);
 
@@ -276,21 +241,10 @@ const AddEditPurchase: React.FC = () => {
   const username = useAppSelector((s) => (s as any).auth?.username) as
     | string
     | undefined;
-  // const dateValue = watch("date");
   const [mediaOpen, setMediaOpen] = useState(false);
   const selectedImage = useAppSelector((state) => state.media.selectedImage) as
     | string
     | "";
-
-  // let bsDateDisplay = "";
-  // if (dateValue) {
-  //   const nd = NepaliDate.fromAD(new Date(dateValue));
-  //   const bs = nd.getBS();
-  //   const yy = bs.year;
-  //   const mm = String(bs.month).padStart(2, "0");
-  //   const dd = String(bs.date).padStart(2, "0");
-  //   bsDateDisplay = `${yy}-${mm}-${dd}`;
-  // }
 
   const computeRow = (row: ItemRow) => {
     const qty = Number(row.qty) || 0;
@@ -304,26 +258,13 @@ const AddEditPurchase: React.FC = () => {
     const taxAmt =
       row.isTaxable === false ? 0 : (taxableAmount * taxPercent) / 100;
     const lineTotal = taxableAmount + nonTaxableAmount + taxAmt;
-    return {
-      base,
-      discountAmt,
-      taxAmt,
-      lineTotal,
-      taxableAmount,
-      nonTaxableAmount,
-    };
+    return { base, discountAmt, taxAmt, lineTotal, taxableAmount, nonTaxableAmount };
   };
 
   const totals = items?.reduce(
     (acc, r) => {
-      const {
-        base,
-        discountAmt,
-        taxAmt,
-        lineTotal,
-        taxableAmount,
-        nonTaxableAmount,
-      } = computeRow(r);
+      const { base, discountAmt, taxAmt, lineTotal, taxableAmount, nonTaxableAmount } =
+        computeRow(r);
       acc.subtotal += base;
       acc.discount += discountAmt;
       acc.taxable += taxableAmount;
@@ -335,7 +276,6 @@ const AddEditPurchase: React.FC = () => {
     { subtotal: 0, discount: 0, taxable: 0, nonTaxable: 0, tax: 0, grand: 0 },
   );
 
-  // Summary discount amount (fixed amount, capped to grand total)
   const summaryDiscountValue = Number(summaryDiscountPct || 0);
   const summaryDiscountAmount = Number.isNaN(summaryDiscountValue)
     ? 0
@@ -355,13 +295,11 @@ const AddEditPurchase: React.FC = () => {
       invoiceNumber: p.invoiceNumber || "",
       items: (p.purchaseItems || []).map((it: any) => ({
         particulars: it.particulars || "",
-
         categoryId: it.categoryId ? it.categoryId : "",
         qty: it.quantity || 0,
         rate: it.rate || 0,
         isTaxable: it.isTaxable !== undefined ? Boolean(it.isTaxable) : true,
       })),
-
       paymentTerm: (p.paymentTerms as any) || "cash",
       accountId: p.accountId ? p.accountId : "",
     });
@@ -437,7 +375,6 @@ const AddEditPurchase: React.FC = () => {
             );
             return;
           }
-
           await completePurchase(createdDraftId).unwrap();
         }
 
@@ -451,7 +388,7 @@ const AddEditPurchase: React.FC = () => {
         try {
           await deletePurchase(`${PURCHASE_URL}${createdDraftId}`).unwrap();
         } catch {
-          // Best-effort cleanup if completion fails after draft creation.
+          // Best-effort cleanup
         }
       }
       handleError({ error });
@@ -461,307 +398,281 @@ const AddEditPurchase: React.FC = () => {
   return (
     <div className="p-6">
       <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
+
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col space-y-6"
+        className="mt-4 flex flex-col gap-6"
       >
         <fieldset disabled={isCompleted} className="contents">
-          <div className="flex flex-col gap-6 items-stretch">
-            <div className="w-full lg:flex-1 flex flex-col gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg mt-4">
+          {/* ── SECTION 1: Invoice Details ── */}
+          <section className="w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-gray-900">
+                Invoice Details
+              </h3>
+              <div className="mt-2 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {/* Invoice Date */}
               <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
-                  Invoice Details
-                </h3>
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4" />
+                <label className={labelClass}>
+                  Invoice Date
+                </label>
+                <input
+                  type="date"
+                  className={inputClass}
+                  {...register("invoiceDate", {
+                    required: "Invoice date is required",
+                  })}
+                />
+                {errors.invoiceDate && (
+                  <span className="mt-1 text-xs text-red-500">
+                    {errors.invoiceDate.message}
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start">
-                    Invoice Date
+
+              {/* Supplier */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">
+                    Supplier
                   </label>
-                  <input
-                    type="date"
-                    className="border rounded px-3 py-2 bg-white "
-                    {...register("invoiceDate", {
-                      required: "Invoice date is required",
-                    })}
-                  />
-                  {/* <span className="text-xs text-gray-600 mt-1">
-                  Date (BS): {bsDateDisplay}
-                </span> */}
-                  {errors.invoiceDate && (
-                    <span className="text-red-600 text-sm mt-1">
-                      {errors.invoiceDate.message}
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                    <label className="text-sm text-gray-700 mb-1 flex justify-start">
-                      Supplier
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        <CustomDialog
-                          buttonTitle={
-                            <button
-                              type="button"
-                              className="rounded-full bg-primaryColor px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90 whitespace-nowrap"
-                            >
-                              + Add New
-                            </button>
-                          }
-                          dialogOpen={supplierDialogOpen}
-                          setDialogOpen={setSupplierDialogOpen}
-                          title="Add Supplier"
-                          contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
-                        >
-                          <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
-                            <AddEditSupplier
-                              isComponent={true}
-                              closeModal={closeDialog}
-                            />
-                          </div>
-                        </CustomDialog>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAllSuppliers(true);
-                            setSupplierSearchTerm("");
-                            setViewSuppliersDialogOpen(true);
-                            refetchSuppliers();
-                          }}
-                          className="rounded-full bg-gray-600 px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium text-white shadow-sm transition-colors hover:bg-gray-700 whitespace-nowrap"
-                        >
-                          View All
-                        </button>
-
-                      {/* View Suppliers Dialog */}
-                      <CustomDialog
-                        buttonTitle={null}
-                        dialogOpen={viewSuppliersDialogOpen}
-                        setDialogOpen={setViewSuppliersDialogOpen}
-                        title="All Suppliers"
-                        contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
-                      >
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Search suppliers..."
-                              className="w-full p-2 border rounded bg-white"
-                              value={supplierSearchTerm}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setSupplierSearchTerm(value);
-                                setShowAllSuppliers(value.trim().length === 0);
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => refetchSuppliers()}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                              title="Search"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-
-                          <div className="border rounded-lg overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Name
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Contact
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Email
-                                  </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Action
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
-                                {suppliers?.map((supplier: any) => (
-                                  <tr
-                                    key={supplier.id}
-                                    className="hover:bg-gray-50"
-                                  >
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                      {supplier.name}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                      {supplier.contactNumber || "-"}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                      {supplier.email || "-"}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setValue(
-                                            "supplierId",
-                                            String(supplier.id),
-                                          );
-                                          setSelectedSupplier({
-                                            value: String(supplier.id),
-                                            label: supplier.name,
-                                          });
-                                          setViewSuppliersDialogOpen(false);
-                                        }}
-                                        className="text-primaryColor hover:text-primaryColor/80"
-                                      >
-                                        Select
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                                {(!suppliers || suppliers.length === 0) && (
-                                  <tr>
-                                    <td
-                                      colSpan={4}
-                                      className="px-6 py-4 text-center text-sm text-gray-500"
-                                    >
-                                      No suppliers found
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </CustomDialog>
-                    </div>
-                  </div>
-                  {/* <select
-                    className="border rounded px-3 py-2 bg-white"
-                    {...register("supplierId", {
-                      required: "Supplier is required",
-                    })}
-                  >
-                    {supplierOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select> */}
-
-                  <div className="relative">
-                    <Input
-                      placeholder="Search supplier"
-                      className="border rounded px-3 py-2 bg-white w-full"
-                      value={selectedSupplier?.label || supplierSearchTerm}
-                      onChange={(e) => {
-                        setSelectedSupplier(null);
-                        setSupplierSearchTerm(e.target.value);
-                        setIsSupplierDropdownOpen(true);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const first = supplierRows?.[0];
-                          if (first) {
-                            setSelectedSupplier({
-                              value: String(first.id),
-                              label: first.name,
-                            });
-                            setValue("supplierId", String(first.id), {
-                              shouldValidate: true,
-                            });
-                            setSupplierSearchTerm(first.name);
-                            setIsSupplierDropdownOpen(false);
-                          }
-                        }
-                      }}
-                      onFocus={() => setIsSupplierDropdownOpen(true)}
-                      onBlur={() =>
-                        setTimeout(() => setIsSupplierDropdownOpen(false), 150)
+                  <div className="flex gap-1.5">
+                    <CustomDialog
+                      buttonTitle={
+                    <button
+                      type="button"
+                      className="rounded-full bg-primaryColor px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition hover:bg-primaryColor/90"
+                    >
+                      + Add New
+                    </button>
                       }
-                    />
-                    {isSupplierDropdownOpen &&
-                      supplierSearchTerm.trim().length >= 2 && (
-                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                          {!suppliersOk ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">
-                              Type at least 2 characters to search…
-                            </div>
-                          ) : supplierRows.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">
-                              No suppliers found
-                            </div>
-                          ) : (
-                            supplierRows.map((supplier: any) => (
-                              <button
-                                key={supplier.id}
-                                type="button"
-                                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setSelectedSupplier({
-                                    value: String(supplier.id),
-                                    label: supplier.name,
-                                  });
-                                  setValue("supplierId", String(supplier.id), {
-                                    shouldValidate: true,
-                                  });
-                                  setSupplierSearchTerm(supplier.name);
-                                  setIsSupplierDropdownOpen(false);
-                                }}
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium">
-                                    {supplier.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {[supplier.phone, supplier.email]
-                                      .filter(Boolean)
-                                      .join(" • ")}
-                                  </div>
-                                </div>
-                              </button>
-                            ))
-                          )}
+                      dialogOpen={supplierDialogOpen}
+                      setDialogOpen={setSupplierDialogOpen}
+                      title="Add Supplier"
+                      contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
+                    >
+                      <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
+                        <AddEditSupplier
+                          isComponent={true}
+                          closeModal={closeDialog}
+                        />
+                      </div>
+                    </CustomDialog>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAllSuppliers(true);
+                        setSupplierSearchTerm("");
+                        setViewSuppliersDialogOpen(true);
+                        refetchSuppliers();
+                      }}
+                      className="rounded-full bg-gray-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition hover:bg-gray-700"
+                    >
+                      View All
+                    </button>
+
+                    <CustomDialog
+                      buttonTitle={null}
+                      dialogOpen={viewSuppliersDialogOpen}
+                      setDialogOpen={setViewSuppliersDialogOpen}
+                      title="All Suppliers"
+                      contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                    >
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search suppliers..."
+                            className={inputClass}
+                            value={supplierSearchTerm}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setSupplierSearchTerm(value);
+                              setShowAllSuppliers(value.trim().length === 0);
+                            }}
+                          />
                         </div>
-                      )}
+                        <div className="overflow-hidden rounded-lg border border-slate-200">
+                          <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                              <tr>
+                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                  Name
+                                </th>
+                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                  Contact
+                                </th>
+                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                  Email
+                                </th>
+                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                  Action
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                              {suppliers?.map((supplier: any) => (
+                                <tr
+                                  key={supplier.id}
+                                  className="transition hover:bg-slate-50"
+                                >
+                                  <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                                    {supplier.name}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-slate-500">
+                                    {supplier.contactNumber || "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-slate-500">
+                                    {supplier.email || "-"}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setValue(
+                                          "supplierId",
+                                          String(supplier.id),
+                                        );
+                                        setSelectedSupplier({
+                                          value: String(supplier.id),
+                                          label: supplier.name,
+                                        });
+                                        setViewSuppliersDialogOpen(false);
+                                      }}
+                                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    >
+                                      Select
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                              {(!suppliers || suppliers.length === 0) && (
+                                <tr>
+                                  <td
+                                    colSpan={4}
+                                    className="px-4 py-6 text-center text-sm text-slate-400"
+                                  >
+                                    No suppliers found
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </CustomDialog>
                   </div>
-                  {errors.supplierId && (
-                    <span className="text-red-600 text-sm mt-1">
-                      {errors.supplierId.message}
-                    </span>
-                  )}
                 </div>
-                <div className="flex flex-col">
-                  <label className="text-sm text-gray-700 mb-1 flex justify-start ">
-                    Invoice Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Invoice no. (Optional)"
-                    className="border rounded px-3 py-2 bg-white"
-                    {...register("invoiceNumber")}
+                <div className="relative">
+                  <Input
+                    placeholder="Search supplier..."
+                    className={inputClass}
+                    value={selectedSupplier?.label || supplierSearchTerm}
+                    onChange={(e) => {
+                      setSelectedSupplier(null);
+                      setSupplierSearchTerm(e.target.value);
+                      setIsSupplierDropdownOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const first = supplierRows?.[0];
+                        if (first) {
+                          setSelectedSupplier({
+                            value: String(first.id),
+                            label: first.name,
+                          });
+                          setValue("supplierId", String(first.id), {
+                            shouldValidate: true,
+                          });
+                          setSupplierSearchTerm(first.name);
+                          setIsSupplierDropdownOpen(false);
+                        }
+                      }
+                    }}
+                    onFocus={() => setIsSupplierDropdownOpen(true)}
+                    onBlur={() =>
+                      setTimeout(() => setIsSupplierDropdownOpen(false), 150)
+                    }
                   />
+                  {isSupplierDropdownOpen &&
+                    supplierSearchTerm.trim().length >= 2 && (
+                      <div className="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                        {!suppliersOk ? (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            Type at least 2 characters...
+                          </div>
+                        ) : supplierRows.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            No suppliers found
+                          </div>
+                        ) : (
+                          supplierRows.map((supplier: any) => (
+                            <button
+                              key={supplier.id}
+                              type="button"
+                              className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setSelectedSupplier({
+                                  value: String(supplier.id),
+                                  label: supplier.name,
+                                });
+                                setValue("supplierId", String(supplier.id), {
+                                  shouldValidate: true,
+                                });
+                                setSupplierSearchTerm(supplier.name);
+                                setIsSupplierDropdownOpen(false);
+                              }}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-gray-800">
+                                  {supplier.name}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {[supplier.phone, supplier.email]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
                 </div>
-                {/* Removed global Purchase Category field in favor of per-item category */}
-                <Controller
-                  name="paymentTerm"
-                  control={control}
-                  render={({ field }) => (
+                {errors.supplierId && (
+                  <span className="mt-1 text-xs text-red-500">
+                    {errors.supplierId.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Invoice Number */}
+              <div>
+                <label className={labelClass}>
+                  Invoice Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  className={inputClass}
+                  {...register("invoiceNumber")}
+                />
+              </div>
+
+              {/* Payment Terms */}
+              <Controller
+                name="paymentTerm"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className={labelClass}>
+                      Payment Terms
+                    </label>
                     <Select
-                      label="Payment Terms"
                       value={field.value ?? ""}
                       onBlur={field.onBlur}
                       name={field.name}
@@ -772,14 +683,20 @@ const AddEditPurchase: React.FC = () => {
                       ]}
                       onValueChange={field.onChange}
                     />
-                  )}
-                />
-                <Controller
-                  name="accountId"
-                  control={control}
-                  render={({ field }) => (
+                  </div>
+                )}
+              />
+
+              {/* Account */}
+              <Controller
+                name="accountId"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className={labelClass}>
+                      Account <span className="text-red-500">*</span>
+                    </label>
                     <Select
-                      label="Account"
                       value={
                         field.value !== undefined && field.value !== null
                           ? String(field.value)
@@ -799,270 +716,274 @@ const AddEditPurchase: React.FC = () => {
                       onValueChange={(next) =>
                         field.onChange(next ? Number(next) : undefined)
                       }
-          isRequired
-        />
-                  )}
-                />
-              </div>
-
-              {/* Items table */}
-              <div>
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <h2 className="text-sm font-semibold text-gray-900 flex justify-start ">
-                    Purchase Items
-                  </h2>
-                  <div>
-                    <button
-                      type="button"
-                      className="w-full sm:w-auto rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primaryColor/90"
-                      onClick={() =>
-                        append({
-                          particulars: "",
-                          hsCode: "",
-                          categoryId: "",
-                          qty: undefined as any,
-                          rate: undefined as any,
-                          discountPercent: 0,
-                          taxPercent: 13,
-                          isTaxable: true,
-                        })
-                      }
-                    >
-                      + Add Item
-                    </button>
+                      isRequired
+                    />
                   </div>
-                </div>
-                <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                  <table className="min-w-[1000px] lg:min-w-full w-full">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="p-2 border">S.N</th>
-                        <th className="p-2 border">Category</th>
-                        <th className="p-2 border">Particulars</th>
-                        <th className="p-2 border">Qty</th>
-                        <th className="p-2 border">Rate</th>
-                        <th className="p-2 border">Taxable</th>
-                        <th className="p-2 border">Amount</th>
-                        <th className="p-2 border">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fields.map((field, idx) => {
-                        const row = items[idx] || {
-                          particulars: "",
-                          hsCode: "",
-                          qty: undefined as any,
-                          rate: undefined as any,
-                          discountPercent: 0,
-                          taxPercent: 13,
-                        };
-                        const { base, discountAmt } = computeRow(row);
-                        return (
-                          <tr key={field.id}>
-                            <td className="p-2 border text-center w-16">
-                              {idx + 1}
-                            </td>
-
-                            <td className="p-2 border">
-                              <Controller
-                                name={`items.${idx}.categoryId`}
-                                control={control}
-                                render={({ field }) => (
-                                  <Select
-                                    value={
-                                      field.value !== undefined &&
-                                      field.value !== null
-                                        ? String(field.value)
-                                        : ""
-                                    }
-                                    onBlur={field.onBlur}
-                                    name={field.name}
-                                    placeholder="Select Category"
-                                    options={[
-                                      { value: "", label: "Select Category" },
-                                      ...purchaseCategories.map((option) => ({
-                                        value: String(option.value),
-                                        label: option.label,
-                                      })),
-                                    ]}
-                                    onValueChange={(next) =>
-                                      field.onChange(
-                                        next ? Number(next) : undefined,
-                                      )
-                                    }
-                                    triggerClassName="h-9"
-                                  />
-                                )}
-                              />
-                              {errors.items?.[idx]?.categoryId?.message && (
-                                <span className="input-error">
-                                  {String(errors.items[idx].categoryId.message)}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2 border">
-                              <input
-                                type="text"
-                                className="border rounded px-2 py-1 w-[30rem] bg-white"
-                                {...register(
-                                  `items.${idx}.particulars` as const,
-                                  {
-                                    required: true,
-                                  },
-                                )}
-                              />
-                            </td>
-                            <td className="p-2 border">
-                              <input
-                                type="number"
-                                min={0}
-                                step="1"
-                                className="border rounded px-2 py-1 w-20 sm:w-24 bg-white"
-                                {...register(`items.${idx}.qty` as const, {
-                                  valueAsNumber: true,
-                                })}
-                              />
-                            </td>
-                            <td className="p-2 border">
-                              <input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="border rounded px-2 py-1 w-24 sm:w-28 bg-white"
-                                {...register(`items.${idx}.rate` as const, {
-                                  valueAsNumber: true,
-                                })}
-                              />
-                            </td>
-
-                            <td className="p-2 border text-center">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 bg-white"
-                                {...register(`items.${idx}.isTaxable` as const)}
-                                defaultChecked={row.isTaxable !== false}
-                              />
-                            </td>
-                            <td className="p-2 border text-right w-28">
-                              {(base - discountAmt).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center">
-                              <button
-                                type="button"
-                                onClick={() => remove(idx)}
-                                disabled={fields.length === 1}
-                                title="Remove row"
-                                aria-label="Remove row"
-                              >
-                                <Trash className="text-red-600" size={18} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                )}
+              />
             </div>
-            <div className="w-full shrink-0">
-              <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-xl">
-                {/* Accent gradient blob */}
-                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
+          </section>
 
-                <div className="p-4 sm:p-6">
-                  <div className="mb-5 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Purchase Summary
-                    </h3>
-                  </div>
+          {/* ── SECTION 2: Purchase Items ── */}
+          <section className="w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-base font-semibold text-gray-900">
+                Purchase Items
+              </h3>
+              <button
+                type="button"
+                onClick={() =>
+                  append({
+                    particulars: "",
+                    hsCode: "",
+                    categoryId: "",
+                    qty: undefined as any,
+                    rate: undefined as any,
+                    discountPercent: 0,
+                    taxPercent: 13,
+                    isTaxable: true,
+                  })
+                }
+                className="rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primaryColor/90"
+              >
+                + Add Item
+              </button>
+            </div>
 
-                  {/* Summary grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-[11px] font-medium text-gray-500">
-                        Taxable Items Total
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-blue-600">
-                        {CurrencySign}
-                        {totals.taxable.toFixed(2)}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="text-[11px] font-medium text-gray-500">
-                        Non-Taxable Items Total
-                      </div>
-                      <div className="mt-1 text-lg font-semibold text-purple-600">
-                        {CurrencySign}
-                        {totals.nonTaxable.toFixed(2)}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between text-[11px] text-gray-500">
-                        <span className="font-medium">Discount</span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-gray-500">
-                            {CurrencySign}
-                          </span>
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+              <table className="min-w-[900px] w-full">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="p-3 border-b text-center text-xs font-medium text-gray-500 w-14">
+                      S.N
+                    </th>
+                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500">
+                      Category
+                    </th>
+                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500">
+                      Particulars
+                    </th>
+                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500 w-24">
+                      Qty
+                    </th>
+                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500 w-28">
+                      Rate
+                    </th>
+                    <th className="p-3 border-b text-center text-xs font-medium text-gray-500 w-20">
+                      Taxable
+                    </th>
+                    <th className="p-3 border-b text-right text-xs font-medium text-gray-500 w-28">
+                      Amount
+                    </th>
+                    <th className="p-3 border-b w-16" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {fields.map((field, idx) => {
+                    const row = items[idx] || {
+                      particulars: "",
+                      hsCode: "",
+                      qty: undefined as any,
+                      rate: undefined as any,
+                      discountPercent: 0,
+                      taxPercent: 13,
+                    };
+                    const { base, discountAmt } = computeRow(row);
+                    return (
+                      <tr
+                        key={field.id}
+                        className="border-b border-gray-100 last:border-0"
+                      >
+                        <td className="p-3 text-center text-sm text-gray-600">
+                          {idx + 1}
+                        </td>
+                        <td className="p-3">
+                          <Controller
+                            name={`items.${idx}.categoryId`}
+                            control={control}
+                            render={({ field }) => (
+                              <Select
+                                value={
+                                  field.value !== undefined &&
+                                  field.value !== null
+                                    ? String(field.value)
+                                    : ""
+                                }
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                placeholder="Category"
+                                options={[
+                                  { value: "", label: "Select" },
+                                  ...purchaseCategories.map((option) => ({
+                                    value: String(option.value),
+                                    label: option.label,
+                                  })),
+                                ]}
+                                onValueChange={(next) =>
+                                  field.onChange(
+                                    next ? Number(next) : undefined,
+                                  )
+                                }
+                                triggerClassName="h-9"
+                              />
+                            )}
+                          />
+                          {errors.items?.[idx]?.categoryId?.message && (
+                            <span className="text-red-500 text-xs">
+                              {String(errors.items[idx].categoryId.message)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            placeholder="Item description"
+                            className="border rounded px-2 py-1.5 w-full min-w-[180px] bg-white text-sm"
+                            {...register(
+                              `items.${idx}.particulars` as const,
+                              { required: true },
+                            )}
+                          />
+                        </td>
+                        <td className="p-3">
                           <input
                             type="number"
                             min={0}
-                            max={totals.grand}
-                            step="0.01"
-                            value={summaryDiscountPct}
-                            onChange={(e) => setSummaryDiscountPct(e.target.value)}
-                            className="w-20 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-right text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            title="Discount amount"
-                            aria-label="Discount amount"
+                            step="1"
+                            className="border rounded px-2 py-1.5 w-full bg-white text-sm"
+                            {...register(`items.${idx}.qty` as const, {
+                              valueAsNumber: true,
+                            })}
                           />
-                        </div>
-                      </div>
-                      <div className="mt-1 text-lg text-emerald-700">
-                        -{CurrencySign}
-                        {summaryDiscountAmount.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-full sm:w-[48%] lg:w-[30%] xl:w-[20%] rounded-xl border border-amber-100 bg-amber-50 p-3 sm:p-4 shadow-sm mt-4">
-                    <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
-                      <div className="w-full sm:w-auto">
-                        <div className="text-[12px] sm:text-[10px] font-medium text-amber-700">
-                          Tax (13%)
-                        </div>
-                        <div className="mt-1 font-semibold text-amber-700 text-lg">
-                          {CurrencySign}
-                          {totals.tax.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="text-right w-full sm:w-auto mt-2 sm:mt-0">
-                        <div className="text-[12px] font-medium text-amber-700">
-                          Grand Total
-                        </div>
-                        <div className="mt-1 text-lg sm:text-xl font-bold text-amber-800">
-                          {CurrencySign}
-                          {grandAfterSummaryDiscount.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="border rounded px-2 py-1.5 w-full bg-white text-sm"
+                            {...register(`items.${idx}.rate` as const, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-primaryColor focus:ring-primaryColor"
+                            {...register(
+                              `items.${idx}.isTaxable` as const,
+                            )}
+                            defaultChecked={row.isTaxable !== false}
+                          />
+                        </td>
+                        <td className="p-3 text-right text-sm font-medium text-gray-800">
+                          {(base - discountAmt).toFixed(2)}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => remove(idx)}
+                            disabled={fields.length === 1}
+                            title="Remove row"
+                          >
+                            <Trash2 className="text-red-600" size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-                  {/* Divider */}
-                  <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+          {/* ── SECTION 3: Purchase Summary ── */}
+          <section className="w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-6 shadow-lg relative overflow-hidden">
+            <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
 
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
-                      Entry By: {username || "-"}
+            <div className="mb-5">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Purchase Summary
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-medium text-gray-500">
+                  Taxable Items Total
+                </div>
+                <div className="mt-1 text-lg font-semibold text-blue-600">
+                  {CurrencySign} {totals.taxable.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-medium text-gray-500">
+                  Non-Taxable Items Total
+                </div>
+                <div className="mt-1 text-lg font-semibold text-purple-600">
+                  {CurrencySign} {totals.nonTaxable.toFixed(2)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between text-[11px] text-gray-500">
+                  <span className="font-medium">Discount</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-gray-500">
+                      {CurrencySign}
                     </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={totals.grand}
+                      step="0.01"
+                      value={summaryDiscountPct}
+                      onChange={(e) => setSummaryDiscountPct(e.target.value)}
+                      className="w-20 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-right text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="0"
+                    />
                   </div>
+                </div>
+                <div className="mt-1 text-lg font-semibold text-emerald-700">
+                  -{CurrencySign} {summaryDiscountAmount.toFixed(2)}
                 </div>
               </div>
             </div>
-          </div>
+
+            <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6">
+              <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 shadow-sm flex-1">
+                <div className="text-[11px] font-medium text-amber-700">
+                  Tax (13%)
+                </div>
+                <div className="mt-1 text-lg font-semibold text-amber-700">
+                  {CurrencySign} {totals.tax.toFixed(2)}
+                </div>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 shadow-sm flex-1">
+                <div className="text-[11px] font-medium text-amber-700">
+                  Grand Total
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-800">
+                  {CurrencySign} {grandAfterSummaryDiscount.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
+                Entry By: {username || "-"}
+              </span>
+            </div>
+          </section>
         </fieldset>
+
+        {/* ── ACTION BAR ── */}
         <div className="flex w-full justify-end gap-3">
-          {!isCompleted && (
+          {!isCompleted ? (
             <>
               <button
                 type="button"
@@ -1092,8 +1013,7 @@ const AddEditPurchase: React.FC = () => {
                 Complete Payment
               </button>
             </>
-          )}
-          {isCompleted && (
+          ) : (
             <span className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
               This purchase is completed and cannot be edited.
             </span>

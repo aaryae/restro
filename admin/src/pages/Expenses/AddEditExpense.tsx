@@ -241,12 +241,12 @@ const AddEditExpense: React.FC = () => {
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <label className="text-left text-xs font-medium text-slate-600">
                       Category <span className="text-red-500">*</span>
-                    </label>
+                      </label>
                     <CustomDialog
                       buttonTitle={
                         <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-lg bg-primaryColor px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg bg-primaryColor px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
                         >
                           <Plus size={12} strokeWidth={2.5} />
                           Add Category
@@ -556,14 +556,14 @@ const AddEditExpense: React.FC = () => {
 
             <div className="flex min-w-0 flex-col sm:col-span-2">
               <label className="mb-2 text-left text-xs font-medium text-slate-600">
-                Remarks
-              </label>
+                Remarks <span className="text-red-500">*</span>
               <textarea
                 rows={3}
                 placeholder="Additional remarks"
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
                 {...register("remarks")}
-              />
+                />
+                </label>
               {errors.remarks && (
                 <span className="mt-1 text-sm text-red-600">
                   {errors.remarks.message}

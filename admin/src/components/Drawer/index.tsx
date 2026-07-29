@@ -8,9 +8,11 @@ interface DrawerType {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   children: React.ReactNode;
   width?: string;
-  position?: "left" | "right";
+  position?: "left" | "right" | "bottom";
   className?: string;
   contentClassName?: string;
+  /** Hide the default top close bar (use when children render their own header). */
+  hideHeader?: boolean;
 }
 
 export default function Drawer({
@@ -21,6 +23,7 @@ export default function Drawer({
   position = "right",
   className,
   contentClassName = "p-4",
+  hideHeader = false,
 }: Readonly<DrawerType>) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -96,13 +99,15 @@ export default function Drawer({
     event.preventDefault();
   };
 
+  const isBottom = position === "bottom";
+
   return createPortal(
     <>
       {isOpen && (
         <button
           type="button"
           aria-label="Close drawer backdrop"
-          className="fixed inset-0 z-[60] touch-none bg-slate-900/25 backdrop-blur-[1px]"
+          className="fixed inset-0 z-[90] touch-none bg-slate-900/40 backdrop-blur-[1px]"
           onClick={toggleDrawer}
           onTouchMove={stopBackgroundScroll}
           onWheel={stopBackgroundScroll}
@@ -110,31 +115,46 @@ export default function Drawer({
       )}
       <div
         className={cn(
-          "fixed inset-y-0 z-[70] flex h-[100dvh] max-h-[100dvh] max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
-          position === "right" ? "right-0" : "left-0",
+          "fixed z-[100] flex max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          isBottom
+            ? "inset-x-0 bottom-0 h-[min(85dvh,36rem)] max-h-[min(92dvh,40rem)] rounded-t-2xl"
+            : "inset-y-0 h-[100dvh] max-h-[100dvh]",
+          !isBottom && (position === "right" ? "right-0" : "left-0"),
           isOpen
-            ? "visible translate-x-0 pointer-events-auto"
-            : position === "right"
-              ? "invisible translate-x-full pointer-events-none"
-              : "invisible -translate-x-full pointer-events-none",
-          width,
+            ? "visible pointer-events-auto translate-x-0 translate-y-0"
+            : isBottom
+              ? "invisible pointer-events-none translate-y-full"
+              : position === "right"
+                ? "invisible pointer-events-none translate-x-full"
+                : "invisible pointer-events-none -translate-x-full",
+          !isBottom && width,
+          isBottom && "w-full",
           className,
         )}
       >
-        <div className="flex h-12 shrink-0 items-center justify-end border-b border-slate-100 px-3">
-          <button
-            type="button"
-            onClick={toggleDrawer}
-            aria-label="Close drawer"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
-          >
-            <RxCross2 size={18} />
-          </button>
-        </div>
+        {isBottom && (
+          <div className="flex shrink-0 justify-center pt-2.5 pb-1" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-slate-300" />
+          </div>
+        )}
+
+        {!hideHeader && (
+          <div className="flex h-12 shrink-0 items-center justify-end border-b border-slate-100 px-3">
+            <button
+              type="button"
+              onClick={toggleDrawer}
+              aria-label="Close drawer"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            >
+              <RxCross2 size={18} />
+            </button>
+          </div>
+        )}
 
         <div
           className={cn(
-            "drawer-content flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain",
+            "drawer-content flex min-h-0 flex-1 flex-col overscroll-contain",
+            isBottom ? "overflow-hidden" : "overflow-y-auto",
             contentClassName,
           )}
         >

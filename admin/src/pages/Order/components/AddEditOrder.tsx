@@ -1,23 +1,29 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
-import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useReactToPrint } from "react-to-print";
-import Kot, { type KotData } from "@/components/Kot";
-import PageTitle from "@/components/PageTitle";
-import TextArea from "@/components/TextArea";
-import Select from "@/components/Select";
-import { FaSearch } from "react-icons/fa";
-import { MdShoppingCart } from "react-icons/md";
-import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import Beep from "@/assets/audio/beep.mp3";
 import DeleteBeep from "@/assets/audio/DeleteBeep.mp3";
-import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
-import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
-import { handleError, handleResponse } from "@/utils/responseHandler";
+import DishPlaceHolder from "@/assets/product_placeholder.jpg";
+import Drawer from "@/components/Drawer";
+import Input from "@/components/Input";
+import Kot, { type KotData } from "@/components/Kot";
+import PageTitle from "@/components/PageTitle";
+import Select from "@/components/Select";
+import TextArea from "@/components/TextArea";
 import Toast from "@/components/Toast";
+import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
+import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
+import useDebounce from "@/hooks/useDebounce";
+import usePagination from "@/hooks/usePagination";
+import { useGetApiQuery, usePatchApiMutation } from "@/redux/services/crudApi";
 import {
+  useCreateOrderMutation,
+  useUpdateOrderMutation,
+} from "@/redux/services/orders";
+import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
+import { buildQueryString } from "@/utils/generalHelper";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { buildTableSelectOptions } from "@/utils/tableSelectOptions";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AlertTriangle,
   LayoutGrid,
   List,
   Minus,
@@ -25,21 +31,17 @@ import {
   ShoppingBasket,
   User,
 } from "lucide-react";
-import {
-  useCreateOrderMutation,
-  useUpdateOrderMutation,
-} from "@/redux/services/orders";
-import { buildTableSelectOptions } from "@/utils/tableSelectOptions";
-import { buildQueryString } from "@/utils/generalHelper";
-import usePagination from "@/hooks/usePagination";
-import useDebounce from "@/hooks/useDebounce";
-import DishPlaceHolder from "@/assets/product_placeholder.jpg";
-import Drawer from "@/components/Drawer";
-import styles from "./AddEditOrder.module.css";
-import Input from "@/components/Input";
-import { OrderSchema } from "../schema";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Controller, useForm } from "react-hook-form";
+import { FaSearch } from "react-icons/fa";
+import { MdShoppingCart } from "react-icons/md";
+import { RxCross2 } from "react-icons/rx";
+import { useNavigate, useParams } from "react-router-dom";
+import { useReactToPrint } from "react-to-print";
+import { z } from "zod";
+import { OrderSchema } from "../schema";
+import styles from "./AddEditOrder.module.css";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
 
@@ -197,28 +199,88 @@ export default function AddEditOrder({
     null,
   );
   const [cartSheetExpanded, setCartSheetExpanded] = useState(false);
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
   const [menuView, setMenuView] = useState<"card" | "list">("card");
+  const [occupiedTableWarning, setOccupiedTableWarning] = useState<{
+    pendingTableId: string;
+    previousTableId: string;
+  } | null>(null);
+  const initialTableIdRef = useRef<string>(
+    String(draft?.tableId || tableId || ""),
+  );
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const syncLayout = () => setIsCompactLayout(mediaQuery.matches);
+    syncLayout();
+    mediaQuery.addEventListener("change", syncLayout);
+    return () => mediaQuery.removeEventListener("change", syncLayout);
+  }, []);
+
+  useEffect(() => {
+    if (addonDrawerOpen && isCompactLayout) {
+      setCartSheetExpanded(false);
+    }
+  }, [addonDrawerOpen, isCompactLayout]);
 
   // Use refs for audio to avoid SSR/build-time issues and allow imperative control
   const beepRef = useRef<HTMLAudioElement | null>(null);
   const deleteBeepRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(false);
 
-  // Create and configure audio elements on mount
+  // Create and warm up audio elements; unlock on first user gesture (required in production browsers)
   useEffect(() => {
     const beep = new Audio(Beep);
     const del = new Audio(DeleteBeep);
-    // Preload and configure for reliable playback
     beep.preload = "auto";
     del.preload = "auto";
-    beep.muted = false;
-    del.muted = false;
-    beep.volume = 1.0;
-    del.volume = 1.0;
+    beep.volume = 1;
+    del.volume = 1;
     beepRef.current = beep;
     deleteBeepRef.current = del;
-    // No auto play/unlock here; sounds will play only on explicit user clicks
-    return () => {};
+
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+      [beep, del].forEach((el) => {
+        try {
+          el.muted = true;
+          const p = el.play();
+          if (p && typeof p.then === "function") {
+            p.then(() => {
+              el.pause();
+              el.currentTime = 0;
+              el.muted = false;
+            }).catch(() => {
+              el.muted = false;
+            });
+          } else {
+            el.muted = false;
+          }
+        } catch {
+          el.muted = false;
+        }
+      });
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+    window.addEventListener("touchstart", unlockAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+      beep.pause();
+      del.pause();
+      beepRef.current = null;
+      deleteBeepRef.current = null;
+    };
   }, []);
 
   const watchedOrderType = watch("orderType");
@@ -260,19 +322,56 @@ export default function AddEditOrder({
     orderItems,
   ]);
 
-  const playAudio = () => {
-    const a = beepRef.current;
-    if (!a) return;
+  const playSound = (src: string, fallbackEl: HTMLAudioElement | null) => {
+    // Prefer a fresh Audio instance created inside the click stack — most reliable
+    // under production browser autoplay policies (especially tablets / Safari).
+    const tryPlay = (url: string) => {
+      const fresh = new Audio(url);
+      fresh.volume = 1;
+      return fresh.play();
+    };
+
     try {
-      a.currentTime = 0;
-      const p = a.play();
-      if (p && typeof p.then === "function") {
-        p.catch(() => {
-          // ignored: browser blocked due to gesture policy; unlocked handler will fix on next gesture
+      const playPromise = tryPlay(src);
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise.catch(() => {
+          // Fallback to preloaded element, then public asset path
+          const retry = async () => {
+            if (fallbackEl) {
+              try {
+                fallbackEl.muted = false;
+                fallbackEl.currentTime = 0;
+                await fallbackEl.play();
+                return;
+              } catch {
+                // continue
+              }
+            }
+            const publicPath = src.includes("DeleteBeep")
+              ? "/audio/DeleteBeep.mp3"
+              : "/audio/beep.mp3";
+            try {
+              await tryPlay(publicPath);
+            } catch {
+              // ignore — browser/device blocked audio
+            }
+          };
+          void retry();
         });
       }
-    } catch {}
+    } catch {
+      if (!fallbackEl) return;
+      try {
+        fallbackEl.currentTime = 0;
+        void fallbackEl.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+    }
   };
+
+  const playAudio = () => playSound(Beep, beepRef.current);
+  const playDeleteAudio = () => playSound(DeleteBeep, deleteBeepRef.current);
 
   // React-to-print for KOT (80mm ticket style)
   const printKot = useReactToPrint({
@@ -302,18 +401,6 @@ export default function AddEditOrder({
       }
     `,
   });
-
-  const playDeleteAudio = () => {
-    const a = deleteBeepRef.current;
-    if (!a) return;
-    try {
-      a.currentTime = 0;
-      const p = a.play();
-      if (p && typeof p.then === "function") {
-        p.catch(() => {});
-      }
-    } catch {}
-  };
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
     useGetApiQuery(
@@ -348,9 +435,18 @@ export default function AddEditOrder({
           }),
         ),
       );
-      setValue("orderNote", currentOrders?.data?.orderNote);
+      setValue("orderNote", currentOrders?.data?.orderNote ?? "");
+      if (currentOrders?.data?.takeAwayName != null) {
+        setValue("takeAwayName", currentOrders.data.takeAwayName ?? "");
+      }
+      if (currentOrders?.data?.tableId != null) {
+        setValue("tableId", String(currentOrders.data.tableId));
+      }
+      if (currentOrders?.data?.orderType) {
+        setValue("orderType", currentOrders.data.orderType);
+      }
     }
-  }, [currentOrders, currentOrderIsSuccess]);
+  }, [currentOrders, currentOrderIsSuccess, setValue]);
 
   useEffect(() => {
     const total = orderItems.reduce(
@@ -368,7 +464,7 @@ export default function AddEditOrder({
       productId: isNaN(Number(item.productId))
         ? undefined
         : Number(item.productId),
-      specialInstructions: item.specialInstructions,
+      specialInstructions: item.specialInstructions ?? "",
       addons: (item.addons || []).map((a) => ({
         addonId: a.addonId,
         quantity: a.quantity,
@@ -400,6 +496,59 @@ export default function AddEditOrder({
       groupByFloor: true,
     });
   }, [tableData]);
+
+  const tableStatusById = useMemo(() => {
+    const map = new Map<string, string>();
+    (tableData?.data?.data ?? []).forEach((table: any) => {
+      if (table?.id != null) {
+        map.set(String(table.id), String(table.status || ""));
+      }
+    });
+    return map;
+  }, [tableData]);
+
+  const handleTableSelectChange = (
+    nextTableId: string,
+    currentTableId: string,
+    onChange: (value: string) => void,
+  ) => {
+    const next = String(nextTableId || "");
+    const current = String(currentTableId || "");
+    if (!next || next === current) {
+      onChange(next);
+      return;
+    }
+
+    const status = tableStatusById.get(next);
+    const isInitialTable = next === initialTableIdRef.current;
+    if (status === "occupied" && !isInitialTable) {
+      setOccupiedTableWarning({
+        pendingTableId: next,
+        previousTableId: current,
+      });
+      return;
+    }
+
+    onChange(next);
+  };
+
+  const confirmOccupiedTableSelection = () => {
+    if (!occupiedTableWarning) return;
+    setValue("tableId", occupiedTableWarning.pendingTableId, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setOccupiedTableWarning(null);
+  };
+
+  const cancelOccupiedTableSelection = () => {
+    if (!occupiedTableWarning) return;
+    setValue("tableId", occupiedTableWarning.previousTableId, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setOccupiedTableWarning(null);
+  };
 
   const addProductToOrder = (product: {
     id: string;
@@ -812,6 +961,20 @@ export default function AddEditOrder({
                           triggerClassName={styles.mobileSelectTrigger}
                           contentClassName={styles.mobileSelectContent}
                           isRequired
+                          onChange={(e) => {
+                            handleTableSelectChange(
+                              e.target.value,
+                              String(field.value || ""),
+                              (next) => field.onChange(next),
+                            );
+                          }}
+                          onValueChange={(next) => {
+                            handleTableSelectChange(
+                              next,
+                              String(field.value || ""),
+                              (value) => field.onChange(value),
+                            );
+                          }}
                         />
                       )}
                     />
@@ -1065,6 +1228,10 @@ export default function AddEditOrder({
               cartSheetExpanded
                 ? styles.cartPanelExpanded
                 : styles.cartPanelPeek
+            } ${
+              addonDrawerOpen && isCompactLayout
+                ? "invisible pointer-events-none"
+                : ""
             }`}
           >
             <div
@@ -1204,10 +1371,10 @@ export default function AddEditOrder({
                             setActiveAddonItem(item);
                             setAddonDrawerOpen(true);
                           }}
-                          className={`${styles.addonBtn} max-sm:flex-1`}
+                          className={`${styles.addonBtn} max-sm:flex-1 flex justify-center items-center `}
                         >
-                          <span className="inline-flex items-center justify-center gap-1">
-                            <Plus size={14} strokeWidth={2.5} />
+                          <span className="flex items-center justify-center gap-1 max-h-[.875rem]">
+                            <Plus size={12} strokeWidth={2.5} />
                             {item.addons?.length
                               ? `Edit Addons (${item.addons.length})`
                               : "Add Addon"}
@@ -1282,6 +1449,50 @@ export default function AddEditOrder({
         </form>
       </div>
 
+      {occupiedTableWarning &&
+        createPortal(
+          <div className={styles.modalBackdrop}>
+            <div className={styles.modal}>
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>Table Already Occupied</h3>
+              </div>
+              <div className="flex flex-col gap-4 px-5 py-4">
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                    <AlertTriangle size={16} />
+                  </span>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-amber-900">
+                      {getTableLabel(occupiedTableWarning.pendingTableId)} is
+                      already occupied.
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800/80">
+                      Creating an order on this table will add it to the
+                      existing session. Do you want to continue?
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  onClick={cancelOccupiedTableSelection}
+                  className={styles.modalSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmOccupiedTableSelection}
+                  className={styles.modalPrimary}
+                >
+                  Continue Anyway
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
       {isConfirmOpen &&
         createPortal(
           <div className={styles.modalBackdrop}>
@@ -1471,15 +1682,29 @@ export default function AddEditOrder({
       <Drawer
         isOpen={addonDrawerOpen}
         setIsOpen={setAddonDrawerOpen}
+        position={isCompactLayout ? "bottom" : "right"}
         width="w-full max-w-md sm:w-[400px]"
-        contentClassName="p-0"
+        contentClassName="p-0 overflow-hidden"
+        hideHeader={isCompactLayout}
       >
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="shrink-0 border-b border-slate-100 px-5 pb-3 pt-4">
-            <h3 className="text-left text-base font-semibold text-slate-900">
-              {activeAddonItem?.productName}
-            </h3>
-            <p className="mt-0.5 text-left text-sm text-slate-500">Addons</p>
+        <div className="flex h-full min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3 pt-4">
+            <div className="min-w-0 text-left">
+              <h3 className="truncate text-base font-semibold text-slate-900">
+                {activeAddonItem?.productName}
+              </h3>
+              <p className="mt-0.5 text-sm text-slate-500">Addons</p>
+            </div>
+            {isCompactLayout && (
+              <button
+                type="button"
+                aria-label="Close addons"
+                onClick={() => setAddonDrawerOpen(false)}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+              >
+                <RxCross2 size={18} />
+              </button>
+            )}
           </div>
           {activeAddonItem ? (
             <AddonPicker
@@ -1490,7 +1715,6 @@ export default function AddEditOrder({
                 price: Number(a.price ?? a.addon?.price ?? 0),
                 quantity: a.quantity ?? 1,
               }))}
-              onCancel={() => setAddonDrawerOpen(false)}
               onSave={(addons) => {
                 setOrderItems((prev) =>
                   prev.map((it) =>
@@ -1520,7 +1744,6 @@ export default function AddEditOrder({
 function AddonPicker({
   productId,
   selected,
-  onCancel,
   onSave,
 }: {
   productId: string;
@@ -1530,7 +1753,6 @@ function AddonPicker({
     price: number;
     quantity: number;
   }[];
-  onCancel: () => void;
   onSave: (
     addons: {
       addonId: number;
@@ -1589,6 +1811,12 @@ function AddonPicker({
       .includes(searchTerm.toLowerCase()),
   );
 
+  const selectedCount = local.length;
+  const extrasTotal = local.reduce(
+    (sum, addon) => sum + Number(addon.price || 0) * Number(addon.quantity || 1),
+    0,
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 space-y-3 border-b border-slate-100 px-5 pb-4">
@@ -1596,20 +1824,9 @@ function AddonPicker({
           <p className="text-sm text-slate-500">
             Choose addons for this item
           </p>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-              {(local || []).length} selected
-            </span>
-            {local.length > 0 && (
-              <button
-                type="button"
-                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
-                onClick={() => setLocal([])}
-              >
-                Clear
-              </button>
-            )}
-          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+            {selectedCount} selected
+          </span>
         </div>
 
         <div className="relative">
@@ -1727,23 +1944,32 @@ function AddonPicker({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-2">
+      <div className="shrink-0 border-t border-slate-200 bg-white px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgb(15_23_42_/_0.06)]">
+        {selectedCount > 0 && (
+          <div className="mb-3 flex items-center justify-between text-sm">
+            <span className="text-slate-500">
+              {selectedCount} addon{selectedCount === 1 ? "" : "s"}
+            </span>
+            <span className="font-semibold tabular-nums text-slate-800">
+              +{CurrencySign}
+              {extrasTotal.toFixed(2)}
+            </span>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
-            className="h-11 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            onClick={onCancel}
+            className="h-12 rounded-xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 active:scale-[0.99]"
+            onClick={() => onSave([])}
           >
-            Cancel
+            Delete
           </button>
           <button
             type="button"
-            className="h-11 flex-1 rounded-lg bg-primaryColor text-sm font-semibold text-white transition hover:bg-primaryColor/90"
+            className="h-12 rounded-xl bg-primaryColor text-sm font-semibold text-white transition hover:bg-primaryColor/90 active:scale-[0.99]"
             onClick={() => onSave(local)}
           >
-            {local.length > 0
-              ? `Add ${local.length} Addon${local.length === 1 ? "" : "s"}`
-              : "Save"}
+            Submit
           </button>
         </div>
       </div>

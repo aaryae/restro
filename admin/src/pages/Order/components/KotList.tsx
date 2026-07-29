@@ -24,6 +24,7 @@ type OrderItem = {
   };
   specialInstructions?: string;
   addons?: Array<{
+    quantity?: number;
     addon?: { name?: string };
   }>;
 };
@@ -362,11 +363,26 @@ function KotCard({ kot }) {
                       * {item.specialInstructions}
                     </p>
                   )}
-                  {item.addons?.map((addonItem, addonIndex) => (
-                    <p key={addonIndex} className="pl-3 text-[10px]">
-                      + {addonItem?.addon?.name || "Addon"}
-                    </p>
-                  ))}
+                  {item.addons?.map((addonItem, addonIndex) => {
+                    const addonQty = Number(
+                      addonItem?.quantity ?? (addonItem as any)?.qty ?? 1,
+                    );
+                    return (
+                      <div
+                        key={addonIndex}
+                        className="grid grid-cols-12 text-[10px]"
+                      >
+                        <div className="col-span-8 pl-3">
+                          + {addonItem?.addon?.name || "Addon"}
+                        </div>
+                        <div className="col-span-4 text-right font-medium">
+                          {Number.isFinite(addonQty) && addonQty > 0
+                            ? addonQty
+                            : 1}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))
             )}

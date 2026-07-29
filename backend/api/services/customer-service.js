@@ -91,14 +91,22 @@ const getById = async (req) => {
         {
           model: orderModel,
           as: "orders",
+          separate: true,
+          order: [
+            ["orderStartTime", "DESC"],
+            ["createdAt", "DESC"],
+          ],
           include: [
             {
               model: orderItemModel,
               as: "orderItems",
+              where: { isAddon: false },
+              required: false,
               include: [
                 {
                   model: productModel,
                   as: "product",
+                  required: false,
                 },
               ],
             },

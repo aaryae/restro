@@ -190,7 +190,7 @@ export default function AddEditSupplier({
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={20}
+                maxLength={10}
                 placeholder="9800000000"
                 className="w-full pl-9"
                 {...register("contact_number", {

@@ -41,7 +41,9 @@ export function SortableRow({
       <td className="w-10 px-2 py-3 align-middle">
         <button
           type="button"
-          className="flex h-8 w-8 cursor-grab items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 active:cursor-grabbing"
+          className="flex h-8 w-8 touch-none cursor-grab items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+          aria-label="Drag to reorder"
           {...attributes}
           {...listeners}
         >

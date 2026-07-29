@@ -51,32 +51,36 @@ function PurchaseExpenseSection() {
   const [expenseChart, setExpenseChart] = useState<ChartType>("pie");
 
   const { data: purchaseCategoryData, isLoading: loadingPurchase } =
-    useGetApiQuery({
-      url: `${PURCHASE_URL}category-summary?status=completed`,
-      skip: !purchaseAccess.includes("view-category-summary"),
-    });
+    useGetApiQuery(
+      { url: `${PURCHASE_URL}category-summary?status=completed` },
+      { skip: !purchaseAccess.includes("view-category-summary") },
+    );
 
   const { data: expenseCategoryData, isLoading: loadingExpense } =
-    useGetApiQuery({
-      url: `${EXPENSE_URL}category-summary`,
-      skip: !expenseAccess.includes("view-category-summary"),
-    });
+    useGetApiQuery(
+      { url: `${EXPENSE_URL}category-summary` },
+      { skip: !expenseAccess.includes("view-category-summary") },
+    );
 
   const { data: purchaseListData, isLoading: loadingPurchaseList } =
-    useGetApiQuery({
-      url: buildQueryString(`${PURCHASE_URL}list`, {
-        page: 1,
-        limit: 200,
-        search: { status: "completed" },
-      }),
-      skip: !purchaseAccess.includes("view"),
-    });
+    useGetApiQuery(
+      {
+        url: buildQueryString(`${PURCHASE_URL}list`, {
+          page: 1,
+          limit: 200,
+          search: { status: "completed" },
+        }),
+      },
+      { skip: !purchaseAccess.includes("view") },
+    );
 
   const { data: expenseListData, isLoading: loadingExpenseList } =
-    useGetApiQuery({
-      url: buildQueryString(`${EXPENSE_URL}list`, { page: 1, limit: 200 }),
-      skip: !expenseAccess.includes("view"),
-    });
+    useGetApiQuery(
+      {
+        url: buildQueryString(`${EXPENSE_URL}list`, { page: 1, limit: 200 }),
+      },
+      { skip: !expenseAccess.includes("view") },
+    );
 
   const purchaseTrend = useMemo(
     () => buildTrend(purchaseListData?.data?.data || [], "purchaseDate"),
@@ -86,6 +90,24 @@ function PurchaseExpenseSection() {
   const expenseTrend = useMemo(
     () => buildTrend(expenseListData?.data?.data || [], "expenseDate"),
     [expenseListData],
+  );
+
+  const purchaseCategoryChartData = useMemo(
+    () =>
+      (purchaseCategoryData?.data || []).map((item: any) => ({
+        name: item.name || item.category || "Uncategorized",
+        value: Number(item.value ?? item.amount ?? 0),
+      })),
+    [purchaseCategoryData],
+  );
+
+  const expenseCategoryChartData = useMemo(
+    () =>
+      (expenseCategoryData?.data || []).map((item: any) => ({
+        name: item.name || item.category || "Uncategorized",
+        value: Number(item.value ?? item.amount ?? 0),
+      })),
+    [expenseCategoryData],
   );
 
   return (
@@ -102,7 +124,7 @@ function PurchaseExpenseSection() {
         <div className="min-w-0 overflow-hidden">
           {purchaseChart === "pie" && (
             <PieChartComponent
-              data={purchaseCategoryData?.data || []}
+              data={purchaseCategoryChartData}
               responsive
               height={280}
               showLegend
@@ -111,7 +133,7 @@ function PurchaseExpenseSection() {
           )}
           {purchaseChart === "bar" && (
             <BarChartComponent
-              data={toBarData(purchaseCategoryData?.data || [])}
+              data={toBarData(purchaseCategoryChartData)}
               dataKeys={["amount"]}
               height={280}
               xAxisLabel="Category"
@@ -144,7 +166,7 @@ function PurchaseExpenseSection() {
         <div className="min-w-0 overflow-hidden">
           {expenseChart === "pie" && (
             <PieChartComponent
-              data={expenseCategoryData?.data || []}
+              data={expenseCategoryChartData}
               responsive
               height={280}
               showLegend
@@ -153,7 +175,7 @@ function PurchaseExpenseSection() {
           )}
           {expenseChart === "bar" && (
             <BarChartComponent
-              data={toBarData(expenseCategoryData?.data || [])}
+              data={toBarData(expenseCategoryChartData)}
               dataKeys={["amount"]}
               height={280}
               xAxisLabel="Category"

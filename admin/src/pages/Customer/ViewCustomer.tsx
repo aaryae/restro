@@ -39,21 +39,28 @@ export default function ViewCustomer({
       (
         (statusFilter === "all"
           ? customerData.data.orders
-          : customerData.data.orders.filter(
-              (o: any) =>
-                (o?.paymentStatus || "").toLowerCase() === statusFilter,
-            )) as any[]
+          : customerData.data.orders.filter((o: any) => {
+              const status = (o?.paymentStatus || "").toLowerCase();
+              if (statusFilter === "paid") {
+                return status === "paid";
+              }
+              return status === statusFilter;
+            })) as any[]
       ).map((order: any) => {
         const {
           id,
-          trackingNo,
-          orderDate,
+          orderNumber,
+          orderStartTime,
+          createdAt,
+          paymentMethods,
           paymentMethod,
           paymentStatus,
           totalAmount,
         } = order || {};
 
-        const items = order?.orderItems || order?.items;
+        const items = (order?.orderItems || order?.items || []).filter(
+          (it: any) => !it?.isAddon,
+        );
         let productLabel: string | undefined = undefined;
         if (Array.isArray(items) && items.length > 0) {
           const first = items[0];
@@ -76,21 +83,28 @@ export default function ViewCustomer({
             order?.orderNumber ||
             order?.table?.name ||
             order?.table?.tableNo ||
-            trackingNo ||
             (id ? `Order #${id}` : "—");
         }
 
+        const paymentMethodLabel = Array.isArray(paymentMethods)
+          ? paymentMethods.filter(Boolean).join(", ") || "—"
+          : paymentMethod || "—";
+
+        const orderDateValue = orderStartTime || createdAt;
+
         return [
           productLabel,
-          id,
-          moment(orderDate).format("MMM D, YY hh:mm"),
-          paymentMethod,
+          orderNumber || id,
+          orderDateValue
+            ? moment(orderDateValue).format("MMM D, YY hh:mm a")
+            : "—",
+          paymentMethodLabel,
           <div className="flex justify-center">
             <div className={changeClassNameByName(paymentStatus)}>
-              {paymentStatus}
+              {formatPaymentStatus(paymentStatus)}
             </div>
           </div>,
-          totalAmount,
+          totalAmount != null ? Number(totalAmount).toFixed(2) : "—",
         ];
       })) ??
     [];
@@ -145,10 +159,17 @@ export default function ViewCustomer({
                       Phone No: {customerData.data.mobilePrefix}{" "}
                       {customerData.data.mobileNo}
                     </span>
-                    <span className="inline-flex max-w-[18rem] md:max-w-[10rem] items-center gap-2 text-sm text-gray-700 bg-white/70 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
+                    <span className="inline-flex max-w-[18rem] md:max-w-[14rem] items-center gap-2 text-sm text-gray-700 bg-white/70 border border-gray-200 rounded-full px-3 py-1 whitespace-nowrap">
                       <span className="h-2 w-2 rounded-full bg-pink-500" />
-                      Loyalty Points: {customerData.data.loyaltyPoints}
+                      Loyalty Points:{" "}
+                      <strong className="tabular-nums text-primaryColor">
+                        {Number(customerData.data.loyaltyPoints || 0)}
+                      </strong>
                     </span>
+                    <p className="text-left text-xs text-slate-500">
+                      Earn 1 point for every Rs. 100 spent (e.g. Rs. 1,500 → 15
+                      points). Checkout as Member to credit points.
+                    </p>
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-gray-600">
@@ -186,6 +207,7 @@ export default function ViewCustomer({
                     { value: "all", label: "All" },
                     { value: "pending", label: "Pending" },
                     { value: "paid", label: "Paid" },
+                    { value: "partially_paid", label: "Partially Paid" },
                     { value: "failed", label: "Failed" },
                   ]}
                 />
@@ -196,7 +218,12 @@ export default function ViewCustomer({
                 isSN
                 headers={tableHeader}
                 data={orderDetails}
-                pagination={{ limit: 10, page: 1, total: 0, totalPages: 1 }}
+                pagination={{
+                  limit: 10,
+                  page: 1,
+                  total: orderDetails.length,
+                  totalPages: Math.max(1, Math.ceil(orderDetails.length / 10)),
+                }}
                 handlePagination={() => {}}
               />
             </div>
@@ -252,19 +279,24 @@ const tableHeader = [
 ];
 
 const changeClassNameByName = (name: string) => {
-  console.log(name, "name");
   let normalClassName =
     "px-[0.75rem] py-[0.25rem] rounded-full w-fit text-black";
-  if (name === "pending") {
-    normalClassName += normalClassName.concat(" bg-yellow-500");
-  } else if (name === "confirmed") {
-    normalClassName += normalClassName.concat(" bg-primaryColor");
-  } else if (name === "delivered") {
-    normalClassName += normalClassName.concat(" bg-green-500");
-  } else if (name === "cancelled") {
-    normalClassName += normalClassName.concat(" bg-red-500");
-  } else {
-    normalClassName;
+  const status = (name || "").toLowerCase();
+  if (status === "pending") {
+    normalClassName += " bg-yellow-500";
+  } else if (status === "paid" || status === "confirmed" || status === "delivered") {
+    normalClassName += " bg-green-500 text-white";
+  } else if (status === "partially_paid") {
+    normalClassName += " bg-orange-400 text-white";
+  } else if (status === "cancelled" || status === "failed") {
+    normalClassName += " bg-red-500 text-white";
   }
   return normalClassName;
+};
+
+const formatPaymentStatus = (status?: string | null) => {
+  if (!status) return "—";
+  return String(status)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 };

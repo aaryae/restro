@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (val) => (val == null ? "" : val),
+  z.string().optional(),
+);
+
+const optionalEmail = z.preprocess(
+  (val) => (val == null ? "" : val),
+  z.string().email("Invalid email").optional().or(z.literal("")),
+);
+
 export const OrderFilterSchema = z.object({
   email: z.string().optional(),
   mobileNo: z.string().optional(),
@@ -12,17 +22,16 @@ export const OrderFilterSchema = z.object({
 export const OrderSchema = z
   .object({
     orderType: z.enum(["dineIn", "takeaway", "delivery"]),
-    tableId: z.string().optional(),
-    customerId: z.string().optional(),
-    takeAwayName: z.string().max(255).optional(),
-    customerPhone: z.string().optional(),
-    customerEmail: z
-      .string()
-      .email("Invalid email")
-      .optional()
-      .or(z.literal("")),
-    deliveryAddress: z.string().optional(),
-    orderNote: z.string().optional(),
+    tableId: optionalString,
+    customerId: optionalString,
+    takeAwayName: z.preprocess(
+      (val) => (val == null ? "" : val),
+      z.string().max(255).optional(),
+    ),
+    customerPhone: optionalString,
+    customerEmail: optionalEmail,
+    deliveryAddress: optionalString,
+    orderNote: optionalString,
     estimatedTime: z
       .number()
       .min(0, "Estimated time must be positive")
@@ -34,13 +43,13 @@ export const OrderSchema = z
         productPrice: z.coerce.number(),
         quantity: z.number().min(1),
         departmentId: z.coerce.number(),
-        specialInstructions: z.string().optional(),
+        specialInstructions: optionalString,
         addons: z
           .array(
             z.object({
               addonId: z.coerce.number(),
               quantity: z.coerce.number().min(1),
-              specialInstructions: z.string().optional(),
+              specialInstructions: optionalString,
             }),
           )
           .optional(),

@@ -21,6 +21,7 @@ const {
 } = require("../../models");
 
 const { withTransaction } = require("../../helpers/order/transaction");
+const { awardLoyaltyPoints } = require("../../helpers/loyalty/award-points");
 
 const paginate = require("../../utils/paginate");
 
@@ -1421,6 +1422,40 @@ const checkoutOrder = async (req) => {
         (sum, p) => sum + Number(p.amount),
         0,
       );
+      const usedMethods = [
+        ...new Set(
+          paymentList
+            .map((p) => p.paymentMethod)
+            .filter(Boolean),
+        ),
+      ];
+
+      // Resolve customer for order linking (same as full checkout path)
+      let finalCustomerId = null;
+      let customer = null;
+      if (customerId) {
+        customer = await customerModel.findByPk(customerId, { transaction });
+        if (!customer) {
+          await transaction.rollback();
+          return { status: 404, success: false, message: "Customer not found" };
+        }
+        finalCustomerId = customer.id;
+      }
+      if (customerDetails) {
+        customer = await customerModel.create(
+          { ...customerDetails, loyaltyPoints: 0 },
+          { transaction },
+        );
+        if (!customer) {
+          await transaction.rollback();
+          return {
+            status: 500,
+            success: false,
+            message: "Failed to create customer",
+          };
+        }
+        finalCustomerId = customer.id;
+      }
 
       // Process each order
       for (const [oid, { mainItems, addons }] of Object.entries(itemsByOrder)) {
@@ -1520,7 +1555,11 @@ const checkoutOrder = async (req) => {
         const updateFields = {
           totalAmount,
           payableAmount: Math.max(0, roundedCalculated),
+          paymentMethods: usedMethods.length > 0 ? usedMethods : undefined,
         };
+        if (finalCustomerId) {
+          updateFields.customerId = finalCustomerId;
+        }
         if (unpaidMainCount === 0) {
           updateFields.status = "completed";
           updateFields.paymentStatus = "paid";
@@ -1547,7 +1586,7 @@ const checkoutOrder = async (req) => {
                 amount: paymentAmount,
                 paymentMethod: payment.paymentMethod,
                 cash_or_credit: payment.cashOrCredit || "cash",
-                customerId: customerId || null,
+                customerId: finalCustomerId || null,
                 userId: req.user.id,
                 accountId: payment.accountId || selectedAccountId,
                 remarks:
@@ -1565,6 +1604,14 @@ const checkoutOrder = async (req) => {
 
         updatedOrders.push(orderRecord);
       }
+
+      // Award loyalty points: floor(paidAmount / 100)
+      const loyaltyPointsAdded = await awardLoyaltyPoints({
+        customerId: finalCustomerId,
+        amount: combinedPaidAmount,
+        transaction,
+        isGuestOrder,
+      });
 
       // Free table if no active orders remain
       if (hasTable) {
@@ -1593,6 +1640,7 @@ const checkoutOrder = async (req) => {
           orders: updatedOrders,
           revenueEntries,
           combinedPaidAmount,
+          loyaltyPointsAdded,
         },
       };
     }
@@ -1983,24 +2031,13 @@ const checkoutOrder = async (req) => {
       remainingTotalPaid -= amountPaidForOrder;
     }
 
-    // Calculate and update loyalty points
-    let loyaltyPointsAdded = 0;
-    if (!isGuestOrder && finalCustomerId && remainingTotalPaid >= 0) {
-      loyaltyPointsAdded = Math.floor(combinedPayableAmount / 100);
-      if (loyaltyPointsAdded > 0) {
-        await customerModel.update(
-          {
-            loyaltyPoints: Sequelize.literal(
-              `loyaltyPoints + ${loyaltyPointsAdded}`,
-            ),
-          },
-          {
-            where: { id: finalCustomerId },
-            transaction,
-          },
-        );
-      }
-    }
+    // Award loyalty points: floor(paidAmount / 100)
+    const loyaltyPointsAdded = await awardLoyaltyPoints({
+      customerId: finalCustomerId,
+      amount: combinedPayableAmount,
+      transaction,
+      isGuestOrder,
+    });
 
     // Check for other active orders and free table if necessary
     if (hasTable) {
@@ -3083,6 +3120,17 @@ const finalizeQrPayment = async (
   }
 
   await order.update(updateFields, { transaction });
+
+  // Award loyalty points on QR settlement when order is linked to a member
+  if (order.customerId && !order.isGuestOrder) {
+    await awardLoyaltyPoints({
+      customerId: order.customerId,
+      amount,
+      transaction,
+      isGuestOrder: false,
+    });
+  }
+
   return { success: true };
 };
 

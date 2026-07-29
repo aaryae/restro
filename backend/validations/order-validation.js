@@ -355,6 +355,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       customerId: joi.number().positive().optional(),
       sessionId: joi.string().uuid({ version: "uuidv4" }).optional(),
       discountAmount: joi.number().min(0).optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);
@@ -366,6 +367,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       payments: paymentsArraySchema,
       customerId: joi.number().positive().optional(),
       discountAmount: joi.number().min(0).optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);
@@ -381,6 +383,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       payments: paymentsArraySchema,
       customerId: joi.number().positive().optional(),
       discountAmount: joi.number().min(0).optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);
@@ -393,6 +396,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       cashOrCredit: joi.string().valid("cash", "credit").required(),
       customerId: joi.number().positive().optional(),
       accountId: joi.number().positive().optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);
@@ -403,6 +407,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
       customerId: joi.number().positive().optional(),
       accountId: joi.number().positive().optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);
@@ -417,6 +422,7 @@ const checkoutOrderValidation = async (req, res, next) => {
       paymentMethod: joi.string().valid("cash", "card", "online").required(),
       customerId: joi.number().positive().optional(),
       accountId: joi.number().positive().optional(),
+      isGuestOrder: joi.boolean().optional(),
     })
     .required()
     .unknown(false);

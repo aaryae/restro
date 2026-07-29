@@ -59,12 +59,13 @@ function ActiveShape(props: any) {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 4}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
         stroke="#fff"
-        strokeWidth={3}
+        strokeWidth={2}
+        cornerRadius={3}
       />
     </g>
   );
@@ -105,7 +106,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
   }, [chartData.length, fixedColors, colorScale]);
 
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
-  const containerProps = responsive ? { width: "100%", height } : {};
+  const containerProps = responsive ? { width: "100%", aspect: 1 } : {};
 
   const activeItem =
     activeIndex != null && chartData[activeIndex]
@@ -129,13 +130,13 @@ const PieChartComponent: React.FC<PieChartProps> = ({
 
   return (
     <div className="min-w-0 w-full">
-      <div className="relative h-[260px] w-full overflow-visible">
+      <div className="relative mx-auto aspect-square w-full max-w-[260px] overflow-visible">
         <ChartContainer
           id="pie-chart"
           className="recharts-responsive-container relative z-10"
           {...containerProps}
         >
-          <PieChart width={responsive ? undefined : width} height={height}>
+          <PieChart width={responsive ? undefined : width} height={responsive ? undefined : width}>
             <Pie
               data={chartData}
               cx="50%"
@@ -144,9 +145,10 @@ const PieChartComponent: React.FC<PieChartProps> = ({
               outerRadius="78%"
               dataKey={dataKey}
               nameKey={nameKey}
-              paddingAngle={chartData.length > 1 ? 3 : 0}
+              paddingAngle={chartData.length > 1 ? 2 : 0}
               stroke="#fff"
-              strokeWidth={3}
+              strokeWidth={2}
+              cornerRadius={3}
               isAnimationActive
               animationDuration={700}
               animationEasing="ease-out"
@@ -172,7 +174,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
 
         {/* Center label stays under tooltips; only covers the donut hole */}
         <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center">
-          <div className="flex h-[42%] w-[42%] max-w-[9.5rem] flex-col items-center justify-center rounded-full bg-white/95 px-2 text-center shadow-[inset_0_0_0_1px_rgba(226,232,240,0.9)]">
+          <div className="flex h-[46%] w-[46%] max-w-[9.5rem] flex-col items-center justify-center rounded-full bg-white/95 px-2 text-center shadow-[inset_0_0_0_1px_rgba(226,232,240,0.9)]">
             {activeItem ? (
               <>
                 <p

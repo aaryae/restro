@@ -138,23 +138,24 @@ export default function UserForm({
         const response = await createUser(body).unwrap();
         handleResponse({
           res: response,
-          onSuccess: handleCloseDrawer,
+          onSuccess: () => {
+            reset({
+              username: "",
+              email: "",
+              firstName: "",
+              lastName: "",
+              mobileNo: "",
+              mobilePrefix: "",
+              roleId: "",
+              gender: "",
+              password: "",
+            });
+            setImage("");
+            handleCloseDrawer();
+          },
         });
       } catch (error) {
         handleError({ error, setError });
-      } finally {
-        reset({
-          username: "",
-          email: "",
-          firstName: "",
-          lastName: "",
-          mobileNo: "",
-          mobilePrefix: "",
-          roleId: "",
-          gender: "",
-          password: "",
-        });
-        setImage("");
       }
     } else {
       try {

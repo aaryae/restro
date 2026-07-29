@@ -59,6 +59,14 @@ function formatPaymentStatus(status?: string) {
   return status.replace(/_/g, " ");
 }
 
+function orderStatusTone(status?: string) {
+  const value = (status || "").toLowerCase();
+  if (value === "completed") return "emerald";
+  if (value === "pending") return "amber";
+  if (value === "cancelled") return "rose";
+  return "slate";
+}
+
 export default function OrderList() {
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
 
@@ -133,6 +141,7 @@ export default function OrderList() {
     "Order StartedAt",
     "Amount",
     "Payment Status",
+    "Order Status",
     "Actions",
   ];
 
@@ -177,6 +186,12 @@ export default function OrderList() {
               <StatusPill
                 value={formatPaymentStatus(paymentStatus)}
                 tone={paymentTone(paymentStatus) as any}
+              />
+            </span>,
+            <span className={status === "cancelled" ? "line-through opacity-60" : ""}>
+              <StatusPill
+                value={formatPaymentStatus(status)}
+                tone={orderStatusTone(status) as any}
               />
             </span>,
             <div
