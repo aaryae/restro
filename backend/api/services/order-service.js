@@ -1163,12 +1163,17 @@ const checkoutOrder = async (req) => {
       customerId,
       customerDetails,
       sessionId,
-      isGuestOrder = false,
       accountId,
       orderItemIds,
       payments,
       ...updateData
     } = req.body;
+
+    // Prefer explicit flag when clients send it; otherwise guest = no customer.
+    const isGuestOrder =
+      typeof req.body.isGuestOrder === "boolean"
+        ? req.body.isGuestOrder
+        : !customerId;
 
     // For dine-in flow, tableId is used; for takeaway, tableId may be missing/ignored
     const hasTable =

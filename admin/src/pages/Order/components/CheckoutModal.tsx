@@ -402,15 +402,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           ? { ...body, accountId: selectedPaymentAccountId }
           : body;
 
+      // Only send customerId for members. Do not send isGuestOrder — older
+      // production APIs use .unknown(false) and reject it with
+      // "valid checkout types". Backend infers guest from missing customerId.
       const memberFields =
         checkoutType === "member" && selectedMember
-          ? {
-              customerId: selectedMember.id,
-              isGuestOrder: false,
-            }
-          : {
-              isGuestOrder: true,
-            };
+          ? { customerId: selectedMember.id }
+          : {};
 
       const selectiveItemIds = [
         ...selectedIds.map(Number),
@@ -620,10 +618,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           customerId: memberCustomerId,
           sessionId: table?.data?.sessionId ?? null,
         });
-
-        splitBody.isGuestOrder = !(
-          checkoutType === "member" && selectedMember
-        );
 
         // Takeaway full-order settle uses orderId path (not partial item pay)
         if (isTakeaway && resolvedOrderId && !isPartialSelection) {
