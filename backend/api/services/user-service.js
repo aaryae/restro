@@ -24,6 +24,7 @@ const httpStatus = require("http-status");
 const { hashPassword } = require("../../utils/bcrypt");
 const paginate = require("../../utils/paginate");
 const { comparePassword } = require("../../helpers/jwt-helper");
+const { syncPrivilegedRoleAccess } = require("../../helpers/role-access-sync");
 const internal = {};
 
 internal.userLoginPassport = (req, res, next) => {
@@ -66,6 +67,10 @@ const userLogin = async (req, res, next) => {
       }
 
       await createSessionLog(loginData.user, req);
+
+      // Super Admin / Admin always receive every menu action (additive sync).
+      // Fixes gaps when setup wasn't re-run or Super Admin role can't be edited in UI.
+      await syncPrivilegedRoleAccess(loginData.user);
 
       let accessList = await roleActionModel.findAll({
         where: { roleId: loginData.user.roleId, isDeleted: false },

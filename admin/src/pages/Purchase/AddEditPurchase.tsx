@@ -327,7 +327,7 @@ const AddEditPurchase: React.FC = () => {
 
     const purchaseTotal = computeBackendPurchaseTotal(data.items);
 
-    if (submitMode === "complete") {
+    if (submitMode === "complete" && !isCompleted) {
       const balanceError = getInsufficientBalanceMessage(
         accountRows,
         data.accountId,
@@ -348,7 +348,7 @@ const AddEditPurchase: React.FC = () => {
           url: `${PURCHASE_URL}${id}`,
           body: payload,
         }).unwrap();
-        if (submitMode === "complete") {
+        if (submitMode === "complete" && !isCompleted) {
           await completePurchase(id as string).unwrap();
         }
         handleResponse({
@@ -403,7 +403,7 @@ const AddEditPurchase: React.FC = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="mt-4 flex flex-col gap-6"
       >
-        <fieldset disabled={isCompleted} className="contents">
+        <fieldset className="contents">
           {/* ── SECTION 1: Invoice Details ── */}
           <section className="w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
             <div className="mb-4">
@@ -983,7 +983,16 @@ const AddEditPurchase: React.FC = () => {
 
         {/* ── ACTION BAR ── */}
         <div className="flex w-full justify-end gap-3">
-          {!isCompleted ? (
+          {isCompleted ? (
+            <button
+              type="submit"
+              className="rounded bg-sky-600 px-4 py-2 text-white disabled:opacity-60"
+              disabled={creating || updating}
+              onClick={() => setSubmitMode("draft")}
+            >
+              Save Changes
+            </button>
+          ) : (
             <>
               <button
                 type="button"
@@ -1013,10 +1022,6 @@ const AddEditPurchase: React.FC = () => {
                 Complete Payment
               </button>
             </>
-          ) : (
-            <span className="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-              This purchase is completed and cannot be edited.
-            </span>
           )}
         </div>
       </form>

@@ -154,8 +154,9 @@ internal.saveAllAccessToSuperAdmin = async (req) => {
       where: { username: "superadmin" },
       raw: true,
     });
+    if (!superAdmin?.roleId) return;
     let allRoleMenuAction = await roleMenuActionModel.findAll({
-      isDeleted: false,
+      where: { isDeleted: false },
     });
     let insertData = allRoleMenuAction.map((x) => ({
       roleId: superAdmin.roleId,
@@ -174,9 +175,10 @@ internal.saveRequiredAccessToUsers = async (req) => {
       where: { username: "admin" },
       raw: true,
     });
+    if (!admin?.roleId) return;
     // here admin should have all access
     let allRoleMenuAction = await roleMenuActionModel.findAll({
-      isDeleted: false,
+      where: { isDeleted: false },
     });
     let insertData = allRoleMenuAction.map((x) => ({
       roleId: admin.roleId,
@@ -195,11 +197,11 @@ internal.saveFinanceAccess = async (req) => {
       where: { username: "finance" },
       raw: true,
     });
+    if (!finance?.roleId) return;
     // here finance should have access for accounts, transfer and revenue
     let allRoleMenuAction = await roleMenuActionModel.findAll({
-      isDeleted: false,
-      // where list is Account, Transfer and Revenue
       where: {
+        isDeleted: false,
         list: {
           [Op.in]: ["Account", "Transfer", "Revenue", "Ledger"],
         },
@@ -222,11 +224,11 @@ internal.saveMemberAccess = async (req) => {
       where: { username: "member" },
       raw: true,
     });
+    if (!member?.roleId) return;
     // here member should have access for only orders
     let allRoleMenuAction = await roleMenuActionModel.findAll({
-      isDeleted: false,
-      // where list is Order
       where: {
+        isDeleted: false,
         list: {
           [Op.in]: ["Order"],
         },

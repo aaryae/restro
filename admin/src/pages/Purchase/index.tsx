@@ -339,9 +339,6 @@ const Purchase: React.FC = () => {
       typeof rawStatus === "string" && rawStatus !== "-"
         ? `${rawStatus}`.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
         : "-";
-    const isCompleted =
-      typeof rawStatus === "string" &&
-      ["completed", "complete"].includes(rawStatus.toLowerCase());
     const paymentSourceName = (() => {
       const acc = r?.account || r?.paymentSource;
       const direct = acc?.name || r?.accountName || r?.paymentSourceName;
@@ -389,12 +386,9 @@ const Purchase: React.FC = () => {
           {accessList.includes("edit") && (
             <button
               type="button"
-              onClick={() => !isCompleted && handleNewUser(id)}
-              title={isCompleted ? "Completed purchases cannot be edited" : "Edit"}
-              disabled={isCompleted}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100 ${
-                isCompleted ? "cursor-not-allowed opacity-50" : ""
-              }`}
+              onClick={() => handleNewUser(id)}
+              title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
             >
               <MdEditSquare size={16} />
             </button>
@@ -408,6 +402,8 @@ const Purchase: React.FC = () => {
               activeId={deleteId}
               handleDeleteTrigger={() => handleDeleteTrigger(id)}
               handleConfirmDelete={handleDelete}
+              title="Do you want to delete this purchase?"
+              description="Completed purchases refund the payment account when deleted. You can restore from Settings → Recently Deleted (kept for 30 days)."
             />
           )}
         </TableRowActions>,

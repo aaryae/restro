@@ -323,25 +323,48 @@ const getById = async (req) => {
   }
 };
 
+const didPurchaseAffectAccount = (purchase) => {
+  if (purchase.status !== "completed") return false;
+  if (purchase.paymentTerms === "credit") {
+    return Boolean(purchase.paymentDate);
+  }
+  return true;
+};
+
+const purchaseDeductionAccountId = (purchase) =>
+  purchase.paymentAccountId || purchase.accountId;
+
 const updateById = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const purchase = await purchaseModel.findByPk(+req.params.id, {
       transaction,
+      lock: true,
     });
     if (!purchase) {
       await transaction.rollback();
       return { ...generalConstant.EN.PURCHASE.PURCHASE_NOT_FOUND, data: null };
     }
-    if (purchase.status !== "draft") {
+    if (purchase.status === "cancelled") {
       await transaction.rollback();
       return {
         status: 400,
         success: false,
-        message: "Only draft purchases can be updated",
+        message: "Cancelled purchases cannot be updated",
         data: null,
       };
     }
+
+    const prior = {
+      status: purchase.status,
+      totalAmount: Number(purchase.totalAmount) || 0,
+      accountId: purchase.accountId,
+      paymentAccountId: purchase.paymentAccountId,
+      paymentTerms: purchase.paymentTerms,
+      paymentDate: purchase.paymentDate,
+      discountAmount: Number(purchase.discountAmount) || 0,
+    };
+    const priorAffectedAccount = didPurchaseAffectAccount(prior);
 
     const {
       supplierId,
@@ -442,11 +465,69 @@ const updateById = async (req) => {
         );
       }
 
-      const totalAmount = subtotal - purchase.discountAmount + taxAmount;
+      const appliedDiscount =
+        updateData.discountAmount !== undefined
+          ? Number(updateData.discountAmount) || 0
+          : Number(purchase.discountAmount) || 0;
+      const totalAmount = subtotal - appliedDiscount + taxAmount;
       await purchase.update(
         { subtotal, taxAmount, totalAmount },
         { transaction },
       );
+    }
+
+    await purchase.reload({ transaction });
+
+    // Completed purchases already moved money — reverse old effect, apply new.
+    if (prior.status === "completed") {
+      const nextAffectedAccount = didPurchaseAffectAccount(purchase);
+      const nextAmount = Number(purchase.totalAmount) || 0;
+      const nextAccountId = purchaseDeductionAccountId(purchase);
+      const priorAccountId = purchaseDeductionAccountId(prior);
+
+      if (priorAffectedAccount && priorAccountId && prior.totalAmount > 0) {
+        const oldAccount = await accountModel.findByPk(priorAccountId, {
+          transaction,
+          lock: true,
+        });
+        if (oldAccount) {
+          await oldAccount.increment("currentBalance", {
+            by: prior.totalAmount,
+            transaction,
+          });
+        }
+      }
+
+      if (nextAffectedAccount && nextAccountId && nextAmount > 0) {
+        const newAccount = await accountModel.findByPk(nextAccountId, {
+          transaction,
+          lock: true,
+        });
+        if (!newAccount || newAccount.status !== "active") {
+          await transaction.rollback();
+          return {
+            status: 400,
+            success: false,
+            message: "Invalid or inactive account for completed purchase",
+            data: null,
+          };
+        }
+        await newAccount.reload({ transaction });
+        const availableBalance = parseFloat(newAccount.currentBalance);
+        if (availableBalance < nextAmount) {
+          await transaction.rollback();
+          return {
+            status: 400,
+            success: false,
+            message: `Insufficient account balance. Available: ${availableBalance}, Required: ${nextAmount}`,
+            data: null,
+          };
+        }
+        await newAccount.decrement("currentBalance", {
+          by: nextAmount,
+          transaction,
+        });
+      }
     }
 
     const updatedPurchase = await purchaseModel.findByPk(purchase.id, {

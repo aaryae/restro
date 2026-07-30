@@ -180,73 +180,74 @@ authMiddleware.authorization = async (req, res, next) => {
 
       const isSuperAdmin = req.user.roleId === 1;
 
+      // Super Admin always has full API access (role grants can lag behind setup.json).
+      if (isSuperAdmin) {
+        return next();
+      }
+
       if (serverAccess && serverAccess.requiredApproval === 1) {
         const result = await actionRequestModel.create({
           userId: req.user.id,
           requestedAction: requestMethod,
           endpoint: serverPath,
           method: requestMethod,
-          status: isSuperAdmin ? "Approved" : "Pending",
+          status: "Pending",
           requestBody: req.body,
           params: req.params,
           query: req.query,
         });
 
         if (result) {
-          if (!isSuperAdmin) {
-            const user = await userModel.findByPk(result.userId, {
-              include: {
-                model: userModel,
-                as: "supervisor",
-              },
-            });
-            if (!user) {
-              return responseHelper.sendResponse(
-                res,
-                HttpStatus.NOT_FOUND,
-                false,
-                null,
-                null,
-                "User Not Found",
-                null,
-              );
-            }
-            await sendNotification(
-              user.username,
-              user?.supervisorId,
-              user?.id,
-              EN.APPROVAL_REQUEST,
-              "Approval_Request",
-              result?.id,
+          const user = await userModel.findByPk(result.userId, {
+            include: {
+              model: userModel,
+              as: "supervisor",
+            },
+          });
+          if (!user) {
+            return responseHelper.sendResponse(
+              res,
+              HttpStatus.NOT_FOUND,
+              false,
+              null,
+              null,
+              "User Not Found",
+              null,
             );
-            //email notification
-            const placeholders = {
-              name: user?.supervisor?.username,
-              senderUserName: user.username,
-              requestId: result.id.toString(),
-              email: user.email,
-              supervisorId: user.supervisorId,
-            };
-
-            //    desc:"This template will be use when user send approval request for new changes",
-            sendMail(
-              "requestForApproval",
-              placeholders,
-              user?.supervisor?.email,
-            ).catch((error) => {
-              // Log the error without throwing it further
-              console.error("Mail sending error:", error);
-            });
           }
+          await sendNotification(
+            user.username,
+            user?.supervisorId,
+            user?.id,
+            EN.APPROVAL_REQUEST,
+            "Approval_Request",
+            result?.id,
+          );
+          //email notification
+          const placeholders = {
+            name: user?.supervisor?.username,
+            senderUserName: user.username,
+            requestId: result.id.toString(),
+            email: user.email,
+            supervisorId: user.supervisorId,
+          };
+
+          //    desc:"This template will be use when user send approval request for new changes",
+          sendMail(
+            "requestForApproval",
+            placeholders,
+            user?.supervisor?.email,
+          ).catch((error) => {
+            // Log the error without throwing it further
+            console.error("Mail sending error:", error);
+          });
           return responseHelper.sendResponse(
             res,
             200,
             true,
             result,
             null,
-            isSuperAdmin
-              ? "Action approved directly"
-              : "Request sent for approval",
+            "Request sent for approval",
           );
         }
       }
