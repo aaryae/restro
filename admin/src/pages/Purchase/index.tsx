@@ -171,7 +171,7 @@ const Purchase: React.FC = () => {
   );
 
   const accountUrl = useMemo(
-    () => buildQueryString("account/list", { page: 1, limit: 1000 }),
+    () => buildQueryString("account/list", { page: 1, limit: 50 }),
     [],
   );
   const { data: accountsResp } = useGetApiQuery({ url: accountUrl });

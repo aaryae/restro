@@ -1,9 +1,7 @@
 import Input from "@/components/Input";
 import Select from "@/components/Select";
 import { Controller, useForm } from "react-hook-form";
-import MediaComponent from "@/components/MediaComponent";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
-import RichTextEditor from "@/components/RichTextEditor";
 import Button from "@/components/Button";
 import { OpenItemSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +10,7 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { OPEN_ITEM_LIST_ROUTE } from "@/routes/routeNames";
 
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import useImageHandler from "@/hooks/useImageHandler";
 import {
   useCreateApiMutation,
@@ -20,7 +18,10 @@ import {
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
 import { OPEN_ITEM_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
+import { LIST_LIMIT } from "@/constants/listLimits";
 import { Department } from "../../types/department";
+
+const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 
 type OpenItemFormType = z.infer<typeof OpenItemSchema>;
 
@@ -76,7 +77,7 @@ export default function OpenItemForm() {
 
   // Fetch departments
   const { data: departmentsData } = useGetApiQuery({
-    url: `${DEPARTMENT_URL}list?page=1&limit=100`,
+    url: `${DEPARTMENT_URL}list?page=1&limit=${LIST_LIMIT}`,
   });
 
   useEffect(() => {
@@ -90,8 +91,6 @@ export default function OpenItemForm() {
       setDepartments(deptOptions);
     }
   }, [departmentsData]);
-
-  console.log("departments", departmentsData);
 
   useEffect(() => {
     if (id && success && openItem?.data) {
@@ -233,18 +232,20 @@ export default function OpenItemForm() {
 
       <div className="flex flex-col items-start w-[20rem]">
         <label className="input-label text-start mb-[2px]">{"Images"}</label>
-        <MediaComponent
-          title={
-            <MultipleImageInputUI
-              images={media}
-              imageIndex={currentImageIndex}
-            />
-          }
-          isMultiSelect={true}
-          handleConfirmImage={() => handleConfirmImage("mediaArr")}
-          open={isImageModelOpen}
-          setOpen={setIsImageModalOpen}
-        />
+        <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+          <MediaComponent
+            title={
+              <MultipleImageInputUI
+                images={media}
+                imageIndex={currentImageIndex}
+              />
+            }
+            isMultiSelect={true}
+            handleConfirmImage={() => handleConfirmImage("mediaArr")}
+            open={isImageModelOpen}
+            setOpen={setIsImageModalOpen}
+          />
+        </Suspense>
         {/* <div className="mt-[1rem] flex w-full justify-between">
           <button
             type="button"

@@ -80,7 +80,7 @@ const AddEditExpense: React.FC = () => {
 
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
-    limit: 100,
+    limit: 25,
     ...(supplierSearchTerm.trim().length > 0 && !showAllSuppliers
       ? { search: { name: supplierSearchTerm } }
       : {}),

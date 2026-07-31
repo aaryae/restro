@@ -31,7 +31,7 @@ const initialValues: TransferFormInput = {
 const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   const userId = useSelector((state: RootState) => state.auth.id);
 
-  const url = buildQueryString("account/list", { page: 1, limit: 100 });
+  const url = buildQueryString("account/list", { page: 1, limit: 25 });
   const { data: accountsData } = useGetApiQuery({ url });
   const accounts = accountsData?.data?.data || [];
 

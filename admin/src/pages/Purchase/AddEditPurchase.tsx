@@ -135,7 +135,7 @@ const AddEditPurchase: React.FC = () => {
 
   const supplierUrl = buildQueryString("supplier/list", {
     page: 1,
-    limit: 100,
+    limit: 25,
     ...(supplierSearchTerm.trim().length > 0 && !showAllSuppliers
       ? { search: { name: supplierSearchTerm } }
       : {}),
@@ -188,7 +188,7 @@ const AddEditPurchase: React.FC = () => {
     [],
   );
   const { data: AccountsData } = useGetApiQuery({
-    url: `${ACCOUNT_URL}list?page=1&limit=100`,
+    url: `${ACCOUNT_URL}list?page=1&limit=50`,
   });
   const accountRows = useMemo(
     () => AccountsData?.data?.data || [],
@@ -210,7 +210,7 @@ const AddEditPurchase: React.FC = () => {
     { value: string; label: string }[]
   >([]);
   const { data: PurchaseCategoriesData } = useGetApiQuery({
-    url: `${PURCHASE_CATEGORY_URL}list?page=1&limit=100`,
+    url: `${PURCHASE_CATEGORY_URL}list?page=1&limit=50`,
   });
 
   useEffect(() => {
@@ -225,7 +225,7 @@ const AddEditPurchase: React.FC = () => {
   }, [PurchaseCategoriesData]);
 
   const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
-  const { data: usersData } = useGetAllUserQuery({ page: 1, limit: 100 });
+  const { data: usersData } = useGetAllUserQuery({ page: 1, limit: 50 });
 
   useEffect(() => {
     if (usersData?.data?.data) {

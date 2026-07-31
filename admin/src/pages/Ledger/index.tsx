@@ -109,7 +109,7 @@ const Ledger: React.FC = () => {
     });
 
   const { data: accountsRes } = useGetApiQuery({
-    url: buildQueryString(`${ACCOUNT_URL}list`, { page: 1, limit: 200 }),
+    url: buildQueryString(`${ACCOUNT_URL}list`, { page: 1, limit: 25 }),
   });
   const [fetchLedgerExport] = useLazyGetApiQuery();
 

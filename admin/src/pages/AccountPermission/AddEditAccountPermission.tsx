@@ -1,21 +1,20 @@
-import React, { useEffect, useMemo } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
-import { UserRound, Building2 } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import PageTitle from "@/components/PageTitle";
 import Select from "@/components/Select";
 import ToggleSwitch from "@/components/Switch";
-import { useNavigate, useParams } from "react-router-dom";
+import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
+import { useGetAllUserQuery } from "@/redux/services/authentication";
 import {
   useCreateApiMutation,
   useGetApiQuery,
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
-import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ACCOUNT_PERMISSION_LIST_ROUTE } from "@/routes/routeNames";
-import { useGetAllUserQuery } from "@/redux/services/authentication";
-import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
+import { handleError, handleResponse } from "@/utils/responseHandler";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
+import { z } from "zod";
 import AccountPermissionSchema from "./schema";
 
 export type AccountPermissionFormInput = z.infer<
@@ -51,11 +50,11 @@ const AddEditAccountPermission: React.FC = () => {
   );
 
   // Fetch users (for select)
-  const { data: usersResp } = useGetAllUserQuery({ page: 1, limit: 100 });
+  const { data: usersResp } = useGetAllUserQuery({ page: 1, limit: 25 });
 
   // Fetch accounts (for select)
   const { data: accountsResp } = useGetApiQuery({
-    url: `${ACCOUNT_URL}list?page=1&limit=100`,
+    url: `${ACCOUNT_URL}list?page=1&limit=25`,
   });
 
   const userOptions = useMemo(() => {

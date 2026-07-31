@@ -195,7 +195,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   // Fetch all accounts to populate bank and wallet dropdowns
   const { data: accountsResp } = useGetApiQuery(
     {
-      url: buildQueryString("account/list", { page: 1, limit: 100 }),
+      url: buildQueryString("account/list", { page: 1, limit: 25 }),
     },
     { skip: !isOpen },
   );

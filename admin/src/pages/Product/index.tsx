@@ -2,7 +2,7 @@ import MenuPageToolbar from "@/components/MenuPageToolbar";
 import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
-import { useState, useMemo } from "react";
+import { lazy, Suspense, useState, useMemo } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
@@ -11,14 +11,16 @@ import { useNavigate } from "react-router-dom";
 import { PRODUCT_ADD_ROUTE } from "@/routes/routeNames";
 import { useDeleteProductByIdMutation } from "@/redux/services/product";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
+import { LIST_LIMIT } from "@/constants/listLimits";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
 import { PRODUCT_URL } from "@/constants/apiUrlConstants";
 import { buildQueryString } from "@/utils/generalHelper";
-import DraggableTable from "@/components/Table/dragableTable";
 import Loader from "@/components/Loader";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
 import Select from "@/components/Select";
+
+const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
 
 export default function Product() {
   const translate = useTranslation();
@@ -32,7 +34,7 @@ export default function Product() {
 
   const { data: categoriesData } = useListAllProductCategoryQuery({
     page: 1,
-    limit: 100,
+    limit: LIST_LIMIT,
   });
 
   const categoryOptions = useMemo(() => {
@@ -178,17 +180,19 @@ export default function Product() {
       {!success ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <DraggableTable
-          headers={tableHeaders}
-          data={tableData}
-          success={success}
-          loading={loading}
-          fetching={fetching}
-          url="product/update-order"
-          action={updateOrder}
-          pagination={pagination}
-          handlePagination={handlePagination}
-        />
+        <Suspense fallback={<Loader />}>
+          <DraggableTable
+            headers={tableHeaders}
+            data={tableData}
+            success={success}
+            loading={loading}
+            fetching={fetching}
+            url="product/update-order"
+            action={updateOrder}
+            pagination={pagination}
+            handlePagination={handlePagination}
+          />
+        </Suspense>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view items.

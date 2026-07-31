@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { CurrencySign } from "@/constants";
 import {
@@ -10,9 +10,6 @@ import {
   IndianRupee,
   TrendingUp,
 } from "lucide-react";
-import PieChartComponent from "../PieChartComponent";
-import BarChartComponent from "../BarChartComponent";
-import LineChartComponent from "../LineChartComponent";
 import {
   ACCOUNT_URL,
   EXPENSE_URL,
@@ -33,6 +30,16 @@ import {
   sumAccountBalances,
 } from "@/utils/formatCurrency";
 
+const PieChartComponent = lazy(() => import("../PieChartComponent"));
+const BarChartComponent = lazy(() => import("../BarChartComponent"));
+const LineChartComponent = lazy(() => import("../LineChartComponent"));
+
+function ChartFallback() {
+  return (
+    <div className="h-[280px] animate-pulse rounded-lg bg-slate-50" />
+  );
+}
+
 function OverviewCards() {
   const revenueAccessList = checkAccess("Revenue");
   const purchaseAccessList = checkAccess("Purchase");
@@ -40,31 +47,36 @@ function OverviewCards() {
   const withdrawAccessList = checkAccess("Withdraw");
   const orderAccessList = checkAccess("Order");
 
-  const { data: totalRevenueData } = useGetApiQuery({
-    url: `${REVENUE_URL}total-revenue`,
-    skip: !revenueAccessList.includes("view-total"),
-  });
-  const { data: totalPurchaseData } = useGetApiQuery({
-    url: `${PURCHASE_URL}total-purchase?status=completed`,
-    skip: !purchaseAccessList.includes("view-total"),
-  });
-  const { data: totalExpenseData } = useGetApiQuery({
-    url: `${EXPENSE_URL}total-expense`,
-    skip: !expenseAccessList.includes("view-total"),
-  });
-  const { data: totalTransactionData } = useGetApiQuery({
-    url: `${TRANSACTION_URL}total`,
-    skip: !withdrawAccessList.includes("view"),
-  });
-  const { data: settings } = useGetSettingQuery("");
-  const { data: ordersData } = useGetApiQuery({
-    url: buildQueryString(`${ORDER_URL}list`, { page: 1, limit: 300 }),
-    skip: !orderAccessList.includes("view"),
-  });
+  // Load summary cards first; defer chart UI until after first paint.
+  const [chartsReady, setChartsReady] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setChartsReady(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const { data: totalAndBalancesData, isLoading } = useGetApiQuery({
     url: `${ACCOUNT_URL}total-and-balances`,
   });
+
+  const { data: totalRevenueData } = useGetApiQuery(
+    { url: `${REVENUE_URL}total-revenue` },
+    { skip: !revenueAccessList.includes("view-total") },
+  );
+  const { data: totalPurchaseData } = useGetApiQuery(
+    { url: `${PURCHASE_URL}total-purchase?status=completed` },
+    { skip: !purchaseAccessList.includes("view-total") },
+  );
+  const { data: totalExpenseData } = useGetApiQuery(
+    { url: `${EXPENSE_URL}total-expense` },
+    { skip: !expenseAccessList.includes("view-total") },
+  );
+  const { data: totalTransactionData } = useGetApiQuery(
+    { url: `${TRANSACTION_URL}total` },
+    { skip: !withdrawAccessList.includes("view") },
+  );
+
+  // Usually already cached from Layout — cheap.
+  const { data: settings } = useGetSettingQuery("");
 
   if (isLoading) {
     return (
@@ -160,16 +172,18 @@ function OverviewCards() {
         )}
       </div>
 
-      {totalRevenueData && totalPurchaseData && totalExpenseData && (
-        <FiscalYearSummary
-          totalRevenue={totalRevenueData?.data?.total}
-          totalPurchase={totalPurchaseData?.data?.total}
-          totalExpense={totalExpenseData?.data?.total}
-          openingBalance={settings?.data?.openingBalance}
-          ordersData={ordersData}
-          showSalesTrend={orderAccessList.includes("view")}
-        />
-      )}
+      {chartsReady &&
+        totalRevenueData &&
+        totalPurchaseData &&
+        totalExpenseData && (
+          <FiscalYearSummary
+            totalRevenue={totalRevenueData?.data?.total}
+            totalPurchase={totalPurchaseData?.data?.total}
+            totalExpense={totalExpenseData?.data?.total}
+            openingBalance={settings?.data?.openingBalance}
+            showSalesTrend={orderAccessList.includes("view")}
+          />
+        )}
     </div>
   );
 }
@@ -179,19 +193,25 @@ function FiscalYearSummary({
   totalPurchase,
   totalExpense,
   openingBalance,
-  ordersData,
   showSalesTrend,
 }: {
   totalRevenue: number;
   totalPurchase: number;
   totalExpense: number;
   openingBalance: number | undefined;
-  ordersData: any;
   showSalesTrend: boolean;
 }) {
   const [chartType, setChartType] = useState<ChartType>("pie");
   const profit = totalRevenue - (totalPurchase + totalExpense);
   const collectedAmount = profit + Number(openingBalance || 0);
+
+  // Heavy order list only when the sales trend (line) chart is selected.
+  const { data: ordersData } = useGetApiQuery(
+    {
+      url: buildQueryString(`${ORDER_URL}list`, { page: 1, limit: 50 }),
+    },
+    { skip: !showSalesTrend || chartType !== "line" },
+  );
 
   const pieData = [
     { name: "Revenue", value: Number(totalRevenue) || 0 },
@@ -253,36 +273,38 @@ function FiscalYearSummary({
         className="lg:col-span-2"
       >
         <div className="min-w-0 overflow-hidden">
-          {chartType === "pie" && (
-            <PieChartComponent
-              data={pieData}
-              responsive
-              height={280}
-              showLegend
-              colors={CHART_FISCAL_COLORS}
-            />
-          )}
-          {chartType === "bar" && (
-            <BarChartComponent
-              data={barData}
-              dataKeys={["amount"]}
-              height={280}
-              xAxisLabel="Metric"
-              yAxisLabel="Amount"
-              showLegend={false}
-            />
-          )}
-          {chartType === "line" && (
-            <LineChartComponent
-              data={lineData}
-              dataKeys={["Sales"]}
-              height={280}
-              xAxisLabel="Date"
-              yAxisLabel="Sales"
-              showLegend={false}
-              colorScale={[CHART_BRAND]}
-            />
-          )}
+          <Suspense fallback={<ChartFallback />}>
+            {chartType === "pie" && (
+              <PieChartComponent
+                data={pieData}
+                responsive
+                height={280}
+                showLegend
+                colors={CHART_FISCAL_COLORS}
+              />
+            )}
+            {chartType === "bar" && (
+              <BarChartComponent
+                data={barData}
+                dataKeys={["amount"]}
+                height={280}
+                xAxisLabel="Metric"
+                yAxisLabel="Amount"
+                showLegend={false}
+              />
+            )}
+            {chartType === "line" && (
+              <LineChartComponent
+                data={lineData}
+                dataKeys={["Sales"]}
+                height={280}
+                xAxisLabel="Date"
+                yAxisLabel="Sales"
+                showLegend={false}
+                colorScale={[CHART_BRAND]}
+              />
+            )}
+          </Suspense>
         </div>
       </DashboardChartCard>
 

@@ -11,7 +11,7 @@ export default function EditAccess() {
 
   const { data: allRoles, isSuccess: roleSuccess } = useGetRoleQuery({
     page: 1,
-    limit: 100,
+    limit: 25,
   });
 
   const allRole =

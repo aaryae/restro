@@ -4,9 +4,9 @@ import CustomDialog from "@/components/Dialog";
 import Drawer from "@/components/Drawer";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
 import Input from "@/components/Input";
-import MediaComponent from "@/components/MediaComponent";
 import Select from "@/components/Select";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
+import { LIST_LIMIT } from "@/constants/listLimits";
 import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import useImageHandler from "@/hooks/useImageHandler";
 import useTranslation from "@/locale/useTranslation";
@@ -20,14 +20,18 @@ import { useListAllProductCategoryQuery } from "@/redux/services/productCategory
 import { PRODUCT_LIST_ROUTE } from "@/routes/routeNames";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import AddEditProductCategory from "../ProductCategory/AddEditProductCategory";
-import ListCategoryDetails from "./ListCategoryDetails";
 import { ProductSchema } from "./schema";
+
+const MediaComponent = lazy(() => import("@/components/MediaComponent"));
+const AddEditProductCategory = lazy(
+  () => import("../ProductCategory/AddEditProductCategory"),
+);
+const ListCategoryDetails = lazy(() => import("./ListCategoryDetails"));
 
 type ProductFormType = z.infer<typeof ProductSchema>;
 
@@ -105,20 +109,21 @@ export default function ProductForm() {
   const { data: productCategory, isSuccess: productCategorySuccess } =
     useListAllProductCategoryQuery({
       page: 1,
-      limit: 100,
+      limit: LIST_LIMIT,
     });
 
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductByIdMutation();
 
   const { data: departmentData } = useGetApiQuery({
-    url: `${DEPARTMENT_URL}list`,
+    url: `${DEPARTMENT_URL}list?page=1&limit=${LIST_LIMIT}`,
   });
 
-  // Fetch addons for selection drawer
-  const { data: addonListData } = useGetApiQuery({
-    url: `${ADDON_URL}`,
-  });
+  // Fetch addons only when the selection drawer is opened.
+  const { data: addonListData } = useGetApiQuery(
+    { url: `${ADDON_URL}?page=1&limit=${LIST_LIMIT}` },
+    { skip: !addonDrawerOpen },
+  );
 
   const departmentOptions = useMemo(() => {
     if (!departmentData?.data) return [];
@@ -323,41 +328,20 @@ export default function ProductForm() {
 
         <div className="flex flex-col items-start w-[20rem]">
           <label className="input-label text-start mb-[2px]">Image</label>
-          <MediaComponent
-            title={
-              <MultipleImageInputUI
-                images={media}
-                imageIndex={currentImageIndex}
-              />
-            }
-            isMultiSelect={true}
-            handleConfirmImage={() => handleConfirmImage("mediaArr")}
-            open={isImageModelOpen}
-            setOpen={setIsImageModalOpen}
-          />
-          {/* <div className="mt-[1rem] flex w-full justify-between">
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={handlePrevButton}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={() => setValue("mediaArr", [])}
-            >
-              Remove
-            </button>
-            <button
-              type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-              onClick={handleNextButton}
-            >
-              Next
-            </button>
-          </div> */}
+          <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+            <MediaComponent
+              title={
+                <MultipleImageInputUI
+                  images={media}
+                  imageIndex={currentImageIndex}
+                />
+              }
+              isMultiSelect={true}
+              handleConfirmImage={() => handleConfirmImage("mediaArr")}
+              open={isImageModelOpen}
+              setOpen={setIsImageModalOpen}
+            />
+          </Suspense>
         </div>
 
         {(!id || success) && (
@@ -544,10 +528,14 @@ export default function ProductForm() {
         contentClassName="max-w-md sm:max-w-lg"
         closeOnOutsideClick
       >
-        <AddEditProductCategory
-          isComponent={true}
-          closeModal={closeDialog}
-        />
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+          {dialogOpen ? (
+            <AddEditProductCategory
+              isComponent={true}
+              closeModal={closeDialog}
+            />
+          ) : null}
+        </Suspense>
       </CustomDialog>
 
       <Drawer
@@ -557,7 +545,9 @@ export default function ProductForm() {
         className="border-l border-slate-200/80 shadow-2xl"
         contentClassName="p-6 pt-5"
       >
-        <ListCategoryDetails id={selectedOption} />
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+          {drawerOpen ? <ListCategoryDetails id={selectedOption} /> : null}
+        </Suspense>
       </Drawer>
 
       {/* Addon selection Drawer */}

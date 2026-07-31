@@ -23,7 +23,7 @@ function SplitPayment({
   const [filter, setFilter] = useState<AccountFilter>("all");
   const [qrAccountId, setQrAccountId] = useState<number | null>(null);
 
-  const url = buildQueryString("account/list", { page: 1, limit: 99999 });
+  const url = buildQueryString("account/list", { page: 1, limit: 25 });
   const { data: allAccount, isSuccess: accountSuccess } = useGetApiQuery({
     url,
   });

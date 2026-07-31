@@ -2,7 +2,7 @@ import MenuPageToolbar from "@/components/MenuPageToolbar";
 import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
@@ -18,7 +18,8 @@ import {
 import { ADDON_URL } from "@/constants/apiUrlConstants";
 import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
-import Table from "@/components/Table";
+
+const Table = lazy(() => import("@/components/Table"));
 
 const Addons = () => {
   const translate = useTranslation();
@@ -135,13 +136,15 @@ const Addons = () => {
       {isLoading ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <Table
-          isSN
-          headers={headers}
-          data={tableData}
-          pagination={pagination}
-          handlePagination={handlePagination}
-        />
+        <Suspense fallback={<Loader />}>
+          <Table
+            isSN
+            headers={headers}
+            data={tableData}
+            pagination={pagination}
+            handlePagination={handlePagination}
+          />
+        </Suspense>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view addons.

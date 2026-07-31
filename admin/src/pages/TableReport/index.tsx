@@ -51,11 +51,11 @@ export const TableReport = () => {
   }, [selectedDateFilter, dateRange]);
 
   const { data: floorsRes } = useGetApiQuery({
-    url: `${FLOOR_URL}list?page=1&limit=100`,
+    url: `${FLOOR_URL}list?page=1&limit=25`,
   });
 
   const { data: tablesRes } = useGetApiQuery({
-    url: `${TABLE_URL}list?page=1&limit=100`,
+    url: `${TABLE_URL}list?page=1&limit=25`,
   });
 
   const floors = floorsRes?.data?.data || [];

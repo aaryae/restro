@@ -69,7 +69,7 @@ export default function AddEditProductVariantCategory() {
 
   const { data: product, isSuccess: productSuccess } = useListAllProductQuery({
     page: 1,
-    limit: 100,
+    limit: 50,
   });
 
   useEffect(() => {

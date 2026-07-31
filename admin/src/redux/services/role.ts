@@ -45,7 +45,7 @@ const roleApi = api.injectEndpoints({
       invalidatesTags: ["role"],
     }),
     listAllRoles: builder.query({
-      query: () => `access-module/role-menu-action/list?limit=1000`,
+      query: () => `access-module/role-menu-action/list?limit=25`,
     }),
     listAccessModule: builder.query({
       query: () => `access-module`,

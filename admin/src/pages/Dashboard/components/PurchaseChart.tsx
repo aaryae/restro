@@ -28,7 +28,7 @@ function PurchaseSection() {
 
   const url = buildQueryString("purchase/list", {
     page: 1,
-    limit: 100000,
+    limit: 25,
     search: { start, end },
   });
   const { data, isLoading } = useGetApiQuery({ url });

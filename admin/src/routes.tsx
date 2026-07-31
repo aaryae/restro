@@ -40,6 +40,7 @@ export const Routes: RouteItem[] = [
       },
       ...adminLinks.map((each) => ({
         path: each.path.replace(/^\//, ""),
+        // Each admin page is already React.lazy(); Layout wraps Outlet in Suspense.
         element: each.element,
       })),
     ],

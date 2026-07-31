@@ -1,7 +1,9 @@
 import PageTitle from "@/components/PageTitle/index.tsx";
-
-import OpenItemForm from "./OpenItemForm.tsx";
+import { lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
+import Loader from "@/components/Loader";
+
+const OpenItemForm = lazy(() => import("./OpenItemForm.tsx"));
 
 export default function AddEditOpenItem() {
   const { id } = useParams();
@@ -12,7 +14,9 @@ export default function AddEditOpenItem() {
         title={id ? "Edit Open Item " : "Add Open Item"}
         isBack={true}
       />
-      <OpenItemForm />
+      <Suspense fallback={<Loader />}>
+        <OpenItemForm />
+      </Suspense>
     </>
   );
 }

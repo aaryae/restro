@@ -1,13 +1,15 @@
 import { Controller, useForm } from "react-hook-form";
-import OrderList from "./components/OrderList";
-import TableList from "./components/TableList";
-import KotList from "./components/KotList";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
 import CustomDialog from "@/components/Dialog";
-import ChooseTable from "./components/TransferModel/ChooseTable";
-import { useEffect, useState } from "react";
 import { ChefHat, ClipboardList, LayoutGrid, Plus, Repeat } from "lucide-react";
+import Loader from "@/components/Loader";
+
+const TableList = lazy(() => import("./components/TableList"));
+const OrderList = lazy(() => import("./components/OrderList"));
+const KotList = lazy(() => import("./components/KotList"));
+const ChooseTable = lazy(() => import("./components/TransferModel/ChooseTable"));
 
 const VIEW_VALUES = ["table", "order", "kot"] as const;
 type OrderView = (typeof VIEW_VALUES)[number];
@@ -122,9 +124,11 @@ export default function Order() {
           contentReady ? "opacity-100" : "opacity-0"
         }`}
       >
-        {selectedView === "table" && <TableList />}
-        {selectedView === "order" && <OrderList />}
-        {selectedView === "kot" && <KotList />}
+        <Suspense fallback={<Loader />}>
+          {selectedView === "table" && <TableList />}
+          {selectedView === "order" && <OrderList />}
+          {selectedView === "kot" && <KotList />}
+        </Suspense>
       </div>
       <CustomDialog
         dialogOpen={dialogOpen}
@@ -133,10 +137,11 @@ export default function Order() {
         titleDescription="Move orders from one table to another."
         contentClassName="max-w-xl"
       >
-        <ChooseTable
-          tableId={null}
-          onClose={() => setDialogOpen(false)}
-        />
+        <Suspense fallback={<Loader />}>
+          {dialogOpen ? (
+            <ChooseTable tableId={null} onClose={() => setDialogOpen(false)} />
+          ) : null}
+        </Suspense>
       </CustomDialog>
     </>
   );

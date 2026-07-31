@@ -77,7 +77,7 @@ export default function UserForm({
   });
   const { data: roles, isSuccess: roleSuccess } = useGetRoleQuery({
     page: 1,
-    limit: 100,
+    limit: 25,
   });
 
   useEffect(() => {

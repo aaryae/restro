@@ -36,7 +36,7 @@ const NepalPayIntegrationModal: React.FC<Props> = ({
   const isEdit = Boolean(editing);
 
   const { data: accountsData } = useGetApiQuery(
-    { url: buildQueryString("account/list", { page: 1, limit: 100 }) },
+    { url: buildQueryString("account/list", { page: 1, limit: 25 }) },
     { skip: !isOpen || hideAccountSelect },
   );
 

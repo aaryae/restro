@@ -1,11 +1,10 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import PageTitle from "@/components/PageTitle";
-import MediaComponent from "@/components/MediaComponent";
 import { ImageInputUI } from "@/components/ImageComponent";
 import { IMAGE_BASE_URL } from "@/constants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -21,6 +20,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AddonSchema } from "./schema";
 import { useAppSelector } from "@/redux/store/hooks";
+
+const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 
 type AddonFormType = {
   name: string;
@@ -176,13 +177,15 @@ const AddEditAddons = () => {
           <label className="input-label text-start mb-[2px]">
             Image <span className="text-red-500">*</span>
           </label>
-          <MediaComponent
-            title={<ImageInputUI image={image} imageMessage="Upload Image" />}
-            isMultiSelect={false}
-            handleConfirmImage={onConfirmMedia}
-            open={isImageModelOpen}
-            setOpen={setIsImageModalOpen}
-          />
+          <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+            <MediaComponent
+              title={<ImageInputUI image={image} imageMessage="Upload Image" />}
+              isMultiSelect={false}
+              handleConfirmImage={onConfirmMedia}
+              open={isImageModelOpen}
+              setOpen={setIsImageModalOpen}
+            />
+          </Suspense>
           {errors.imageUrl?.message && (
             <span className="input-error mt-1">{errors.imageUrl.message}</span>
           )}

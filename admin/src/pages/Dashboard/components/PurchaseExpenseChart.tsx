@@ -1,8 +1,5 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { PieChart, Receipt } from "lucide-react";
-import PieChartComponent from "../PieChartComponent";
-import BarChartComponent from "../BarChartComponent";
-import LineChartComponent from "../LineChartComponent";
 import { EXPENSE_URL, PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
@@ -14,6 +11,14 @@ import {
   CHART_EXPENSE_COLORS,
   CHART_PURCHASE_COLORS,
 } from "../chartTheme";
+
+const PieChartComponent = lazy(() => import("../PieChartComponent"));
+const BarChartComponent = lazy(() => import("../BarChartComponent"));
+const LineChartComponent = lazy(() => import("../LineChartComponent"));
+
+function ChartFallback() {
+  return <div className="h-[280px] animate-pulse rounded-lg bg-slate-50" />;
+}
 
 function toBarData(data: any[]) {
   return (data || []).map((item) => ({
@@ -44,28 +49,38 @@ function PurchaseExpenseSection() {
   const canPurchaseCategory = canViewCategory(purchaseAccess);
   const canExpenseCategory = canViewCategory(expenseAccess);
 
+  const needPurchaseCategory =
+    purchaseChart === "pie" || purchaseChart === "bar";
+  const needExpenseCategory =
+    expenseChart === "pie" || expenseChart === "bar";
+
   const { data: purchaseCategoryData, isLoading: loadingPurchase } =
     useGetApiQuery(
       { url: `${PURCHASE_URL}category-summary?status=completed` },
-      { skip: !canPurchaseCategory },
+      { skip: !canPurchaseCategory || !needPurchaseCategory },
     );
 
   const { data: expenseCategoryData, isLoading: loadingExpense } =
     useGetApiQuery(
       { url: `${EXPENSE_URL}category-summary` },
-      { skip: !canExpenseCategory },
+      { skip: !canExpenseCategory || !needExpenseCategory },
     );
 
   const { data: purchaseDailyData, isLoading: loadingPurchaseDaily } =
     useGetApiQuery(
       { url: `${PURCHASE_URL}daily-summary?days=14&status=completed` },
-      { skip: !purchaseAccess.includes("view") },
+      {
+        skip:
+          !purchaseAccess.includes("view") || purchaseChart !== "line",
+      },
     );
 
   const { data: expenseDailyData, isLoading: loadingExpenseDaily } =
     useGetApiQuery(
       { url: `${EXPENSE_URL}daily-summary?days=14` },
-      { skip: !expenseAccess.includes("view") },
+      {
+        skip: !expenseAccess.includes("view") || expenseChart !== "line",
+      },
     );
 
   const purchaseTrend = useMemo(
@@ -108,37 +123,39 @@ function PurchaseExpenseSection() {
         }
       >
         <div className="min-w-0 overflow-hidden">
-          {purchaseChart === "pie" && (
-            <PieChartComponent
-              data={purchaseCategoryChartData}
-              responsive
-              height={280}
-              showLegend
-              colorScale={CHART_PURCHASE_COLORS}
-            />
-          )}
-          {purchaseChart === "bar" && (
-            <BarChartComponent
-              data={toBarData(purchaseCategoryChartData)}
-              dataKeys={["amount"]}
-              height={280}
-              xAxisLabel="Category"
-              yAxisLabel="Amount"
-              showLegend={false}
-              colorScale={CHART_PURCHASE_COLORS}
-            />
-          )}
-          {purchaseChart === "line" && (
-            <LineChartComponent
-              data={purchaseTrend}
-              dataKeys={["Amount"]}
-              height={280}
-              xAxisLabel="Date"
-              yAxisLabel="Amount"
-              showLegend={false}
-              colorScale={[CHART_BRAND]}
-            />
-          )}
+          <Suspense fallback={<ChartFallback />}>
+            {purchaseChart === "pie" && (
+              <PieChartComponent
+                data={purchaseCategoryChartData}
+                responsive
+                height={280}
+                showLegend
+                colorScale={CHART_PURCHASE_COLORS}
+              />
+            )}
+            {purchaseChart === "bar" && (
+              <BarChartComponent
+                data={toBarData(purchaseCategoryChartData)}
+                dataKeys={["amount"]}
+                height={280}
+                xAxisLabel="Category"
+                yAxisLabel="Amount"
+                showLegend={false}
+                colorScale={CHART_PURCHASE_COLORS}
+              />
+            )}
+            {purchaseChart === "line" && (
+              <LineChartComponent
+                data={purchaseTrend}
+                dataKeys={["Amount"]}
+                height={280}
+                xAxisLabel="Date"
+                yAxisLabel="Amount"
+                showLegend={false}
+                colorScale={[CHART_BRAND]}
+              />
+            )}
+          </Suspense>
         </div>
       </DashboardChartCard>
 
@@ -152,37 +169,39 @@ function PurchaseExpenseSection() {
         }
       >
         <div className="min-w-0 overflow-hidden">
-          {expenseChart === "pie" && (
-            <PieChartComponent
-              data={expenseCategoryChartData}
-              responsive
-              height={280}
-              showLegend
-              colorScale={CHART_EXPENSE_COLORS}
-            />
-          )}
-          {expenseChart === "bar" && (
-            <BarChartComponent
-              data={toBarData(expenseCategoryChartData)}
-              dataKeys={["amount"]}
-              height={280}
-              xAxisLabel="Category"
-              yAxisLabel="Amount"
-              showLegend={false}
-              colorScale={CHART_EXPENSE_COLORS}
-            />
-          )}
-          {expenseChart === "line" && (
-            <LineChartComponent
-              data={expenseTrend}
-              dataKeys={["Amount"]}
-              height={280}
-              xAxisLabel="Date"
-              yAxisLabel="Amount"
-              showLegend={false}
-              colorScale={[CHART_BRAND_LIGHT]}
-            />
-          )}
+          <Suspense fallback={<ChartFallback />}>
+            {expenseChart === "pie" && (
+              <PieChartComponent
+                data={expenseCategoryChartData}
+                responsive
+                height={280}
+                showLegend
+                colorScale={CHART_EXPENSE_COLORS}
+              />
+            )}
+            {expenseChart === "bar" && (
+              <BarChartComponent
+                data={toBarData(expenseCategoryChartData)}
+                dataKeys={["amount"]}
+                height={280}
+                xAxisLabel="Category"
+                yAxisLabel="Amount"
+                showLegend={false}
+                colorScale={CHART_EXPENSE_COLORS}
+              />
+            )}
+            {expenseChart === "line" && (
+              <LineChartComponent
+                data={expenseTrend}
+                dataKeys={["Amount"]}
+                height={280}
+                xAxisLabel="Date"
+                yAxisLabel="Amount"
+                showLegend={false}
+                colorScale={[CHART_BRAND_LIGHT]}
+              />
+            )}
+          </Suspense>
         </div>
       </DashboardChartCard>
     </div>

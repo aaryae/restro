@@ -42,7 +42,7 @@ export default function BasicInfo() {
   const [updateUser] = useUpdateUserMutation();
   const { data: roles, isSuccess: roleSuccess } = useGetRoleQuery({
     page: 1,
-    limit: 100,
+    limit: 25,
   });
   const userId = useAppSelector((state) => state.auth.id);
 

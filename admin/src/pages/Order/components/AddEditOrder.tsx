@@ -483,7 +483,7 @@ export default function AddEditOrder({
 
   // Fetch tables from backend (generic)
   const { data: tableData } = useGetApiQuery({
-    url: `${TABLE_URL}list?page=1&limit=500`,
+    url: `${TABLE_URL}list?page=1&limit=25`,
   });
 
   // Fetch products from backend (generic)

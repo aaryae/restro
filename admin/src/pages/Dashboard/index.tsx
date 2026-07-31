@@ -1,16 +1,21 @@
 import { format, getHours } from "date-fns";
+import { lazy, Suspense } from "react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useForm, Controller } from "react-hook-form";
-import OverviewCards from "./components/OverviewCards";
-import PurchaseExpenseSection from "./components/PurchaseExpenseChart";
-import RevenueSection from "./components/RevenueChart";
-import CashAndBank from "./components/CashAndBank";
 import DashboardViewTabs, {
   type DashboardView,
 } from "./components/DashboardViewTabs";
 import DashboardQuickLinks from "./components/DashboardQuickLinks";
 import AnimatedPanel from "./components/AnimatedPanel";
 import { LayoutDashboard } from "lucide-react";
+import Loader from "@/components/Loader";
+
+const OverviewCards = lazy(() => import("./components/OverviewCards"));
+const PurchaseExpenseSection = lazy(
+  () => import("./components/PurchaseExpenseChart"),
+);
+const RevenueSection = lazy(() => import("./components/RevenueChart"));
+const CashAndBank = lazy(() => import("./components/CashAndBank"));
 
 const getPartOfDay = (date: Date = new Date()): string => {
   const hour = getHours(date);
@@ -62,13 +67,15 @@ export default function Dashboard() {
       <div className="mt-3">
         <DashboardQuickLinks />
       </div>
-
+      u
       <div className="mt-4 min-w-0">
         <AnimatedPanel panelKey={selectedView}>
-          {selectedView === "overview" && <OverviewCards />}
-          {selectedView === "purchase-expense" && <PurchaseExpenseSection />}
-          {selectedView === "revenue" && <RevenueSection />}
-          {selectedView === "cashbanks" && <CashAndBank />}
+          <Suspense fallback={<Loader />}>
+            {selectedView === "overview" && <OverviewCards />}
+            {selectedView === "purchase-expense" && <PurchaseExpenseSection />}
+            {selectedView === "revenue" && <RevenueSection />}
+            {selectedView === "cashbanks" && <CashAndBank />}
+          </Suspense>
         </AnimatedPanel>
       </div>
     </div>

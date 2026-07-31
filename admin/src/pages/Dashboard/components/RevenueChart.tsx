@@ -1,15 +1,20 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import BarChartComponent from "../BarChartComponent";
-import PieChartComponent from "../PieChartComponent";
-import LineChartComponent from "../LineChartComponent";
 import DashboardChartCard from "./DashboardChartCard";
 import { type ChartType } from "./ChartTypeTabs";
 import { buildQueryString } from "@/utils/generalHelper";
 import { CHART_BRAND, CHART_PALETTE } from "../chartTheme";
+
+const PieChartComponent = lazy(() => import("../PieChartComponent"));
+const BarChartComponent = lazy(() => import("../BarChartComponent"));
+const LineChartComponent = lazy(() => import("../LineChartComponent"));
+
+function ChartFallback() {
+  return <div className="h-[300px] animate-pulse rounded-lg bg-slate-50" />;
+}
 
 function localYmd(d: Date) {
   const y = d.getFullYear();
@@ -20,7 +25,8 @@ function localYmd(d: Date) {
 
 function RevenueSection() {
   const orderAccess = checkAccess("Order");
-  const [chartType, setChartType] = useState<ChartType>("bar");
+  // Default pie so we don't immediately hit product-top-sales + category together.
+  const [chartType, setChartType] = useState<ChartType>("pie");
 
   const canViewCategory =
     orderAccess.includes("view-category-sales-summary") ||
@@ -30,25 +36,27 @@ function RevenueSection() {
     orderAccess.includes("view");
 
   const { data: orderCategoryData, isLoading: loadingCategories } =
-    useGetApiQuery({
-      url: `${ORDER_URL}category-sales-summary`,
-      skip: !canViewCategory,
-    });
+    useGetApiQuery(
+      { url: `${ORDER_URL}category-sales-summary` },
+      { skip: !canViewCategory || (chartType !== "pie" && chartType !== "bar") },
+    );
 
   const { data: orderTopSalesData, isLoading: loadingTopSales } =
-    useGetApiQuery({
-      url: `${ORDER_URL}product-top-sales`,
-      skip: !canViewTopSales,
-    });
+    useGetApiQuery(
+      { url: `${ORDER_URL}product-top-sales` },
+      { skip: !canViewTopSales || chartType !== "bar" },
+    );
 
-  const { data: ordersData, isLoading: loadingOrders } = useGetApiQuery({
-    url: buildQueryString(`${ORDER_URL}list`, {
-      page: 1,
-      limit: 300,
-      search: { status: "completed,pending" },
-    }),
-    skip: !orderAccess.includes("view"),
-  });
+  const { data: ordersData, isLoading: loadingOrders } = useGetApiQuery(
+    {
+      url: buildQueryString(`${ORDER_URL}list`, {
+        page: 1,
+        limit: 50,
+        search: { status: "completed,pending" },
+      }),
+    },
+    { skip: !orderAccess.includes("view") || chartType !== "line" },
+  );
 
   const categoryPie = useMemo(
     () =>
@@ -85,8 +93,10 @@ function RevenueSection() {
       const status = String(order?.status || "").toLowerCase();
       const payment = String(order?.paymentStatus || "").toLowerCase();
       if (status === "cancelled") return;
-      if (!["paid", "partially_paid", "partially paid"].includes(payment) &&
-          status !== "completed") {
+      if (
+        !["paid", "partially_paid", "partially paid"].includes(payment) &&
+        status !== "completed"
+      ) {
         return;
       }
       const raw = order?.orderStartTime || order?.createdAt;
@@ -118,37 +128,39 @@ function RevenueSection() {
       loading={loading}
     >
       <div className="min-w-0 overflow-hidden">
-        {chartType === "pie" && (
-          <PieChartComponent
-            data={categoryPie}
-            responsive
-            height={300}
-            showLegend
-            colorScale={CHART_PALETTE}
-          />
-        )}
-        {chartType === "bar" && (
-          <BarChartComponent
-            data={topSalesBar}
-            dataKeys={["amount"]}
-            height={300}
-            xAxisLabel="Item"
-            yAxisLabel="Amount"
-            showLegend={false}
-            colorScale={CHART_PALETTE}
-          />
-        )}
-        {chartType === "line" && (
-          <LineChartComponent
-            data={salesTrend}
-            dataKeys={["Sales"]}
-            height={300}
-            xAxisLabel="Date"
-            yAxisLabel="Sales"
-            showLegend={false}
-            colorScale={[CHART_BRAND]}
-          />
-        )}
+        <Suspense fallback={<ChartFallback />}>
+          {chartType === "pie" && (
+            <PieChartComponent
+              data={categoryPie}
+              responsive
+              height={300}
+              showLegend
+              colorScale={CHART_PALETTE}
+            />
+          )}
+          {chartType === "bar" && (
+            <BarChartComponent
+              data={topSalesBar}
+              dataKeys={["amount"]}
+              height={300}
+              xAxisLabel="Item"
+              yAxisLabel="Amount"
+              showLegend={false}
+              colorScale={CHART_PALETTE}
+            />
+          )}
+          {chartType === "line" && (
+            <LineChartComponent
+              data={salesTrend}
+              dataKeys={["Sales"]}
+              height={300}
+              xAxisLabel="Date"
+              yAxisLabel="Sales"
+              showLegend={false}
+              colorScale={[CHART_BRAND]}
+            />
+          )}
+        </Suspense>
       </div>
     </DashboardChartCard>
   );

@@ -1,19 +1,20 @@
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { PRODUCT_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
-import DraggableTable from "@/components/Table/dragableTable";
 import { useDeleteProductCategoryByIdMutation } from "@/redux/services/productCategory";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
+
+const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
 
 export default function ProductCategory() {
   const translate = useTranslation();
@@ -124,17 +125,19 @@ export default function ProductCategory() {
       {loading && !success ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <DraggableTable
-          headers={tableHeaders}
-          data={tableData}
-          loading={loading}
-          fetching={fetching}
-          url="product-category/update-order"
-          action={updateOrder}
-          success={success}
-          pagination={pagination}
-          handlePagination={handlePagination}
-        />
+        <Suspense fallback={<Loader />}>
+          <DraggableTable
+            headers={tableHeaders}
+            data={tableData}
+            loading={loading}
+            fetching={fetching}
+            url="product-category/update-order"
+            action={updateOrder}
+            success={success}
+            pagination={pagination}
+            handlePagination={handlePagination}
+          />
+        </Suspense>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view categories.

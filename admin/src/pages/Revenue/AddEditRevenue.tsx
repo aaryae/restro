@@ -67,7 +67,7 @@ export default function AddEditRevenue() {
     () =>
       buildQueryString(`${ACCOUNT_URL}list`, {
         page: 1,
-        limit: 100,
+        limit: 25,
       }),
     [],
   );
