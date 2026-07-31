@@ -67,7 +67,6 @@ export default function Dashboard() {
       <div className="mt-3">
         <DashboardQuickLinks />
       </div>
-      u
       <div className="mt-4 min-w-0">
         <AnimatedPanel panelKey={selectedView}>
           <Suspense fallback={<Loader />}>
