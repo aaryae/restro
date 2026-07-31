@@ -158,7 +158,9 @@ const BarChartComponent: React.FC<BarChartProps> = ({
   }
 
   const isValidData = data.every((item) =>
-    dataKeys.every((key) => typeof item[key] === "number" && item[key] >= 0),
+    dataKeys.every(
+      (key) => typeof item[key] === "number" && Number.isFinite(item[key]),
+    ),
   );
   if (!isValidData) {
     return (

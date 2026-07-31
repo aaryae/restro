@@ -691,20 +691,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               name,
               quantity,
               price,
-              subtotal: Number(ad?.subtotal ?? price),
+              subtotal: Number(ad?.subtotal ?? price * quantity),
             };
           })
         : [];
       if (embedded.length > 0) return embedded;
       return raw
         .filter((it) => it.parentOrderItemId === parent.id)
-        .map((a: any) => ({
-          id: a.id,
-          name: a?.product?.name ?? `Addon #${a.id}`,
-          quantity: Number(a.quantity ?? 0),
-          price: Number(a.price ?? 0),
-          subtotal: Number(a.subtotal ?? 0),
-        }));
+        .map((a: any) => {
+          const quantity = Number(a.quantity ?? 0);
+          const price = Number(a.price ?? 0);
+          return {
+            id: a.id,
+            name: a?.product?.name ?? `Addon #${a.id}`,
+            quantity,
+            price,
+            subtotal: Number(a.subtotal ?? price * quantity),
+          };
+        });
     };
 
     // Single order
@@ -1249,6 +1253,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <th className="p-2 sm:p-4 border text-left">
                               Item
                             </th>
+                            <th className="p-2 sm:p-4 border text-right min-w-[10rem]">
+                              Price
+                            </th>
                             <th className="p-2 sm:p-4 border text-right w-24">
                               Quantity
                             </th>
@@ -1262,7 +1269,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             <tr>
                               <td
                                 className="p-3 text-center text-gray-500"
-                                colSpan={5}
+                                colSpan={6}
                               >
                                 No items
                               </td>
@@ -1270,6 +1277,32 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           )}
                           {items?.map((it: any, idx) => {
                             const sid = String(it.id);
+                            const qty = Number(it.quantity ?? 0);
+                            const unitPrice = Number(it.productPrice ?? 0);
+                            const baseSubtotal = Number(
+                              it.subtotal ?? unitPrice * qty,
+                            );
+                            const addons = Array.isArray(it.addons)
+                              ? it.addons
+                              : [];
+                            const lineTotal =
+                              Number(it.totalWithAddons ?? 0) ||
+                              baseSubtotal +
+                                addons.reduce(
+                                  (s: number, a: any) =>
+                                    s +
+                                    (Number(
+                                      a.subtotal ??
+                                        Number(a.price || 0) *
+                                          Number(a.quantity || 0),
+                                    ) || 0),
+                                  0,
+                                );
+                            const priceLabel =
+                              qty > 1
+                                ? `${CurrencySign}${unitPrice.toFixed(2)} × ${qty} = ${CurrencySign}${baseSubtotal.toFixed(2)}`
+                                : `${CurrencySign}${unitPrice.toFixed(2)}`;
+
                             return (
                               <tr
                                 key={sid}
@@ -1289,24 +1322,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                     <div className="font-medium">
                                       {it.productName}
                                     </div>
-                                    {Array.isArray(it.addons) &&
-                                    it.addons.length > 0 ? (
-                                      <div className="text-xs text-gray-600 flex flex-col gap-1">
-                                        {it.addons.map((addon: any) => (
-                                          <div
-                                            key={`${sid}_addon_${addon.id}`}
-                                            className="flex items-center justify-between"
-                                          >
-                                            <span>{`+ ${addon.name} (x${addon.quantity})`}</span>
-                                            <span>
-                                              {Number(
-                                                addon.subtotal || 0,
-                                              ).toFixed(2)}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
+                                    {addons.length === 0 && (
                                       <div className="text-xs text-gray-500 text-left">
                                         No addons
                                       </div>
@@ -1314,20 +1330,35 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                   </div>
                                 </td>
                                 <td className="p-2 sm:p-4 border text-right">
-                                  {it.quantity}
+                                  <div className="flex flex-col gap-1 items-end">
+                                    <div>{priceLabel}</div>
+                                    {addons.map((addon: any) => {
+                                      const addonQty = Number(
+                                        addon.quantity ?? 1,
+                                      );
+                                      const addonUnit = Number(
+                                        addon.price ?? 0,
+                                      );
+                                      const addonTotal = Number(
+                                        addon.subtotal ??
+                                          addonUnit * addonQty,
+                                      );
+                                      return (
+                                        <div
+                                          key={`${sid}_addon_price_${addon.id}`}
+                                          className="text-xs text-gray-600"
+                                        >
+                                          {`+ ${addon.name} ×${addonQty} (${CurrencySign.trim()}${addonUnit.toFixed(2)}) = ${CurrencySign}${addonTotal.toFixed(2)}`}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </td>
                                 <td className="p-2 sm:p-4 border text-right">
-                                  {(
-                                    Number(it.totalWithAddons ?? 0) ||
-                                    Number(it.subtotal ?? 0) +
-                                      (Array.isArray(it.addons)
-                                        ? it.addons.reduce(
-                                            (s: number, a: any) =>
-                                              s + (Number(a.subtotal) || 0),
-                                            0,
-                                          )
-                                        : 0)
-                                  ).toFixed(2)}
+                                  {qty}
+                                </td>
+                                <td className="p-2 sm:p-4 border text-right">
+                                  {lineTotal.toFixed(2)}
                                 </td>
                               </tr>
                             );

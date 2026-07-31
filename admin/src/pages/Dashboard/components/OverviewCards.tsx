@@ -45,7 +45,7 @@ function OverviewCards() {
     skip: !revenueAccessList.includes("view-total"),
   });
   const { data: totalPurchaseData } = useGetApiQuery({
-    url: `${PURCHASE_URL}total-purchase`,
+    url: `${PURCHASE_URL}total-purchase?status=completed`,
     skip: !purchaseAccessList.includes("view-total"),
   });
   const { data: totalExpenseData } = useGetApiQuery({
@@ -194,28 +194,40 @@ function FiscalYearSummary({
   const collectedAmount = profit + Number(openingBalance || 0);
 
   const pieData = [
-    { name: "Profit", value: Math.max(profit, 0) },
-    { name: "Purchases", value: totalPurchase },
-    { name: "Expense", value: totalExpense },
-  ];
+    { name: "Revenue", value: Number(totalRevenue) || 0 },
+    { name: "Purchase", value: Number(totalPurchase) || 0 },
+    { name: "Expense", value: Number(totalExpense) || 0 },
+  ].filter((item) => item.value > 0);
 
   const barData = [
-    { name: "Revenue", amount: totalRevenue },
-    { name: "Purchase", amount: totalPurchase },
-    { name: "Expense", amount: totalExpense },
-    { name: "Profit", amount: profit },
+    { name: "Revenue", amount: Number(totalRevenue) || 0 },
+    { name: "Purchase", amount: Number(totalPurchase) || 0 },
+    { name: "Expense", amount: Number(totalExpense) || 0 },
+    {
+      name: profit >= 0 ? "Profit" : "Loss",
+      amount: Math.abs(Number(profit) || 0),
+    },
   ];
 
   const lineData = useMemo(() => {
     const rows: any[] = ordersData?.data?.data || [];
+    const toYmd = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
     const buckets = new Map<string, number>();
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
+      d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - i);
-      buckets.set(d.toISOString().slice(0, 10), 0);
+      buckets.set(toYmd(d), 0);
     }
     rows.forEach((order) => {
-      const date = String(order?.createdAt || "").slice(0, 10);
+      const raw = order?.orderStartTime || order?.createdAt;
+      if (!raw) return;
+      const date = toYmd(new Date(raw));
       if (!buckets.has(date)) return;
       const amount = Number(order?.totalAmount ?? order?.total ?? 0);
       buckets.set(date, (buckets.get(date) || 0) + amount);

@@ -14,7 +14,9 @@ function ChooseTable({
   tableId: number | null;
   onClose?: () => void;
 }) {
-  const { data: table } = useGetApiQuery({ url: `${TABLE_URL}list` });
+  const { data: table } = useGetApiQuery({
+    url: `${TABLE_URL}list?page=1&limit=500`,
+  });
   const [selectedTable, setSelectedTable] = useState<number | null>(tableId);
   const [selectedDesiredTable, setSelectedDesiredTable] = useState<
     number | null

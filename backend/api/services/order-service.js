@@ -25,36 +25,42 @@ const { awardLoyaltyPoints } = require("../../helpers/loyalty/award-points");
 
 const paginate = require("../../utils/paginate");
 
-// Sum paid sales by product category for bar charts
+// Sum paid sales by product category for pie/bar charts
 const categorySalesSummary = async (req) => {
   try {
     const { start, end } = req.query;
 
     const whereOrder = {
-      status: "completed",
-      paymentStatus: "paid",
+      status: { [Op.ne]: "cancelled" },
+      paymentStatus: { [Op.in]: ["paid", "partially_paid"] },
     };
     if (start && end) {
       const startDate = startOfDay(parseISO(start));
       const endDate = endOfDay(parseISO(end));
-      whereOrder.orderFinishTime = { [Op.between]: [startDate, endDate] };
+      whereOrder.orderStartTime = { [Op.between]: [startDate, endDate] };
     }
 
-    const rows = await orderItemModel.findAll({
+    const itemWhere = {
+      status: { [Op.ne]: "cancelled" },
+    };
+
+    const productRows = await orderItemModel.findAll({
       attributes: [
         [sequelize.col("product.product_category.name"), "name"],
-        [sequelize.fn("SUM", sequelize.col("subtotal")), "amount"],
+        [sequelize.fn("SUM", sequelize.col("OrderItem.subtotal")), "amount"],
       ],
       include: [
         {
           model: productModel,
           as: "product",
           attributes: [],
+          required: true,
           include: [
             {
               model: productCategoryModel,
               as: "product_category",
               attributes: [],
+              required: false,
             },
           ],
         },
@@ -67,16 +73,50 @@ const categorySalesSummary = async (req) => {
         },
       ],
       where: {
-        status: { [Op.ne]: "cancelled" },
+        ...itemWhere,
+        productId: { [Op.ne]: null },
       },
       group: ["product.product_category.id", "product.product_category.name"],
       raw: true,
     });
 
-    const data = rows.map((row) => ({
-      name: row.name,
-      amount: Number(row.amount) || 0,
-    }));
+    const openTotal = await orderItemModel.sum("subtotal", {
+      where: {
+        ...itemWhere,
+        openItemId: { [Op.ne]: null },
+        productId: null,
+      },
+      include: [
+        {
+          model: orderModel,
+          as: "order",
+          attributes: [],
+          where: whereOrder,
+          required: true,
+        },
+      ],
+    });
+
+    const totals = new Map();
+    for (const row of productRows) {
+      const name = row.name || "Uncategorized";
+      const amount = Number(row.amount) || 0;
+      if (amount <= 0) continue;
+      totals.set(name, (totals.get(name) || 0) + amount);
+    }
+
+    const openAmount = Number(openTotal) || 0;
+    if (openAmount > 0) {
+      totals.set(
+        "Open Items",
+        (totals.get("Open Items") || 0) + openAmount,
+      );
+    }
+
+    const data = Array.from(totals.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
     return {
       status: 200,
       success: true,
@@ -93,28 +133,29 @@ const categorySalesSummary = async (req) => {
     };
   }
 };
-// Top 5 products by total sold amount (paid & completed), not by times sold
+
+// Top products by total sold amount (paid / partially paid)
 const productTopSales = async (req) => {
   try {
     const { start, end, limit = 5 } = req.query;
 
     const whereOrder = {
-      status: "completed",
-      paymentStatus: "paid",
+      status: { [Op.ne]: "cancelled" },
+      paymentStatus: { [Op.in]: ["paid", "partially_paid"] },
     };
     if (start && end) {
       const startDate = startOfDay(parseISO(start));
       const endDate = endOfDay(parseISO(end));
-      whereOrder.orderFinishTime = { [Op.between]: [startDate, endDate] };
+      whereOrder.orderStartTime = { [Op.between]: [startDate, endDate] };
     }
 
     const rows = await orderItemModel.findAll({
       attributes: [
         "productId",
-        [sequelize.fn("SUM", sequelize.col("subtotal")), "amount"],
+        [sequelize.fn("SUM", sequelize.col("OrderItem.subtotal")), "amount"],
       ],
       include: [
-        { model: productModel, as: "product", attributes: ["name"] },
+        { model: productModel, as: "product", attributes: ["name"], required: true },
         {
           model: orderModel,
           as: "order",
@@ -123,7 +164,10 @@ const productTopSales = async (req) => {
           required: true,
         },
       ],
-      where: { status: { [Op.ne]: "cancelled" } },
+      where: {
+        status: { [Op.ne]: "cancelled" },
+        productId: { [Op.ne]: null },
+      },
       group: ["productId", "product.id", "product.name"],
       order: [[sequelize.literal("amount"), "DESC"]],
       limit: Math.max(1, parseInt(limit) || 5),
@@ -131,7 +175,7 @@ const productTopSales = async (req) => {
     });
 
     const data = rows.map((r) => ({
-      name: r["product.name"],
+      name: r["product.name"] || "Unknown",
       amount: Number(r.amount) || 0,
     }));
 
@@ -303,15 +347,10 @@ const createOrder = async (req) => {
       };
     }
 
-    // Group main items by department for KOT generation
-    const itemsByDepartment = mainItems.reduce((acc, item) => {
-      const departmentId = item.departmentId;
-      if (!acc[departmentId]) {
-        acc[departmentId] = [];
-      }
-      acc[departmentId].push(item);
-      return acc;
-    }, {});
+    // One KOT per order (all items on a single kitchen ticket).
+    const itemsByDepartment = {
+      [mainItems[0].departmentId]: mainItems,
+    };
 
     // Generate KOT numbers for the day
     const today = new Date();
@@ -747,19 +786,15 @@ const updateOrderItems = async (req) => {
       });
       let baseKotNo = todayKotsCount + 1;
 
-      // Group new items by department for KOT assignment
-      const itemsByDepartment = newItems.reduce((acc, item) => {
-        const departmentId = item.departmentId;
-        if (!acc[departmentId]) acc[departmentId] = [];
-        acc[departmentId].push(item);
-        return acc;
-      }, {});
+      // One KOT per order — reuse existing KOT when adding items later.
+      const itemsByDepartment = {
+        [newItems[0].departmentId]: newItems,
+      };
 
       // Create KOTs and main items
       for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
-        // Find or create KOT for this department
         let kot = await kotModel.findOne({
-          where: { orderId, departmentId, status: { [Op.ne]: "cancelled" } },
+          where: { orderId, status: { [Op.ne]: "cancelled" } },
           transaction,
         });
         if (!kot) {
@@ -2284,14 +2319,16 @@ const listOrders = async (req) => {
     ];
     let order = [["updatedAt", "DESC"]];
 
-    // if status is all, remove it from filters
-    if (status && status !== "all") {
-      // Handle comma-separated multiple status values
-      if (status.includes(",")) {
-        const statusArray = status.split(",").map((s) => s.trim());
+    // Order status filter (frontend may send `status` or legacy `orderStatus`)
+    const orderStatusFilter = status || req.query.orderStatus;
+    if (orderStatusFilter && orderStatusFilter !== "all") {
+      if (String(orderStatusFilter).includes(",")) {
+        const statusArray = String(orderStatusFilter)
+          .split(",")
+          .map((s) => s.trim());
         filters.status = { [Op.in]: statusArray };
       } else {
-        filters.status = { [Op.like]: `%${status}%` };
+        filters.status = String(orderStatusFilter);
       }
     }
     if (paymentStatus)

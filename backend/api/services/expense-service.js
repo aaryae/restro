@@ -608,6 +608,54 @@ const todayExpense = async (req) => {
   }
 };
 
+// Daily expense totals for trend charts (keyed by createdAt local day)
+const dailySummary = async (req) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+
+    const toYmd = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+
+    const data = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const ymd = toYmd(d);
+      const range = getLocalDateRange(ymd, ymd);
+      const total = await expenseModel.sum("amount", {
+        where: {
+          createdAt: { [Op.between]: [range.start, range.end] },
+        },
+      });
+      data.push({ date: ymd, amount: Number(total) || 0 });
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: "Expense daily summary retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    console.error("Expense daily summary error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve expense daily summary",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -619,4 +667,5 @@ module.exports = {
   totalExpense,
   categorySummary,
   todayExpense,
+  dailySummary,
 };

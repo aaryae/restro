@@ -29,12 +29,14 @@ const {
   categorySummary,
   purchaseByAccount,
   todayPurchase,
+  dailySummary,
 } = require("../controllers/purchase-controller");
 
 router.post("/", authentication, authorization, purchasePostValidation, create);
 router.get("/list", paginationValidation, list);
 router.get("/by-account", authentication, purchaseByAccount);
 router.get("/purchase-today", authentication, todayPurchase);
+router.get("/daily-summary", authentication, dailySummary);
 router.get(
   "/total-purchase",
   authentication,
@@ -45,7 +47,6 @@ router.get(
 router.get(
   "/category-summary",
   authentication,
-  authorization,
   paginationValidation,
   categorySummary,
 );

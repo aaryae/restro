@@ -74,7 +74,7 @@ export default function OrderList() {
     start: null,
     end: null,
     paymentStatus: null,
-    orderStatus: null,
+    status: null,
   });
 
   const url = buildQueryString("order/list", {
@@ -136,12 +136,12 @@ export default function OrderList() {
   };
 
   const tableHeader = [
-    "Table No",
-    "Order Type",
-    "Order StartedAt",
+    "Table",
+    "Type",
+    "Started",
     "Amount",
-    "Payment Status",
-    "Order Status",
+    "Payment",
+    "Status",
     "Actions",
   ];
 
@@ -168,11 +168,11 @@ export default function OrderList() {
               <StatusPill value={formatOrderType(orderType)} tone="blue" />
             </span>,
             <span
-              className={`text-[12px] text-slate-600 ${
+              className={`whitespace-nowrap text-[12px] text-slate-600 ${
                 status === "cancelled" ? "line-through opacity-60" : ""
               }`}
             >
-              {format(new Date(orderStartTime), "PPp")}
+              {format(new Date(orderStartTime), "MMM d, h:mm a")}
             </span>,
             <span
               className={`font-semibold text-slate-800 ${

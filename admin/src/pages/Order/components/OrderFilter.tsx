@@ -11,7 +11,7 @@ interface OrderFilterPropsType {
   start: string;
   end: string;
   paymentStatus: string;
-  orderStatus: string;
+  status: string;
 }
 
 export default function OrderFilter({
@@ -58,7 +58,7 @@ export default function OrderFilter({
   }, []);
 
   useEffect(() => {
-    const onResize = () => setMobileView(window.innerWidth < 768);
+    const onResize = () => setMobileView(window.innerWidth < 1024);
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -104,10 +104,10 @@ export default function OrderFilter({
     });
   };
 
-  const handleOrderStatusChange = (orderStatus: string) => {
+  const handleOrderStatusChange = (status: string) => {
     setQueryStringOptions({
       ...queryStringOptions,
-      orderStatus,
+      status,
     });
   };
 
@@ -135,11 +135,12 @@ export default function OrderFilter({
   const isCustomSelected = selectedQuick === "custom";
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="flex flex-col items-start gap-2.5">
-          <h3 className="text-sm font-semibold text-slate-700">Order Filter</h3>
-          <div className="flex flex-wrap gap-2">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold text-slate-700">Order Filter</h3>
+
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleAllClick}
@@ -173,91 +174,89 @@ export default function OrderFilter({
             >
               This Week
             </button>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
-                  isCustomSelected
-                    ? "bg-primaryColor text-white"
-                    : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
-                }`}
-              >
-                Custom Range
-              </button>
-              {isCustomSelected && (
-                <span className="text-xs text-slate-500">
-                  {queryStringOptions.start} - {queryStringOptions.end}
-                </span>
-              )}
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
+                isCustomSelected
+                  ? "bg-primaryColor text-white"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30 hover:text-primaryColor"
+              }`}
+            >
+              Custom Range
+            </button>
+            {isCustomSelected && (
+              <span className="w-full text-xs text-slate-500 sm:w-auto">
+                {queryStringOptions.start} - {queryStringOptions.end}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:shrink-0 xl:gap-3">
+            <div className="min-w-0 xl:min-w-[150px]">
+              <Select
+                id="paymentStatus"
+                label="Payment Status"
+                value={queryStringOptions.paymentStatus}
+                onValueChange={handlePaymentStatusChange}
+                options={[
+                  { value: "", label: "All" },
+                  { value: "paid", label: "Paid" },
+                  { value: "partially_paid", label: "Partially Paid" },
+                  { value: "pending", label: "Pending" },
+                  { value: "failed", label: "Failed" },
+                ]}
+                triggerClassName="h-9 text-[13px]"
+              />
+            </div>
+            <div className="min-w-0 xl:min-w-[150px]">
+              <Select
+                id="orderStatus"
+                label="Order Status"
+                value={queryStringOptions.status}
+                onValueChange={handleOrderStatusChange}
+                options={[
+                  { value: "", label: "All" },
+                  { value: "pending", label: "Pending" },
+                  { value: "completed", label: "Completed" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+                triggerClassName="h-9 text-[13px]"
+              />
             </div>
           </div>
         </div>
-        {showDatePicker &&
-          createPortal(
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
-              <div
-                className={`relative rounded-xl bg-white shadow-lg ${
-                  mobileView
-                    ? "max-h-[85vh] w-[95%] overflow-x-scroll p-8"
-                    : "p-8"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setShowDatePicker(false)}
-                  className={`text-red-500 hover:text-red-700 ${mobileView ? "absolute left-[36rem] top-2" : "absolute right-2 top-2"}`}
-                >
-                  ✕
-                </button>
-
-                <DateRangePicker
-                  ranges={[dateRange]}
-                  onChange={handleDateRangeSelect}
-                  showSelectionPreview={true}
-                  moveRangeOnFirstSelection={false}
-                  months={mobileView ? 1 : 2}
-                  direction={mobileView ? "vertical" : "horizontal"}
-                  className={mobileView ? "w-full" : ""}
-                />
-              </div>
-            </div>,
-            document.body,
-          )}
-        <div className="flex gap-3">
-          <div className="flex min-w-[150px] flex-col items-start">
-            <Select
-              id="paymentStatus"
-              label="Payment Status"
-              value={queryStringOptions.paymentStatus}
-              onValueChange={handlePaymentStatusChange}
-              options={[
-                { value: "", label: "All" },
-                { value: "paid", label: "Paid" },
-                { value: "partially_paid", label: "Partially Paid" },
-                { value: "pending", label: "Pending" },
-                { value: "failed", label: "Failed" },
-              ]}
-              triggerClassName="h-9 text-[13px]"
-            />
-          </div>
-          <div className="flex min-w-[150px] flex-col items-start">
-            <Select
-              id="orderStatus"
-              label="Order Status"
-              value={queryStringOptions.orderStatus}
-              onValueChange={handleOrderStatusChange}
-              options={[
-                { value: "", label: "All" },
-                { value: "pending", label: "Pending" },
-                { value: "completed", label: "Completed" },
-                { value: "cancelled", label: "Cancelled" },
-              ]}
-              triggerClassName="h-9 text-[13px]"
-            />
-          </div>
-        </div>
       </div>
+
+      {showDatePicker &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3">
+            <div
+              className={`relative max-h-[85vh] overflow-auto rounded-xl bg-white shadow-lg ${
+                mobileView ? "w-full max-w-[95vw] p-4 pt-10" : "p-8"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setShowDatePicker(false)}
+                className="absolute right-2 top-2 text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+
+              <DateRangePicker
+                ranges={[dateRange]}
+                onChange={handleDateRangeSelect}
+                showSelectionPreview={true}
+                moveRangeOnFirstSelection={false}
+                months={mobileView ? 1 : 2}
+                direction={mobileView ? "vertical" : "horizontal"}
+                className={mobileView ? "w-full" : ""}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

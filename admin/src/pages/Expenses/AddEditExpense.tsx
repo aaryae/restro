@@ -112,6 +112,7 @@ const AddEditExpense: React.FC = () => {
       return data.filter(
         (s: any) =>
           s.name?.toLowerCase().includes(term) ||
+          s.contact_number?.includes(term) ||
           s.contactNumber?.includes(term) ||
           s.email?.toLowerCase().includes(term),
       );
@@ -431,7 +432,12 @@ const AddEditExpense: React.FC = () => {
                                 {supplier.name}
                               </div>
                               <div className="truncate text-xs text-slate-500">
-                                {[supplier.phone, supplier.email]
+                                {[
+                                  supplier.contact_number ||
+                                    supplier.contactNumber ||
+                                    supplier.phone,
+                                  supplier.email,
+                                ]
                                   .filter(Boolean)
                                   .join(" • ")}
                               </div>
@@ -499,7 +505,9 @@ const AddEditExpense: React.FC = () => {
                                 {supplier.name}
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
-                                {supplier.contactNumber || "-"}
+                                {supplier.contact_number ||
+                                  supplier.contactNumber ||
+                                  "-"}
                               </td>
                               <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-500">
                                 {supplier.email || "-"}

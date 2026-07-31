@@ -160,6 +160,7 @@ const AddEditPurchase: React.FC = () => {
       return data.filter(
         (s: any) =>
           s.name?.toLowerCase().includes(term) ||
+          s.contact_number?.includes(term) ||
           s.contactNumber?.includes(term) ||
           s.email?.toLowerCase().includes(term),
       );
@@ -177,7 +178,7 @@ const AddEditPurchase: React.FC = () => {
     const q = supplierSearchTerm.trim().toLowerCase();
     if (q.length < 2) return [];
     return rows.filter((r) =>
-      [r?.name, r?.phone, r?.email]
+      [r?.name, r?.contact_number, r?.contactNumber, r?.phone, r?.email]
         .filter(Boolean)
         .some((v: string) => String(v).toLowerCase().includes(q)),
     );
@@ -435,213 +436,215 @@ const AddEditPurchase: React.FC = () => {
 
               {/* Supplier */}
               <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    Supplier
-                  </label>
-                  <div className="flex gap-1.5">
-                    <CustomDialog
-                      buttonTitle={
-                    <button
-                      type="button"
-                      className="rounded-full bg-primaryColor px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition hover:bg-primaryColor/90"
-                    >
-                      + Add New
-                    </button>
+                <label className={labelClass}>Supplier</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <Input
+                      placeholder="Search supplier..."
+                      className={inputClass}
+                      value={selectedSupplier?.label || supplierSearchTerm}
+                      onChange={(e) => {
+                        setSelectedSupplier(null);
+                        setSupplierSearchTerm(e.target.value);
+                        setIsSupplierDropdownOpen(true);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const first = supplierRows?.[0];
+                          if (first) {
+                            setSelectedSupplier({
+                              value: String(first.id),
+                              label: first.name,
+                            });
+                            setValue("supplierId", String(first.id), {
+                              shouldValidate: true,
+                            });
+                            setSupplierSearchTerm(first.name);
+                            setIsSupplierDropdownOpen(false);
+                          }
+                        }
+                      }}
+                      onFocus={() => setIsSupplierDropdownOpen(true)}
+                      onBlur={() =>
+                        setTimeout(() => setIsSupplierDropdownOpen(false), 150)
                       }
-                      dialogOpen={supplierDialogOpen}
-                      setDialogOpen={setSupplierDialogOpen}
-                      title="Add Supplier"
-                      contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
-                    >
-                      <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
-                        <AddEditSupplier
-                          isComponent={true}
-                          closeModal={closeDialog}
+                    />
+                    {isSupplierDropdownOpen &&
+                      supplierSearchTerm.trim().length >= 2 && (
+                        <div className="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                          {!suppliersOk ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              Type at least 2 characters...
+                            </div>
+                          ) : supplierRows.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No suppliers found
+                            </div>
+                          ) : (
+                            supplierRows.map((supplier: any) => (
+                              <button
+                                key={supplier.id}
+                                type="button"
+                                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setSelectedSupplier({
+                                    value: String(supplier.id),
+                                    label: supplier.name,
+                                  });
+                                  setValue("supplierId", String(supplier.id), {
+                                    shouldValidate: true,
+                                  });
+                                  setSupplierSearchTerm(supplier.name);
+                                  setIsSupplierDropdownOpen(false);
+                                }}
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-gray-800">
+                                    {supplier.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {[
+                                      supplier.contact_number ||
+                                        supplier.contactNumber ||
+                                        supplier.phone,
+                                      supplier.email,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </div>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                  </div>
+                  <CustomDialog
+                    buttonTitle={
+                      <button
+                        type="button"
+                        className="inline-flex h-[38px] items-center whitespace-nowrap rounded-md bg-primaryColor px-2.5 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                      >
+                        + Add
+                      </button>
+                    }
+                    dialogOpen={supplierDialogOpen}
+                    setDialogOpen={setSupplierDialogOpen}
+                    title="Add Supplier"
+                    contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
+                  >
+                    <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
+                      <AddEditSupplier
+                        isComponent={true}
+                        closeModal={closeDialog}
+                      />
+                    </div>
+                  </CustomDialog>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAllSuppliers(true);
+                      setSupplierSearchTerm("");
+                      setViewSuppliersDialogOpen(true);
+                      refetchSuppliers();
+                    }}
+                    className="inline-flex h-[38px] items-center whitespace-nowrap rounded-md border border-gray-300 bg-white px-2.5 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    View All
+                  </button>
+                  <CustomDialog
+                    buttonTitle={null}
+                    dialogOpen={viewSuppliersDialogOpen}
+                    setDialogOpen={setViewSuppliersDialogOpen}
+                    title="All Suppliers"
+                    contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
+                  >
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search suppliers..."
+                          className={inputClass}
+                          value={supplierSearchTerm}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSupplierSearchTerm(value);
+                            setShowAllSuppliers(value.trim().length === 0);
+                          }}
                         />
                       </div>
-                    </CustomDialog>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAllSuppliers(true);
-                        setSupplierSearchTerm("");
-                        setViewSuppliersDialogOpen(true);
-                        refetchSuppliers();
-                      }}
-                      className="rounded-full bg-gray-600 px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition hover:bg-gray-700"
-                    >
-                      View All
-                    </button>
-
-                    <CustomDialog
-                      buttonTitle={null}
-                      dialogOpen={viewSuppliersDialogOpen}
-                      setDialogOpen={setViewSuppliersDialogOpen}
-                      title="All Suppliers"
-                      contentClassName="w-full max-w-4xl max-h-[80vh] overflow-auto p-4"
-                    >
-                      <div className="space-y-4">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search suppliers..."
-                            className={inputClass}
-                            value={supplierSearchTerm}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setSupplierSearchTerm(value);
-                              setShowAllSuppliers(value.trim().length === 0);
-                            }}
-                          />
-                        </div>
-                        <div className="overflow-hidden rounded-lg border border-slate-200">
-                          <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                              <tr>
-                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                  Name
-                                </th>
-                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                  Contact
-                                </th>
-                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                  Email
-                                </th>
-                                <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                  Action
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                              {suppliers?.map((supplier: any) => (
-                                <tr
-                                  key={supplier.id}
-                                  className="transition hover:bg-slate-50"
-                                >
-                                  <td className="px-4 py-3 text-sm font-medium text-slate-800">
-                                    {supplier.name}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-slate-500">
-                                    {supplier.contactNumber || "-"}
-                                  </td>
-                                  <td className="px-4 py-3 text-sm text-slate-500">
-                                    {supplier.email || "-"}
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setValue(
-                                          "supplierId",
-                                          String(supplier.id),
-                                        );
-                                        setSelectedSupplier({
-                                          value: String(supplier.id),
-                                          label: supplier.name,
-                                        });
-                                        setViewSuppliersDialogOpen(false);
-                                      }}
-                                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                                    >
-                                      Select
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                              {(!suppliers || suppliers.length === 0) && (
-                                <tr>
-                                  <td
-                                    colSpan={4}
-                                    className="px-4 py-6 text-center text-sm text-slate-400"
-                                  >
-                                    No suppliers found
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </CustomDialog>
-                  </div>
-                </div>
-                <div className="relative">
-                  <Input
-                    placeholder="Search supplier..."
-                    className={inputClass}
-                    value={selectedSupplier?.label || supplierSearchTerm}
-                    onChange={(e) => {
-                      setSelectedSupplier(null);
-                      setSupplierSearchTerm(e.target.value);
-                      setIsSupplierDropdownOpen(true);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const first = supplierRows?.[0];
-                        if (first) {
-                          setSelectedSupplier({
-                            value: String(first.id),
-                            label: first.name,
-                          });
-                          setValue("supplierId", String(first.id), {
-                            shouldValidate: true,
-                          });
-                          setSupplierSearchTerm(first.name);
-                          setIsSupplierDropdownOpen(false);
-                        }
-                      }
-                    }}
-                    onFocus={() => setIsSupplierDropdownOpen(true)}
-                    onBlur={() =>
-                      setTimeout(() => setIsSupplierDropdownOpen(false), 150)
-                    }
-                  />
-                  {isSupplierDropdownOpen &&
-                    supplierSearchTerm.trim().length >= 2 && (
-                      <div className="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                        {!suppliersOk ? (
-                          <div className="px-3 py-2 text-sm text-gray-500">
-                            Type at least 2 characters...
-                          </div>
-                        ) : supplierRows.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-500">
-                            No suppliers found
-                          </div>
-                        ) : (
-                          supplierRows.map((supplier: any) => (
-                            <button
-                              key={supplier.id}
-                              type="button"
-                              className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setSelectedSupplier({
-                                  value: String(supplier.id),
-                                  label: supplier.name,
-                                });
-                                setValue("supplierId", String(supplier.id), {
-                                  shouldValidate: true,
-                                });
-                                setSupplierSearchTerm(supplier.name);
-                                setIsSupplierDropdownOpen(false);
-                              }}
-                            >
-                              <div className="flex-1">
-                                <div className="font-medium text-sm text-gray-800">
+                      <div className="overflow-hidden rounded-lg border border-slate-200">
+                        <table className="min-w-full divide-y divide-slate-200">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                Name
+                              </th>
+                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                Contact
+                              </th>
+                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                Email
+                              </th>
+                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
+                                Action
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {suppliers?.map((supplier: any) => (
+                              <tr
+                                key={supplier.id}
+                                className="transition hover:bg-slate-50"
+                              >
+                                <td className="px-4 py-3 text-sm font-medium text-slate-800">
                                   {supplier.name}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {[supplier.phone, supplier.email]
-                                    .filter(Boolean)
-                                    .join(" · ")}
-                                </div>
-                              </div>
-                            </button>
-                          ))
-                        )}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-slate-500">
+                                  {supplier.contact_number ||
+                                    supplier.contactNumber ||
+                                    "-"}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-slate-500">
+                                  {supplier.email || "-"}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setValue(
+                                        "supplierId",
+                                        String(supplier.id),
+                                      );
+                                      setSelectedSupplier({
+                                        value: String(supplier.id),
+                                        label: supplier.name,
+                                      });
+                                      setViewSuppliersDialogOpen(false);
+                                    }}
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                  >
+                                    Select
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            {(!suppliers || suppliers.length === 0) && (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className="px-4 py-6 text-center text-sm text-slate-400"
+                                >
+                                  No suppliers found
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
+                    </div>
+                  </CustomDialog>
                 </div>
                 {errors.supplierId && (
                   <span className="mt-1 text-xs text-red-500">

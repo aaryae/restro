@@ -899,13 +899,14 @@
 
   .takeawayIcon {
     display: inline-flex;
+    align-items: center;
     position: absolute;
     left: 0.9rem;
-    top: 50%;
+    top: 0;
+    height: 2.75rem;
     z-index: 2;
     color: #7b8696;
     pointer-events: none;
-    transform: translateY(-50%);
   }
 
   .takeawayMobileInput {

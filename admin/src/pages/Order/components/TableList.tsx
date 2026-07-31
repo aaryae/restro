@@ -31,7 +31,7 @@ export default function TableList() {
 
   const { query, handlePagination } = usePagination({
     page: 1,
-    limit: 10,
+    limit: 500,
     search: {
       status:
         selectedStatus === "all" ? undefined : selectedStatus || undefined,

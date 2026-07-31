@@ -11,34 +11,65 @@ import { type ChartType } from "./ChartTypeTabs";
 import { buildQueryString } from "@/utils/generalHelper";
 import { CHART_BRAND, CHART_PALETTE } from "../chartTheme";
 
+function localYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function RevenueSection() {
   const orderAccess = checkAccess("Order");
   const [chartType, setChartType] = useState<ChartType>("bar");
 
+  const canViewCategory =
+    orderAccess.includes("view-category-sales-summary") ||
+    orderAccess.includes("view");
+  const canViewTopSales =
+    orderAccess.includes("view-product-top-sales") ||
+    orderAccess.includes("view");
+
   const { data: orderCategoryData, isLoading: loadingCategories } =
     useGetApiQuery({
       url: `${ORDER_URL}category-sales-summary`,
-      skip: !orderAccess.includes("view-category-sales-summary"),
+      skip: !canViewCategory,
     });
 
   const { data: orderTopSalesData, isLoading: loadingTopSales } =
     useGetApiQuery({
       url: `${ORDER_URL}product-top-sales`,
-      skip: !orderAccess.includes("view-product-top-sales"),
+      skip: !canViewTopSales,
     });
 
   const { data: ordersData, isLoading: loadingOrders } = useGetApiQuery({
-    url: buildQueryString(`${ORDER_URL}list`, { page: 1, limit: 300 }),
+    url: buildQueryString(`${ORDER_URL}list`, {
+      page: 1,
+      limit: 300,
+      search: { status: "completed,pending" },
+    }),
     skip: !orderAccess.includes("view"),
   });
 
   const categoryPie = useMemo(
     () =>
-      (orderCategoryData?.data || []).map((item: any) => ({
-        name: item.name || item.category,
-        value: Number(item.amount || 0),
-      })),
+      (orderCategoryData?.data || [])
+        .map((item: any) => ({
+          name: item.name || item.category || "Uncategorized",
+          value: Number(item.amount ?? item.value ?? 0),
+        }))
+        .filter((item: { value: number }) => item.value > 0),
     [orderCategoryData],
+  );
+
+  const topSalesBar = useMemo(
+    () =>
+      (orderTopSalesData?.data || orderCategoryData?.data || [])
+        .map((item: any) => ({
+          name: item.name || item.category || "Uncategorized",
+          amount: Number(item.amount ?? item.value ?? 0),
+        }))
+        .filter((item: { amount: number }) => item.amount > 0),
+    [orderTopSalesData, orderCategoryData],
   );
 
   const salesTrend = useMemo(() => {
@@ -46,11 +77,21 @@ function RevenueSection() {
     const buckets = new Map<string, number>();
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
+      d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - i);
-      buckets.set(d.toISOString().slice(0, 10), 0);
+      buckets.set(localYmd(d), 0);
     }
     rows.forEach((order) => {
-      const date = String(order?.createdAt || "").slice(0, 10);
+      const status = String(order?.status || "").toLowerCase();
+      const payment = String(order?.paymentStatus || "").toLowerCase();
+      if (status === "cancelled") return;
+      if (!["paid", "partially_paid", "partially paid"].includes(payment) &&
+          status !== "completed") {
+        return;
+      }
+      const raw = order?.orderStartTime || order?.createdAt;
+      if (!raw) return;
+      const date = localYmd(new Date(raw));
       if (!buckets.has(date)) return;
       const amount = Number(order?.totalAmount ?? order?.total ?? 0);
       buckets.set(date, (buckets.get(date) || 0) + amount);
@@ -88,7 +129,7 @@ function RevenueSection() {
         )}
         {chartType === "bar" && (
           <BarChartComponent
-            data={orderTopSalesData?.data || orderCategoryData?.data || []}
+            data={topSalesBar}
             dataKeys={["amount"]}
             height={300}
             xAxisLabel="Item"

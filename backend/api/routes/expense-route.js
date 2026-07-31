@@ -24,11 +24,13 @@ const {
   totalExpense,
   categorySummary,
   todayExpense,
+  dailySummary,
 } = require("../controllers/expense-controller");
 
 router.post("/", authentication, authorization, expensePostValidation, create);
 router.get("/list", paginationValidation, list);
 router.get("/expense-today", authentication, todayExpense);
+router.get("/daily-summary", authentication, dailySummary);
 router.get(
   "/total-expense",
   authentication,
@@ -39,7 +41,6 @@ router.get(
 router.get(
   "/category-summary",
   authentication,
-  authorization,
   paginationValidation,
   categorySummary,
 );

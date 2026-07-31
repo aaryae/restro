@@ -138,7 +138,7 @@ const AddPurchaseCategory: React.FC = () => {
             </button>
             <Button
               type="submit"
-              className="submit-button inline-flex h-10 w-full items-center justify-center rounded-lg px-5 text-sm font-medium sm:w-auto"
+              className="submit-button !h-10 !w-full !rounded-lg !px-5 !py-0 !text-sm !font-medium sm:!w-auto"
               disabled={saving}
               isLoading={saving}
             >

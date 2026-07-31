@@ -236,6 +236,24 @@ const todayPurchase = async (req, res, next) => {
   }
 };
 
+const dailySummary = async (req, res, next) => {
+  try {
+    const result = await purchaseService.dailySummary(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -250,4 +268,5 @@ module.exports = {
   deleteById,
   purchaseByAccount,
   todayPurchase,
+  dailySummary,
 };

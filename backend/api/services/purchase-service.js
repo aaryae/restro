@@ -162,46 +162,78 @@ const create = async (req) => {
   }
 };
 
-// Group purchases by category with summed amounts for pie charts
+// Group purchases by category with summed amounts for pie charts.
+// Allocates each purchase's totalAmount (incl. tax/discount) across categories
+// by line-item share so category totals match purchase totals.
 const categorySummary = async (req) => {
   try {
     let { start, end, status, supplierId, paymentTerms } = req.query;
 
-    const wherePurchase = {};
-    if (status) wherePurchase.status = status;
+    const wherePurchase = {
+      // Dashboard charts should exclude drafts/cancelled by default
+      status: status || "completed",
+    };
     if (supplierId) wherePurchase.supplierId = parseInt(supplierId);
     if (paymentTerms) wherePurchase.paymentTerms = paymentTerms;
     if (start && end) {
-      const startDate = startOfDay(parseISO(start));
-      const endDate = endOfDay(parseISO(end));
+      const startDate = new Date(`${start}T00:00:00.000Z`);
+      const endDate = new Date(`${end}T23:59:59.999Z`);
       wherePurchase.invoiceDate = {
         [Sequelize.Op.between]: [startDate, endDate],
       };
     }
 
-    const rows = await purchaseItemModel.findAll({
-      attributes: [
-        "categoryId",
-        [Sequelize.fn("SUM", Sequelize.col("amount")), "value"],
-      ],
+    const purchases = await purchaseModel.findAll({
+      where: wherePurchase,
+      attributes: ["id", "totalAmount"],
       include: [
-        { model: purchaseCategoryModel, as: "category", attributes: ["name"] },
         {
-          model: purchaseModel,
-          as: "purchase",
-          attributes: [],
-          where: wherePurchase,
-          required: true,
+          model: purchaseItemModel,
+          as: "purchaseItems",
+          attributes: ["amount", "categoryId"],
+          include: [
+            {
+              model: purchaseCategoryModel,
+              as: "category",
+              attributes: ["name"],
+              required: false,
+            },
+          ],
         },
       ],
-      group: ["categoryId", "category.id", "category.name"],
-      raw: true,
     });
 
-    const data = rows.map((r) => ({
-      name: r["category.name"],
-      value: Number(r.value) || 0,
-    }));
+    const categoryTotals = {};
+    for (const purchase of purchases) {
+      const items = purchase.purchaseItems || [];
+      const lineSum = items.reduce(
+        (sum, item) => sum + (Number(item.amount) || 0),
+        0,
+      );
+      const purchaseTotal = Number(purchase.totalAmount) || 0;
+      if (purchaseTotal <= 0 || items.length === 0) continue;
+
+      if (lineSum <= 0) {
+        const name = "Uncategorized";
+        categoryTotals[name] = (categoryTotals[name] || 0) + purchaseTotal;
+        continue;
+      }
+
+      for (const item of items) {
+        const name = item.category?.name || "Uncategorized";
+        const share = (Number(item.amount) || 0) / lineSum;
+        categoryTotals[name] =
+          (categoryTotals[name] || 0) + purchaseTotal * share;
+      }
+    }
+
+    const data = Object.entries(categoryTotals)
+      .map(([name, value]) => ({
+        name,
+        value: Math.round((Number(value) || 0) * 100) / 100,
+      }))
+      .filter((row) => row.value > 0)
+      .sort((a, b) => b.value - a.value);
 
     return {
       status: 200,
@@ -273,7 +305,8 @@ const totalPurchase = async (req) => {
     const filters = {};
 
     if (supplierId) filters.supplierId = parseInt(supplierId);
-    if (status) filters.status = status; // e.g., draft/completed/cancelled
+    // Default to completed so dashboard totals match category charts
+    filters.status = status || "completed";
     if (paymentTerms) filters.paymentTerms = paymentTerms; // e.g., cash/credit
 
     // If date range provided, use invoiceDate range; otherwise default to none
@@ -1079,6 +1112,74 @@ const todayPurchase = async (req) => {
   }
 };
 
+// Daily purchase totals for trend charts (business date = invoiceDate)
+const dailySummary = async (req) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+    const status = req.query.status || "completed";
+
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+
+    const toYmd = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+
+    const startYmd = toYmd(start);
+    const endYmd = toYmd(end);
+    const rangeStart = new Date(`${startYmd}T00:00:00.000Z`);
+    const rangeEnd = new Date(`${endYmd}T23:59:59.999Z`);
+
+    const rows = await purchaseModel.findAll({
+      attributes: [
+        [sequelize.fn("DATE", sequelize.col("invoiceDate")), "date"],
+        [sequelize.fn("SUM", sequelize.col("totalAmount")), "amount"],
+      ],
+      where: {
+        status,
+        invoiceDate: { [Sequelize.Op.between]: [rangeStart, rangeEnd] },
+      },
+      group: [sequelize.fn("DATE", sequelize.col("invoiceDate"))],
+      raw: true,
+    });
+
+    const byDate = new Map(
+      rows.map((r) => [
+        String(r.date).slice(0, 10),
+        Number(r.amount) || 0,
+      ]),
+    );
+
+    const data = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const ymd = toYmd(d);
+      data.push({ date: ymd, amount: byDate.get(ymd) || 0 });
+    }
+
+    return {
+      status: 200,
+      success: true,
+      message: "Purchase daily summary retrieved successfully",
+      data,
+    };
+  } catch (error) {
+    console.error("Purchase daily summary error:", error);
+    return {
+      status: 500,
+      success: false,
+      message: "Failed to retrieve purchase daily summary",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -1093,4 +1194,5 @@ module.exports = {
   deleteById,
   purchaseByAccount,
   todayPurchase,
+  dailySummary,
 };

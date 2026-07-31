@@ -8,7 +8,6 @@ import { checkAccess } from "@/utils/accessHelper";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import DashboardChartCard from "./DashboardChartCard";
 import { type ChartType } from "./ChartTypeTabs";
-import { buildQueryString } from "@/utils/generalHelper";
 import {
   CHART_BRAND,
   CHART_BRAND_LIGHT,
@@ -23,25 +22,17 @@ function toBarData(data: any[]) {
   }));
 }
 
-function buildTrend(rows: any[], dateField: string) {
-  const buckets = new Map<string, number>();
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    buckets.set(d.toISOString().slice(0, 10), 0);
-  }
-  rows.forEach((row) => {
-    const date = String(row?.createdAt || row?.[dateField] || "").slice(0, 10);
-    if (!buckets.has(date)) return;
-    const amount = Number(
-      row?.totalAmount ?? row?.total ?? row?.amount ?? 0,
-    );
-    buckets.set(date, (buckets.get(date) || 0) + amount);
-  });
-  return Array.from(buckets.entries()).map(([name, Amount]) => ({
-    name: name.slice(5),
-    Amount,
+function toTrendData(rows: any[]) {
+  return (rows || []).map((row) => ({
+    name: String(row.date || "").slice(5),
+    Amount: Number(row.amount) || 0,
   }));
+}
+
+function canViewCategory(access: string[]) {
+  return (
+    access.includes("view-category-summary") || access.includes("view")
+  );
 }
 
 function PurchaseExpenseSection() {
@@ -50,46 +41,41 @@ function PurchaseExpenseSection() {
   const [purchaseChart, setPurchaseChart] = useState<ChartType>("pie");
   const [expenseChart, setExpenseChart] = useState<ChartType>("pie");
 
+  const canPurchaseCategory = canViewCategory(purchaseAccess);
+  const canExpenseCategory = canViewCategory(expenseAccess);
+
   const { data: purchaseCategoryData, isLoading: loadingPurchase } =
     useGetApiQuery(
       { url: `${PURCHASE_URL}category-summary?status=completed` },
-      { skip: !purchaseAccess.includes("view-category-summary") },
+      { skip: !canPurchaseCategory },
     );
 
   const { data: expenseCategoryData, isLoading: loadingExpense } =
     useGetApiQuery(
       { url: `${EXPENSE_URL}category-summary` },
-      { skip: !expenseAccess.includes("view-category-summary") },
+      { skip: !canExpenseCategory },
     );
 
-  const { data: purchaseListData, isLoading: loadingPurchaseList } =
+  const { data: purchaseDailyData, isLoading: loadingPurchaseDaily } =
     useGetApiQuery(
-      {
-        url: buildQueryString(`${PURCHASE_URL}list`, {
-          page: 1,
-          limit: 200,
-          search: { status: "completed" },
-        }),
-      },
+      { url: `${PURCHASE_URL}daily-summary?days=14&status=completed` },
       { skip: !purchaseAccess.includes("view") },
     );
 
-  const { data: expenseListData, isLoading: loadingExpenseList } =
+  const { data: expenseDailyData, isLoading: loadingExpenseDaily } =
     useGetApiQuery(
-      {
-        url: buildQueryString(`${EXPENSE_URL}list`, { page: 1, limit: 200 }),
-      },
+      { url: `${EXPENSE_URL}daily-summary?days=14` },
       { skip: !expenseAccess.includes("view") },
     );
 
   const purchaseTrend = useMemo(
-    () => buildTrend(purchaseListData?.data?.data || [], "purchaseDate"),
-    [purchaseListData],
+    () => toTrendData(purchaseDailyData?.data || []),
+    [purchaseDailyData],
   );
 
   const expenseTrend = useMemo(
-    () => buildTrend(expenseListData?.data?.data || [], "expenseDate"),
-    [expenseListData],
+    () => toTrendData(expenseDailyData?.data || []),
+    [expenseDailyData],
   );
 
   const purchaseCategoryChartData = useMemo(
@@ -118,7 +104,7 @@ function PurchaseExpenseSection() {
         chartType={purchaseChart}
         onChartTypeChange={setPurchaseChart}
         loading={
-          purchaseChart === "line" ? loadingPurchaseList : loadingPurchase
+          purchaseChart === "line" ? loadingPurchaseDaily : loadingPurchase
         }
       >
         <div className="min-w-0 overflow-hidden">
@@ -161,7 +147,9 @@ function PurchaseExpenseSection() {
         icon={Receipt}
         chartType={expenseChart}
         onChartTypeChange={setExpenseChart}
-        loading={expenseChart === "line" ? loadingExpenseList : loadingExpense}
+        loading={
+          expenseChart === "line" ? loadingExpenseDaily : loadingExpense
+        }
       >
         <div className="min-w-0 overflow-hidden">
           {expenseChart === "pie" && (

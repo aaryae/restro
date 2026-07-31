@@ -113,8 +113,8 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="w-full sm:w-[180px]">
+          <div className="flex items-stretch">
+            <div className="w-full sm:w-[180px] [&_.input-wrapper]:!rounded-r-none [&_.input-wrapper]:!border-r-0 [&_.input-wrapper]:!h-10">
               <Input
                 type="text"
                 inputMode="decimal"
@@ -133,7 +133,7 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
               type="button"
               onClick={handleUpdate}
               disabled={!hasChanges}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-l-none rounded-r-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Check size={15} strokeWidth={2.25} />
               Save

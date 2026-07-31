@@ -43,13 +43,11 @@ router.get(
 router.get(
   "/category-sales-summary",
   authentication,
-  authorization,
   categorySalesSummary,
 );
 router.get(
   "/product-top-sales",
   authentication,
-  authorization,
   productTopSales,
 );
 // Customer/Staff routes
