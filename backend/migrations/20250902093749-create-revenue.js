@@ -62,6 +62,15 @@ module.exports = {
           key: "id",
         },
       },
+      // FK added after payment_intents exists (see create-payment-intents)
+      paymentIntentId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+      gatewayReference: {
+        type: Sequelize.STRING(128),
+        allowNull: true,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -70,15 +79,14 @@ module.exports = {
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal(
-          "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
-        ),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
 
     await queryInterface.addIndex("revenues", ["accountId"]);
     await queryInterface.addIndex("revenues", ["customerId"]);
     await queryInterface.addIndex("revenues", ["orderId"]);
+    await queryInterface.addIndex("revenues", ["paymentIntentId"]);
   },
 
   async down(queryInterface, Sequelize) {

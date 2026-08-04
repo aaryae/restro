@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: serve-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: nirvana_restro
+    ports:
+      - "5433:5432"
+    volumes:
+      - serve_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nirvana_restro"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: serve-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: development
+      ENV: development
+      APP_NAME: SERVE
+      PORT: "8080"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: root
+      DB_NAME: nirvana_restro
+      DB_DIALECT: postgres
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/resources:/app/resources
+
+volumes:
+  serve_pgdata:

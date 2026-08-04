@@ -26,12 +26,6 @@ module.exports = {
         allowNull: false,
         references: { model: "accounts", key: "id" },
       },
-      billPhotoUrl: { type: Sequelize.STRING, allowNull: true },
-      paidByUserId: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: { model: "users", key: "id" },
-      },
       enteredByUserId: {
         type: Sequelize.INTEGER,
         allowNull: false,

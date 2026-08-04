@@ -46,16 +46,25 @@ const authenticationApi = api.injectEndpoints({
       query: (id) => `auth/${id}`,
       providesTags: ["users"],
     }),
+    getProfile: builder.query({
+      query: () => `auth/profile`,
+      providesTags: ["profile"],
+    }),
     updateUser: builder.mutation({
       query: ({ body, id }) => ({
         url: `auth/${id}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["users"],
+      invalidatesTags: ["users", "profile"],
     }),
-    getProfile: builder.query({
-      query: () => `auth/profile`,
+    updateProfile: builder.mutation({
+      query: (body) => ({
+        url: `auth/update-profile`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["profile", "users"],
     }),
     changePassword: builder.mutation({
       query: (body) => ({
@@ -116,6 +125,7 @@ export const {
   useGetAllUserQuery,
   useGetUserByIdQuery,
   useUpdateUserMutation,
+  useUpdateProfileMutation,
   useGetProfileQuery,
   useChangePasswordMutation,
   useResetPasswordMutation,

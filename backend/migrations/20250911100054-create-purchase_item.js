@@ -20,7 +20,6 @@ module.exports = {
         allowNull: true,
         references: { model: "purchase_categories", key: "id" },
       },
-      hsCode: { type: Sequelize.STRING, allowNull: true },
       particulars: { type: Sequelize.STRING, allowNull: false },
       quantity: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
       rate: { type: Sequelize.DECIMAL(12, 2), allowNull: false },

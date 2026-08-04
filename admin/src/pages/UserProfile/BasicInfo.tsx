@@ -10,6 +10,7 @@ import MediaComponent from "@/components/MediaComponent";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useDispatch } from "react-redux";
 import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
+import { setProfile } from "@/redux/feature/profileSlice";
 import { z } from "zod";
 import { UserSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,13 +39,18 @@ export default function BasicInfo() {
     formState: { errors, isSubmitting },
   } = useForm<UserFormType>({ resolver: zodResolver(UserSchema) });
 
-  const { data: getUser, isSuccess: success } = useGetProfileQuery("");
+  const {
+    data: getUser,
+    isSuccess: success,
+    refetch: refetchProfile,
+  } = useGetProfileQuery("");
   const [updateUser] = useUpdateUserMutation();
   const { data: roles, isSuccess: roleSuccess } = useGetRoleQuery({
     page: 1,
     limit: 25,
   });
   const userId = useAppSelector((state) => state.auth.id);
+  const profile = useAppSelector((state) => state.profile);
 
   const [image, setImage] = useState("");
   const [openMedia, setOpenMedia] = useState(false);
@@ -72,8 +78,20 @@ export default function BasicInfo() {
         roleId: getUser.data.roleId != null ? String(getUser.data.roleId) : "",
       });
       setImage(getUser.data.imageUrl || "");
+      dispatch(
+        setProfile({
+          username: getUser.data.username ?? "",
+          firstName: getUser.data.firstName ?? "",
+          lastName: getUser.data.lastName ?? "",
+          email: getUser.data.email ?? "",
+          gender: getUser.data.gender ?? "male",
+          id: getUser.data.id ?? null,
+          imageUrl: getUser.data.imageUrl || "",
+          mobileNo: getUser.data.mobileNo ?? "",
+        }),
+      );
     }
-  }, [getUser, reset, success]);
+  }, [getUser, reset, success, dispatch]);
 
   const handleConfirmImage = () => {
     setImage(selectedImage);
@@ -97,7 +115,26 @@ export default function BasicInfo() {
 
     try {
       const response = await updateUser({ body, id: userId }).unwrap();
-      handleResponse({ res: response, onSuccess: () => {} });
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          // Header avatar reads from profile slice — keep it in sync after save
+          dispatch(
+            setProfile({
+              ...profile,
+              username: trimmedData.username,
+              firstName: trimmedData.firstName,
+              lastName: trimmedData.lastName,
+              email: trimmedData.email,
+              gender: trimmedData.gender,
+              id: userId,
+              imageUrl: image || "",
+              mobileNo: trimmedData.mobileNo,
+            }),
+          );
+          void refetchProfile();
+        },
+      });
     } catch (error) {
       handleError({ error, setError });
     }
@@ -156,6 +193,7 @@ export default function BasicInfo() {
                   handleConfirmImage={handleConfirmImage}
                   open={openMedia}
                   setOpen={setOpenMedia}
+                  isMultiSelect={false}
                 />
               </div>
               <button

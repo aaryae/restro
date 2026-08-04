@@ -17,6 +17,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+      activeTemplateId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
       variables: {
         type: Sequelize.JSON,
         allowNull: true,
@@ -42,7 +46,7 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.literal(
-          "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          "CURRENT_TIMESTAMP",
         ),
       },
     });

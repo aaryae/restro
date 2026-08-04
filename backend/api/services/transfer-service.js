@@ -92,19 +92,13 @@ const list = async (req) => {
     ];
 
     if (fromAccountId) {
-      filters.fromAccountId = {
-        [Op.like]: `%${fromAccountId}%`,
-      };
+      filters.fromAccountId = +fromAccountId;
     }
     if (toAccountId) {
-      filters.toAccountId = {
-        [Op.like]: `%${toAccountId}%`,
-      };
+      filters.toAccountId = +toAccountId;
     }
     if (userId) {
-      filters.userId = {
-        [Op.like]: `%${userId}%`,
-      };
+      filters.userId = +userId;
     }
 
     const result = await paginate(transferModel, {

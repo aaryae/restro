@@ -54,6 +54,7 @@ export const api = createApi({
     "transaction",
     "payment-integration",
     "trash",
+    "profile",
   ],
   endpoints: () => ({}),
 });

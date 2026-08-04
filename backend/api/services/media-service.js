@@ -87,9 +87,8 @@ const findAll = async (req) => {
     const include = [];
 
     if (mediaCategoryId) {
-      filters.mediaCategoryId = {
-        [Op.like]: `%${mediaCategoryId}%`,
-      };
+      // Exact match: mediaCategoryId is an integer (Postgres rejects LIKE on ints)
+      filters.mediaCategoryId = +mediaCategoryId;
     }
     const result = await paginate(mediaModel, {
       limit,

@@ -86,9 +86,8 @@ const list = async (req) => {
     const include = [{ model: floorModel, as: "floor" }];
 
     if (floorId) {
-      filters.floorId = {
-        [Op.like]: `%${floorId}%`,
-      };
+      // Exact match: floorId is an integer (Postgres rejects LIKE on ints)
+      filters.floorId = +floorId;
     }
     if (tableNo) {
       filters.tableNo = {
