@@ -11,6 +11,8 @@
     "prettier": "prettier . --write",
     "db:create": "sequelize db:create",
     "migrate": "sequelize db:migrate",
+    "migrate:control": "sequelize db:migrate --migrations-path migrations-control",
+    "provision:tenant": "node --env-file .env scripts/provision-tenant.js",
     "db:reset": "npx sequelize db:migrate:undo:all && npx sequelize db:migrate"
   },
   "keywords": [
