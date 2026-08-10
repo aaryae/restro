@@ -202,6 +202,8 @@ export default function MediaImages() {
               <img
                 src={`${IMAGE_BASE_URL}${each.path}`}
                 alt="Gallery"
+                loading="lazy"
+                decoding="async"
                 className="w-full max-w-[200px] md:w-[109px] md:h-[90px] h-auto aspect-square object-cover rounded-md"
               />
               <input

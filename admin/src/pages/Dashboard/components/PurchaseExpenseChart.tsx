@@ -27,12 +27,7 @@ function toBarData(data: any[]) {
   }));
 }
 
-function toTrendData(rows: any[]) {
-  return (rows || []).map((row) => ({
-    name: String(row.date || "").slice(5),
-    Amount: Number(row.amount) || 0,
-  }));
-}
+import { toTrendData } from "../dashboardHelpers";
 
 function canViewCategory(access: string[]) {
   return (

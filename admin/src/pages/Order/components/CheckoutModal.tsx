@@ -25,7 +25,7 @@ import {
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { ArrowLeft, Banknote, Mail, Phone, Printer, QrCode, Split, X } from "lucide-react";
+import { ArrowLeft, Banknote, Mail, Phone, Plus, Printer, QrCode, Split, X } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -33,12 +33,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { FaPlus } from "react-icons/fa";
 import { useReactToPrint } from "react-to-print";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
 import styles from "./CheckoutModal.module.css";
 import DynamicQrDisplay from "./DynamicQrDisplay";
 import SplitPayment from "./SplitPayment";
+import { useQrPaymentPolling } from "../hooks/useQrPaymentPolling";
 
 interface PaymentSource {
   id: number;
@@ -1044,62 +1044,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     initiateQrPayment,
   ]);
 
-  useEffect(() => {
-    if (!isOpen || !dynamicIntent || dynamicIntent.status !== "pending") return;
-
-    const POLL_INTERVAL_MS = 5000;
-    const MAX_POLL_ATTEMPTS = 60; // ~5 minutes — bank inquiry can lag on shared hosting
-    let attempts = 0;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    const poll = async () => {
-      try {
-        const res = await fetchQrStatus(dynamicIntent.id, false).unwrap();
-        if (res.success && res.data) {
-          setDynamicIntent(res.data);
-          if (res.data.status === "paid") {
-            if (intervalId) clearInterval(intervalId);
-            handleResponse({
-              res: { success: true, message: "NEPALPAY payment received" },
-            });
-            setIsPaymentSuccess(true);
-            setTimeout(() => {
-              setIsPaymentSuccess(false);
-              onClose();
-            }, 2000);
-          }
-        }
-      } catch (error: any) {
-        const status = error?.status ?? error?.originalStatus;
-        if (status === 401 || status === 403) {
-          setDynamicQrError(
-            "Session expired while waiting for payment. Refresh the page and check order status.",
-          );
-        }
-      }
-    };
-
-    intervalId = setInterval(() => {
-      attempts += 1;
-      if (attempts > MAX_POLL_ATTEMPTS) {
-        if (intervalId) clearInterval(intervalId);
-        return;
-      }
-      void poll();
-    }, POLL_INTERVAL_MS);
-
-    // First poll immediately for faster UX.
-    void poll();
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [
+  useQrPaymentPolling({
     isOpen,
-    dynamicIntent?.id,
-    dynamicIntent?.status,
-    fetchQrStatus,
-    onClose,
-  ]);
+    dynamicIntent,
+    fetchQrStatus: (id, silent) => fetchQrStatus(id, silent).unwrap(),
+    onIntentUpdate: setDynamicIntent,
+    onPaid: () => {
+      setIsPaymentSuccess(true);
+      setTimeout(() => {
+        setIsPaymentSuccess(false);
+        onClose();
+      }, 2000);
+    },
+    onSessionError: setDynamicQrError,
+  });
 
   const paymentSubmitDisabled =
     selectedSubtotal <= CHECKOUT_ROUND_EPS ||
@@ -1417,7 +1375,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 type="button"
                                 className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
                               >
-                                <FaPlus />
+                                <Plus />
                                 Add
                               </button>
                             }

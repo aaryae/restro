@@ -17,5 +17,6 @@ export const EXPENSE_CATEGORY_URL = "expense-category/";
 export const EXPENSE_URL = "expense/";
 export const KOT_URL = "kot/";
 export const TRANSACTION_URL = "transaction/";
+export const DASHBOARD_URL = "dashboard/";
 export const LEDGER_URL = "ledger/";
 export const TRASH_URL = "trash/";

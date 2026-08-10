@@ -3,7 +3,7 @@ import { IMAGE_BASE_URL } from "@/constants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { SetStateAction, useState } from "react";
 import userImage from "@/assets/user_image.jpeg";
-import moment from "moment";
+import { format } from "date-fns";
 import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
 import Table from "@/components/Table";
 import { User } from "lucide-react";
@@ -96,7 +96,7 @@ export default function ViewCustomer({
           productLabel,
           orderNumber || id,
           orderDateValue
-            ? moment(orderDateValue).format("MMM D, YY hh:mm a")
+            ? format(new Date(orderDateValue), "MMM d, yy hh:mm a")
             : "—",
           paymentMethodLabel,
           <div className="flex justify-center">
@@ -176,15 +176,17 @@ export default function ViewCustomer({
                     <span className="inline-flex items-center gap-2 bg-white/70 border border-gray-200 rounded-full px-3 py-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                       Created:{" "}
-                      {moment(customerData.data.createdAt).format(
-                        "MMM DD, YYYY h:mm a",
+                      {format(
+                        new Date(customerData.data.createdAt),
+                        "MMM dd, yyyy h:mm a",
                       )}
                     </span>
                     <span className="inline-flex items-center gap-2 bg-white/70 border border-gray-200 rounded-full px-3 py-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                       Updated:{" "}
-                      {moment(customerData.data.updatedAt).format(
-                        "MMM DD, YYYY h:mm a",
+                      {format(
+                        new Date(customerData.data.updatedAt),
+                        "MMM dd, yyyy h:mm a",
                       )}
                     </span>
                   </div>

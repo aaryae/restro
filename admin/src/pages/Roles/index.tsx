@@ -9,7 +9,7 @@ import {
 import { MdEditSquare } from "react-icons/md";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
-import moment from "moment";
+import { format } from "date-fns";
 import AddRoleForm from "./AddRoleForm";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useNavigate } from "react-router-dom";
@@ -102,7 +102,7 @@ export default function Roles() {
     success && allRoles?.data?.data
       ? allRoles.data.data.map(({ id, title, updatedAt, isActive }) => [
           <span className="text-sm font-semibold text-slate-800">{title}</span>,
-          updatedAt ? moment(updatedAt).format("DD MMM, YYYY") : "—",
+          updatedAt ? format(new Date(updatedAt), "dd MMM, yyyy") : "—",
           <span
             className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
               isActive
@@ -179,7 +179,7 @@ export default function Roles() {
                     {title}
                   </h2>
                   <p className="mt-2 text-[12px] text-slate-500">
-                    Updated {moment(updatedAt).format("DD MMM, YYYY")}
+                    Updated {format(new Date(updatedAt), "dd MMM, yyyy")}
                   </p>
                   <span
                     className={`mt-3 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${

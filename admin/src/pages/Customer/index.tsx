@@ -3,7 +3,7 @@ import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
-import moment from "moment";
+import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 import ViewCustomer from "./ViewCustomer";
@@ -164,7 +164,7 @@ export default function Customer() {
               </span>,
               email,
               mobileNo,
-              moment(createdAt).format("MMM DD, YYYY"),
+              format(new Date(createdAt), "MMM dd, yyyy"),
             ];
 
             if (showActions) {

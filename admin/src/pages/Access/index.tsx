@@ -1,7 +1,7 @@
 import { MdEditSquare } from "react-icons/md";
 import Table from "@/components/Table";
 import { useListAccessModuleQuery } from "@/redux/services/role";
-import moment from "moment";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 export default function Access() {
@@ -26,7 +26,7 @@ export default function Access() {
             updatedAt: string;
           }) => [
             title ? title : "",
-            updatedAt ? moment(updatedAt).format("DD MMM, YYYY") : "",
+            updatedAt ? format(new Date(updatedAt), "dd MMM, yyyy") : "",
             <div className="flex items-center justify-center gap-[0.5rem]">
               <MdEditSquare
                 size={18}
