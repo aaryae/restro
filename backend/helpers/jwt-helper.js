@@ -22,25 +22,30 @@ module.exports.comparePasswordSync = async (password, hash) => {
 };
 
 //this is for admin user
-const generateJWT = (user) => {
+const generateJWT = (user, tenant) => {
   const expireAfter = 24 * 60 * 60; // **IN SECONDS**
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      roleId: user.roleId,
-      exp: parseInt(new Date().getTime() / 1000 + expireAfter, 10),
-    },
-    JWT_SECRET,
-  );
+  const payload = {
+    id: user.id,
+    email: user.email,
+    roleId: user.roleId,
+    exp: parseInt(new Date().getTime() / 1000 + expireAfter, 10),
+  };
+  if (tenant?.id) {
+    payload.tenantId = tenant.id;
+    payload.slug = tenant.slug;
+  }
+  return jwt.sign(payload, JWT_SECRET);
 };
-module.exports.toAuthJSON = function (user, role) {
+module.exports.toAuthJSON = function (user, role, tenant) {
   return {
     id: user.id,
     username: user.username,
-    token: generateJWT(user),
+    token: generateJWT(user, tenant),
     roleId: user.roleId,
     roleType: role.title,
+    ...(tenant?.slug
+      ? { tenantId: tenant.id, slug: tenant.slug }
+      : {}),
   };
 };
 

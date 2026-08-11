@@ -30,7 +30,7 @@ passport.use(
         comparePassword(password, user.password, (err, isSame) => {
           if (err) return done(err);
           if (isSame) {
-            return done(null, { ...toAuthJSON(user, role) });
+            return done(null, { ...toAuthJSON(user, role, req.tenant) });
           } else {
             return done(null, false, {
               message: messageConstant.EN.USERNAME_PASSWORD_INCORRECT,

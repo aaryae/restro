@@ -30,6 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: "provisioningJob",
       tableName: "provisioning_jobs",
+      schema: "public",
     },
   );
 

@@ -8,6 +8,10 @@ module.exports = {
     host: process.env.DB_HOST || "127.0.0.1",
     port: Number(process.env.DB_PORT) || 5432,
     dialect: process.env.DB_DIALECT || "postgres",
+    // Lets each query prefix SET search_path (used by tenant middleware)
+    dialectOptions: {
+      prependSearchPath: true,
+    },
   },
   test: {
     username: process.env.STAGING_DB_USER,
@@ -16,6 +20,9 @@ module.exports = {
     host: process.env.STAGING_DB_HOST || "127.0.0.1",
     port: Number(process.env.STAGING_DB_PORT) || 5432,
     dialect: process.env.STAGING_DB_DIALECT || "postgres",
+    dialectOptions: {
+      prependSearchPath: true,
+    },
   },
   production: {
     username: process.env.PROD_DB_USER,
@@ -24,5 +31,8 @@ module.exports = {
     host: process.env.PROD_DB_HOST,
     port: Number(process.env.PROD_DB_PORT) || 5432,
     dialect: process.env.PROD_DB_DIALECT || "postgres",
+    dialectOptions: {
+      prependSearchPath: true,
+    },
   },
 };
