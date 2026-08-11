@@ -52,7 +52,7 @@ const list = async (req) => {
     const filters = {};
     if (isActive !== undefined) filters.isActive = isActive === "true";
     if (name) {
-      filters.name = { [Op.like]: `%${name}%` };
+      filters.name = { [Op.iLike]: `%${name}%` };
     }
 
     const result = await paginate(expenseCategoryModel, {

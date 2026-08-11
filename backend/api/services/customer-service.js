@@ -42,20 +42,20 @@ const list = async (req) => {
       // Combo search: apply phone value across firstName, email, and mobileNo
       const searchTerm = `%${phone.trim()}%`;
       filters[Op.or] = [
-        { firstName: { [Op.like]: searchTerm } },
-        { email: { [Op.like]: searchTerm } },
-        { mobileNo: { [Op.like]: searchTerm } },
+        { firstName: { [Op.iLike]: searchTerm } },
+        { email: { [Op.iLike]: searchTerm } },
+        { mobileNo: { [Op.iLike]: searchTerm } },
       ];
     } else {
       // Individual field filters
       if (firstName) {
-        filters.firstName = { [Op.like]: `%${firstName.trim()}%` };
+        filters.firstName = { [Op.iLike]: `%${firstName.trim()}%` };
       }
       if (phone) {
-        filters.mobileNo = { [Op.like]: `%${phone.trim()}%` };
+        filters.mobileNo = { [Op.iLike]: `%${phone.trim()}%` };
       }
       if (email) {
-        filters.email = { [Op.like]: `%${email.trim()}%` };
+        filters.email = { [Op.iLike]: `%${email.trim()}%` };
       }
     }
 

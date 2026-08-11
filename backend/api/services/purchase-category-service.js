@@ -52,7 +52,7 @@ const list = async (req) => {
     const { limit, page, name } = req.query;
     const filters = {};
     if (name) {
-      filters.name = { [Sequelize.Op.like]: `%${name}%` };
+      filters.name = { [Sequelize.Op.iLike]: `%${name}%` };
     }
     const order = [["createdAt", "DESC"], ["id", "DESC"]];
 

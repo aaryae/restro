@@ -61,9 +61,9 @@ module.exports = {
           defaultValue: false,
         },
         orderNumber: {
-          type: Sequelize.UUID,
+          type: Sequelize.STRING,
           unique: true,
-          defaultValue: Sequelize.UUIDV4,
+          allowNull: true,
         },
         totalAmount: {
           type: Sequelize.DECIMAL(10, 2),

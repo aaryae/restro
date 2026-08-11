@@ -574,7 +574,7 @@ const list = async (req) => {
     }
     if (name) {
       filters.name = {
-        [Op.like]: `%${name}%`, // Case-insensitive partial match
+        [Op.iLike]: `%${name}%`, // Case-insensitive partial match
       };
     }
 

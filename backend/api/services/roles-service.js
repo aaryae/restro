@@ -52,7 +52,7 @@ const findAllRoles = async (req) => {
 
     if (title) {
       filters.title = {
-        [Op.like]: `%${title}%`,
+        [Op.iLike]: `%${title}%`,
       };
       page = 1;
     }

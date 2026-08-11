@@ -588,11 +588,10 @@ const list = async (req) => {
       { column: "amount", function: "SUM", alias: "grandTotal" },
     ];
 
-    if (paymentMethod)
-      filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
+    if (paymentMethod) filters.paymentMethod = String(paymentMethod);
 
     if (cash_or_credit === "cash" || cash_or_credit === "credit")
-      filters.cash_or_credit = { [Op.like]: `${cash_or_credit}` };
+      filters.cash_or_credit = cash_or_credit;
 
     if (start && end) {
       const startDate = startOfDay(parseISO(start)); // e.g., 2025-08-29T00:00:00.000Z
@@ -667,7 +666,7 @@ const groupedList = async (req) => {
     }
 
     if (username) {
-      filters["$user.username$"] = { [Op.like]: `%${username}%` };
+      filters["$user.username$"] = { [Op.iLike]: `%${username}%` };
     }
 
     if (customerId) {
@@ -818,7 +817,7 @@ const totalRevenue = async (req) => {
     }
 
     if (username) {
-      filters["$user.username$"] = { [Op.like]: `%${username}%` };
+      filters["$user.username$"] = { [Op.iLike]: `%${username}%` };
     }
 
     if (customerId) {
@@ -1056,9 +1055,7 @@ const getOrderItems = async (req) => {
     const include = [];
 
     if (status) {
-      filters.status = {
-        [Op.like]: `%${status}%`,
-      };
+      filters.status = String(status);
     }
 
     const result = await paginate(orderItemModel, {

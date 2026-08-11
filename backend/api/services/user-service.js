@@ -478,7 +478,7 @@ const getAllUsers = async (req, res, next) => {
     }
     if (username) {
       filters.username = {
-        [Op.like]: `%${username}%`,
+        [Op.iLike]: `%${username}%`,
       };
     }
 

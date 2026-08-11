@@ -41,7 +41,7 @@ const list = async (req) => {
 
     if (name) {
       filters.name = {
-        [Op.like]: `%${name}%`,
+        [Op.iLike]: `%${name}%`,
       };
     }
 

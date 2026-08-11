@@ -73,7 +73,7 @@ const findAll = async (req) => {
 
     if (slug) {
       filters.slug = {
-        [Op.like]: `%${slug}%`,
+        [Op.iLike]: `%${slug}%`,
       };
     }
     const result = await paginate(mediaCategoryModel, {

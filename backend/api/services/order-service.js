@@ -1758,7 +1758,7 @@ const checkoutOrder = async (req) => {
         // Takeaway: checkoutAll without a table -> standalone takeaway orders only
         orders = await orderModel.findAll({
           where: {
-            orderType: { [Op.like]: "%takeaway%" },
+            orderType: "takeaway",
             tableId: null,
             status: { [Op.notIn]: ["completed", "cancelled"] },
           },
@@ -2331,11 +2331,15 @@ const listOrders = async (req) => {
         filters.status = String(orderStatusFilter);
       }
     }
-    if (paymentStatus)
-      filters.paymentStatus = { [Op.like]: `%${paymentStatus}%` };
-    if (paymentMethod)
-      filters.paymentMethod = { [Op.like]: `%${paymentMethod}%` };
-    if (orderType) filters.orderType = { [Op.like]: `%${orderType}%` };
+    if (paymentStatus) filters.paymentStatus = String(paymentStatus);
+    if (paymentMethod) {
+      // paymentMethods is JSON — LIKE on a missing/enum column fails on Postgres
+      filters.paymentMethods = Sequelize.where(
+        Sequelize.cast(Sequelize.col("paymentMethods"), "text"),
+        { [Op.iLike]: `%${paymentMethod}%` },
+      );
+    }
+    if (orderType) filters.orderType = String(orderType);
     if (tableId) {
       filters.tableId = tableId;
     } else if (orderType && String(orderType).toLowerCase().includes("takeaway")) {
@@ -2749,9 +2753,7 @@ const getOrderItems = async (req) => {
     const include = [];
 
     if (status) {
-      filters.status = {
-        [Op.like]: `%${status}%`,
-      };
+      filters.status = String(status);
     }
 
     const result = await paginate(orderItemModel, {

@@ -75,26 +75,26 @@ const getList = async (req) => {
     const include = [];
 
     if (name) {
-      filters.name = { [Op.like]: `%${name}%` };
+      filters.name = { [Op.iLike]: `%${name}%` };
     }
     if (slug) {
-      filters.slug = { [Op.like]: `%${slug}%` };
+      filters.slug = { [Op.iLike]: `%${slug}%` };
     }
 
     if (address) {
-      filters.address = { [Op.like]: `%${address}%` };
+      filters.address = { [Op.iLike]: `%${address}%` };
     }
 
     if (pan_vat_number) {
-      filters.pan_vat_number = { [Op.like]: `%${pan_vat_number}%` };
+      filters.pan_vat_number = { [Op.iLike]: `%${pan_vat_number}%` };
     }
 
     if (contact_person) {
-      filters.contact_person = { [Op.like]: `%${contact_person}%` };
+      filters.contact_person = { [Op.iLike]: `%${contact_person}%` };
     }
 
     if (contact_number) {
-      filters.contact_number = { [Op.like]: `%${contact_number}%` };
+      filters.contact_number = { [Op.iLike]: `%${contact_number}%` };
     }
 
     const order = [["createdAt", "DESC"]];

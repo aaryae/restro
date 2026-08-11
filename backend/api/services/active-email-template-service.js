@@ -110,7 +110,7 @@ const findAllActiveTemplate = async (req) => {
 
     if (actionKey) {
       filters.actionKey = {
-        [Op.like]: `%${actionKey}%`,
+        [Op.iLike]: `%${actionKey}%`,
       };
     }
 

@@ -91,7 +91,7 @@ const list = async (req) => {
     }
     if (tableNo) {
       filters.tableNo = {
-        [Op.like]: `%${tableNo}%`,
+        [Op.iLike]: `%${tableNo}%`,
       };
     }
 

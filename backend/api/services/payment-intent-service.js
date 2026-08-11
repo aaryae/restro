@@ -41,7 +41,7 @@ function buildSettlementLookupConditions(event) {
   if (ref) {
     orConditions.push({ merchantTxnRef: ref });
     orConditions.push({ nchlBillNumber: ref });
-    orConditions.push({ qrPayload: { [Op.like]: `%${ref}%` } });
+    orConditions.push({ qrPayload: { [Op.iLike]: `%${ref}%` } });
   }
   if (event.gatewayTxnId) {
     orConditions.push({ gatewayTxnId: event.gatewayTxnId });

@@ -44,7 +44,7 @@ const list = async (req) => {
 
     if (slug) {
       filters.slug = {
-        [Op.like]: `%${slug}%`,
+        [Op.iLike]: `%${slug}%`,
       };
     }
 

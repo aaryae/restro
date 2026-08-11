@@ -141,14 +141,14 @@ const list = async (req) => {
       include[0].required = true;
       include[0].where = {
         ...(include[0].where || {}),
-        name: { [Op.like]: `%${name}%` },
+        name: { [Op.iLike]: `%${name}%` },
       };
     }
     if (userName) {
       include[1].required = true;
       include[1].where = {
         ...(include[1].where || {}),
-        username: { [Op.like]: `%${userName}%` },
+        username: { [Op.iLike]: `%${userName}%` },
       };
     }
 

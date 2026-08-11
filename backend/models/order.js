@@ -78,9 +78,9 @@ module.exports = (sequelize) => {
         defaultValue: false,
       },
       orderNumber: {
-        type: DataTypes.UUID,
+        type: DataTypes.STRING,
         unique: true,
-        defaultValue: Sequelize.UUIDV4,
+        allowNull: true,
       },
       totalAmount: {
         type: DataTypes.DECIMAL(10, 2),

@@ -29,7 +29,7 @@ const list = async (req) => {
 
     if (pageName) {
       filters.pageName = {
-        [Op.like]: `%${pageName}%`,
+        [Op.iLike]: `%${pageName}%`,
       };
     }
 

@@ -1,4 +1,4 @@
-const { addonModel, productModel } = require("../../models");
+const { addonModel, productModel, sequelize } = require("../../models");
 const paginate = require("../../utils/paginate");
 const generalConstant = require("../../constants/general-constant");
 const { Op } = require("sequelize");
@@ -29,7 +29,7 @@ const list = async (req) => {
     const filters = {};
 
     if (search) {
-      filters.name = { [Op.like]: `%${search}%` };
+      filters.name = { [Op.iLike]: `%${search}%` };
     }
 
     const result = await paginate(addonModel, {
@@ -151,16 +151,13 @@ const deleteById = async (req) => {
 const getUnusedAddons = async (req) => {
   try {
     const addons = await addonModel.findAll({
-      include: [
-        {
-          model: productModel,
-          as: "products",
-          required: false,
-          attributes: [],
+      where: {
+        id: {
+          [Op.notIn]: sequelize.literal(
+            `(SELECT DISTINCT "addonId" FROM "products_addons" WHERE "addonId" IS NOT NULL)`,
+          ),
         },
-      ],
-      group: ["addon.id"],
-      having: sequelize.literal("COUNT(products.id) = 0"),
+      },
     });
 
     return {

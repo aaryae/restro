@@ -58,9 +58,7 @@ const getAll = async (req) => {
     ];
 
     if (status) {
-      filters.status = {
-        [Op.like]: `%${status}%`,
-      };
+      filters.status = String(status);
     }
     const result = await paginate(actionRequestModel, {
       limit,
@@ -106,9 +104,7 @@ const getAllRelatedRequest = async (req) => {
     ];
 
     if (status) {
-      filters.status = {
-        [Op.like]: `%${status}%`,
-      };
+      filters.status = String(status);
     }
     const result = await paginate(actionRequestModel, {
       limit,

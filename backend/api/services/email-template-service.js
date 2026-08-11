@@ -57,7 +57,7 @@ const findAllTemplate = async (req) => {
 
     if (templateKey) {
       filters.templateKey = {
-        [Op.like]: `%${templateKey}%`,
+        [Op.iLike]: `%${templateKey}%`,
       };
     }
 
