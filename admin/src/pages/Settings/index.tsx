@@ -128,9 +128,10 @@ export default function Settings() {
       primaryColor: colorValue.toString("hex").toUpperCase(),
     };
     try {
+      const settingId = Number(settings?.data?.id);
       const response = await updateSetting({
         body,
-        id: settings?.data?.id,
+        id: Number.isFinite(settingId) ? settingId : undefined,
       }).unwrap();
       handleResponse({
         res: response,

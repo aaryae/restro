@@ -63,6 +63,7 @@ const updateById = async (req) => {
       transaction,
     });
     if (!setting) {
+      await transaction.rollback();
       return {
         ...generalConstant.EN.SETTING.SETTING_NOT_FOUND,
         data: null,
@@ -108,8 +109,40 @@ const updateById = async (req) => {
   }
 };
 
+const create = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const existing = await settingModel.findOne({ transaction });
+    if (existing) {
+      await transaction.rollback();
+      req.params.id = String(existing.id);
+      return updateById(req);
+    }
+
+    const { socials, ...rest } = req.body;
+    const setting = await settingModel.create(rest, { transaction });
+
+    if (socials?.length > 0) {
+      await socialModel.bulkCreate(
+        socials.map((social) => ({ ...social, settingId: setting.id })),
+        { transaction },
+      );
+    }
+
+    await transaction.commit();
+    return {
+      ...generalConstant.EN.SETTING.SETTING_CREATE_SUCCESS,
+      data: setting,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   getById,
   updateById,
   getOne,
+  create,
 };

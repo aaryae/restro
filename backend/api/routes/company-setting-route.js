@@ -3,6 +3,7 @@ const {
   getById,
   getOne,
   updateById,
+  create,
 } = require("../controllers/company-settings-controller");
 const {
   authentication,
@@ -16,6 +17,13 @@ const {
 const { idValidation } = require("../../validations/common-validation");
 
 router.get("/", getOne);
+router.post(
+  "/",
+  authentication,
+  authorization,
+  companySettingsPutValidation,
+  create,
+);
 router.get("/:id", idValidation, getById);
 router.put(
   "/:id",

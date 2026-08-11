@@ -542,6 +542,11 @@ module.exports = {
         success: true,
         message: "Setting Found",
       },
+      SETTING_CREATE_SUCCESS: {
+        status: httpStatus.CREATED,
+        success: true,
+        message: "Setting Created Successfully",
+      },
       SETTING_UPDATE_SUCCESS: {
         status: httpStatus.OK,
         success: true,

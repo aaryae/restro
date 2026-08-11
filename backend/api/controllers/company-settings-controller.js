@@ -73,8 +73,27 @@ const updateById = async (req, res, next) => {
 //   }
 // };
 
+const create = async (req, res, next) => {
+  try {
+    const result = await settingService.create(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   getById,
   getOne,
   updateById,
+  create,
 };
