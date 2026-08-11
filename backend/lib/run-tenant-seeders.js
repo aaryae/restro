@@ -31,6 +31,20 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
   const passwordHash = await hashPassword(owner.password);
   const username = owner.username || owner.email.split("@")[0];
 
+  await queryInterface.bulkInsert("settings", [
+    {
+      brand_name: owner.name || "Cafe",
+      email: owner.email,
+      primary_phone: owner.mobileNo || owner.phone || "9800000000",
+      secondary_phone: owner.mobileNo || owner.phone || "9800000000",
+      address: null,
+      footer_desc: null,
+      google_analytics: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ]);
+
   await queryInterface.bulkInsert("users", [
     {
       username,

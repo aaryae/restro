@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getToken } from "../../utils/tokenHandler";
+import { getTenantSlug } from "../../utils/tenantHandler";
 import { BACKEND_BASE_URL } from "../../constants";
 
 const baseQuery = fetchBaseQuery({
@@ -14,6 +15,11 @@ const baseQuery = fetchBaseQuery({
     const token = getToken("token");
     if (token) {
       headers.set("authorization", `Admin ${token}`);
+    }
+
+    const tenantSlug = getTenantSlug();
+    if (tenantSlug) {
+      headers.set("x-tenant-slug", tenantSlug);
     }
     return headers;
   },

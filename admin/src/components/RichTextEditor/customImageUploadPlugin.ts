@@ -1,5 +1,6 @@
 import { BACKEND_BASE_URL, IMAGE_BASE_URL } from "@/constants";
 import { getToken } from "@/utils/tokenHandler";
+import { getTenantSlug } from "@/utils/tenantHandler";
 
 class CustomUploadAdapter {
   constructor(loader) {
@@ -32,6 +33,9 @@ class CustomUploadAdapter {
             body: formData,
             headers: {
               Authorization: `Admin ${token}`,
+              ...(getTenantSlug()
+                ? { "X-Tenant-Slug": getTenantSlug() as string }
+                : {}),
             },
           })
             .then((response) => response.json())

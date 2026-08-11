@@ -13,6 +13,8 @@
     "migrate": "sequelize db:migrate",
     "migrate:control": "sequelize db:migrate --migrations-path migrations-control",
     "provision:tenant": "node --env-file .env scripts/provision-tenant.js",
+    "migrate:tenants": "node --env-file .env scripts/migrate-all-tenants.js",
+    "verify:tenants": "node --env-file .env scripts/verify-tenant-isolation.js",
     "db:reset": "npx sequelize db:migrate:undo:all && npx sequelize db:migrate"
   },
   "keywords": [
