@@ -60,6 +60,7 @@ async function provisionTenant(input) {
       firstName: input.firstName,
       lastName: input.lastName,
       mobileNo: input.phone,
+      username: input.username,
     });
 
     const finalStatus = input.status || (input.trialDays ? "trial" : "active");
@@ -67,6 +68,8 @@ async function provisionTenant(input) {
     await tenant.update({
       status: finalStatus,
       activatedAt: finalStatus === "active" ? new Date() : null,
+      businessType: input.businessType || null,
+      address: input.address || null,
     });
 
     await job.update({

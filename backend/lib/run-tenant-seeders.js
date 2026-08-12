@@ -59,6 +59,51 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
       updatedAt: new Date(),
     },
   ]);
+
+  const now = new Date();
+  const [inserted] = await sequelize.query(
+    `INSERT INTO "${schemaName}".accounts
+      (name, "accountType", "openingBalance", "currentBalance", status, "isDefault", description, "createdAt", "updatedAt")
+     VALUES ('Cash', 'cash', 0, 0, 'active', true, 'Default cash register', :now, :now)
+     RETURNING id`,
+    { replacements: { now } },
+  );
+  const accountId = inserted[0]?.id;
+  if (accountId) {
+    await sequelize.query(
+      `INSERT INTO "${schemaName}".cash_accounts ("accountId", "createdAt", "updatedAt")
+       VALUES (:accountId, :now, :now)`,
+      { replacements: { accountId, now } },
+    );
+  }
 }
 
-module.exports = { runTenantSeeders };
+/** Idempotent: ensure every tenant schema has a default cash account. */
+async function ensureDefaultCashAccount(sequelize, schemaName) {
+  await setTenantSearchPath(sequelize, schemaName);
+
+  const [existing] = await sequelize.query(
+    `SELECT id FROM "${schemaName}".accounts WHERE "accountType" = 'cash' LIMIT 1`,
+  );
+  if (existing.length) return existing[0].id;
+
+  const now = new Date();
+  const [inserted] = await sequelize.query(
+    `INSERT INTO "${schemaName}".accounts
+      (name, "accountType", "openingBalance", "currentBalance", status, "isDefault", description, "createdAt", "updatedAt")
+     VALUES ('Cash', 'cash', 0, 0, 'active', true, 'Default cash register', :now, :now)
+     RETURNING id`,
+    { replacements: { now } },
+  );
+  const accountId = inserted[0]?.id;
+  if (accountId) {
+    await sequelize.query(
+      `INSERT INTO "${schemaName}".cash_accounts ("accountId", "createdAt", "updatedAt")
+       VALUES (:accountId, :now, :now)`,
+      { replacements: { accountId, now } },
+    );
+  }
+  return accountId;
+}
+
+module.exports = { runTenantSeeders, ensureDefaultCashAccount };

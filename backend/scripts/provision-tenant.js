@@ -8,6 +8,14 @@
  *   node --env-file .env scripts/provision-tenant.js \
  *     --slug hillside --name "Hillside Cafe" \
  *     --email owner@hillside.com --password admin123
+ * 
+ * 
+ * orther emaple: 
+ * pnpm run provision:tenant -- \
+  --slug hillside \
+  --name "Hillside Cafe" \
+  --email owner@hillside.com \
+  --password admin123
  */
 
 const { provisionTenant } = require("../lib/tenant-provisioner");

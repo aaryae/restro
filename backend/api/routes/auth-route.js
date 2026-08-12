@@ -31,6 +31,7 @@ const {
   paginationValidation,
 } = require("../../validations/common-validation");
 const { isValidCaptcha } = require("../../middlewares/captcha-middleware");
+const { loginRateLimiter } = require("../../utils/loginRateLimit");
 
 router.post(
   "/create",
@@ -104,6 +105,7 @@ router.get("/:id", authentication, authorization, idValidation, authGetUser);
 
 router.post(
   "/login",
+  loginRateLimiter,
   loginValidation,
   // isValidCaptcha,
   authLogin,

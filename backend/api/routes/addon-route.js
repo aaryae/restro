@@ -4,7 +4,9 @@ const addonController = require("../controllers/addon-controller");
 const { authentication } = require("../../middlewares/auth-middleware");
 const { addonPostValidation, addonPutValidation } = require("../../validations/addon-validation");
 
-// Public routes with authentication
+// List routes must be registered before /:id
+router.get("/list", authentication, addonController.list);
+router.get("/unused/list", authentication, addonController.getUnusedAddons);
 router.get("/", authentication, addonController.list);
 router.get("/:id", authentication, addonController.getById);
 
@@ -27,12 +29,6 @@ router.delete(
   "/:id",
   authentication,
   addonController.deleteAddon
-);
-
-router.get(
-  "/unused/list",
-  authentication,
-  addonController.getUnusedAddons
 );
 
 module.exports = router;

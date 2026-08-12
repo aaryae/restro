@@ -69,8 +69,8 @@ router.put(
 // Bulk serve order items (waiter)
 router.patch(
   "/items/bulk-serve",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   bulkServeOrderItemsValidation,
   bulkServeOrderItems,
 );
@@ -93,10 +93,7 @@ router.post(
   checkoutOrder,
 );
 
-// Admin routes
-
-router.get("/active-orders/:id", getTableActiveOrders);
-// add route in json
+// Admin routes — authenticated only (do not register a public /active-orders/:id route)
 router.get(
   "/active-orders/:tableId",
   authentication,

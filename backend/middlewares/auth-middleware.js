@@ -39,6 +39,23 @@ authMiddleware.authentication = async (req, res, next) => {
       token = token.replace("Admin ", "");
       const d = await verifyToken(token);
       if (d && d.id) {
+        // JWT slug must match the resolved tenant (prevents cross-cafe token reuse).
+        if (
+          req.tenant?.slug &&
+          d.slug &&
+          d.slug !== req.tenant.slug
+        ) {
+          return responseHelper.sendResponse(
+            res,
+            httpStatus.FORBIDDEN,
+            false,
+            null,
+            null,
+            "This session is not valid for the requested cafe.",
+            null,
+          );
+        }
+
         const isSession = await findSingleUserLog(d.id);
         if (!isSession)
           return responseHelper.sendResponse(

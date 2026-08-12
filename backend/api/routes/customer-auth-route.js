@@ -23,39 +23,39 @@ const {
 
 router.post(
   "/create",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   createValidation,
   create,
 );
 
 router.get(
   "/list",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   paginationValidation,
   list,
 );
 router.get(
   "/:id",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   idValidation,
   getById,
 );
 
 router.put(
   "/:id",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   idValidation,
   updateValidation,
   update,
 );
 router.delete(
   "/:id",
-  // authentication,
-  // authorization,
+  authentication,
+  authorization,
   idValidation,
   deleteData,
 );

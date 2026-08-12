@@ -34,4 +34,12 @@ router.get("/", (req, res) => {
   });
 });
 
+router.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route not found: ${req.method} ${req.originalUrl}`,
+    status: 404,
+  });
+});
+
 module.exports = router;

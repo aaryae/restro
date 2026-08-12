@@ -28,6 +28,8 @@ module.exports = (sequelize, DataTypes) => {
       hostingEndsAt: { type: DataTypes.DATE, allowNull: true },
       ownerEmail: { type: DataTypes.STRING, allowNull: true },
       ownerPhone: { type: DataTypes.STRING, allowNull: true },
+      businessType: { type: DataTypes.STRING, allowNull: true },
+      address: { type: DataTypes.TEXT, allowNull: true },
     },
     {
       sequelize,

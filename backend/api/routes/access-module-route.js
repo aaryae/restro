@@ -37,6 +37,14 @@ router.get(
 router.get("/role-actions", authentication, authorization, getRoleActions);
 
 router.get(
+  "/list",
+  authentication,
+  authorization,
+  paginationValidation,
+  getAccessModules,
+);
+
+router.get(
   "/",
   authentication,
   authorization,

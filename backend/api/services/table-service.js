@@ -73,6 +73,7 @@ const create = async (req) => {
       status: 200,
       success: true,
       message: `Table create successfully`,
+      data: result,
     };
   } catch (error) {
     throw error;

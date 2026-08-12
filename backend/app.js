@@ -54,8 +54,8 @@ app.use(
 );
 
 const allowedOrigins = [
-  "http://localhost:3000", // local dev
-  "http://localhost:5171", // local dev
+  "http://localhost:3000", // serve marketing site
+  "http://localhost:5171",
   "http://localhost:7001",
   "http://192.168.1.200:7001",
 ];
@@ -170,6 +170,10 @@ app.use("/setup/", setupPath);
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.use((req, res, next) => {
+  // Unmatched API routes should not fall through to the admin SPA shell.
+  if (req.path.startsWith("/api/")) {
+    return next();
+  }
   if (/(.ico|.js|.css|.jpg|.svg|.png|.map)$/i.test(req.path)) {
     next();
   } else {

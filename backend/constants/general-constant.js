@@ -1757,6 +1757,58 @@ module.exports = {
         message: "Expense category retrieved successfully",
       },
     },
+    FAQ: {
+      CREATE_FAQ_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "FAQ Created Successfully",
+      },
+      CREATE_FAQ_FAILURE: {
+        status: httpStatus.NOT_ACCEPTABLE,
+        success: false,
+        message: "FAQ Not Created",
+      },
+      FAQ_LIST_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "FAQ List Success",
+      },
+      FAQ_LIST_FAILURE: {
+        status: httpStatus.NOT_FOUND,
+        success: false,
+        message: "FAQ List Failure",
+      },
+      FAQ_NOT_FOUND: {
+        status: httpStatus.NOT_FOUND,
+        success: false,
+        message: "FAQ Not Found",
+      },
+      FAQ_FOUND: {
+        status: httpStatus.OK,
+        success: true,
+        message: "FAQ Found",
+      },
+      UPDATE_FAQ_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "FAQ Updated Successfully",
+      },
+      UPDATE_FAQ_FAILURE: {
+        status: httpStatus.NOT_ACCEPTABLE,
+        success: false,
+        message: "FAQ Not Updated",
+      },
+      FAQ_DELETE_SUCCESS: {
+        status: httpStatus.OK,
+        success: true,
+        message: "FAQ Deleted Successfully",
+      },
+      FAQ_DELETE_FAILURE: {
+        status: httpStatus.NOT_ACCEPTABLE,
+        success: false,
+        message: "FAQ Delete Failure",
+      },
+    },
     ADDON: {
       CREATE_ADDON_SUCCESS: {
         status: 201,

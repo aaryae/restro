@@ -40,6 +40,12 @@ const findSingleAccess = async (req) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
     const accessId = +req.params.id;
+    if (!Number.isFinite(accessId) || accessId <= 0) {
+      return {
+        ...generalConstant.EN.ACCESS_MODULE.ACCESS_MODULE_NOT_FOUND,
+        data: null,
+      };
+    }
     const accessModule = await roleMenuModel.findOne({
       where: { id: accessId, isDeleted: false },
       attributes: { exclude: ["updatedAt", "createdAt"] },

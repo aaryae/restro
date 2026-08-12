@@ -41,11 +41,8 @@ const findSingleUserLog = async (userId) => {
 
 const updateSessionLog = async (userSession, req, res) => {
   try {
-    const userSessionRecord = await findSingleUserLog(
-      userSession.userId ?? userSession.id,
-    );
-
-    if (!userSessionRecord) {
+    const userId = userSession.userId ?? userSession.id ?? userSession.user?.id;
+    if (!userId) {
       return responseHelper.sendResponse(
         res,
         httpStatus.NOT_FOUND,
@@ -57,17 +54,24 @@ const updateSessionLog = async (userSession, req, res) => {
       );
     }
 
-    let sessionData = {
-      logout: new Date(),
-    };
-    const endSession = await sessionLogsModel.update(sessionData, {
-      where: {
-        id: userSessionRecord.id,
-      },
-      order: [["id", "DESC"]],
-      raw: true,
-    });
-    return endSession;
+    const [updatedCount] = await sessionLogsModel.update(
+      { logout: new Date() },
+      { where: { userId, logout: null } },
+    );
+
+    if (!updatedCount) {
+      return responseHelper.sendResponse(
+        res,
+        httpStatus.NOT_FOUND,
+        false,
+        null,
+        null,
+        "There is no session for this user",
+        null,
+      );
+    }
+
+    return updatedCount;
   } catch (error) {
     throw error;
   }

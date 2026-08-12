@@ -18,6 +18,7 @@ const { Sequelize } = require("sequelize");
 const env = process.env.NODE_ENV || "development";
 const config = require("../configs/db-config.js")[env];
 const { provisionTenant } = require("../lib/tenant-provisioner");
+const { ensureDefaultCashAccount } = require("../lib/run-tenant-seeders");
 
 const API = `http://127.0.0.1:${process.env.PORT || 8080}`;
 
@@ -75,9 +76,26 @@ async function ensureTenant(sequelize, cafe) {
 
 async function usersInSchema(sequelize, schemaName) {
   const [rows] = await sequelize.query(
-    `SELECT username, email FROM "${schemaName}".users ORDER BY id`,
+    `SELECT id, username, email, "roleId" FROM "${schemaName}".users ORDER BY id`,
   );
   return rows;
+}
+
+async function ensureOwnerIsSuperAdmin(sequelize, schemaName, ownerEmail) {
+  await sequelize.query(
+    `UPDATE "${schemaName}".users SET "roleId" = 1 WHERE email = :email AND "roleId" != 1`,
+    { replacements: { email: ownerEmail } },
+  );
+}
+
+async function profileWithToken(token, slug) {
+  const res = await fetch(`${API}/api/v1/auth/profile`, {
+    headers: {
+      Authorization: `Admin ${token}`,
+      "X-Tenant-Slug": slug,
+    },
+  });
+  return res.json();
 }
 
 async function login(username, password, slug) {
@@ -142,6 +160,14 @@ async function main() {
       ok("brew has its own owner");
     }
 
+    await ensureOwnerIsSuperAdmin(sequelize, demo.schemaName, "owner@demo.com");
+    await ensureOwnerIsSuperAdmin(sequelize, brew.schemaName, "owner@brew.com");
+    await ensureDefaultCashAccount(sequelize, demo.schemaName);
+    await ensureDefaultCashAccount(sequelize, brew.schemaName);
+
+    const demoOwner = demoUsers.find((u) => u.email === "owner@demo.com");
+    const brewOwner = brewUsers.find((u) => u.email === "owner@brew.com");
+
     const [publicHasBrew] = await sequelize.query(
       `SELECT email FROM public.users WHERE email = 'owner@brew.com'`,
     );
@@ -153,10 +179,26 @@ async function main() {
 
     if (await apiUp()) {
       console.log("\n--- HTTP logins ---");
-      const demoOk = await login("owner", CAFES[0].password, "demo");
-      const brewOk = await login("owner", CAFES[1].password, "brew");
-      const demoPwOnBrew = await login("owner", CAFES[0].password, "brew");
-      const brewPwOnDemo = await login("owner", CAFES[1].password, "demo");
+      const demoOk = await login(
+        demoOwner?.username || CAFES[0].username,
+        CAFES[0].password,
+        "demo",
+      );
+      const brewOk = await login(
+        brewOwner?.username || CAFES[1].username,
+        CAFES[1].password,
+        "brew",
+      );
+      const demoPwOnBrew = await login(
+        demoOwner?.username || CAFES[0].username,
+        CAFES[0].password,
+        "brew",
+      );
+      const brewPwOnDemo = await login(
+        brewOwner?.username || CAFES[1].username,
+        CAFES[1].password,
+        "demo",
+      );
 
       demoOk.success ? ok("demo owner logs into demo") : fail("demo owner should log into demo");
       brewOk.success ? ok("brew owner logs into brew") : fail("brew owner should log into brew");
@@ -174,6 +216,13 @@ async function main() {
       brewPwOnDemo.success
         ? fail("brew password must NOT work on demo")
         : ok("brew password does not work on demo");
+
+      if (demoOk.success && demoOk.data?.token) {
+        const crossTenant = await profileWithToken(demoOk.data.token, "brew");
+        crossTenant.success
+          ? fail("demo JWT must NOT work on brew tenant")
+          : ok("demo JWT rejected on brew tenant");
+      }
     } else {
       console.log(`\nAPI not running at ${API} — skipped HTTP checks.`);
       console.log("Start the backend and re-run to test login isolation.");
