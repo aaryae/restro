@@ -167,6 +167,18 @@ export default function App() {
         const decodedToken: DecodedToken = jwtDecode(token);
 
         if (decodedToken?.exp * 1000 > Date.now()) {
+          dispatch(
+            setAuthData({
+              token,
+              id: Number(decodedToken.id) || null,
+              roleId: Number(decodedToken.roleId) || 1,
+              roleType: "Super Admin",
+              username: String(decodedToken.email || ""),
+              clientAccess: [],
+              serverAccess: [],
+              expiry: decodedToken.exp,
+            }),
+          );
           navigate("/admin/order/list");
           Toast("User Logged in Successful", "success");
         } else {

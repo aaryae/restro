@@ -7,6 +7,7 @@ require("./helpers/oauth/facebook-oauth-helper");
 require("./helpers/oauth/local-oauth-helper");
 require("./helpers/passport-helper");
 require("./helpers/oauth/apple-oauth-helper");
+require("./jobs/expire-trials").expireTrialsJob.start();
 
 // package
 const express = require("express");
@@ -57,25 +58,25 @@ const allowedOrigins = [
   "http://localhost:3000", // serve marketing site
   "http://localhost:5171",
   "http://localhost:7001",
+  "http://localhost:7002", // platform superadmin
   "http://192.168.1.200:7001",
+  "http://192.168.1.200:7002",
 ];
 
 app.use(
   cors({
-    origin: "*",
+    origin: function (origin, callback) {
+      // allow non-browser / same-origin tools
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
   }),
 );
-// app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       // allow requests with no origin (like mobile apps or curl)
-//       if (!origin) return callback(null, true);
-//       if (allowedOrigins.includes(origin)) return callback(null, true);
-//       return callback(new Error("Not allowed by CORS"));
-//     },
-//     credentials: true,
-//   }),
-// );
+// Legacy wide-open CORS (disabled):
+// app.use(cors({ origin: "*" }));
 
 app.use(helmet());
 app.use(

@@ -10,6 +10,18 @@ const apiRateLimiter = rateLimit({
   keyGenerator: (req) => req.deviceFingerprint,
 });
 
+function clientKey(req) {
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.ip ||
+    "unknown";
+  return `${ip}:${req.deviceFingerprint || "no-fp"}`;
+}
+
+const skipHardcoreQa = (req) =>
+  process.env.NODE_ENV === "development" &&
+  req.headers["x-hardcore-qa"] === "1";
+
 /** Brute-force protection for login / signup endpoints. */
 const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -21,19 +33,27 @@ const loginRateLimiter = rateLimit({
     msg: "Too many login attempts. Please try again in 15 minutes.",
     status: 429,
   },
-  keyGenerator: (req) => {
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.ip ||
-      "unknown";
-    return `${ip}:${req.deviceFingerprint || "no-fp"}`;
+  keyGenerator: clientKey,
+  skip: skipHardcoreQa,
+});
+
+/** Stricter limit for Google OAuth + cafe provisioning. */
+const provisionRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    msg: "Too many attempts. Please try again in 15 minutes.",
+    status: 429,
   },
-  skip: (req) =>
-    process.env.NODE_ENV === "development" &&
-    req.headers["x-hardcore-qa"] === "1",
+  keyGenerator: clientKey,
+  skip: skipHardcoreQa,
 });
 
 module.exports = {
   apiRateLimiter,
   loginRateLimiter,
+  provisionRateLimiter,
 };

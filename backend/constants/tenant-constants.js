@@ -19,6 +19,16 @@ const RESERVED_SLUGS = [
   "status",
   "static",
   "web",
+  "serve",
+  "app",
+  "staging",
+  "dev",
+  "test",
+  "demo",
+  "support",
+  "help",
+  "billing",
+  "dashboard",
 ];
 
 module.exports = {

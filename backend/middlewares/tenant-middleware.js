@@ -62,12 +62,38 @@ async function tenantMiddleware(req, res, next) {
     );
   }
 
+  // Lazy-expire trials whose window has passed (cron also flips status).
+  if (
+    tenant.status === "trial" &&
+    tenant.trialEndsAt &&
+    new Date(tenant.trialEndsAt).getTime() < Date.now()
+  ) {
+    try {
+      await tenantModel.update(
+        { status: "expired" },
+        { where: { id: tenant.id, status: "trial" } },
+      );
+    } catch {
+      // Still block the request even if the write races.
+    }
+    return responseHelper.sendResponse(
+      res,
+      httpStatus.FORBIDDEN,
+      false,
+      null,
+      null,
+      `Cafe "${slug}" trial has expired. Contact support to activate.`,
+      null,
+    );
+  }
+
   req.tenant = {
     id: tenant.id,
     slug: tenant.slug,
     name: tenant.name,
     schemaName: tenant.schemaName,
     status: tenant.status,
+    trialEndsAt: tenant.trialEndsAt || null,
   };
 
   // AsyncLocalStorage survives Express next() + async/await in Node

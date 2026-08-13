@@ -60,6 +60,15 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
     },
   ]);
 
+  const [ownerRows] = await sequelize.query(
+    `SELECT id FROM "${schemaName}".users WHERE email = :email ORDER BY id ASC LIMIT 1`,
+    { replacements: { email: owner.email } },
+  );
+  const ownerUserId = ownerRows[0]?.id;
+  if (!ownerUserId) {
+    throw new Error("Failed to create owner user in tenant schema");
+  }
+
   const now = new Date();
   const [inserted] = await sequelize.query(
     `INSERT INTO "${schemaName}".accounts
@@ -76,6 +85,8 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
       { replacements: { accountId, now } },
     );
   }
+
+  return { ownerUserId };
 }
 
 /** Idempotent: ensure every tenant schema has a default cash account. */

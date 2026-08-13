@@ -8,6 +8,9 @@ import { persistor, store } from "./redux/store/store.ts";
 import { PersistGate } from "redux-persist/integration/react";
 import BrandingWrapper from "./components/BrandingWrapper/BrandingWrapper.tsx";
 import AppToaster from "./components/Toast/AppToaster.tsx";
+import { applyPlatformPosBootstrap } from "./utils/platformPosBootstrap";
+
+applyPlatformPosBootstrap();
 
 const router = createBrowserRouter([...Routes]);
 

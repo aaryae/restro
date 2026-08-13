@@ -17,6 +17,34 @@ function buildSequelize() {
 }
 
 /**
+ * Best-effort cleanup after a failed provision so the slug can be reused.
+ */
+async function cleanupFailedProvision(sequelize, tenant, schemaName) {
+  try {
+    await sequelize.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+  } catch {
+    // Schema may never have been created.
+  }
+
+  if (!tenant) return;
+
+  try {
+    await tenant.update({
+      status: "failed",
+      // Free unique slug for retry: keep row for audit.
+      slug: `${tenant.slug}-failed-${tenant.id}`.slice(0, 63),
+      schemaName: `${schemaName}_failed_${tenant.id}`.slice(0, 63),
+    });
+  } catch {
+    try {
+      await tenant.update({ status: "failed" });
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
  * Create a new cafe: tenants row → Postgres schema → POS tables → owner user.
  */
 async function provisionTenant(input) {
@@ -53,7 +81,7 @@ async function provisionTenant(input) {
 
     const migrationResult = await runTenantMigrations(sequelize, schemaName);
 
-    await runTenantSeeders(sequelize, schemaName, {
+    const seedResult = await runTenantSeeders(sequelize, schemaName, {
       email: input.email,
       password: input.password,
       name: input.name,
@@ -84,6 +112,7 @@ async function provisionTenant(input) {
       slug,
       schemaName,
       status: finalStatus,
+      ownerUserId: seedResult.ownerUserId,
       migrationsApplied: migrationResult.applied,
     };
   } catch (error) {
@@ -94,15 +123,29 @@ async function provisionTenant(input) {
       "Unknown error";
 
     if (job) {
-      await job.update({
-        status: "failed",
-        errorMessage: message,
-        finishedAt: new Date(),
-      });
+      try {
+        await job.update({
+          status: "failed",
+          errorMessage: message,
+          finishedAt: new Date(),
+        });
+      } catch {
+        // ignore
+      }
     }
-    if (tenant) {
-      await tenant.update({ status: "failed" });
+
+    await cleanupFailedProvision(sequelize, tenant, schemaName);
+
+    // Unique slug race → friendly error
+    if (
+      error?.name === "SequelizeUniqueConstraintError" ||
+      error?.original?.code === "23505"
+    ) {
+      const err = new Error(`Slug "${slug}" is already taken`);
+      err.status = 409;
+      throw err;
     }
+
     throw error;
   } finally {
     await sequelize.close();

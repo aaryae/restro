@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "tenantId",
         as: "provisioningJobs",
       });
+      this.hasMany(models.platformAuditLogModel, {
+        foreignKey: "tenantId",
+        as: "auditLogs",
+      });
     }
   }
 
@@ -23,6 +27,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "provisioning",
       },
+      /** Snapshot of status at suspend time; restored on unsuspend. */
+      statusBeforeSuspend: { type: DataTypes.STRING(32), allowNull: true },
       trialEndsAt: { type: DataTypes.DATE, allowNull: true },
       activatedAt: { type: DataTypes.DATE, allowNull: true },
       hostingEndsAt: { type: DataTypes.DATE, allowNull: true },

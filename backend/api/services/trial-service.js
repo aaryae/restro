@@ -1,5 +1,6 @@
 "use strict";
 
+const crypto = require("crypto");
 const axios = require("axios");
 const { Op } = require("sequelize");
 const { trialUserModel, tenantModel } = require("../../models");
@@ -30,6 +31,14 @@ function usernameFromEmail(email) {
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 24);
   return base || "owner";
+}
+
+function generateTempPassword() {
+  return `Serve${crypto.randomBytes(6).toString("base64url")}!`;
+}
+
+function isEmailVerified(value) {
+  return value === true || value === "true";
 }
 
 async function uniqueUsername(base) {
@@ -143,6 +152,15 @@ const googleAuth = async (req) => {
     };
   }
 
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return {
+      status: 503,
+      success: false,
+      message: "Google sign-in is not configured on this server",
+    };
+  }
+
   let profile;
   try {
     const { data } = await axios.get(
@@ -158,8 +176,7 @@ const googleAuth = async (req) => {
     };
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  if (clientId && profile.aud !== clientId) {
+  if (profile.aud !== clientId) {
     return {
       status: 401,
       success: false,
@@ -170,34 +187,45 @@ const googleAuth = async (req) => {
   const email = String(profile.email || "")
     .trim()
     .toLowerCase();
-  if (!email || profile.email_verified === "false") {
+  if (!email || !isEmailVerified(profile.email_verified)) {
     return {
       status: 400,
       success: false,
-      message: "Google account email is required",
+      message: "A verified Google account email is required",
     };
   }
 
   let user = await trialUserModel.findOne({
-    where: {
-      [Op.or]: [{ googleId: profile.sub }, { email }],
-    },
+    where: { googleId: profile.sub },
   });
 
-  if (user) {
-    if (!user.googleId) {
-      await user.update({ googleId: profile.sub });
+  if (!user) {
+    const byEmail = await trialUserModel.findOne({ where: { email } });
+    if (byEmail) {
+      // Do not silently attach Google to a password account (takeover risk).
+      if (byEmail.passwordHash && !byEmail.googleId) {
+        return {
+          status: 409,
+          success: false,
+          message:
+            "An account with this email already exists. Please sign in with your password.",
+        };
+      }
+      if (!byEmail.googleId) {
+        await byEmail.update({ googleId: profile.sub });
+      }
+      user = byEmail;
+    } else {
+      const name = profile.name || email.split("@")[0];
+      const username = await uniqueUsername(usernameFromEmail(email));
+      user = await trialUserModel.create({
+        email,
+        name,
+        username,
+        googleId: profile.sub,
+        passwordHash: null,
+      });
     }
-  } else {
-    const name = profile.name || email.split("@")[0];
-    const username = await uniqueUsername(usernameFromEmail(email));
-    user = await trialUserModel.create({
-      email,
-      name,
-      username,
-      googleId: profile.sub,
-      passwordHash: null,
-    });
   }
 
   return authPayload(user);
@@ -314,15 +342,14 @@ const createRestaurant = async (req) => {
     };
   }
 
-  // Owner POS password: explicit body, or reuse trial password, or temp
-  let ownerPassword = cafePassword;
-  if (!ownerPassword && user.passwordHash) {
-    // Can't reverse hash — generate a temp password and return once
-    ownerPassword = `Serve${Math.random().toString(36).slice(2, 10)}!`;
-  }
-  if (!ownerPassword) {
-    ownerPassword = `Serve${Math.random().toString(36).slice(2, 10)}!`;
-  }
+  // Prefer password from register/login session (FE sends serve_pending_password).
+  // Google-only users get a one-time temp password returned once.
+  const usedClientPassword = Boolean(
+    cafePassword && String(cafePassword).length >= 6,
+  );
+  const ownerPassword = usedClientPassword
+    ? String(cafePassword)
+    : generateTempPassword();
 
   const { firstName, lastName } = splitName(user.name);
   const phoneToUse = phone || user.phone || null;
@@ -345,7 +372,7 @@ const createRestaurant = async (req) => {
     });
   } catch (err) {
     return {
-      status: 500,
+      status: err.status || 500,
       success: false,
       message: err.message || "Failed to create restaurant",
     };
@@ -366,17 +393,24 @@ const createRestaurant = async (req) => {
   });
   await user.reload();
 
-  // Admin JWT for POS (owner was seeded as roleId 1)
+  const ownerUserId = result.ownerUserId;
+  if (!ownerUserId) {
+    return {
+      status: 500,
+      success: false,
+      message: "Restaurant created but owner user was not found",
+    };
+  }
+
   const adminToken = generateJWT(
     {
-      id: 1,
+      id: ownerUserId,
       email: user.email,
       roleId: 1,
     },
     tenant,
   );
 
-  // Auth middleware requires an active session log in the tenant schema.
   await runWithTenantContext(
     {
       tenant: {
@@ -387,7 +421,7 @@ const createRestaurant = async (req) => {
         status: tenant.status,
       },
     },
-    () => createSessionLog({ id: 1 }, req),
+    () => createSessionLog({ id: ownerUserId }, req),
   );
 
   return {
@@ -404,12 +438,10 @@ const createRestaurant = async (req) => {
         businessType: tenant.businessType,
         address: tenant.address,
         trialEndsAt: tenant.trialEndsAt,
-        schemaName: tenant.schemaName,
       },
-      // POS login credentials for this cafe
       pos: {
         username: user.username,
-        temporaryPassword: cafePassword ? undefined : ownerPassword,
+        temporaryPassword: usedClientPassword ? undefined : ownerPassword,
         token: adminToken,
         authHeader: `Admin ${adminToken}`,
         tenantSlug: tenant.slug,

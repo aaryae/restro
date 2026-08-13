@@ -114,7 +114,7 @@ module.exports.toTrialAuthJSON = function (user, tenant) {
             slug: tenant.slug,
             name: tenant.name,
             status: tenant.status,
-            schemaName: tenant.schemaName,
+            trialEndsAt: tenant.trialEndsAt || null,
           },
         }
       : {}),
@@ -123,4 +123,62 @@ module.exports.toTrialAuthJSON = function (user, tenant) {
 
 module.exports.verifyTrialToken = async function (token) {
   return jwt.verify(token, TRIAL_JWT_SECRET);
+};
+
+/** Platform superadmin (admin.servecafe.app / localhost:7002). */
+function resolvePlatformJwtSecret() {
+  const fromEnv = String(process.env.PLATFORM_JWT_SECRET || "").trim();
+  if (fromEnv.length >= 32) return fromEnv;
+
+  const isProd =
+    process.env.NODE_ENV === "production" || process.env.ENV === "production";
+  const hint =
+    "Set PLATFORM_JWT_SECRET in backend/.env (min 32 chars). Example: openssl rand -hex 32";
+  if (isProd || !fromEnv) {
+    throw new Error(
+      `PLATFORM_JWT_SECRET is missing or too short. ${hint}`,
+    );
+  }
+  return fromEnv;
+}
+
+const PLATFORM_JWT_SECRET = resolvePlatformJwtSecret();
+
+const {
+  normalizePlatformRole,
+  permissionsForUser,
+} = require("../constants/platform-rbac");
+
+module.exports.generatePlatformJWT = (user) => {
+  const platformRole = normalizePlatformRole(user.platformRole) || "operator";
+  const permissions = permissionsForUser(user);
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      platformRole,
+      permissions,
+      typ: "platform",
+      exp: parseInt(Date.now() / 1000 + 12 * 60 * 60, 10),
+    },
+    PLATFORM_JWT_SECRET,
+  );
+};
+
+module.exports.toPlatformAuthJSON = function (user) {
+  const platformRole = normalizePlatformRole(user.platformRole) || "operator";
+  const permissions = permissionsForUser(user);
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    platformRole,
+    permissions,
+    token: module.exports.generatePlatformJWT(user),
+  };
+};
+
+module.exports.verifyPlatformToken = async function (token) {
+  return jwt.verify(token, PLATFORM_JWT_SECRET);
 };

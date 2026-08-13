@@ -12,6 +12,7 @@
     "db:create": "sequelize db:create",
     "migrate": "sequelize db:migrate",
     "migrate:control": "sequelize db:migrate --migrations-path migrations-control",
+    "seed:platform": "node --env-file .env scripts/seed-platform-user.js",
     "provision:tenant": "node --env-file .env scripts/provision-tenant.js",
     "migrate:tenants": "node --env-file .env scripts/migrate-all-tenants.js",
     "verify:tenants": "node --env-file .env scripts/verify-tenant-isolation.js",
