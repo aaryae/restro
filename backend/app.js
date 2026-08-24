@@ -43,7 +43,7 @@ app.use(
   "/resources",
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
@@ -64,11 +64,36 @@ const allowedOrigins = [
   "http://192.168.1.200:7002",
 ];
 
+function isPrivateLanHost(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    /^192\.168\.\d+\.\d+$/.test(hostname) ||
+    /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(hostname)
+  );
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (process.env.NODE_ENV === "development") return true;
+  const extra = (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (extra.includes(origin)) return true;
+  try {
+    return isPrivateLanHost(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow non-browser / same-origin tools
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));

@@ -1,5 +1,19 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+function lanAwareApiBase(raw: string) {
+  if (typeof window === 'undefined') return raw.replace(/\/$/, '')
+  try {
+    const u = new URL(raw, window.location.origin)
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+      u.hostname = window.location.hostname
+    }
+    return (u.origin + u.pathname).replace(/\/$/, '')
+  } catch {
+    return raw.replace(/\/$/, '')
+  }
+}
+
+const API_BASE = lanAwareApiBase(
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+)
 
 const TOKEN_KEY = 'serve_platform_token'
 const USER_KEY = 'serve_platform_user'

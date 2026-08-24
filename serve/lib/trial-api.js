@@ -1,5 +1,4 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1'
+import { getApiBase, lanAwareUrl } from './public-url'
 
 export function getTrialToken() {
   if (typeof window === 'undefined') return null
@@ -58,7 +57,7 @@ export async function openPosFromTrial() {
     throw new Error('Could not open your cafe. Try again.')
   }
   clearWelcomePending()
-  window.location.href = url
+  window.location.href = lanAwareUrl(url)
 }
 
 export async function trialFetch(path, { method = 'GET', body, auth = false } = {}) {
@@ -68,7 +67,7 @@ export async function trialFetch(path, { method = 'GET', body, auth = false } = 
     if (token) headers.Authorization = `Trial ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${getApiBase(process.env.NEXT_PUBLIC_API_BASE_URL)}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -84,5 +83,7 @@ export async function trialFetch(path, { method = 'GET', body, auth = false } = 
   return json
 }
 
-export const POS_URL = process.env.NEXT_PUBLIC_POS_URL || 'http://localhost:7001'
+export const POS_URL = lanAwareUrl(
+  process.env.NEXT_PUBLIC_POS_URL || 'http://localhost:7001',
+)
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
