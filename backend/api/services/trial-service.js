@@ -29,16 +29,27 @@ const {
 const { generateOTPForUser, verifyOTPForUser, OTP_TTL_MS } = require("../../utils/otp");
 const { sendOtpMail } = require("../../utils/mailer");
 
-function posPublicUrl() {
-  return (
-    process.env.POS_PUBLIC_URL ||
-    process.env.ADMIN_PUBLIC_URL ||
-    "http://localhost:7001"
-  );
+function posPublicUrl(req) {
+  const configured =
+    process.env.POS_PUBLIC_URL || process.env.ADMIN_PUBLIC_URL || "";
+  if (configured) return configured.replace(/\/$/, "");
+
+  try {
+    const origin = req?.get?.("origin") || req?.headers?.origin || "";
+    if (origin) {
+      const u = new URL(origin);
+      u.port = process.env.POS_PUBLIC_PORT || "7001";
+      return u.origin;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return "http://localhost:7001";
 }
 
-function buildPosBootstrapUrl(slug, token) {
-  return `${posPublicUrl()}/?tenant=${encodeURIComponent(slug)}#pos_token=${encodeURIComponent(token)}`;
+function buildPosBootstrapUrl(slug, token, req) {
+  return `${posPublicUrl(req)}/?tenant=${encodeURIComponent(slug)}#pos_token=${encodeURIComponent(token)}`;
 }
 
 async function issuePosSession(user, tenant, req) {
@@ -102,7 +113,7 @@ async function issuePosSession(user, tenant, req) {
     token,
     authHeader: `Admin ${token}`,
     tenantSlug: tenant.slug,
-    url: buildPosBootstrapUrl(tenant.slug, token),
+    url: buildPosBootstrapUrl(tenant.slug, token, req),
   };
 }
 

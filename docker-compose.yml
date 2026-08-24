@@ -50,6 +50,8 @@ services:
       DB_PASSWORD: root
       DB_NAME: nirvana_restro
       DB_DIALECT: postgres
+      POS_PUBLIC_URL: ${PUBLIC_ADMIN_URL:-http://localhost:7001}
+      POS_PUBLIC_PORT: "7001"
     depends_on:
       db:
         condition: service_healthy
