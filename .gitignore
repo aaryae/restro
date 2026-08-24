@@ -27,9 +27,6 @@ node_modules
 
 # pnpm lockfiles must be committed (Docker COPY + frozen-lockfile)
 
-# npm 
-package-lock.json
-
 # backup
 backup/*
 
