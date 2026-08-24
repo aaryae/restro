@@ -18,7 +18,7 @@ export function lanAwareUrl(raw, { keepTrailingSlash = false } = {}) {
 }
 
 export function getApiBase(baked) {
-  const fallback = baked || 'http://localhost:8080/api/v1'
+  const fallback = baked || 'http://localhost:8081/api/v1'
   if (typeof window === 'undefined') return fallback.replace(/\/$/, '')
 
   const port = window.location.port
