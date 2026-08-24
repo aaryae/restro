@@ -1,0 +1,95 @@
+"use strict";
+
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable("revenues", {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
+      orderId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: "orders",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
+      accountId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: "accounts",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+      },
+      customerId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: "customers",
+          key: "id",
+        },
+        onDelete: "SET NULL",
+      },
+      cash_or_credit: {
+        type: Sequelize.ENUM("cash", "credit"),
+        allowNull: false,
+        defaultValue: "cash",
+      },
+      paymentMethod: {
+        type: Sequelize.ENUM("cash", "card", "online", "cheque"),
+        allowNull: false,
+        defaultValue: "cash",
+      },
+      amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+      },
+      remarks: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: "users",
+          key: "id",
+        },
+      },
+      // FK added after payment_intents exists (see create-payment-intents)
+      paymentIntentId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+      gatewayReference: {
+        type: Sequelize.STRING(128),
+        allowNull: true,
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+      },
+    });
+
+    await queryInterface.addIndex("revenues", ["accountId"]);
+    await queryInterface.addIndex("revenues", ["customerId"]);
+    await queryInterface.addIndex("revenues", ["orderId"]);
+    await queryInterface.addIndex("revenues", ["paymentIntentId"]);
+  },
+
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable("revenues");
+  },
+};

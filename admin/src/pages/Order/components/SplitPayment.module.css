@@ -1,0 +1,259 @@
+.splitPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.splitHero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--serve-surface));
+  border: 1px solid color-mix(in srgb, var(--primary-color) 14%, var(--serve-border));
+}
+
+.splitHeroBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.splitHeroLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--serve-muted);
+}
+
+.splitHeroValue {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.splitHeroLeft {
+  color: var(--serve-negative);
+}
+
+.splitHeroLeftOk {
+  color: var(--primary-ink);
+}
+
+.splitProgress {
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: var(--serve-border);
+  overflow: hidden;
+}
+
+.splitProgressBar {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--primary-color);
+  transition: width 0.2s ease;
+}
+
+.splitFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.splitFilterBtn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--serve-fg);
+  cursor: pointer;
+}
+
+.splitFilterBtnOn {
+  border-color: color-mix(in srgb, var(--primary-color) 30%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
+  color: var(--primary-ink);
+}
+
+.splitList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.splitRow {
+  border: 1.5px solid var(--serve-border);
+  border-radius: 0.65rem;
+  overflow: hidden;
+  background: var(--serve-surface);
+}
+
+.splitRowActive {
+  border-color: color-mix(in srgb, var(--primary-color) 32%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--serve-surface));
+}
+
+.splitRowMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.splitRowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.splitRowName {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--serve-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.splitRowType {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--serve-muted);
+  text-transform: capitalize;
+}
+
+.splitRowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.splitQrBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  color: var(--serve-fg);
+  cursor: pointer;
+}
+
+.splitQrBtnOn {
+  border-color: color-mix(in srgb, var(--primary-color) 30%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
+  color: var(--primary-ink);
+}
+
+.splitAmountWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.splitCurrency {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--serve-muted);
+}
+
+.splitAmountInput {
+  width: 5.5rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--serve-border);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.splitAmountInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.splitRestBtn {
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.45rem;
+  border: none;
+  background: var(--primary-color);
+  color: var(--primary-fg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.splitRestBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.splitQrPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--serve-border);
+  background: var(--serve-surface-2);
+}
+
+.splitQrImage {
+  width: 100%;
+  max-width: 180px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  padding: 0.35rem;
+}
+
+.splitHint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--serve-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.splitHintWarn {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--serve-warning);
+  text-align: center;
+}
+
+.splitReady {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-ink);
+  text-align: center;
+}
+
+.splitEmpty {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--serve-muted);
+}

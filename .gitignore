@@ -1,0 +1,45 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+.qodo
+managed_context
+test_suite_analysis
+
+.husky
+thingstodo.md
+
+todo.md
+
+pnnpm-lock.yaml
+
+todo.md
+
+restaurant-management
+
+# --------------------------------------------------
+
+.husky
+node_modules
+
+#Environment
+.env
+
+# pnpm 
+pnpm-lock.yaml
+
+# npm 
+package-lock.json
+
+# backup
+backup/*
+
+#sh-logs
+sh-logs
+sh-logs/*
+
+
+things-to-remove-file.md
+things-to-do.md
+
+.DS_Store

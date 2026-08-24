@@ -1,0 +1,130 @@
+const router = require("express").Router();
+
+const {
+  createOrder,
+  updateOrderItems,
+  getTableActiveOrders,
+  getOrderById,
+  listOrders,
+  updateOrderStatus,
+  bulkServeOrderItems,
+  updateOrderItemsStatus,
+  checkoutOrder,
+  listOrderItems,
+  categorySalesSummary,
+  productTopSales,
+  moveOrderItems,
+} = require("../controllers/order-controller");
+
+const {
+  authentication,
+  authorization,
+} = require("../../middlewares/auth-middleware");
+const {
+  idValidation,
+  paginationValidation,
+} = require("../../validations/common-validation");
+const {
+  createOrderValidation,
+  updateOrderItemsValidation,
+  updateOrderStatusValidation,
+  bulkServeOrderItemsValidation,
+  updateOrderItemsStatusValidation,
+  checkoutOrderValidation,
+} = require("../../validations/order-validation");
+
+router.get(
+  "/list",
+  authentication,
+  authorization,
+  // paginationValidation,
+  listOrders,
+);
+router.get(
+  "/category-sales-summary",
+  authentication,
+  categorySalesSummary,
+);
+router.get(
+  "/product-top-sales",
+  authentication,
+  productTopSales,
+);
+// Customer/Staff routes
+router.post(
+  "/create",
+  authentication,
+  authorization,
+  createOrderValidation,
+  createOrder,
+);
+router.put(
+  "/items/:orderId",
+  authentication,
+  authorization,
+  updateOrderItemsValidation,
+  updateOrderItems,
+);
+
+// Bulk serve order items (waiter)
+router.patch(
+  "/items/bulk-serve",
+  authentication,
+  authorization,
+  bulkServeOrderItemsValidation,
+  bulkServeOrderItems,
+);
+
+// Department update order items status
+router.patch(
+  "/items/status",
+  authentication,
+  authorization,
+  updateOrderItemsStatusValidation,
+  updateOrderItemsStatus,
+);
+
+// Checkout order (cashier)
+router.post(
+  "/checkout/:tableId",
+  authentication,
+  authorization,
+  checkoutOrderValidation,
+  checkoutOrder,
+);
+
+// Admin routes — authenticated only (do not register a public /active-orders/:id route)
+router.get(
+  "/active-orders/:tableId",
+  authentication,
+  authorization,
+  getTableActiveOrders,
+);
+router.get(
+  "/list/order-items",
+  authentication,
+  authorization,
+  // paginationValidation,
+  listOrderItems,
+);
+
+router.get("/:id", authentication, authorization, idValidation, getOrderById);
+
+router.post(
+  "/move-order-items",
+  authentication,
+  authorization,
+  // moveOrderItemsValidation, // TODO: Add validation
+  moveOrderItems,
+);
+
+router.patch(
+  "/status/:id",
+  authentication,
+  authorization,
+  idValidation,
+  updateOrderStatusValidation,
+  updateOrderStatus,
+);
+
+module.exports = router;

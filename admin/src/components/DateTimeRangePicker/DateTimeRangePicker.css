@@ -1,0 +1,123 @@
+.date-time-range-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-time-range-label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 1rem;
+}
+
+.date-time-range-pickers {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.date-time-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 200px;
+}
+
+.date-time-picker label {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.date-time-picker-input {
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  height: 2.25rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.date-time-picker-input:focus {
+  outline: none;
+  border-color: #2b81b2;
+  box-shadow: 0 0 0 2px rgba(43, 129, 178, 0.2);
+}
+
+.date-time-picker-input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Calendar and time picker popup */
+.date-time-picker-popper {
+  z-index: 1000;
+}
+
+.date-time-picker-calendar {
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  font-size: 0.875rem;
+}
+
+/* Calendar navigation */
+.react-datepicker__navigation {
+  color: #374151;
+}
+
+.react-datepicker__navigation:hover {
+  background-color: #f3f4f6;
+}
+
+/* Calendar days */
+.react-datepicker__day,
+.react-datepicker__day-name {
+  color: #374151;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #2b81b2;
+  color: #fff;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: #2563eb;
+}
+
+/* Time picker */
+.react-datepicker__time-container {
+  border-left: 1px solid #d1d5db;
+  background-color: #fff;
+}
+
+.react-datepicker__time-box {
+  background-color: #fff;
+}
+
+.react-datepicker__time-list-item {
+  color: #374151;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.react-datepicker__time-list-item:hover {
+  background-color: #f3f4f6;
+}
+
+.react-datepicker__time-list-item--selected {
+  background-color: #2b81b2;
+  color: #fff;
+}
+
+/* Error message */
+.error {
+  color: #dc2626;
+  font-size: 0.75rem;
+}

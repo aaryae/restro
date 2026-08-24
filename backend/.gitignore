@@ -1,0 +1,26 @@
+node_modules
+.env
+package-lock.json
+.DS_Store
+
+resources
+excel
+
+logs
+
+logs/combined.log
+
+#Environment
+.env
+
+# Machbank / payment secrets
+secrets/
+*.pfx
+*.p12
+
+
+# npm 
+package-lock.json
+pnpm-workspace.yaml
+
+.DS_Store

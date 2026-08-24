@@ -1,0 +1,322 @@
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dash-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1280px) {
+  .dash-hero {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dash-hello {
+  min-width: 0;
+}
+
+.dash-title {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: clamp(1.65rem, 2.6vw, 2.15rem);
+  font-weight: 700;
+  /* Syne runs wide, so it needs more negative tracking than a grotesque. */
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--serve-fg);
+}
+
+.dash-title span {
+  color: var(--serve-accent);
+  font-weight: 800;
+}
+
+.dash-date {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-english);
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--serve-muted);
+}
+
+.dash-card {
+  background: var(--serve-surface);
+  border: 1px solid var(--serve-border);
+  border-radius: var(--serve-radius);
+  box-shadow: var(--serve-shadow);
+}
+
+.dash-tabs {
+  display: inline-flex;
+  /* Without this the pill stretches to full width when the hero stacks. */
+  align-self: flex-start;
+  width: max-content;
+  max-width: 100%;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border-radius: 12px;
+  background: var(--serve-surface-2);
+}
+
+.dash-tab {
+  white-space: nowrap;
+  border: 0;
+  border-radius: 9px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dash-tab:hover {
+  color: var(--serve-fg);
+}
+
+.dash-tab[data-active="true"] {
+  background: var(--serve-tab-active);
+  color: var(--serve-fg);
+  box-shadow: 0 1px 2px rgba(26, 25, 23, 0.08);
+}
+
+html.dark .dash-tab[data-active="true"] {
+  box-shadow: none;
+}
+
+.dash-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--serve-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.8rem;
+  background: var(--serve-surface);
+  color: var(--serve-fg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, background-color 0.18s ease;
+}
+
+.dash-chip:hover {
+  border-color: color-mix(in srgb, var(--serve-accent) 40%, var(--serve-border));
+  color: var(--serve-accent);
+  background: var(--serve-surface);
+}
+
+.dash-chip svg {
+  color: var(--serve-muted);
+}
+
+.dash-chip:hover svg {
+  color: var(--serve-accent);
+}
+
+/* One neutral card treatment for every metric. Assigning a different hue per
+   card gave eight colours no shared meaning, which is what read as noise —
+   emphasis now comes from scale and position instead. */
+.dash-kpi {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.95rem 1.05rem;
+  transition: border-color 0.18s ease;
+}
+
+.dash-kpi:hover {
+  border-color: color-mix(in srgb, var(--serve-fg) 16%, var(--serve-border));
+}
+
+.dash-kpi-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--serve-muted);
+}
+
+.dash-kpi-value {
+  margin: 0.4rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-fg);
+}
+
+/* A metric at zero carries no signal — recede it so the eye skips to what does. */
+.dash-kpi-value.is-zero {
+  color: var(--serve-muted);
+  opacity: 0.65;
+}
+
+/* The icon chip carries the category colour. Keeping it off the value and the
+   card border means eight hues can coexist without the grid turning noisy —
+   the numbers still read as one comparable set. Hues come from the chart
+   palette so a metric matches itself wherever it appears. */
+.dash-kpi-icon {
+  --tint: var(--serve-muted);
+
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tint) 13%, var(--serve-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 22%, transparent);
+  color: var(--tint);
+}
+
+html.dark .dash-kpi-icon {
+  background: color-mix(in srgb, var(--tint) 20%, var(--serve-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 28%, transparent);
+}
+
+.dash-kpi-icon.tint-bronze {
+  --tint: var(--tint-bronze);
+}
+.dash-kpi-icon.tint-teal {
+  --tint: var(--tint-teal);
+}
+.dash-kpi-icon.tint-indigo {
+  --tint: var(--tint-indigo);
+}
+.dash-kpi-icon.tint-plum {
+  --tint: var(--tint-plum);
+}
+.dash-kpi-icon.tint-vermilion {
+  --tint: var(--tint-vermilion);
+}
+.dash-kpi-icon.tint-olive {
+  --tint: var(--tint-olive);
+}
+.dash-kpi-icon.tint-cerulean {
+  --tint: var(--tint-cerulean);
+}
+.dash-kpi-icon.tint-violet {
+  --tint: var(--tint-violet);
+}
+
+.dash-kpi-value.is-up {
+  color: var(--serve-positive);
+}
+
+.dash-kpi-value.is-down {
+  color: var(--serve-negative);
+}
+
+/* Hero metric — the one number worth reading first. */
+.dash-hero-kpi {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 1.4rem;
+}
+
+.dash-hero-kpi .dash-kpi-value {
+  font-size: 2.4rem;
+  line-height: 1.05;
+  margin-top: 0.5rem;
+}
+
+.dash-hero-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+}
+
+.dash-hero-note b {
+  font-weight: 600;
+  color: var(--serve-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 3.25rem;
+  flex-shrink: 0;
+}
+
+.dash-spark i {
+  width: 8px;
+  border-radius: 2px;
+  background: var(--serve-accent);
+  opacity: 0.45;
+}
+
+.dash-spark i:last-child {
+  opacity: 1;
+}
+
+.dash-chart-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--serve-border);
+}
+
+@media (min-width: 640px) {
+  .dash-chart-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dash-chart-title {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--serve-fg);
+}
+
+/* Section rule — groups a band of cards without drawing another box. */
+.dash-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0 0.1rem;
+}
+
+.dash-rule span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--serve-muted);
+  white-space: nowrap;
+}
+
+.dash-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--serve-border);
+}

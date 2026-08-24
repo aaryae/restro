@@ -1,0 +1,210 @@
+.card {
+  --pos-ink: var(--serve-fg);
+  --pos-muted: var(--serve-muted);
+  --pos-border: var(--serve-border);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 8.75rem;
+  padding: 0.9rem 1rem 0.95rem;
+  overflow: hidden;
+  border-radius: var(--serve-radius, 12px);
+  border: 1px solid var(--pos-border);
+  background: var(--serve-surface);
+  box-shadow: var(--serve-shadow);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--serve-border);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--serve-accent) 40%, var(--serve-border));
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  pointer-events: none;
+  filter: grayscale(0.35);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.floor {
+  display: inline-flex;
+  align-items: center;
+  max-width: 55%;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--serve-surface-2);
+  color: var(--pos-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.65rem 0 0.2rem;
+  text-align: center;
+}
+
+.number {
+  margin: 0;
+  max-width: 100%;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--pos-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--pos-muted);
+  text-transform: capitalize;
+}
+
+.renovation {
+  margin-top: 0.45rem;
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.45rem;
+  background: var(--serve-surface-2);
+  color: var(--pos-muted);
+  font-size: 0.65rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+/* Free — quiet surface, green rail. The default resting state. */
+.card[data-status="available"]::before {
+  background: var(--serve-positive);
+}
+
+.card[data-status="available"] .status {
+  background: color-mix(in srgb, var(--serve-positive) 14%, var(--serve-surface));
+  color: var(--serve-positive);
+}
+
+/* In use — accent tint so a busy floor reads at a glance. */
+.card[data-status="occupied"] {
+  background: color-mix(in srgb, var(--serve-accent) 8%, var(--serve-surface));
+  border-color: color-mix(in srgb, var(--serve-accent) 30%, var(--serve-border));
+}
+
+.card[data-status="occupied"]::before {
+  background: var(--serve-accent);
+}
+
+.card[data-status="occupied"] .floor {
+  background: color-mix(in srgb, var(--serve-accent) 14%, var(--serve-surface));
+  color: color-mix(in srgb, var(--serve-accent) 70%, var(--serve-fg));
+}
+
+.card[data-status="occupied"] .status {
+  background: color-mix(in srgb, var(--serve-accent) 18%, var(--serve-surface));
+  color: var(--serve-accent);
+}
+
+.card[data-status="occupied"] .number {
+  color: var(--pos-ink);
+}
+
+/* Booked — blue rail on a neutral body. Amber sits too close to the coffee
+   accent used for occupied, so blue keeps the two states unmistakable. */
+.card[data-status="reserved"] {
+  background: var(--serve-surface);
+  border-color: color-mix(in srgb, var(--serve-info) 26%, var(--serve-border));
+}
+
+.card[data-status="reserved"]::before {
+  background: var(--serve-info);
+}
+
+.card[data-status="reserved"] .status {
+  background: color-mix(in srgb, var(--serve-info) 14%, var(--serve-surface));
+  color: var(--serve-info);
+}
+
+.card[data-status="reserved"] .number {
+  color: var(--pos-ink);
+}
+
+/* Out of service — recedes. */
+.card[data-status="maintenance"],
+.card[data-inactive="true"] {
+  background: var(--serve-surface-2);
+  border-color: var(--serve-border);
+  box-shadow: none;
+}
+
+.card[data-status="maintenance"]::before,
+.card[data-inactive="true"]::before {
+  background: var(--serve-neutral);
+}
+
+.card[data-status="maintenance"] .status,
+.card[data-inactive="true"] .floor {
+  background: var(--serve-surface);
+  color: var(--pos-muted);
+}
+
+.card[data-status="maintenance"] .number,
+.card[data-inactive="true"] .number {
+  color: var(--pos-muted);
+}

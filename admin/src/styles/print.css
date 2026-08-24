@@ -1,0 +1,57 @@
+/* Print — always white paper + dark ink, regardless of app theme */
+
+@media print {
+  html,
+  html.dark,
+  html.light,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .kot-print,
+  #kot-print,
+  #bill-print,
+  .print-surface {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .kot-print *,
+  #kot-print *,
+  #bill-print *,
+  .print-surface * {
+    color: #111111 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .kot-print,
+  #kot-print,
+  #bill-print,
+  .print-surface {
+    background-color: #ffffff !important;
+  }
+
+  #bill-print th,
+  #bill-print thead tr {
+    background-color: #f5f5f5 !important;
+  }
+
+  #bill-print td,
+  #bill-print th {
+    border-color: #000000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

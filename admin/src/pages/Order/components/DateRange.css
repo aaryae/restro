@@ -1,0 +1,35 @@
+.rdrInputRangeInput {
+  background-color: white !important;
+  color: black !important;
+}
+
+.rdrCalendarWrapper {
+  font-family: inherit;
+}
+
+.rdrDateDisplayItemActive {
+  border-color: var(--primary-color) !important;
+}
+
+.rdrDayToday .rdrDayNumber span:after {
+  background: var(--primary-color) !important;
+}
+
+.rdrSelected,
+.rdrInRange,
+.rdrStartEdge,
+.rdrEndEdge {
+  background: var(--primary-color) !important;
+}
+
+.rdrDayHovered .rdrDayInPreview,
+.rdrDayStartPreview,
+.rdrDayInPreview,
+.rdrDayEndPreview {
+  border-color: var(--primary-color) !important;
+}
+
+.rdrDefinedRangesWrapper .rdrStaticRangeSelected {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}

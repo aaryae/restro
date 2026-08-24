@@ -1,0 +1,12 @@
+node_modules
+.git
+*.log
+.gitignore
+readme.md
+.env
+logs
+secrets
+*.pfx
+*.p12
+resources
+excel

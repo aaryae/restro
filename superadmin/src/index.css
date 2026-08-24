@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #18181b;
+  --secondary-color: #583820;
+  --page-bg: #f2f6fa;
+  font-family: 'Google Sans', system-ui, sans-serif;
+  color: #0f172a;
+  background-color: var(--page-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--page-bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #eef2f7;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Date range calendar — mobile full-bleed sheet, desktop compact */
+.serve-day-picker .rdp-root {
+  --rdp-accent-color: var(--primary-color);
+  --rdp-accent-background-color: #e8eef8;
+  --rdp-day_button-border-radius: 9999px;
+  --rdp-selected-border: 2px solid var(--primary-color);
+  width: 100%;
+}
+
+.serve-day-picker .rdp-months {
+  display: flex;
+  width: 100%;
+}
+
+.serve-day-picker .rdp-month {
+  width: 100%;
+}
+
+.serve-day-picker .rdp-month_caption {
+  padding-inline: 0.25rem;
+}
+
+.serve-day-picker .rdp-root[data-nav-layout='around'] .rdp-month_caption {
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.serve-day-picker .rdp-root[data-nav-layout='around'] .rdp-button_previous,
+.serve-day-picker .rdp-root[data-nav-layout='around'] .rdp-button_next {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+}
+
+.serve-day-picker .rdp-root[data-nav-layout='around'] .rdp-button_previous:hover,
+.serve-day-picker .rdp-root[data-nav-layout='around'] .rdp-button_next:hover {
+  background: #e2e8f0;
+}
+
+.serve-day-picker .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.serve-day-picker .rdp-weekday {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 0.35rem 0;
+}
+
+/* Mobile / tablet: equal columns that fill the sheet */
+@media (max-width: 767.98px) {
+  .serve-date-range-modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .serve-day-picker .rdp-root {
+    --rdp-day-width: 14.2857%;
+    --rdp-day-height: 2.85rem;
+    --rdp-day_button-width: 2.5rem;
+    --rdp-day_button-height: 2.5rem;
+  }
+
+  .serve-day-picker .rdp-day,
+  .serve-day-picker .rdp-weekday {
+    width: 14.2857% !important;
+  }
+
+  .serve-day-picker .rdp-day {
+    height: 2.85rem !important;
+  }
+
+  .serve-day-picker .rdp-day_button {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    margin: 0 auto;
+  }
+
+  .serve-day-picker .rdp-nav {
+    inset-inline: 0;
+  }
+}
+
+/* Desktop: compact fixed-size days, months side by side */
+@media (min-width: 768px) {
+  .serve-day-picker .rdp-root {
+    --rdp-day-width: 2.25rem;
+    --rdp-day-height: 2.25rem;
+    --rdp-day_button-width: 2.15rem;
+    --rdp-day_button-height: 2.15rem;
+    --rdp-months-gap: 1.25rem;
+    width: auto;
+  }
+
+  .serve-day-picker .rdp-months {
+    width: auto;
+    gap: 1.25rem;
+  }
+
+  .serve-day-picker .rdp-month {
+    width: auto;
+  }
+
+  .serve-day-picker .rdp-month_grid {
+    width: auto;
+    table-layout: auto;
+  }
+
+  .serve-day-picker .rdp-day,
+  .serve-day-picker .rdp-weekday {
+    width: var(--rdp-day-width) !important;
+  }
+
+  .serve-day-picker .rdp-day {
+    height: var(--rdp-day-height) !important;
+  }
+
+  .serve-day-picker .rdp-day_button {
+    width: var(--rdp-day_button-width) !important;
+    height: var(--rdp-day_button-height) !important;
+  }
+}

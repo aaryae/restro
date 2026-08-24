@@ -1,0 +1,129 @@
+require("dotenv").config();
+const multer = require("multer");
+let maxFileSize = 45;
+const uploaderHelper = {};
+
+let imageMimeType = {
+  "image/png": "png",
+  "image/jpeg": "jpeg",
+  "image/jpg": "jpg",
+  "image/svg": "svg",
+  "image/ico": "ico",
+  "image/svg+xml": "svg+xml",
+  "image/gif": "gif",
+  "image/webp": "webp",
+};
+
+let xlsxMimeType = {
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-excel": "xls",
+};
+
+function createStorage(destinationPath) {
+  var storage = multer.diskStorage({
+    destination: destinationPath,
+    filename: async (req, file, cb) => {
+      const randomString = Math.random().toString(36).substring(2, 10);
+      const parseName = file.originalname
+        .replace(/[\\/&?$%]/g, "")
+        .replace(/\s+/g, "_");
+      const uniqueFileName = `${Date.now()}-${randomString}-${parseName}`;
+      cb(null, uniqueFileName);
+    },
+  });
+  return storage;
+}
+
+function createUploader(storage, mimeType, maxFileSize) {
+  const uploader = multer({
+    storage: storage,
+    fileFilter: function (req, file, callback) {
+      const isValid = !!mimeType[file.mimetype];
+      console.log("****\nfile meme \n", mimeType);
+      const error = isValid
+        ? null
+        : new Error("Only images and video files are allowed!");
+      callback(error, isValid);
+    },
+    limits: { fileSize: maxFileSize * 1024 * 1024 },
+  });
+  return uploader;
+}
+
+function configureUpload(uploader, uploadType, fieldData) {
+  if (uploadType === "array") {
+    return uploader.array(fieldData[0], fieldData[1]);
+  } else if (uploadType === "fields") {
+    return uploader.fields(fieldData);
+  } else if (uploadType === "single") {
+    return uploader.single(fieldData);
+  } else if (uploadType === "any") {
+    return uploader.any(fieldData);
+  }
+}
+
+uploaderHelper.uploadXlsxDoc = (
+  destinationPath,
+  uploadType,
+  fieldData,
+  maxFileSize = 10,
+) => {
+  var storage = createStorage(destinationPath);
+  const uploader = createUploader(storage, xlsxMimeType, 10);
+  const upload = configureUpload(uploader, uploadType, fieldData);
+
+  return (fileUpload = (req, res, next) => {
+    upload(req, res, async function (error) {
+      if (error) {
+        if (error.code == "LIMIT_FILE_SIZE") {
+          return res
+            .status(413)
+            .json({ message: `File size must not exceed ${maxFileSize}MB` });
+        } else {
+          return res.status(400).json({ message: error.message });
+        }
+      }
+
+      next();
+    });
+  });
+};
+
+uploaderHelper.uploadFiles = (
+  destinationPath,
+  uploadType,
+  fieldData,
+  is_Video,
+) => {
+  // Set file type specific configurations
+  if (is_Video) {
+    mimeType = {
+      "video/mp4": "mp4",
+      "video/mpeg": "mpeg",
+      "video/quicktime": "mov",
+    };
+    maxFileSize = 100; // 100MB for videos
+  }
+
+  var storage = createStorage(destinationPath);
+  const uploader = createUploader(storage, imageMimeType, 45);
+  const upload = configureUpload(uploader, uploadType, fieldData);
+
+  return (fileUpload = (req, res, next) => {
+    upload(req, res, async function (error) {
+      if (error) {
+        if (error.code == "LIMIT_FILE_SIZE") {
+          return res
+            .status(413)
+            .json({ message: `File size must not exceed ${maxFileSize}MB` });
+        } else {
+          return res.status(400).json({ message: error.message });
+        }
+      }
+
+      next();
+    });
+  });
+};
+
+module.exports = uploaderHelper;

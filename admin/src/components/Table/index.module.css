@@ -1,0 +1,178 @@
+.shell {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--serve-border);
+  border-radius: var(--serve-radius, 14px);
+  background: var(--serve-surface);
+  box-shadow: var(--serve-shadow);
+}
+
+.scroller {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+  color: var(--serve-fg);
+}
+
+.head th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.625rem 0.875rem;
+  background: var(--serve-table-head);
+  border-bottom: 1px solid var(--serve-border);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  color: var(--serve-table-head-fg);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.head th.center {
+  text-align: center;
+}
+
+.head th.right {
+  text-align: right;
+}
+
+.body td {
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--serve-row-line);
+  vertical-align: middle;
+  white-space: nowrap;
+  text-align: left;
+  color: var(--serve-fg);
+}
+
+/* Row label carries the identity, so it gets the weight; the rest stays quiet. */
+.body td:first-child {
+  font-weight: 600;
+}
+
+.body td.center {
+  text-align: center;
+}
+
+.body td.right {
+  text-align: right;
+}
+
+.body td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.body tr:last-child td {
+  border-bottom: none;
+}
+
+.body tr {
+  transition: background-color 0.15s ease;
+}
+
+.body tr:hover td {
+  background: var(--serve-row-hover);
+}
+
+.body td.num {
+  font-feature-settings: "tnum";
+}
+
+.empty {
+  padding: 3.5rem 1.5rem !important;
+  text-align: center !important;
+  color: var(--serve-muted);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.7rem 0.875rem;
+  border-top: 1px solid var(--serve-border);
+  background: var(--serve-table-head);
+}
+
+@media (min-width: 640px) {
+  .footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.footerLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pagerBtn {
+  display: inline-flex;
+  height: 1.875rem;
+  width: 1.875rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--serve-border);
+  border-radius: 8px;
+  background: var(--serve-surface);
+  color: var(--serve-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pagerBtn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--serve-accent) 40%, var(--serve-border));
+  color: var(--serve-accent);
+}
+
+.pagerBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagerCount {
+  min-width: 5.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-muted);
+}
+
+.total {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+}
+
+.totalValue {
+  margin-left: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--serve-border);
+  border-radius: 6px;
+  background: var(--serve-surface);
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-fg);
+}

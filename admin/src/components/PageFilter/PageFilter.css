@@ -1,0 +1,25 @@
+.range-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.range-slider-label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 1rem;
+}
+
+.range-price-display {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #374151;
+  margin-top: 0.5rem;
+}
+
+.range-price-display span {
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}

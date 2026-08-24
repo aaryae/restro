@@ -1,0 +1,510 @@
+import { ChevronLeft, Folder, Images, Plus, SquarePen, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import {
+  useCreateMediaCategoryMutation,
+  useDeleteMediaCategoryMutation,
+  useGetMediaByCategoryQuery,
+  useListAllMediaQuery,
+  useUpdateMediaCategoryByIdMutation,
+  useUploadMediaMutation,
+  useUploadVideoMutation, // Add this import
+} from "../../redux/services/media";
+import React, { useEffect, useRef, useState } from "react";
+import { handleError, handleResponse } from "../../utils/responseHandler";
+import { useDispatch } from "react-redux";
+import {
+  setSelectedMedia,
+  setSelectMultipleMedia,
+} from "../../redux/feature/mediaSlice";
+import { useAppSelector } from "../../redux/store/hooks";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
+import useTranslation from "@/locale/useTranslation";
+import Input from "../Input";
+import Button from "../Button";
+import { useForm } from "react-hook-form";
+import { checkAccess } from "@/utils/accessHelper";
+import Pagination from "../Pagination";
+
+type MediaComponentProps = {
+  title: string | React.ReactElement;
+  handleConfirmImage: () => void;
+  isMultiSelect: boolean;
+  open: boolean;
+  setOpen:
+    | React.Dispatch<React.SetStateAction<boolean>>
+    | ((isOpen: boolean) => void);
+  acceptFiles?: string; //specifies which file types to accept (e.g., "image/*,video/*")
+};
+export default function MediaComponent({
+  title,
+  handleConfirmImage,
+  isMultiSelect = false,
+  open,
+  setOpen,
+  acceptFiles = "image/*", // Default to images only
+}: Readonly<MediaComponentProps>) {
+  const translate = useTranslation();
+  const dispatch = useDispatch();
+
+  const accessListFolder = checkAccess("Media Category");
+  const accessListFile = checkAccess("Media");
+
+  const modelRef = useRef<HTMLDivElement | null>(null);
+
+  const { register, handleSubmit } = useForm();
+
+  const [openModel, setOpenModel] = useState<boolean>(false);
+
+  const [currentFolder, setCurrentFolder] = useState<number | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null); // Track which input is being edited
+  const [inputValues, setInputValues] = useState<{ [key: number]: string }>({}); // Store input values dynamically
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [mediaCategoryPageNumber, setMediaCategoryPageNumber] =
+    useState<number>(1);
+
+  const selectedImage = isMultiSelect
+    ? useAppSelector((state) => state.media.multipleSelectedImage)
+    : useAppSelector((state) => state.media.selectedImage);
+
+  const {
+    data: mediaCategoryList,
+    isSuccess: mediaCategorySuccess,
+    refetch: mediaCategoryRefetch,
+  } = useListAllMediaQuery(mediaCategoryPageNumber);
+  const [uploadImage] = useUploadMediaMutation();
+  const [uploadVideo] = useUploadVideoMutation();
+
+  const {
+    data: media,
+    isSuccess: mediaSuccess,
+    refetch,
+  } = useGetMediaByCategoryQuery(
+    { id: currentFolder, pageNumber },
+    {
+      skip: currentFolder === null,
+    },
+  );
+
+  useEffect(() => {
+    if (mediaSuccess) {
+      setPageNumber(media.data.page);
+    }
+  }, [media, mediaSuccess]);
+
+  const [renameFolder] = useUpdateMediaCategoryByIdMutation();
+  const [deleteFolder] = useDeleteMediaCategoryMutation();
+  const [createFolder] = useCreateMediaCategoryMutation();
+
+  const handleOpenModel = () => {
+    setOpenModel(true);
+  };
+
+  const handleCloseModel = () => {
+    setOpenModel(false);
+  };
+
+  const handleEditClick = (index: number) => {
+    setEditingIndex(index);
+    setTimeout(() => inputRefs.current[index]?.focus(), 0);
+  };
+
+  const handleInputChange = (index: number, value: string) => {
+    setInputValues((prev) => ({
+      ...prev,
+      [index]: value,
+    }));
+  };
+
+  const handleDeleteFolder = async (id: number) => {
+    const response = await deleteFolder(id).unwrap();
+    handleResponse({ res: response, onSuccess: () => {} });
+  };
+
+  const handleImageSelect = (path: string) => {
+    if (isMultiSelect) {
+      dispatch(setSelectMultipleMedia(path));
+    } else {
+      dispatch(setSelectedMedia(path));
+    }
+
+    if (modelRef.current) {
+      modelRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const formData = new FormData();
+
+      // Check if the file is a video
+      const isVideo = file.type.startsWith("video/");
+
+      formData.append(isVideo ? "video" : "image", file);
+
+      if (currentFolder) {
+        formData.append("mediaCategoryId", currentFolder);
+      }
+
+      try {
+        const response = isVideo
+          ? await uploadVideo(formData).unwrap()
+          : await uploadImage(formData).unwrap();
+
+        handleResponse({ res: response, onSuccess: () => {} });
+      } catch (error) {
+        console.error("Upload error:", error);
+        handleError({ error });
+      }
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    const response = await createFolder(data).unwrap();
+    handleResponse({ res: response, onSuccess: handleCloseModel });
+  };
+
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleInputKeyDown = async (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    id: number,
+  ) => {
+    if (event.key === "Enter") {
+      const body = { name: inputValues[index] };
+      const response = await renameFolder({ body, id }).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {},
+      });
+      setEditingIndex(null);
+    }
+  };
+
+  const handleOpenFolder = (id: number) => {
+    setCurrentFolder(id);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= media.data.totalPages) {
+      setPageNumber(page);
+      refetch();
+    }
+  };
+
+  const handleMediaCategoryPageChange = (page: number) => {
+    if (page >= 1 && page <= mediaCategoryList.data.totalPages) {
+      setMediaCategoryPageNumber(page);
+      mediaCategoryRefetch();
+    }
+  };
+
+  const mediaCategory = mediaCategoryList?.data?.data ?? [];
+
+  // Update the button text to be more generic when accepting videos/other files
+  const isAcceptingVideos = acceptFiles.includes("video");
+  const fileButtonText = isAcceptingVideos ? "Choose File" : "Choose Image";
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setOpenModel(false);
+          setCurrentFolder(null);
+          if (isMultiSelect) {
+            dispatch(setSelectMultipleMedia([]));
+          } else {
+            dispatch(setSelectedMedia(""));
+          }
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left"
+        >
+          {typeof title === "string" ? translate(title) : title}
+        </button>
+      </DialogTrigger>
+      <DialogContent
+        ref={modelRef}
+        className="flex h-[min(85vh,52rem)] w-[min(96vw,72rem)] max-w-[min(96vw,72rem)] flex-col overflow-hidden p-4 sm:p-6"
+      >
+        <DialogHeader className="shrink-0 space-y-1 p-0 pr-8 text-left sm:text-left">
+          <DialogTitle>Choose Image</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {currentFolder !== null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-600"
+                onClick={() => {
+                  setCurrentFolder(null);
+                  if (isMultiSelect) {
+                    dispatch(setSelectMultipleMedia([]));
+                  } else {
+                    dispatch(setSelectedMedia(""));
+                  }
+                }}
+              >
+                <ChevronLeft />
+                Back to folders
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {accessListFile.includes("add") && currentFolder !== null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                onClick={handleButtonClick}
+              >
+                <Images />
+                {fileButtonText}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={acceptFiles}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            {accessListFolder.includes("add") && currentFolder === null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                onClick={handleOpenModel}
+              >
+                <Plus />
+                New Folder
+              </button>
+            )}
+            {((Array.isArray(selectedImage) && selectedImage.length > 0) ||
+              (typeof selectedImage === "string" && selectedImage !== "")) && (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  onClick={() => {
+                    if (isMultiSelect) {
+                      dispatch(setSelectMultipleMedia([]));
+                    } else {
+                      dispatch(setSelectedMedia(""));
+                    }
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                  onClick={handleConfirmImage}
+                >
+                  <Images />
+                  Confirm Image
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="mt-2 w-full">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 md:gap-4">
+                {currentFolder === null &&
+                  mediaCategory?.map(
+                    (each: { id: number; name: string }, index: number) => (
+                      <button
+                        key={each.id}
+                        type="button"
+                        className="relative border w-full aspect-square flex flex-col items-center justify-center px-2 md:px-4 py-3 md:py-4 cursor-pointer group"
+                        onClick={() => handleOpenFolder(each.id)}
+                        style={{ userSelect: "none" }}
+                      >
+                        {accessListFolder.includes("delete") && (
+                          <Trash2
+                            className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFolder(each.id);
+                            }}
+                          />
+                        )}
+                        {accessListFolder.includes("edit") && (
+                          <SquarePen
+                            className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(index);
+                            }}
+                          />
+                        )}
+                        <Folder
+                          className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0 pointer-events-none"
+                        />
+                        <textarea
+                          ref={(el) => (inputRefs.current[index] = el)}
+                          className={`bg-inherit text-black w-full text-center text-xs sm:text-sm resize-none overflow-hidden break-words whitespace-pre-wrap ${
+                            editingIndex !== index ? "pointer-events-none" : ""
+                          }`}
+                          value={
+                            inputValues[index] !== undefined
+                              ? inputValues[index]
+                              : each.name
+                          }
+                          disabled={editingIndex !== index}
+                          onChange={(e) =>
+                            handleInputChange(index, e.target.value)
+                          }
+                          onKeyDown={(e) =>
+                            handleInputKeyDown(e, index, each.id)
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                          rows={2}
+                        />
+                      </button>
+                    ),
+                  )}
+
+                {currentFolder !== null &&
+                  media?.data?.data?.map(
+                    (
+                      each: {
+                        id: number;
+                        path: string;
+                        name: string;
+                        type?: string;
+                      },
+                      index: number,
+                    ) => {
+                      const isVideo =
+                        each.path.match(/\.(mp4|webm|ogg|mov)$/i) ||
+                        each.type === "video";
+
+                      return (
+                        <button
+                          className={`relative border w-full aspect-square flex flex-col items-center justify-center p-2 md:p-3 cursor-pointer transition-all ${
+                            (typeof selectedImage === "string" &&
+                              each.path === selectedImage) ||
+                            (Array.isArray(selectedImage) &&
+                              selectedImage.includes(each.path))
+                              ? "border-2 border-black"
+                              : "border hover:border-gray-400"
+                          }`}
+                          key={index}
+                          onClick={() => handleImageSelect(each.path)}
+                        >
+                          {isVideo ? (
+                            <div className="relative w-full h-full max-h-[120px] sm:max-h-[140px]">
+                              <video
+                                src={buildAssetUrl(each.path)}
+                                className="w-full h-full object-cover"
+                                crossOrigin="anonymous"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                <span className="text-white text-xl sm:text-2xl">
+                                  ▶
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={buildAssetUrl(each.path)}
+                              alt="Gallery"
+                              className="w-full h-full max-h-[120px] sm:max-h-[140px] object-cover"
+                            />
+                          )}
+                          <p className="bg-inherit text-black w-full text-center text-xs sm:text-sm overflow-hidden line-clamp-1 mt-1 sm:mt-2">
+                            {each.name}
+                          </p>
+                        </button>
+                      );
+                    },
+                  )}
+              </div>
+
+              {currentFolder !== null &&
+                mediaSuccess &&
+                (!media?.data?.data || media.data.data.length === 0) && (
+                  <div className="flex min-h-[12rem] items-center justify-center px-4 py-10">
+                    <p className="text-sm text-slate-500">No images yet</p>
+                  </div>
+                )}
+            </div>
+          </div>
+
+          {currentFolder === null && mediaCategorySuccess && (
+            <div className="shrink-0 border-t border-slate-100">
+              <Pagination
+                media={mediaCategoryList}
+                handlePageChange={handleMediaCategoryPageChange}
+              />
+            </div>
+          )}
+          {currentFolder !== null && mediaSuccess && (
+            <div className="shrink-0 border-t border-slate-100">
+              <Pagination
+                media={media}
+                handlePageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+
+      <Dialog
+        open={openModel}
+        onOpenChange={(next) => {
+          if (!next) handleCloseModel();
+        }}
+      >
+        <DialogContent
+          className="z-[110] max-w-md"
+          overlayClassName="z-[100]"
+        >
+          <DialogHeader>
+            <DialogTitle>Create Folder</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <Input
+              label="Create Folder"
+              placeholder="Enter Folder Name"
+              {...register("name")}
+            />
+            <Button type="submit" className="submit-button">
+              <div className="flex justify-center items-center gap-[0.5rem]">
+                Submit
+              </div>
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Dialog>
+  );
+}

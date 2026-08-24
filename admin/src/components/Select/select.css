@@ -1,0 +1,55 @@
+.select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  height: auto !important;
+}
+
+.select-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+  text-align: start;
+}
+
+.select-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.select-field {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--serve-border);
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background-color: var(--input-bg-color);
+  color: var(--serve-fg);
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--serve-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--serve-accent) 15%, transparent);
+}
+
+.select-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.select-left-section,
+.select-right-section {
+  display: flex;
+  align-items: center;
+  margin: 0 0.5rem;
+}
+
+.select-field option,
+.select-field optgroup {
+  max-height: 1px;
+  overflow-y: auto;
+  display: block;
+}

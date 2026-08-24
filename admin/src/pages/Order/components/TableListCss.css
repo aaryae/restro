@@ -1,0 +1,29 @@
+/* Order detail drawer */
+.drawer-container {
+  border-left: 1px solid #dbe4ef;
+  box-shadow: -12px 0 36px color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
+.drawer-container .drawer-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: var(--serve-surface);
+}
+
+/* Drawer width adjustments */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .drawer-container {
+    width: 40% !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .drawer-container {
+    width: 30% !important;
+  }
+}
