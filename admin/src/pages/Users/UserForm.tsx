@@ -21,7 +21,7 @@ import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
 import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
-import { LuImagePlus, LuRotateCcw } from "react-icons/lu";
+import { ImagePlus, RotateCcw } from "lucide-react";
 
 type UserFormType = z.infer<typeof UserSchema>;
 
@@ -30,6 +30,8 @@ type UserFormProps = {
   editId: number | null;
   handleCloseDrawer: () => void;
   onMediaOpenChange?: (open: boolean) => void;
+  createPassword?: string;
+  onNeedPassword?: () => void;
 };
 
 const GenderOptions = [
@@ -41,8 +43,10 @@ const GenderOptions = [
 export default function UserForm({
   editId,
   handleCloseDrawer,
-  isOpen,
+  isOpen: _isOpen,
   onMediaOpenChange,
+  createPassword = "",
+  onNeedPassword,
 }: Readonly<UserFormProps>) {
   const translate = useTranslation();
   const dispatch = useDispatch();
@@ -90,11 +94,10 @@ export default function UserForm({
     } else {
       reset({
         username: "",
-        email: "",
         firstName: "",
         lastName: "",
         mobileNo: "",
-        mobilePrefix: "",
+        mobilePrefix: "+977",
         roleId: "",
         gender: "",
         password: "",
@@ -107,7 +110,7 @@ export default function UserForm({
     if (roleSuccess && roles?.data?.data) {
       const options = roles?.data?.data.map((each) => ({
         label: each.title,
-        value: each.id,
+        value: String(each.id),
       }));
       setRoleOptions(options);
     }
@@ -127,9 +130,17 @@ export default function UserForm({
 
   const onSubmit = async (data: any) => {
     const trimmedData = trimFormData(data);
+    if (editId === null) {
+      const password = String(createPassword || "").trim();
+      if (!password) {
+        onNeedPassword?.();
+        return;
+      }
+      trimmedData.password = password;
+    }
     const body = {
       ...trimmedData,
-      roleId: String(data.roleId),
+      roleId: Number(data.roleId),
       isActive: true,
       imageUrl: image ? image : null,
     };
@@ -141,11 +152,10 @@ export default function UserForm({
           onSuccess: () => {
             reset({
               username: "",
-              email: "",
               firstName: "",
               lastName: "",
               mobileNo: "",
-              mobilePrefix: "",
+              mobilePrefix: "+977",
               roleId: "",
               gender: "",
               password: "",
@@ -177,10 +187,10 @@ export default function UserForm({
       autoComplete="off"
       onSubmit={handleSubmit(onSubmit)}
     >
-      <div className="mb-6 rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50/80 to-white p-5 shadow-sm">
+      <div className="mb-6 rounded-2xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-5">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
-            <div className="h-24 w-24 overflow-hidden rounded-full ring-4 ring-white shadow-md">
+            <div className="h-24 w-24 overflow-hidden rounded-full ring-4 ring-[var(--serve-surface)] shadow-md">
               <img
                 src={image ? buildAssetUrl(image) : userImage}
                 alt="User"
@@ -191,16 +201,16 @@ export default function UserForm({
                 }}
               />
             </div>
-            <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-primaryColor text-white shadow-sm">
-              <LuImagePlus className="h-3.5 w-3.5" />
+            <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--serve-surface)] bg-primaryColor text-white shadow-sm">
+              <ImagePlus className="h-3.5 w-3.5" />
             </div>
           </div>
 
           <div className="flex-1 text-center sm:text-left">
-            <p className="text-sm font-semibold text-slate-800">
+            <p className="text-sm font-semibold text-[var(--serve-fg)]">
               {translate("Profile Photo")}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--serve-muted)]">
               {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
             </p>
             <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
@@ -208,7 +218,7 @@ export default function UserForm({
                 <MediaComponent
                   title={
                     <span className="inline-flex items-center gap-2">
-                      <LuImagePlus className="h-3.5 w-3.5" />
+                      <ImagePlus className="h-3.5 w-3.5" />
                       {translate("Upload New Photo")}
                     </span>
                   }
@@ -219,10 +229,10 @@ export default function UserForm({
               </div>
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 py-2 text-sm font-medium text-[var(--serve-fg)] shadow-sm transition hover:bg-[var(--serve-surface-2)]"
                 onClick={() => setImage("")}
               >
-                <LuRotateCcw className="h-3.5 w-3.5" />
+                <RotateCcw className="h-3.5 w-3.5" />
                 {translate("Reset")}
               </button>
             </div>
@@ -235,8 +245,8 @@ export default function UserForm({
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-2xl border border-[var(--serve-border)] bg-[var(--serve-surface)] p-5">
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--serve-muted)]">
           {translate("Account Details")}
         </h3>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -247,14 +257,6 @@ export default function UserForm({
             autoComplete="new-username"
             {...register("username")}
             error={errors.username?.message}
-            isRequired
-          />
-          <Input
-            label="Email"
-            placeholder="test@gmail.com"
-            type="text"
-            {...register("email")}
-            error={errors.email?.message}
             isRequired
           />
           <Input
@@ -319,22 +321,32 @@ export default function UserForm({
             )}
           />
           {!editId && (
-            <div className="md:col-span-2">
-              <Input
-                label="Password"
-                placeholder="******"
-                type="password"
-                autoComplete="new-password"
-                {...register("password")}
-                error={errors.password?.message}
-                isRequired
-              />
+            <div className="md:col-span-2 rounded-xl border border-dashed border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-4 py-3">
+              <p className="text-sm font-medium text-[var(--serve-fg)]">
+                {translate("Password")}
+              </p>
+              <p className="mt-1 text-xs text-[var(--serve-muted)]">
+                {createPassword
+                  ? translate("Password set on the Security tab.")
+                  : translate(
+                      "Set the login password on the Security tab before creating this user.",
+                    )}
+              </p>
+              {!createPassword ? (
+                <button
+                  type="button"
+                  onClick={() => onNeedPassword?.()}
+                  className="mt-2 text-sm font-medium text-[var(--primary-ink)] underline-offset-2 hover:underline"
+                >
+                  {translate("Go to Security")}
+                </button>
+              ) : null}
             </div>
           )}
         </div>
       </div>
 
-      <div className="sticky bottom-0 -mx-5 mt-6 border-t border-slate-200/80 bg-white/95 px-5 py-4 backdrop-blur-sm sm:-mx-6 sm:px-6">
+      <div className="sticky bottom-0 -mx-5 mt-6 border-t border-[var(--serve-border)] bg-[var(--serve-surface)] px-5 py-4 sm:-mx-6 sm:px-6">
         <div className="flex justify-end">
           <Button
             type="submit"

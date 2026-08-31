@@ -1,4 +1,4 @@
-import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Pagination({ media, handlePageChange }) {
   return (
@@ -12,7 +12,7 @@ export default function Pagination({ media, handlePageChange }) {
           className="rounded-full bg-white border flex justify-center items-center py-[0.5rem] px-[0.75rem] cursor-pointer"
           onClick={() => handlePageChange(media.data.page - 1)} // Decrement page
         >
-          <MdKeyboardArrowLeft />
+          <ChevronLeft />
         </button>
 
         {/* Pagination Numbers */}
@@ -59,7 +59,7 @@ export default function Pagination({ media, handlePageChange }) {
           onClick={() => handlePageChange(media.data.page + 1)}
           // Increment page
         >
-          <MdKeyboardArrowRight />
+          <ChevronRight />
         </button>
       </div>
 

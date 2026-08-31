@@ -128,7 +128,6 @@ const Transaction: React.FC = () => {
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        handleReloadButton={() => refetch()}
         subText="Record deposits and withdrawals across cash and bank accounts."
         extraActions={
           <>

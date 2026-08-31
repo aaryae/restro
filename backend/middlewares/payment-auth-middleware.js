@@ -26,7 +26,7 @@ const requireCheckoutPermission = async (req, res, next) => {
       );
     }
 
-    if (req.user.roleId === SUPER_ADMIN_ROLE_ID) {
+    if (Number(req.user.roleId) === SUPER_ADMIN_ROLE_ID) {
       return next();
     }
 
@@ -49,10 +49,10 @@ const requireCheckoutPermission = async (req, res, next) => {
 
     const serverAccess = await roleActionModel.findOne({
       where: {
-        roleId: req.user.roleId,
+        roleId: Number(req.user.roleId),
         roleMenuActionId: checkoutAction.id,
         isDeleted: false,
-        requiredApproval: 0,
+        requiredApproval: false,
       },
       raw: true,
     });

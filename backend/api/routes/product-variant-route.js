@@ -31,9 +31,9 @@ router.post(
   create,
 );
 
-router.get("/list", paginationValidation, list);
+router.get("/list", authentication, paginationValidation, list);
 
-router.get("/:id", idValidation, getById);
+router.get("/:id", authentication, idValidation, getById);
 
 router.put(
   "/:id",

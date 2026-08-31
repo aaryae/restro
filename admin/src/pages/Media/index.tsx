@@ -1,10 +1,11 @@
-import { FaFolder, FaPlus } from "react-icons/fa";
 import {
-  MdEditSquare,
-  MdKeyboardArrowLeft,
-  MdKeyboardArrowRight,
-  MdPhotoLibrary,
-} from "react-icons/md";
+  ChevronLeft,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  Plus,
+  SquarePen,
+} from "lucide-react";
 import Model from "@/components/Model";
 import { useState, useRef } from "react";
 import Input from "@/components/Input";
@@ -30,13 +31,13 @@ export default function Media() {
 
   const accessList = checkAccess("Media Category");
 
-  const [open, setOpen] = useState<boolean>(false);
-  const [openModel, setOpenModel] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const [openModel, setOpenModel] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null); // Track which input is being edited
-  const [inputValues, setInputValues] = useState<{ [key: number]: string }>({}); // Store input values dynamically
-  const inputRefs = useRef<(HTMLTextAreaElement | null)[]>([]); // Store refs for all textarea inputs
-  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [inputValues, setInputValues] = useState<{ [key: number]: string }>({});
+  const inputRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const [pageNumber, setPageNumber] = useState(1);
 
   const { register, handleSubmit, reset } = useForm();
 
@@ -49,16 +50,14 @@ export default function Media() {
   const [renameFolder] = useUpdateMediaCategoryByIdMutation();
   const [deleteFolder] = useDeleteMediaCategoryMutation();
 
-  const handleOpenModel = () => {
-    setOpenModel(true);
-  };
+  const handleOpenModel = () => setOpenModel(true);
 
   const handleCloseModel = () => {
     setOpenModel(false);
     reset();
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: { name?: string }) => {
     try {
       const response = await createFolder(data).unwrap();
       handleResponse({ res: response, onSuccess: handleCloseModel });
@@ -70,23 +69,18 @@ export default function Media() {
   };
 
   const handleEditClick = (index: number) => {
-    setEditingIndex(index); // Set the editing index
-    setTimeout(() => inputRefs.current[index]?.focus(), 0); // Focus on the input
+    setEditingIndex(index);
+    setTimeout(() => inputRefs.current[index]?.focus(), 0);
   };
 
   const handleInputChange = (index: number, value: string) => {
-    setInputValues((prev) => ({
-      ...prev,
-      [index]: value, // Dynamically update the value for the input at the specified index
-    }));
+    setInputValues((prev) => ({ ...prev, [index]: value }));
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
     if (page >= 1 && page <= mediaCategoryList?.data?.totalPages) {
       if (pageSize) {
-        // If pageSize is provided, update both page and limit
-        setPageNumber(1); // Reset to first page when changing page size
-        // You might want to update the limit in your API call here
+        setPageNumber(1);
       } else {
         setPageNumber(page);
       }
@@ -111,17 +105,15 @@ export default function Media() {
   };
 
   const handleInputKeyDown = async (
-    event: React.KeyboardEvent<HTMLInputElement>,
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
     index: number,
     id: number,
   ) => {
     if (event.key === "Enter") {
+      event.preventDefault();
       const body = { name: inputValues[index] };
       const response = await renameFolder({ body, id }).unwrap();
-      handleResponse({
-        res: response,
-        onSuccess: () => {},
-      });
+      handleResponse({ res: response, onSuccess: () => {} });
       setEditingIndex(null);
     }
   };
@@ -129,85 +121,120 @@ export default function Media() {
   const mediaCategory = mediaCategoryList?.data?.data ?? [];
 
   return (
-    <div className="relative mt-[3rem] flex flex-col">
-      {/* button section */}
-      <div className="flex justify-end gap-[1rem]">
-        {accessList.includes("add") && (
+    <div className="relative mt-6 flex min-w-0 flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight text-[var(--serve-fg)]">
+            {translate("Media")}
+          </h1>
+          <p className="mt-0.5 text-[13px] text-[var(--serve-muted)]">
+            Folders for menu photos and other images
+          </p>
+        </div>
+        {accessList.includes("add") ? (
           <button
-            className="bg-secondaryBtn px-[10px] py-[0.5rem] text-white rounded-[0.3rem] flex items-center gap-[10px] cursor-pointer"
+            type="button"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--primary-color)] px-3 text-[13px] font-semibold text-[var(--primary-fg,#fff)] transition hover:opacity-95"
             onClick={handleOpenModel}
           >
-            <FaPlus size={16} />
+            <Plus size={16} strokeWidth={2.25} />
             {translate("New Folder")}
           </button>
+        ) : null}
+      </div>
+
+      <div className="mt-6 w-full">
+        {mediaCategory.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-6 py-16 text-center">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--serve-accent)_14%,transparent)] text-[var(--serve-accent)]">
+              <FolderOpen size={28} strokeWidth={1.75} />
+            </span>
+            <p className="mt-4 text-sm font-medium text-[var(--serve-fg)]">
+              No folders yet
+            </p>
+            <p className="mt-1 max-w-sm text-[13px] text-[var(--serve-muted)]">
+              Create a folder to organise menu photos, then open it to upload
+              images.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
+            {mediaCategory.map(
+              (each: { id: number; name: string }, index: number) => (
+                <button
+                  key={each.id}
+                  type="button"
+                  className="group relative flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 py-4 text-left transition hover:border-[color-mix(in_srgb,var(--serve-accent)_35%,var(--serve-border))] hover:bg-[var(--serve-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--serve-accent)_45%,transparent)]"
+                  onClick={() => navigate(`${MEDIA_LIST_ROUTE}${each.id}`)}
+                >
+                  {accessList.includes("delete") ? (
+                    <div
+                      className="absolute left-2 top-2 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DeleteModal
+                        open={open}
+                        setOpen={setOpen}
+                        itemId={each.id}
+                        activeId={deleteId}
+                        handleDeleteTrigger={() => handleDeleteTrigger(each.id)}
+                        handleConfirmDelete={handleDelete}
+                      />
+                    </div>
+                  ) : null}
+
+                  {accessList.includes("edit") ? (
+                    <button
+                      type="button"
+                      aria-label="Rename folder"
+                      className="absolute right-2 top-2 z-10 rounded-md p-1.5 text-[var(--serve-muted)] opacity-100 transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-accent)] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(index);
+                      }}
+                    >
+                      <SquarePen size={15} />
+                    </button>
+                  ) : null}
+
+                  <Folder
+                    size={72}
+                    strokeWidth={1}
+                    className="mb-1 h-16 w-16 shrink-0 text-yellow-500 transition group-hover:text-yellow-400 sm:h-[5.5rem] sm:w-[5.5rem]"
+                    fill="currentColor"
+                  />
+
+                  <textarea
+                    ref={(el) => {
+                      inputRefs.current[index] = el;
+                    }}
+                    className={`w-full resize-none overflow-hidden break-words bg-transparent text-center text-[13px] font-medium leading-snug text-[var(--serve-fg)] outline-none sm:text-sm ${
+                      editingIndex === index
+                        ? "rounded-md ring-1 ring-[var(--serve-accent)]"
+                        : "pointer-events-none"
+                    }`}
+                    value={
+                      inputValues[index] !== undefined
+                        ? inputValues[index]
+                        : each.name
+                    }
+                    disabled={editingIndex !== index}
+                    onChange={(e) => handleInputChange(index, e.target.value)}
+                    onKeyDown={(e) => handleInputKeyDown(e, index, each.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    rows={2}
+                  />
+                </button>
+              ),
+            )}
+          </div>
         )}
       </div>
-      {/* folder section */}
-      <div className="mt-[5rem] flex justify-start  w-full">
-        <div className="flex flex-wrap justify-left lg:gap-[3rem] gap-[2rem] w-fit max-w-full place-items-center">
-          {mediaCategory?.map(
-            (each: { id: number; name: string }, index: number) => (
-              <button
-                key={each.id}
-                type="button"
-                className="relative border w-fit px-[1.5rem] pt-[1.5rem] pb-[1rem] cursor-pointer group"
-                onClick={() => navigate(`${MEDIA_LIST_ROUTE}${each.id}`)}
-                style={{ userSelect: "none" }}
-              >
-                {accessList.includes("delete") && (
-                  <div
-                    className="absolute top-[0.5rem] left-[0.5rem] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DeleteModal
-                      open={open}
-                      setOpen={setOpen}
-                  itemId={each.id}
-                  activeId={deleteId}
-                      handleDeleteTrigger={() => handleDeleteTrigger(each.id)}
-                      handleConfirmDelete={handleDelete}
-                    />
-                  </div>
-                )}
-                {accessList.includes("edit") && (
-                  <MdEditSquare
-                    className="absolute top-[0.5rem] right-[0.5rem] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-[#0090DD]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditClick(index);
-                    }}
-                  />
-                )}
-                <FaFolder
-                  size={108}
-                  className="text-yellow-500 group-hover:text-blue-500"
-                />
-                <textarea
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  className={`bg-inherit text-black w-[6rem] text-center resize-none overflow-hidden break-words whitespace-pre-wrap ${
-                    editingIndex !== index ? "pointer-events-none" : ""
-                  }`}
-                  value={
-                    inputValues[index] !== undefined
-                      ? inputValues[index]
-                      : each.name
-                  }
-                  disabled={editingIndex !== index}
-                  onChange={(e) => handleInputChange(index, e.target.value)}
-                  onKeyDown={(e) => handleInputKeyDown(e, index, each.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  rows={2}
-                />
-              </button>
-            ),
-          )}
-        </div>
-      </div>
-      {/* Pagination Section */}
-      {mediaCategorySuccess && (
-        <div className="bottom-0  border-t border-gray-200 px-4 py-3 mt-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
+
+      {mediaCategorySuccess ? (
+        <div className="mt-6 border-t border-[var(--serve-border)] px-1 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-[13px] text-[var(--serve-muted)]">
               Show:
               <Select
                 value={mediaCategoryList.data.limit}
@@ -225,10 +252,11 @@ export default function Media() {
 
             <div className="flex items-center gap-2">
               <button
-                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+                type="button"
+                className={`rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] p-2 text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)] ${
                   mediaCategoryList.data.page === 1 ||
                   mediaCategoryList.data.total === 0
-                    ? "opacity-50 cursor-not-allowed"
+                    ? "cursor-not-allowed opacity-40"
                     : ""
                 }`}
                 disabled={
@@ -240,18 +268,19 @@ export default function Media() {
                 }
                 aria-label="Previous Page"
               >
-                <MdKeyboardArrowLeft size={18} />
+                <ChevronLeft size={18} />
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="min-w-[7rem] text-center text-[13px] text-[var(--serve-fg)]">
                 Page {mediaCategoryList.data.page} of{" "}
                 {mediaCategoryList.data.totalPages}
               </span>
               <button
-                className={`p-2 rounded-md border text-gray-700 hover:bg-gray-100 transition ${
+                type="button"
+                className={`rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] p-2 text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)] ${
                   mediaCategoryList.data.page ===
                     mediaCategoryList.data.totalPages ||
                   mediaCategoryList.data.total === 0
-                    ? "opacity-50 cursor-not-allowed"
+                    ? "cursor-not-allowed opacity-40"
                     : ""
                 }`}
                 disabled={
@@ -264,37 +293,39 @@ export default function Media() {
                 }
                 aria-label="Next Page"
               >
-                <MdKeyboardArrowRight size={18} />
+                <ChevronRight size={18} />
               </button>
             </div>
 
-            <div className="text-sm text-gray-700">
-              Total: {mediaCategoryList.data.total}
+            <div className="text-[13px] text-[var(--serve-muted)] sm:text-right">
+              Total:{" "}
+              <span className="font-medium text-[var(--serve-fg)]">
+                {mediaCategoryList.data.total}
+              </span>
             </div>
           </div>
         </div>
-      )}
-      <div className="absolute top-[25%] pl-[25%] w-full">
-        <Model
-          title={translate("Create Folder")}
-          isOpen={openModel}
-          onClose={handleCloseModel}
-        >
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Input
-              label={translate("Folder Name")}
-              placeholder="Enter Folder Name"
-              className="mb-[1rem]"
-              {...register("name")}
-            />
-            <Button type="submit" className="submit-button">
-              <div className="flex justify-center items-center gap-[0.5rem]">
-                {translate("Submit")}
-              </div>
-            </Button>
-          </form>
-        </Model>
-      </div>
+      ) : null}
+
+      <Model
+        title={translate("Create Folder")}
+        isOpen={openModel}
+        onClose={handleCloseModel}
+      >
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Input
+            label={translate("Folder Name")}
+            placeholder="Enter Folder Name"
+            className="mb-[1rem]"
+            {...register("name")}
+          />
+          <Button type="submit" className="submit-button">
+            <div className="flex items-center justify-center gap-[0.5rem]">
+              {translate("Submit")}
+            </div>
+          </Button>
+        </form>
+      </Model>
     </div>
   );
 }

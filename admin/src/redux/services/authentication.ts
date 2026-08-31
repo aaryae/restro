@@ -50,6 +50,9 @@ const authenticationApi = api.injectEndpoints({
       query: () => `auth/profile`,
       providesTags: ["profile"],
     }),
+    getSessionAccess: builder.query({
+      query: () => `auth/access`,
+    }),
     updateUser: builder.mutation({
       query: ({ body, id }) => ({
         url: `auth/${id}`,
@@ -57,6 +60,14 @@ const authenticationApi = api.injectEndpoints({
         body,
       }),
       invalidatesTags: ["users", "profile"],
+    }),
+    toggleUserActive: builder.mutation({
+      query: ({ id, isActive }: { id: number; isActive: boolean }) => ({
+        url: `auth/${id}`,
+        method: "PATCH",
+        body: { isActive },
+      }),
+      invalidatesTags: ["users"],
     }),
     updateProfile: builder.mutation({
       query: (body) => ({
@@ -125,8 +136,10 @@ export const {
   useGetAllUserQuery,
   useGetUserByIdQuery,
   useUpdateUserMutation,
+  useToggleUserActiveMutation,
   useUpdateProfileMutation,
   useGetProfileQuery,
+  useGetSessionAccessQuery,
   useChangePasswordMutation,
   useResetPasswordMutation,
   useDeleteUserMutation,

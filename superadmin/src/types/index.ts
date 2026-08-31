@@ -76,3 +76,24 @@ export type PlatformPermissionOption = {
   key: PlatformPermission
   label: string
 }
+
+/** Platform (Serve) outbound mail — public.smtp */
+export type PlatformSmtp =
+  | { configured: false }
+  | {
+      configured: true
+      id: number
+      username: string
+      host: string
+      port: number
+      secure: boolean
+      hasPasskey: boolean
+    }
+
+export type PlatformSmtpInput = {
+  username: string
+  host: string
+  port: number
+  secure: boolean
+  passkey?: string
+}

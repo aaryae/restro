@@ -24,12 +24,12 @@ services:
     container_name: serve-api
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8081:8080"
     env_file:
       - ./backend/.env
     environment:
-      NODE_ENV: development
-      ENV: development
+      NODE_ENV: ${APP_ENV:-development}
+      ENV: ${APP_ENV:-development}
       APP_NAME: SERVE
       PORT: "8080"
       DB_HOST: db
@@ -38,11 +38,98 @@ services:
       DB_PASSWORD: root
       DB_NAME: nirvana_restro
       DB_DIALECT: postgres
+      POS_PUBLIC_URL: ${PUBLIC_ADMIN_URL:-http://localhost:7001}
+      POS_PUBLIC_PORT: "7001"
+      TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend/resources:/app/resources
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+      args:
+        VITE_BACKEND_BASE_URL: ${PUBLIC_API_URL:-http://localhost:8081/api/v1/}
+        VITE_IMAGE_BASE_URL: ${PUBLIC_IMAGE_URL:-http://localhost:8081/}
+        VITE_FRONTEND_BASE_URL: ${PUBLIC_ADMIN_URL:-http://localhost:7001}
+        VITE_WEBSOCKET_BASE_URL: ${PUBLIC_WS_URL:-ws://localhost:8081}
+        VITE_SERVE_URL: ${PUBLIC_SERVE_URL:-http://localhost:3000}
+        VITE_TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
+    container_name: serve-admin
+    restart: unless-stopped
+    ports:
+      - "7001:8080"
+    depends_on:
+      - api
+
+  superadmin:
+    build:
+      context: ./superadmin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${PUBLIC_API_ORIGIN:-http://localhost:8081/api/v1}
+        VITE_POS_URL: ${PUBLIC_ADMIN_URL:-http://localhost:7001}
+        VITE_TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
+    container_name: serve-superadmin
+    restart: unless-stopped
+    ports:
+      - "7002:8080"
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: ./serve
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_API_ORIGIN:-http://localhost:8081/api/v1}
+        NEXT_PUBLIC_POS_URL: ${PUBLIC_ADMIN_URL:-http://localhost:7001}
+        NEXT_PUBLIC_TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
+    container_name: serve-web
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://api:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  gateway:
+    image: nginx:alpine
+    container_name: serve-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - web
+
+  # Public internet via Cloudflare Tunnel (profile: tunnel).
+  # Hostnames (configure in Cloudflare Zero Trust → Tunnels → Public Hostname):
+  #   serve.technirvana.com.np       → http://web:3000
+  #   serveapi.technirvana.com.np    → http://api:8080
+  #   platform.technirvana.com.np    → http://superadmin:8080
+  #   *.technirvana.com.np           → http://admin:8080   (cafe POS)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: serve-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - api
+      - web
+      - admin
+      - superadmin
+    profiles:
+      - tunnel
 
 volumes:
   serve_pgdata:

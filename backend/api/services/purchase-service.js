@@ -288,9 +288,17 @@ const list = async (req) => {
         data: null,
       };
     }
+
+    const grandTotal = await purchaseModel.sum("totalAmount", {
+      where: filters,
+    });
+
     return {
       ...generalConstant.EN.PURCHASE.PURCHASE_LIST_SUCCESS,
-      data: result,
+      data: {
+        ...result,
+        grandTotal: parseFloat(grandTotal || 0),
+      },
     };
   } catch (error) {
     throw error;
@@ -1130,37 +1138,19 @@ const dailySummary = async (req) => {
       return `${y}-${m}-${day}`;
     };
 
-    const startYmd = toYmd(start);
-    const endYmd = toYmd(end);
-    const rangeStart = new Date(`${startYmd}T00:00:00.000Z`);
-    const rangeEnd = new Date(`${endYmd}T23:59:59.999Z`);
-
-    const rows = await purchaseModel.findAll({
-      attributes: [
-        [sequelize.fn("DATE", sequelize.col("invoiceDate")), "date"],
-        [sequelize.fn("SUM", sequelize.col("totalAmount")), "amount"],
-      ],
-      where: {
-        status,
-        invoiceDate: { [Sequelize.Op.between]: [rangeStart, rangeEnd] },
-      },
-      group: [sequelize.fn("DATE", sequelize.col("invoiceDate"))],
-      raw: true,
-    });
-
-    const byDate = new Map(
-      rows.map((r) => [
-        String(r.date).slice(0, 10),
-        Number(r.amount) || 0,
-      ]),
-    );
-
     const data = [];
     for (let i = 0; i < days; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       const ymd = toYmd(d);
-      data.push({ date: ymd, amount: byDate.get(ymd) || 0 });
+      const range = getLocalDateRange(ymd, ymd);
+      const total = await purchaseModel.sum("totalAmount", {
+        where: {
+          status,
+          invoiceDate: { [Sequelize.Op.between]: [range.start, range.end] },
+        },
+      });
+      data.push({ date: ymd, amount: Number(total) || 0 });
     }
 
     return {

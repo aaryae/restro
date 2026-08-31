@@ -2,10 +2,20 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Building2,
   LayoutDashboard,
+  Mail,
   ScrollText,
   Settings,
+  Users,
 } from 'lucide-react'
 import type { PlatformPermission } from '@/types'
+
+export type SideMenuChild = {
+  key: string
+  label: string
+  path: string
+  icon: LucideIcon
+  permission?: PlatformPermission
+}
 
 export type SideMenuItem = {
   key: string
@@ -14,6 +24,7 @@ export type SideMenuItem = {
   icon: LucideIcon
   /** If set, item is shown only when user has this permission (owners have all). */
   permission?: PlatformPermission
+  children?: SideMenuChild[]
 }
 
 export const sideMenuItems: SideMenuItem[] = [
@@ -44,5 +55,21 @@ export const sideMenuItems: SideMenuItem[] = [
     path: '/settings',
     icon: Settings,
     permission: 'users.manage',
+    children: [
+      {
+        key: 'operators',
+        label: 'Operators',
+        path: '/settings/operators',
+        icon: Users,
+        permission: 'users.manage',
+      },
+      {
+        key: 'smtp',
+        label: 'SMTP',
+        path: '/settings/smtp',
+        icon: Mail,
+        permission: 'users.manage',
+      },
+    ],
   },
 ]

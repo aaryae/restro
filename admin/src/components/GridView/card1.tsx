@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LuArrowUpRight, LuMail, LuPhone, LuUser } from "react-icons/lu";
+import { ArrowUpRight, Mail, Phone, User } from "lucide-react";
 import userImage from "@/assets/user_image.jpeg";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { cn } from "@/lib/utils";
@@ -108,14 +108,14 @@ export default function Card1({
         {email ? (
           <div className="flex items-center gap-2.5 text-sm text-slate-600">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-400">
-              <LuMail className="h-3.5 w-3.5" />
+              <Mail className="h-3.5 w-3.5" />
             </span>
             <span className="truncate">{email}</span>
           </div>
         ) : (
           <div className="flex items-center gap-2.5 text-sm text-slate-400">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-50">
-              <LuMail className="h-3.5 w-3.5" />
+              <Mail className="h-3.5 w-3.5" />
             </span>
             <span>No email</span>
           </div>
@@ -124,14 +124,14 @@ export default function Card1({
         {mobileNo ? (
           <div className="flex items-center gap-2.5 text-sm text-slate-600">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-400">
-              <LuPhone className="h-3.5 w-3.5" />
+              <Phone className="h-3.5 w-3.5" />
             </span>
             <span>{mobileNo}</span>
           </div>
         ) : (
           <div className="flex items-center gap-2.5 text-sm text-slate-400">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-50">
-              <LuPhone className="h-3.5 w-3.5" />
+              <Phone className="h-3.5 w-3.5" />
             </span>
             <span>No phone</span>
           </div>
@@ -140,10 +140,10 @@ export default function Card1({
 
       <div className="mt-3 flex items-center justify-between text-xs font-medium text-slate-400 transition-colors group-hover:text-primaryColor">
         <span className="inline-flex items-center gap-1">
-          <LuUser className="h-3.5 w-3.5" />
+          <User className="h-3.5 w-3.5" />
           View profile
         </span>
-        <LuArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       </div>
     </button>
   );

@@ -2,13 +2,23 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import { CurrencySign } from "@/constants";
 import { PiggyBank, Wallet, Building2 } from "lucide-react";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
-import SummaryCard from "@/components/SummaryCard";
+import SummaryCard, { type SummaryTint } from "@/components/SummaryCard";
 import {
   formatCurrencyAmount,
   sumAccountBalances,
 } from "@/utils/formatCurrency";
 
-const accountTones = ["emerald", "sky", "violet", "teal", "indigo", "amber"] as const;
+/** Accounts are genuinely distinct categories, so they cycle the palette. */
+const ACCOUNT_TINTS: SummaryTint[] = [
+  "teal",
+  "cerulean",
+  "plum",
+  "bronze",
+  "indigo",
+  "olive",
+  "violet",
+  "vermilion",
+];
 
 function CashAndBank() {
   const { data: totalAndBalancesData, isLoading } = useGetApiQuery({
@@ -18,12 +28,12 @@ function CashAndBank() {
   if (isLoading) {
     return (
       <div className="min-w-0 space-y-4">
-        <div className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+        <div className="h-28 animate-pulse rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)]" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-[76px] animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+              className="h-[76px] animate-pulse rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)]"
             />
           ))}
         </div>
@@ -37,21 +47,19 @@ function CashAndBank() {
   return (
     <div className="min-w-0 space-y-4">
       {totalAndBalancesData?.success && (
-        <div className="overflow-hidden rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 shadow-sm sm:p-5">
+        <div className="dash-card dash-kpi overflow-hidden p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-violet-700">
-                Total Balance
-              </p>
-              <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-slate-900 sm:text-3xl">
+              <p className="dash-kpi-label">Total Balance</p>
+              <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-[var(--serve-fg)] sm:text-3xl">
                 {`${CurrencySign}${formatCurrencyAmount(totalBalance)}`}
               </p>
-              <p className="mt-1.5 text-[12px] text-slate-500">
+              <p className="mt-1.5 text-[12px] text-[var(--serve-muted)]">
                 Across {accounts.length} account
                 {accounts.length === 1 ? "" : "s"}
               </p>
             </div>
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 ring-1 ring-violet-200">
+            <span className="dash-kpi-icon h-11 w-11 rounded-xl">
               <PiggyBank className="h-5 w-5" />
             </span>
           </div>
@@ -65,14 +73,14 @@ function CashAndBank() {
               (account?.accountType || account?.type || "").toLowerCase() ===
               "bank";
             const Icon = isBank ? Building2 : Wallet;
-            const tone = accountTones[index % accountTones.length];
 
             return (
               <SummaryCard
                 key={account.id}
                 title={account.name}
                 value={`${CurrencySign}${formatCurrencyAmount(account.currentBalance)}`}
-                tone={tone}
+                amount={Number(account.currentBalance) || 0}
+                tint={ACCOUNT_TINTS[index % ACCOUNT_TINTS.length]}
                 Icon={Icon}
               />
             );

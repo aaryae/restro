@@ -273,6 +273,24 @@ const authGetProfile = async (req, res, next) => {
   }
 };
 
+const authGetAccess = async (req, res, next) => {
+  try {
+    const access = await userService.getSessionAccess(req);
+    return responseHelper.sendResponse(
+      res,
+      access.status,
+      access.success,
+      access.data,
+      access.errors || null,
+      access.message,
+      null,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const updateProfile = async (req, res, next) => {
   try {
     const getUser = await userService.updateProfile(req, res, next);
@@ -398,6 +416,7 @@ module.exports = {
   authListUser,
   authIsActiveUser,
   authGetProfile,
+  authGetAccess,
   authLogout,
   authChangePassword,
   resetPassword,

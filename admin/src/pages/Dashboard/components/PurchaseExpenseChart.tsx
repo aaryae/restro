@@ -11,23 +11,14 @@ import {
   CHART_EXPENSE_COLORS,
   CHART_PURCHASE_COLORS,
 } from "../chartTheme";
+import { toTrendData } from "../dashboardHelpers";
 
 const PieChartComponent = lazy(() => import("../PieChartComponent"));
-const BarChartComponent = lazy(() => import("../BarChartComponent"));
 const LineChartComponent = lazy(() => import("../LineChartComponent"));
 
 function ChartFallback() {
   return <div className="h-[280px] animate-pulse rounded-lg bg-slate-50" />;
 }
-
-function toBarData(data: any[]) {
-  return (data || []).map((item) => ({
-    name: item.name,
-    amount: Number(item.value ?? item.amount ?? 0),
-  }));
-}
-
-import { toTrendData } from "../dashboardHelpers";
 
 function canViewCategory(access: string[]) {
   return (
@@ -44,21 +35,16 @@ function PurchaseExpenseSection() {
   const canPurchaseCategory = canViewCategory(purchaseAccess);
   const canExpenseCategory = canViewCategory(expenseAccess);
 
-  const needPurchaseCategory =
-    purchaseChart === "pie" || purchaseChart === "bar";
-  const needExpenseCategory =
-    expenseChart === "pie" || expenseChart === "bar";
-
   const { data: purchaseCategoryData, isLoading: loadingPurchase } =
     useGetApiQuery(
       { url: `${PURCHASE_URL}category-summary?status=completed` },
-      { skip: !canPurchaseCategory || !needPurchaseCategory },
+      { skip: !canPurchaseCategory || purchaseChart !== "pie" },
     );
 
   const { data: expenseCategoryData, isLoading: loadingExpense } =
     useGetApiQuery(
       { url: `${EXPENSE_URL}category-summary` },
-      { skip: !canExpenseCategory || !needExpenseCategory },
+      { skip: !canExpenseCategory || expenseChart !== "pie" },
     );
 
   const { data: purchaseDailyData, isLoading: loadingPurchaseDaily } =
@@ -113,6 +99,7 @@ function PurchaseExpenseSection() {
         icon={PieChart}
         chartType={purchaseChart}
         onChartTypeChange={setPurchaseChart}
+        allowedChartTypes={["pie", "line"]}
         loading={
           purchaseChart === "line" ? loadingPurchaseDaily : loadingPurchase
         }
@@ -125,17 +112,6 @@ function PurchaseExpenseSection() {
                 responsive
                 height={280}
                 showLegend
-                colorScale={CHART_PURCHASE_COLORS}
-              />
-            )}
-            {purchaseChart === "bar" && (
-              <BarChartComponent
-                data={toBarData(purchaseCategoryChartData)}
-                dataKeys={["amount"]}
-                height={280}
-                xAxisLabel="Category"
-                yAxisLabel="Amount"
-                showLegend={false}
                 colorScale={CHART_PURCHASE_COLORS}
               />
             )}
@@ -159,6 +135,7 @@ function PurchaseExpenseSection() {
         icon={Receipt}
         chartType={expenseChart}
         onChartTypeChange={setExpenseChart}
+        allowedChartTypes={["pie", "line"]}
         loading={
           expenseChart === "line" ? loadingExpenseDaily : loadingExpense
         }
@@ -171,17 +148,6 @@ function PurchaseExpenseSection() {
                 responsive
                 height={280}
                 showLegend
-                colorScale={CHART_EXPENSE_COLORS}
-              />
-            )}
-            {expenseChart === "bar" && (
-              <BarChartComponent
-                data={toBarData(expenseCategoryChartData)}
-                dataKeys={["amount"]}
-                height={280}
-                xAxisLabel="Category"
-                yAxisLabel="Amount"
-                showLegend={false}
                 colorScale={CHART_EXPENSE_COLORS}
               />
             )}

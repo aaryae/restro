@@ -79,11 +79,13 @@ const NepalPayIntegrationModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="serve-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-3xl rounded-xl shadow-2xl flex flex-col max-h-[90vh]"
+        role="dialog"
+        aria-modal="true"
+        className="serve-modal flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b flex items-center justify-between">

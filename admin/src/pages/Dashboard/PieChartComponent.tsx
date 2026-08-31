@@ -1,17 +1,13 @@
 import React, { useMemo, useState } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Sector,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 import chroma from "chroma-js";
 import { VerticalAlignmentType } from "recharts/types/component/DefaultLegendContent";
 import {
-  CHART_PALETTE,
+  chartSurfaceStroke,
   formatChartValue,
+  useChartPalette,
 } from "./chartTheme";
+import ChartEmptyState from "./components/ChartEmptyState";
 
 interface ChartData {
   name: string;
@@ -34,19 +30,9 @@ interface PieChartProps {
   colors?: string[];
 }
 
-const generateColors = (
-  count: number,
-  colorScale: string[] = CHART_PALETTE,
-): string[] => {
+const generateColors = (count: number, colorScale: string[]): string[] => {
   if (colorScale.length >= count) return colorScale.slice(0, count);
-  const colors = chroma.scale(colorScale).mode("lch").colors(count);
-  return colors.map((color) => {
-    const contrast = chroma.contrast(color, "#fff");
-    if (contrast < 4.5) {
-      return chroma(color).luminance(0.5).hex();
-    }
-    return color;
-  });
+  return chroma.scale(colorScale).mode("lch").colors(count);
 };
 
 function ActiveShape(props: any) {
@@ -54,29 +40,27 @@ function ActiveShape(props: any) {
     props;
 
   return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 4}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-        stroke="#fff"
-        strokeWidth={2}
-        cornerRadius={3}
-      />
-    </g>
+    <Sector
+      cx={cx}
+      cy={cy}
+      innerRadius={innerRadius}
+      outerRadius={outerRadius + 5}
+      startAngle={startAngle}
+      endAngle={endAngle}
+      fill={fill}
+      stroke={chartSurfaceStroke}
+      strokeWidth={3}
+      cornerRadius={4}
+    />
   );
 }
 
 const PieChartComponent: React.FC<PieChartProps> = ({
   data,
   width = 400,
-  height = 300,
+  height: _height = 300,
   showTooltip: _showTooltip = true,
-  colorScale = CHART_PALETTE,
+  colorScale,
   nameKey = "name",
   dataKey = "value",
   responsive = false,
@@ -84,6 +68,8 @@ const PieChartComponent: React.FC<PieChartProps> = ({
   showLegend = true,
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const themePalette = useChartPalette();
+  const scale = colorScale ?? themePalette;
 
   const chartData = useMemo(
     () =>
@@ -102,55 +88,47 @@ const PieChartComponent: React.FC<PieChartProps> = ({
     if (fixedColors && fixedColors.length >= chartData.length) {
       return fixedColors.slice(0, chartData.length);
     }
-    return generateColors(chartData.length, colorScale);
-  }, [chartData.length, fixedColors, colorScale]);
+    return generateColors(chartData.length, scale);
+  }, [chartData.length, fixedColors, scale]);
 
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
   const containerProps = responsive ? { width: "100%", aspect: 1 } : {};
 
   const activeItem =
-    activeIndex != null && chartData[activeIndex]
-      ? chartData[activeIndex]
-      : null;
+    activeIndex != null && chartData[activeIndex] ? chartData[activeIndex] : null;
   const activePct =
     activeItem && total > 0
       ? ((Number(activeItem.value) || 0) / total) * 100
       : null;
 
-  if (!chartData.length) {
-    return (
-      <div className="flex h-[260px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white text-center">
-        <p className="text-[13px] font-medium text-slate-600">No data yet</p>
-        <p className="mt-1 text-[12px] text-slate-400">
-          Charts will appear once records are available
-        </p>
-      </div>
-    );
-  }
+  if (!chartData.length) return <ChartEmptyState />;
 
   return (
     <div className="min-w-0 w-full">
-      <div className="relative mx-auto aspect-square w-full max-w-[260px] overflow-visible">
+      <div className="relative mx-auto aspect-square w-full max-w-[240px]">
         <ChartContainer
           id="pie-chart"
           className="recharts-responsive-container relative z-10"
           {...containerProps}
         >
-          <PieChart width={responsive ? undefined : width} height={responsive ? undefined : width}>
+          <PieChart
+            width={responsive ? undefined : width}
+            height={responsive ? undefined : width}
+          >
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
-              innerRadius="58%"
-              outerRadius="78%"
+              innerRadius="68%"
+              outerRadius="94%"
               dataKey={dataKey}
               nameKey={nameKey}
-              paddingAngle={chartData.length > 1 ? 2 : 0}
-              stroke="#fff"
-              strokeWidth={2}
-              cornerRadius={3}
+              paddingAngle={chartData.length > 1 ? 1.5 : 0}
+              stroke={chartSurfaceStroke}
+              strokeWidth={3}
+              cornerRadius={4}
               isAnimationActive
-              animationDuration={700}
+              animationDuration={650}
               animationEasing="ease-out"
               activeIndex={activeIndex ?? undefined}
               activeShape={ActiveShape}
@@ -161,43 +139,39 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                 <Cell
                   key={`cell-${index}`}
                   fill={colors[index]}
-                  style={{
-                    outline: "none",
-                    filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.06))",
-                    cursor: "pointer",
-                  }}
+                  style={{ outline: "none", cursor: "pointer" }}
                 />
               ))}
             </Pie>
           </PieChart>
         </ChartContainer>
 
-        {/* Center label stays under tooltips; only covers the donut hole */}
+        {/* Sits inside the donut hole only, so it never blocks slice hovers. */}
         <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center">
-          <div className="flex h-[46%] w-[46%] max-w-[9.5rem] flex-col items-center justify-center rounded-full bg-white/95 px-2 text-center shadow-[inset_0_0_0_1px_rgba(226,232,240,0.9)]">
+          <div className="flex w-[58%] flex-col items-center justify-center text-center">
             {activeItem ? (
               <>
                 <p
-                  className="line-clamp-2 text-[10px] font-medium leading-tight text-slate-500"
+                  className="line-clamp-2 text-[11px] font-medium leading-tight text-[var(--serve-muted)]"
                   title={String(activeItem.name)}
                 >
                   {String(activeItem.name)}
                 </p>
-                <p className="mt-1 text-sm font-semibold tabular-nums text-slate-800 sm:text-base">
+                <p className="mt-1 text-[15px] font-bold tabular-nums tracking-tight text-[var(--serve-fg)]">
                   {formatChartValue(Number(activeItem.value) || 0)}
                 </p>
                 {activePct != null && (
-                  <p className="mt-0.5 text-[10px] tabular-nums text-slate-400">
+                  <p className="mt-0.5 text-[11px] font-medium tabular-nums text-[var(--serve-muted)]">
                     {activePct.toFixed(1)}%
                   </p>
                 )}
               </>
             ) : (
               <>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--serve-muted)]">
                   Total
                 </p>
-                <p className="mt-0.5 text-base font-semibold tabular-nums text-slate-800 sm:text-lg">
+                <p className="mt-1 text-[17px] font-bold tabular-nums tracking-tight text-[var(--serve-fg)]">
                   {formatChartValue(total)}
                 </p>
               </>
@@ -207,35 +181,38 @@ const PieChartComponent: React.FC<PieChartProps> = ({
       </div>
 
       {showLegend && (
-        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="mt-5 flex flex-col gap-1">
           {chartData.map((item, index) => {
             const pct = total > 0 ? ((item.value || 0) / total) * 100 : 0;
             const isActive = activeIndex === index;
             return (
               <div
                 key={String(item.name)}
-                className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 transition ${
-                  isActive
-                    ? "border-slate-300 bg-white shadow-sm"
-                    : "border-slate-100 bg-slate-50/60"
-                }`}
+                className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 transition-colors"
+                style={{
+                  backgroundColor: isActive
+                    ? "var(--serve-surface-2)"
+                    : "transparent",
+                }}
                 onMouseEnter={() => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
                   <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: colors[index] }}
                   />
-                  <span className="truncate text-[12px] font-medium text-slate-700">
+                  <span className="truncate text-[12.5px] font-medium text-[var(--serve-fg)]">
                     {item.name}
                   </span>
                 </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-[12px] font-semibold tabular-nums text-slate-800">
+                <div className="flex shrink-0 items-baseline gap-2">
+                  <span className="text-[12.5px] font-semibold tabular-nums text-[var(--serve-fg)]">
                     {formatChartValue(item.value || 0)}
-                  </p>
-                  <p className="text-[11px] text-slate-500">{pct.toFixed(1)}%</p>
+                  </span>
+                  <span className="w-[38px] text-right text-[11px] font-medium tabular-nums text-[var(--serve-muted)]">
+                    {pct.toFixed(1)}%
+                  </span>
                 </div>
               </div>
             );

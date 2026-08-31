@@ -1,0 +1,1 @@
+import{j as e}from"./index-Dxqb2iSK.js";function i({children:o}){return e.jsx("div",{className:"table-row-actions relative z-10 mx-auto flex w-fit items-center justify-center gap-1.5",onPointerDown:t=>t.stopPropagation(),onClick:t=>t.stopPropagation(),children:o})}export{i as T};

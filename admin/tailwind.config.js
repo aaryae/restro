@@ -4,6 +4,12 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        display: ["Syne", '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        brand: ["Syne", '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "monospace"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -47,6 +53,10 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        /* Onboarding coach marks sit on a dark surface in both themes, so they
+           use a fixed bright accent rather than the theme-dependent one. */
+        tourAccent: "rgb(var(--tour-accent-rgb) / <alpha-value>)",
+        tourSurface: "rgb(var(--tour-surface-rgb) / <alpha-value>)",
         chart: {
           1: "hsl(var(--chart-1))",
           2: "hsl(var(--chart-2))",
@@ -54,6 +64,31 @@ export default {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+      },
+      keyframes: {
+        "tour-in": {
+          from: { opacity: "0", transform: "translateY(8px) scale(0.97)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "tour-halo": {
+          "0%": { opacity: "0.9", transform: "scale(1)" },
+          "70%, 100%": { opacity: "0", transform: "scale(1.1)" },
+        },
+        "slide-in-right": {
+          from: { opacity: "0", transform: "translateX(24px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+      },
+      animation: {
+        "tour-in": "tour-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "tour-halo": "tour-halo 2s cubic-bezier(0.16, 1, 0.3, 1) infinite",
+        "slide-in-right":
+          "slide-in-right 0.26s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "fade-in": "fade-in 0.2s ease-out both",
       },
     },
   },

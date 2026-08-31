@@ -13,6 +13,8 @@
     "migrate": "sequelize db:migrate",
     "migrate:control": "sequelize db:migrate --migrations-path migrations-control",
     "seed:platform": "node --env-file .env scripts/seed-platform-user.js",
+    "seed:tenant-demo": "node --env-file .env scripts/seed-tenant-demo.js",
+    "seed:default-media": "node --env-file .env scripts/seed-default-media.js",
     "provision:tenant": "node --env-file .env scripts/provision-tenant.js",
     "migrate:tenants": "node --env-file .env scripts/migrate-all-tenants.js",
     "verify:tenants": "node --env-file .env scripts/verify-tenant-isolation.js",

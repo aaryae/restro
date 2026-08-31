@@ -1,4 +1,4 @@
-import { platformFetch } from '@/api/client'
+import { platformFetch, platformUpload } from '@/api/client'
 import type {
   AuditLog,
   Cafe,
@@ -7,6 +7,8 @@ import type {
   PlatformPermission,
   PlatformPermissionOption,
   PlatformRole,
+  PlatformSmtp,
+  PlatformSmtpInput,
   ProvisioningJob,
 } from '@/types'
 
@@ -14,6 +16,7 @@ export type PlatformUser = {
   id: number
   username: string
   name: string
+  imageUrl?: string | null
   platformRole: PlatformRole
   permissions: PlatformPermission[]
   token?: string
@@ -74,6 +77,32 @@ export async function fetchMe() {
   return platformFetch<Omit<PlatformUser, 'token'>>('/platform/me')
 }
 
+export async function updateMyProfile(input: {
+  name?: string
+  imageUrl?: string | null
+}) {
+  return platformFetch<Omit<PlatformUser, 'token'>>('/platform/me', {
+    method: 'PATCH',
+    body: input,
+  })
+}
+
+export async function changeMyPassword(input: {
+  currentPassword: string
+  newPassword: string
+}) {
+  return platformFetch<null>('/platform/me/password', {
+    method: 'PUT',
+    body: input,
+  })
+}
+
+export async function uploadMyAvatar(file: File) {
+  const form = new FormData()
+  form.append('image', file)
+  return platformUpload<Omit<PlatformUser, 'token'>>('/platform/me/avatar', form)
+}
+
 export async function fetchStats() {
   return platformFetch<Stats>('/platform/stats')
 }
@@ -126,6 +155,7 @@ export type CreateCafeInput = {
   phone?: string
   password?: string
   slug?: string
+  username?: string
   ownerName?: string
   businessType?: string
   address?: string
@@ -136,6 +166,7 @@ export type CreateCafeInput = {
 export async function createCafe(input: CreateCafeInput) {
   return platformFetch<{
     cafe: Cafe
+    ownerUsername?: string
     ownerPassword?: string
     passwordGenerated?: boolean
   }>('/platform/cafes', {
@@ -233,6 +264,17 @@ export async function updatePlatformUser(
 ) {
   return platformFetch<PlatformAccount>(`/platform/users/${id}`, {
     method: 'PATCH',
+    body: input,
+  })
+}
+
+export async function fetchPlatformSmtp() {
+  return platformFetch<PlatformSmtp>('/platform/smtp')
+}
+
+export async function upsertPlatformSmtp(input: PlatformSmtpInput) {
+  return platformFetch<PlatformSmtp>('/platform/smtp', {
+    method: 'PUT',
     body: input,
   })
 }

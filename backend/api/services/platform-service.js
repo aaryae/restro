@@ -11,6 +11,11 @@ const {
 } = require("../../models");
 const { hashPassword, comparePasswords } = require("../../utils/bcrypt");
 const {
+  recordLoginFailure,
+  clearLoginFailures,
+  wrongPasswordMessage,
+} = require("../../utils/loginRateLimit");
+const {
   toPlatformAuthJSON,
   generateJWT,
 } = require("../../helpers/jwt-helper");
@@ -56,6 +61,7 @@ function serializeCafe(tenant) {
     businessType: row.businessType,
     address: row.address,
     trialEndsAt: row.trialEndsAt,
+    selfServeTrialExtendedAt: row.selfServeTrialExtendedAt || null,
     activatedAt: row.activatedAt,
     hostingEndsAt: row.hostingEndsAt,
     createdAt: row.createdAt,
@@ -111,10 +117,11 @@ const login = async (req) => {
       action: "login_failed",
       meta: { username: normalized, reason: "not_found_or_inactive", ...clientMeta(req) },
     });
+    recordLoginFailure(req);
     return {
       status: 401,
       success: false,
-      message: "Invalid username or password",
+      message: wrongPasswordMessage(req),
     };
   }
 
@@ -125,10 +132,11 @@ const login = async (req) => {
       action: "login_failed",
       meta: { username: normalized, reason: "bad_password", ...clientMeta(req) },
     });
+    recordLoginFailure(req);
     return {
       status: 401,
       success: false,
-      message: "Invalid username or password",
+      message: wrongPasswordMessage(req),
     };
   }
 
@@ -137,6 +145,7 @@ const login = async (req) => {
     action: "login",
     meta: clientMeta(req),
   });
+  clearLoginFailures(req);
 
   return {
     status: 200,
@@ -157,9 +166,178 @@ const me = async (req) => {
       id: req.platformUser.id,
       username: req.platformUser.username,
       name: req.platformUser.name,
+      imageUrl: req.platformUser.imageUrl || null,
       platformRole,
       permissions: permissionsForUser(req.platformUser),
     },
+  };
+};
+
+function serializeSelf(user) {
+  const platformRole = normalizePlatformRole(user.platformRole) || "operator";
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    imageUrl: user.imageUrl || null,
+    platformRole,
+    permissions: permissionsForUser(user),
+  };
+}
+
+/** Update the signed-in platform user's own profile (name / photo). */
+const updateMe = async (req) => {
+  const user = await platformUserModel.findByPk(req.platformUser.id);
+  if (!user || !user.isActive) {
+    return { status: 404, success: false, message: "User not found" };
+  }
+
+  const body = req.body || {};
+  const updates = {};
+
+  if (body.name !== undefined) {
+    const name = String(body.name || "").trim();
+    if (!name || name.length < 2) {
+      return {
+        status: 400,
+        success: false,
+        message: "Name must be at least 2 characters",
+      };
+    }
+    updates.name = name;
+  }
+
+  if (body.imageUrl !== undefined) {
+    const raw = body.imageUrl;
+    if (raw === null || raw === "") {
+      updates.imageUrl = null;
+    } else {
+      const imageUrl = String(raw).trim();
+      if (imageUrl.length > 500) {
+        return { status: 400, success: false, message: "Invalid image URL" };
+      }
+      updates.imageUrl = imageUrl;
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return {
+      status: 200,
+      success: true,
+      message: "No changes",
+      data: serializeSelf(user),
+    };
+  }
+
+  await user.update(updates);
+  await user.reload();
+
+  await writeAudit({
+    platformUserId: user.id,
+    action: "platform_user.profile_update",
+    meta: {
+      fields: Object.keys(updates),
+      ...clientMeta(req),
+    },
+  });
+
+  return {
+    status: 200,
+    success: true,
+    message: "Profile updated",
+    data: serializeSelf(user),
+  };
+};
+
+/** Change the signed-in platform user's password. */
+const changeMyPassword = async (req) => {
+  const user = await platformUserModel.findByPk(req.platformUser.id);
+  if (!user || !user.isActive) {
+    return { status: 404, success: false, message: "User not found" };
+  }
+
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+
+  if (!currentPassword) {
+    return {
+      status: 400,
+      success: false,
+      message: "Current password is required",
+    };
+  }
+  if (newPassword.length < PLATFORM_PASSWORD_MIN) {
+    return {
+      status: 400,
+      success: false,
+      message: `New password must be at least ${PLATFORM_PASSWORD_MIN} characters`,
+    };
+  }
+
+  const ok = await comparePasswords(currentPassword, user.passwordHash);
+  if (!ok) {
+    return {
+      status: 400,
+      success: false,
+      message: "Current password is incorrect",
+    };
+  }
+
+  const same = await comparePasswords(newPassword, user.passwordHash);
+  if (same) {
+    return {
+      status: 400,
+      success: false,
+      message: "New password must be different from the current password",
+    };
+  }
+
+  await user.update({ passwordHash: await hashPassword(newPassword) });
+
+  await writeAudit({
+    platformUserId: user.id,
+    action: "platform_user.password_change",
+    meta: clientMeta(req),
+  });
+
+  return {
+    status: 200,
+    success: true,
+    message: "Password changed successfully",
+    data: null,
+  };
+};
+
+/** Upload avatar for the signed-in platform user. */
+const uploadMyAvatar = async (req) => {
+  const user = await platformUserModel.findByPk(req.platformUser.id);
+  if (!user || !user.isActive) {
+    return { status: 404, success: false, message: "User not found" };
+  }
+
+  if (!req.file) {
+    return { status: 400, success: false, message: "No file uploaded" };
+  }
+
+  const filePath = String(req.file.path || "").replace(/\\/g, "/");
+  if (!filePath) {
+    return { status: 500, success: false, message: "Upload failed" };
+  }
+
+  await user.update({ imageUrl: filePath });
+  await user.reload();
+
+  await writeAudit({
+    platformUserId: user.id,
+    action: "platform_user.avatar_upload",
+    meta: { imageUrl: filePath, ...clientMeta(req) },
+  });
+
+  return {
+    status: 200,
+    success: true,
+    message: "Photo updated",
+    data: serializeSelf(user),
   };
 };
 
@@ -572,6 +750,11 @@ const createCafe = async (req) => {
     : generateTempPassword();
 
   const { firstName, lastName } = splitName(ownerName);
+  const ownerUsername = (
+    String(body.username || "").trim() ||
+    String(name).trim() ||
+    "owner"
+  ).slice(0, 64);
 
   let result;
   try {
@@ -583,6 +766,7 @@ const createCafe = async (req) => {
       phone,
       firstName,
       lastName,
+      username: ownerUsername,
       trialDays,
       status,
       businessType,
@@ -614,6 +798,7 @@ const createCafe = async (req) => {
     message: "Cafe created",
     data: {
       cafe: serializeCafe(tenant),
+      ownerUsername,
       ownerPassword: usedClientPassword ? undefined : ownerPassword,
       passwordGenerated: !usedClientPassword,
     },
@@ -800,11 +985,7 @@ const impersonateCafe = async (req) => {
     };
   }
 
-  const token = generateJWT(
-    { id: owner.id, email: owner.email, roleId: owner.roleId },
-    tenant,
-  );
-
+  let sessionLog;
   await runWithTenantContext(
     {
       tenant: {
@@ -815,7 +996,14 @@ const impersonateCafe = async (req) => {
         status: tenant.status,
       },
     },
-    () => createSessionLog({ id: owner.id }, req),
+    async () => {
+      sessionLog = await createSessionLog({ id: owner.id }, req);
+    },
+  );
+  const token = generateJWT(
+    { id: owner.id, email: owner.email, roleId: owner.roleId },
+    tenant,
+    sessionLog?.id,
   );
 
   await writeAudit({
@@ -825,12 +1013,8 @@ const impersonateCafe = async (req) => {
     meta: { ownerUserId: owner.id, username: owner.username },
   });
 
-  const posUrl =
-    process.env.POS_PUBLIC_URL ||
-    process.env.ADMIN_PUBLIC_URL ||
-    "http://localhost:7001";
-
-  const bootstrapUrl = `${posUrl}/?tenant=${encodeURIComponent(tenant.slug)}#pos_token=${encodeURIComponent(token)}`;
+  const { buildPosBootstrapUrl } = require("../../lib/pos-public-url");
+  const bootstrapUrl = buildPosBootstrapUrl(tenant.slug, token, req);
 
   return {
     status: 200,
@@ -1011,6 +1195,7 @@ function serializePlatformUser(user) {
     id: row.id,
     username: row.username,
     name: row.name,
+    imageUrl: row.imageUrl || null,
     platformRole,
     platformRoleLabel: PLATFORM_ROLE_LABELS[platformRole] || platformRole,
     permissions: permissionsForUser(row),
@@ -1092,6 +1277,17 @@ const createPlatformUser = async (req) => {
       status: 409,
       success: false,
       message: "This username is already taken",
+    };
+  }
+
+  try {
+    const { claimUsername } = require("../../lib/global-username");
+    await claimUsername(username, { source: "platform" });
+  } catch (err) {
+    return {
+      status: err.status || 500,
+      success: false,
+      message: err.message || "Could not reserve username",
     };
   }
 
@@ -1282,6 +1478,9 @@ const updatePlatformUser = async (req) => {
 module.exports = {
   login,
   me,
+  updateMe,
+  changeMyPassword,
+  uploadMyAvatar,
   stats,
   statsTrends,
   listCafes,

@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { userModel, roleModel } = require("../models");
 const messageConstant = require("../constants/message-constant");
 const passport = require("passport");
@@ -13,12 +14,25 @@ passport.use(
       passReqToCallback: true,
     },
     async (req, username, password, done) => {
+      const loginId = String(username || "").trim();
+      if (!loginId) {
+        return done(null, false, {
+          message: messageConstant.EN.USER_INFO_NOT_FOUND,
+        });
+      }
+
+      // Accept the POS username or the owner's email (Serve signup uses email).
+      const where = {
+        isDeleted: false,
+        [Op.or]: [
+          { username: { [Op.iLike]: loginId } },
+          { email: { [Op.iLike]: loginId } },
+        ],
+      };
+
       const user = await userModel.findOne({
         raw: true,
-        where: {
-          username,
-          isDeleted: false,
-        },
+        where,
       });
       if (user) {
         const role = await roleModel.findOne({

@@ -5,7 +5,7 @@ const purchaseService = require("./purchase-service");
 const expenseService = require("./expense-service");
 const transactionService = require("./transaction-service");
 const companySettingsService = require("./company-settings-service");
-const { orderModel, sequelize } = require("../../models");
+const { orderModel, revenueModel, sequelize } = require("../../models");
 
 const overview = async (req) => {
   try {
@@ -91,7 +91,7 @@ const overview = async (req) => {
   }
 };
 
-// Daily paid sales for trend charts (matches categorySalesSummary filters)
+// Daily revenue for trend charts: order sales plus manually added revenue entries
 const dailySales = async (req) => {
   try {
     const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
@@ -133,6 +133,26 @@ const dailySales = async (req) => {
         Number(r.amount) || 0,
       ]),
     );
+
+    const manualRows = await revenueModel.findAll({
+      attributes: [
+        [sequelize.fn("DATE", sequelize.col("createdAt")), "date"],
+        [sequelize.fn("SUM", sequelize.col("amount")), "amount"],
+      ],
+      where: {
+        // Robust "manual revenue" detection: manually created revenues have no linked order.
+        // In case historical data contains 0 instead of NULL, include that too.
+        [Op.or]: [{ orderId: null }, { orderId: 0 }],
+        createdAt: { [Op.between]: [rangeStart, rangeEnd] },
+      },
+      group: [sequelize.fn("DATE", sequelize.col("createdAt"))],
+      raw: true,
+    });
+
+    for (const row of manualRows) {
+      const ymd = String(row.date).slice(0, 10);
+      byDate.set(ymd, (byDate.get(ymd) || 0) + (Number(row.amount) || 0));
+    }
 
     const data = [];
     for (let i = 0; i < days; i++) {

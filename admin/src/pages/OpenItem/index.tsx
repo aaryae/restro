@@ -3,7 +3,7 @@ import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { lazy, Suspense, useState } from "react";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -114,7 +114,7 @@ export default function OpenItem() {
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                   title="Edit open item"
                 >
-                  <MdEditSquare size={16} />
+                  <SquarePen />
                 </button>
               )}
               {accessList.includes("delete") && (

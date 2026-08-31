@@ -16,7 +16,7 @@ const {
 
 const { idValidation } = require("../../validations/common-validation");
 
-router.get("/", getOne);
+router.get("/", authentication, getOne);
 router.post(
   "/",
   authentication,
@@ -24,7 +24,7 @@ router.post(
   companySettingsPutValidation,
   create,
 );
-router.get("/:id", idValidation, getById);
+router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/:id",
   authentication,

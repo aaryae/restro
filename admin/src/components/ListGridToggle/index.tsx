@@ -1,5 +1,4 @@
-import { IoMdList } from "react-icons/io";
-import { MdGridView } from "react-icons/md";
+import { LayoutGrid, List } from "lucide-react";
 import type { ViewType } from "@/pages/Users";
 
 interface ListGridToggleProps {
@@ -26,7 +25,7 @@ export default function ListGridToggle({
         className={btnClass(viewType === "list")}
         title="List view"
       >
-        <IoMdList size={15} />
+        <List />
       </button>
       <button
         type="button"
@@ -34,7 +33,7 @@ export default function ListGridToggle({
         className={btnClass(viewType === "grid")}
         title="Grid view"
       >
-        <MdGridView size={15} />
+        <LayoutGrid />
       </button>
     </div>
   );

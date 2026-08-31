@@ -28,9 +28,12 @@ type ResponseItem = {
   key: string;
 };
 
+const HIDDEN_ROLE_MODULES = new Set(["Product Variant"]);
+
 function groupRoleMenuActions(response: ResponseItem[]): PermissionModule[] {
   const grouped = response.reduce(
     (acc: Record<string, PermissionModule>, each) => {
+      if (HIDDEN_ROLE_MODULES.has(each.list)) return acc;
       if (!acc[each.list]) {
         acc[each.list] = {
           key: each.list,
@@ -112,8 +115,13 @@ export default function EditRoles({
           (each: { role_menu_action: { id: number } }) =>
             each.role_menu_action.id,
         ) ?? [];
+      const visibleIds = new Set(
+        modules.flatMap((module) => module.children.map((action) => action.id)),
+      );
       setAccessRoles(
-        normalizeSelectedPermissions(modules, allowedRoles),
+        normalizeSelectedPermissions(modules, allowedRoles).filter((roleId) =>
+          visibleIds.has(roleId),
+        ),
       );
     }
   }, [id, allowableRoles, allowableRolesSuccess, modules]);

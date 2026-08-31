@@ -22,7 +22,7 @@ export function RequirePermission({
       return <Navigate to="/audit" replace />
     }
     if (permissions.includes('users.manage')) {
-      return <Navigate to="/settings" replace />
+      return <Navigate to="/settings/operators" replace />
     }
     return (
       <PageError message="You do not have permission to view this page." />

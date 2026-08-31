@@ -8,9 +8,9 @@ import AddUserForm from "./AddUserForm";
 import {
   useDeleteUserMutation,
   useGetAllUserQuery,
-  useUpdateUserMutation,
+  useToggleUserActiveMutation,
 } from "../../redux/services/authentication";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import { handleError, handleResponse } from "../../utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { checkAccess } from "@/utils/accessHelper";
@@ -26,6 +26,10 @@ const tableHeaders = ["Username", "Role", "Gender", "Is Active", "Actions"];
 
 export type ViewType = "list" | "grid";
 
+function toBool(value: unknown): boolean {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
 export default function Users() {
   const translate = useTranslation();
   const navigate = useNavigate();
@@ -40,6 +44,11 @@ export default function Users() {
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteBoolean, setDeleteBoolean] = useState<boolean>(false);
+  /** Optimistic active flags keyed by user id — keeps toggles snappy while the list refetches. */
+  const [activeOverrides, setActiveOverrides] = useState<
+    Record<number, boolean>
+  >({});
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const [viewType, setViewType] = useState<ViewType>("list");
 
@@ -53,8 +62,27 @@ export default function Users() {
     isLoading: loading,
     refetch,
   } = useGetAllUserQuery(query);
-  const [updateUser] = useUpdateUserMutation();
+  const [toggleUserActive] = useToggleUserActiveMutation();
   const [deleteUser] = useDeleteUserMutation();
+
+  // Drop overrides once server data matches, so we don't fight the cache.
+  useEffect(() => {
+    if (!allUsers?.data?.data) return;
+    setActiveOverrides((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const row of allUsers.data.data) {
+        if (
+          Object.prototype.hasOwnProperty.call(next, row.id) &&
+          toBool(next[row.id]) === toBool(row.isActive)
+        ) {
+          delete next[row.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [allUsers]);
 
   const handleNewUser = (id: number | null) => {
     setEditId(id);
@@ -67,13 +95,26 @@ export default function Users() {
     setOpen(true);
   };
 
+  const resolveActive = (id: number, serverValue: unknown) =>
+    Object.prototype.hasOwnProperty.call(activeOverrides, id)
+      ? activeOverrides[id]
+      : toBool(serverValue);
+
   const handleToggle = async (id: number, value: boolean) => {
-    const body = { isActive: value };
+    const previous = resolveActive(
+      id,
+      allUsers?.data?.data?.find((u: { id: number }) => u.id === id)?.isActive,
+    );
+    setActiveOverrides((prev) => ({ ...prev, [id]: value }));
+    setTogglingId(id);
     try {
-      const response = await updateUser({ id, body }).unwrap();
+      const response = await toggleUserActive({ id, isActive: value }).unwrap();
       handleResponse({ res: response, onSuccess: () => {} });
     } catch (error) {
+      setActiveOverrides((prev) => ({ ...prev, [id]: previous }));
       handleError({ error });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -111,56 +152,62 @@ export default function Users() {
   const tableData =
     success && allUsers?.data?.data
       ? allUsers.data?.data.map(
-          ({ id, username, roles, gender, isActive, isDeleted }) => [
-            <span className="text-sm font-semibold text-slate-800">
-              {username}
-            </span>,
-            roles?.title ? roles.title : "—",
-            <span className="capitalize text-slate-600">{gender}</span>,
-            <div key={id} className="flex justify-center">
-              {accessList.includes("toggle-isActive") ? (
-              <ToggleSwitch
-                isActive={isActive}
-                onToggle={(value) => handleToggle(id, value)}
-              />
-              ) : (
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                    isActive
-                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                      : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
-                  }`}
-                >
-                  {isActive ? "Active" : "Inactive"}
-                </span>
-              )}
-            </div>,
-            <TableRowActions>
-              {accessList.includes("edit") && (
-                <button
-                  type="button"
-                  onClick={() => handleNewUser(id)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
-                  title="Edit user"
-                >
-                  <MdEditSquare size={16} />
-                </button>
-              )}
-              {accessList.includes("delete") && (
-                <DeleteModal
-                  compact
-                  open={open}
-                  setOpen={setOpen}
-                  itemId={id}
-                  activeId={deleteId}
-                  handleDeleteTrigger={() =>
-                    handleDeleteTrigger(id, isDeleted)
-                  }
-                  handleConfirmDelete={handleDelete}
-                />
-              )}
-            </TableRowActions>,
-          ],
+          ({ id, username, roles, gender, isActive, isDeleted }) => {
+            const active = resolveActive(id, isActive);
+            return [
+              <span key={`u-${id}`} className="text-sm font-semibold text-slate-800">
+                {username}
+              </span>,
+              roles?.title ? roles.title : "—",
+              <span key={`g-${id}`} className="capitalize text-slate-600">
+                {gender}
+              </span>,
+              <div key={`a-${id}`} className="flex w-full items-center justify-center">
+                {accessList.includes("toggle-isActive") ? (
+                  <ToggleSwitch
+                    isActive={active}
+                    disabled={togglingId === id}
+                    onToggle={(value) => handleToggle(id, value)}
+                  />
+                ) : (
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                      active
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                        : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                    }`}
+                  >
+                    {active ? "Active" : "Inactive"}
+                  </span>
+                )}
+              </div>,
+              <TableRowActions key={`act-${id}`}>
+                {accessList.includes("edit") && (
+                  <button
+                    type="button"
+                    onClick={() => handleNewUser(id)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                    title="Edit user"
+                  >
+                    <SquarePen size={16} />
+                  </button>
+                )}
+                {accessList.includes("delete") && (
+                  <DeleteModal
+                    compact
+                    open={open}
+                    setOpen={setOpen}
+                    itemId={id}
+                    activeId={deleteId}
+                    handleDeleteTrigger={() =>
+                      handleDeleteTrigger(id, isDeleted)
+                    }
+                    handleConfirmDelete={handleDelete}
+                  />
+                )}
+              </TableRowActions>,
+            ];
+          },
         )
       : [];
 
@@ -177,7 +224,13 @@ export default function Users() {
         hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add User")}
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={() => refetch()}
+        handleReloadButton={() => {
+          setSearchTerm("");
+          setQuery((prev) => ({ ...prev, page: 1, username: "" }));
+          if (!searchTerm) {
+            void refetch();
+          }
+        }}
         subText="Manage staff accounts, roles, and access permissions."
         filters={
           <ListGridToggle viewType={viewType} onChange={setViewType} />
@@ -222,7 +275,7 @@ export default function Users() {
                     mobileNo={mobileNo}
                     username={username}
                     roleTitle={roles?.title}
-                    isActive={isActive}
+                    isActive={resolveActive(id, isActive)}
                   />
                 ),
               )}

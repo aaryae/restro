@@ -8,7 +8,7 @@ import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
 import { useNavigate } from "react-router-dom";
 import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { EXPENSE_URL } from "@/constants/apiUrlConstants";
@@ -79,7 +79,11 @@ const Expenses: React.FC = () => {
     filterFields,
     handleSubmit,
     (query: Record<string, any>) => setFilters(query),
-    reset,
+    () => {
+      reset();
+      setFilters({});
+      setSelectedDateFilter(null);
+    },
   );
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
@@ -141,13 +145,14 @@ const Expenses: React.FC = () => {
     accessList.includes("edit") || accessList.includes("delete");
 
   const headers = [
-    "Expense ID",
+    "S.N",
     "Date (AD)",
     "Date (BS)",
     "Remarks",
     "Category",
     "Amount",
     "Cash or Credit",
+    "Payment Method",
     "Payment Source",
     (showActions) && "Actions",
   ].filter(Boolean) as string[];
@@ -182,9 +187,9 @@ const Expenses: React.FC = () => {
   };
 
   const data = success
-    ? apiData?.data?.data?.map((expense: any) => {
+    ? apiData?.data?.data?.map((expense: any, index: number) => {
         const row = [
-        expense?.id,
+        index + 1 + ((pagination.page || 1) - 1) * (pagination.limit || 10),
         format(expense.createdAt, "yyyy-MM-dd"),
         ADToBS(expense.createdAt),
         <span className="block max-w-full truncate" title={expense?.remarks ?? ""}>
@@ -196,6 +201,7 @@ const Expenses: React.FC = () => {
           {expense?.amount}
         </span>,
         expense?.cash_or_credit,
+        expense?.paymentMethod,
         expense?.account?.name,
         ];
 
@@ -209,7 +215,7 @@ const Expenses: React.FC = () => {
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                   title="Edit expense"
                 >
-                  <MdEditSquare size={16} />
+                  <SquarePen size={16} />
                 </button>
               )}
               {accessList.includes("delete") && (
@@ -238,7 +244,6 @@ const Expenses: React.FC = () => {
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Expense"
         handleNewButton={() => handleNewExpense(null)}
-        handleReloadButton={() => refetch()}
         subText="Record and filter daily operating expenses."
         filters={
           <FinanceQuickDateChips
@@ -255,6 +260,7 @@ const Expenses: React.FC = () => {
       <PageFilterWrapper title="Expense Filters">{Component}</PageFilterWrapper>
 
       {accessList.includes("view") ? (
+      <>
       <Table
         headers={headers}
         data={data}
@@ -263,6 +269,18 @@ const Expenses: React.FC = () => {
           handlePagination({ ...p, total: apiData?.data?.total ?? 0 })
         }
       />
+      <div className="mt-4 flex justify-end">
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <span className="text-[13px] font-medium text-slate-600">
+            Grand Total:{" "}
+          </span>
+          <span className="text-lg font-semibold text-slate-800">
+            {CurrencySign}
+            {Number(apiData?.data?.grandTotal ?? 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+      </>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view expenses.

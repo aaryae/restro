@@ -17,6 +17,11 @@ let imageMimeType = {
 let xlsxMimeType = {
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
   "application/vnd.ms-excel": "xls",
+  // Browsers/OSes disagree on the CSV mime type, so accept the common ones.
+  "text/csv": "csv",
+  "application/csv": "csv",
+  "text/plain": "csv",
+  "application/octet-stream": "csv",
 };
 
 function createStorage(destinationPath) {
@@ -62,6 +67,28 @@ function configureUpload(uploader, uploadType, fieldData) {
   }
 }
 
+const SHEET_EXTENSIONS = [".xlsx", ".xls", ".csv"];
+
+/** Mime alone is unreliable for spreadsheets, so the extension decides too. */
+function createSheetUploader(storage, maxFileSize) {
+  return multer({
+    storage,
+    fileFilter: function (req, file, callback) {
+      const name = String(file.originalname || "").toLowerCase();
+      const hasValidExtension = SHEET_EXTENSIONS.some((ext) =>
+        name.endsWith(ext),
+      );
+      const hasValidMime = !!xlsxMimeType[file.mimetype];
+      const isValid = hasValidExtension && hasValidMime;
+      callback(
+        isValid ? null : new Error("Only .xlsx, .xls or .csv files are allowed!"),
+        isValid,
+      );
+    },
+    limits: { fileSize: maxFileSize * 1024 * 1024 },
+  });
+}
+
 uploaderHelper.uploadXlsxDoc = (
   destinationPath,
   uploadType,
@@ -69,7 +96,7 @@ uploaderHelper.uploadXlsxDoc = (
   maxFileSize = 10,
 ) => {
   var storage = createStorage(destinationPath);
-  const uploader = createUploader(storage, xlsxMimeType, 10);
+  const uploader = createSheetUploader(storage, maxFileSize);
   const upload = configureUpload(uploader, uploadType, fieldData);
 
   return (fileUpload = (req, res, next) => {

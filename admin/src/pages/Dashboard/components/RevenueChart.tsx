@@ -85,6 +85,7 @@ function RevenueSection() {
       icon={TrendingUp}
       chartType={chartType}
       onChartTypeChange={setChartType}
+      allowedChartTypes={["pie", "bar", "line"]}
       loading={loading}
     >
       <div className="min-w-0 overflow-hidden">

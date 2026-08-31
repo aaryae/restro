@@ -1,0 +1,583 @@
+/* Serve admin — warm stone neutrals + a single dark-coffee brand accent */
+
+:root {
+  /* Onboarding surfaces are dark in both themes — a coach mark should read as
+     app chrome floating above the page, not as another panel of it. The light
+     theme's bronze accent goes muddy on black, so the tour pins the brighter
+     amber. Split into channels for Tailwind's alpha modifiers. */
+  --tour-accent-rgb: 224 164 88;
+  --tour-surface-rgb: 15 16 19;
+}
+
+html.light {
+  color-scheme: light;
+
+  /* Bronze accent, coffee-brown actions. Surfaces stay genuinely neutral —
+     tinting them warm is what made every previous pass look muddy. */
+  --serve-accent: #8a5a2b;
+  --serve-accent-dark: #6f4721;
+  --serve-mark: #8a5a2b;
+  --serve-positive: #17803d;
+  --serve-negative: #be3535;
+  --serve-warning: #a16207;
+  --serve-info: #2b6d9e;
+  --serve-neutral: #78787f;
+
+  --serve-bg: #af6a2c0a;
+  --serve-surface: #ffffff;
+  --serve-surface-2: #f4f4f5;
+  --serve-border: #e4e4e7;
+  --serve-fg: #18181b;
+  --serve-muted: #71717a;
+
+  --serve-table-head: #f4f4f5;
+  --serve-table-head-fg: #52525b;
+  --serve-row-line: #ededf0;
+  --serve-row-hover: #af6a2c0a;
+  --serve-tab-active: #ffffff;
+
+  --serve-sidebar: #ffffff;
+  --serve-sidebar-fg: #18181b;
+  --serve-sidebar-muted: #71717a;
+  --serve-sidebar-hover: #00000014;
+  --serve-sidebar-active-bg: #00000014;
+  --serve-sidebar-active-accent: #8a5a2b;
+  --serve-sidebar-item-border: #beb4ac;
+  --serve-sidebar-border: #e4e4e7;
+  --serve-sidebar-elevated: #ffffff;
+
+  /* Category tints — same values as the light chart palette so a metric keeps
+     its colour whether it appears on a card or in a chart. */
+  /* Brand colour as *text*. In light mode the coffee brown reads fine, but in
+     dark mode it is far too low-contrast on a tinted panel, so it lifts to the
+     bronze accent. Fills keep using --primary-color either way. */
+  --primary-ink: var(--primary-color);
+
+  --tint-bronze: #b06a28;
+  --tint-teal: #0f7d6b;
+  --tint-indigo: #3f5fc0;
+  --tint-plum: #a2429c;
+  --tint-vermilion: #c0433f;
+  --tint-olive: #5f8a1f;
+  --tint-cerulean: #1a7fae;
+  --tint-violet: #8a5fd0;
+
+  --serve-radius: 12px;
+  --serve-shadow: 0 1px 2px rgba(24, 24, 27, 0.05);
+
+  --primary-color: #4a3428;
+  --primary-fg: #ffffff;
+  --secondary-color: #38271d;
+  --secondaryBtn-color: #4a3428;
+  --input-bg-color: #ffffff;
+}
+
+:root,
+html.dark {
+  color-scheme: dark;
+
+  /* Neutral near-black with clean elevation steps. The accent lifts to a
+     luminous bronze so it carries emphasis without the surfaces going warm. */
+  --serve-accent: #e0a458;
+  --serve-accent-dark: #c98a3f;
+  --serve-mark: #e0a458;
+  --serve-positive: #4ade80;
+  --serve-negative: #f87171;
+  --serve-warning: #fbbf24;
+  --serve-info: #60a5fa;
+  --serve-neutral: #85858d;
+
+  /* Each step is a visible notch above the last. The earlier values were only
+     2–3 points apart, so cards, table headers and row hovers all collapsed into
+     one flat black. */
+  --serve-bg: #0c0c0e;
+  --serve-surface: #16161a;
+  --serve-surface-2: #202026;
+  --serve-border: #2c2c33;
+  --serve-fg: #fafafa;
+  /* Lifted from #85858d — secondary text was legible but felt washed out
+     against a near-black card. Still clearly subordinate to --serve-fg. */
+  --serve-muted: #a3a3ac;
+
+  --serve-table-head: #202026;
+  --serve-table-head-fg: #b0b0b8;
+  --serve-row-line: #26262c;
+  --serve-row-hover: #1e1e23;
+  --serve-tab-active: #2c2c33;
+
+  --serve-sidebar: #0c0c0e;
+  --serve-sidebar-fg: #fafafa;
+  --serve-sidebar-muted: #a3a3ac;
+  --serve-sidebar-hover: transparent;
+  --serve-sidebar-active-bg: transparent;
+  --serve-sidebar-active-accent: #e0a458;
+  --serve-sidebar-item-border: #6e675f;
+  --serve-sidebar-border: #232328;
+  --serve-sidebar-elevated: #16161a;
+
+  --primary-ink: var(--serve-accent);
+
+  --tint-bronze: #e8a95c;
+  --tint-teal: #3fc4a8;
+  --tint-indigo: #8296f2;
+  --tint-plum: #dd88d4;
+  --tint-vermilion: #f4837c;
+  --tint-olive: #a8c95e;
+  --tint-cerulean: #54b4e0;
+  --tint-violet: #b79bf5;
+
+  --serve-radius: 12px;
+  --serve-shadow: none;
+
+  /* Coffee brown actions, lifted enough to separate from a near-black page. */
+  --primary-color: #6b4630;
+  --primary-fg: #ffffff;
+  --secondary-color: #7d5339;
+  --secondaryBtn-color: #6b4630;
+  --input-bg-color: #1c1c21;
+}
+
+html,
+html body,
+html #root {
+  background: var(--serve-bg);
+  color: var(--serve-fg);
+  font-family: var(--font-english);
+}
+
+/* Light wash is 8-digit hex (#af6a2c0a). Paint it over white once so nested
+   layers do not stack the same tint. */
+html.light,
+html.light body,
+html.light #root {
+  background-color: #ffffff;
+  background-image: linear-gradient(var(--serve-bg), var(--serve-bg));
+}
+
+html ::-webkit-scrollbar-track {
+  background: var(--serve-surface-2);
+}
+
+html ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--serve-muted) 55%, var(--serve-border));
+}
+
+html ::-webkit-scrollbar-thumb:hover {
+  background: var(--serve-accent);
+}
+
+html.light .bg-slate-50,
+html.light .bg-slate-50\/50,
+html.light .bg-slate-50\/60,
+html.light .bg-slate-50\/70,
+html.light .bg-slate-50\/80,
+html.light .bg-slate-100,
+html.light .bg-gray-50,
+html.light .bg-\[\#f2f6fa\],
+html.light .bg-\[\#f4f7fb\],
+html.light .bg-\[\#f8f7fa\],
+html.light .bg-\[\#f8fafc\],
+html.light .bg-\[\#fafbfd\],
+html.light .from-slate-50,
+html.light .via-slate-50 {
+  background-color: var(--serve-surface-2) !important;
+}
+
+html.light .text-slate-900,
+html.light .text-slate-800,
+html.light .text-slate-700,
+html.light .text-gray-900,
+html.light .text-gray-800,
+html.light .text-gray-700 {
+  color: var(--serve-fg) !important;
+}
+
+html.light .text-slate-600,
+html.light .text-slate-500,
+html.light .text-gray-600,
+html.light .text-gray-500,
+html.light .text-slate-400,
+html.light .text-gray-400 {
+  color: var(--serve-muted) !important;
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/70,
+html.dark .bg-white\/80,
+html.dark .bg-white\/90,
+html.dark .bg-white\/95,
+html.dark .bg-\[\#fff\],
+html.dark .from-white,
+html.dark .via-white,
+html.dark .to-white {
+  background-color: var(--serve-surface) !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/40,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/70,
+html.dark .bg-gray-50,
+html.dark .bg-\[\#f2f6fa\],
+html.dark .bg-\[\#f4f7fb\],
+html.dark .bg-\[\#f8f7fa\],
+html.dark .bg-\[\#f8fafc\],
+html.dark .bg-\[\#fafbfd\],
+html.dark .from-slate-50,
+html.dark .from-slate-50\/80,
+html.dark .via-slate-50 {
+  background-color: var(--serve-surface-2) !important;
+}
+
+/* Gradients keep a white image even after background-color remaps. */
+html.dark [class*="bg-gradient"] {
+  background-image: none !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/40,
+html.dark .bg-rose-50,
+html.dark .bg-sky-50 {
+  background-color: var(--serve-surface-2) !important;
+}
+
+html.dark .bg-primaryColor,
+html.dark .bg-primaryColor\/90,
+html.dark .hover\:bg-primaryColor:hover,
+html.dark .hover\:bg-primaryColor\/90:hover {
+  color: var(--primary-fg) !important;
+}
+
+html.dark .bg-slate-200,
+html.dark .bg-gray-200 {
+  background-color: var(--serve-surface-2) !important;
+}
+
+html.dark .text-black,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-gray-900 {
+  color: var(--serve-fg) !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-gray-600,
+html.dark .text-gray-500,
+html.dark .text-slate-400,
+html.dark .text-gray-400 {
+  color: var(--serve-muted) !important;
+}
+
+html.light .border-slate-100,
+html.light .border-slate-200,
+html.light .border-slate-200\/80,
+html.light .border-slate-300,
+html.light .border-gray-200,
+html.light .border-gray-300,
+html.light .divide-slate-100,
+html.light .divide-slate-200,
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-300,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .divide-slate-100,
+html.dark .divide-slate-200 {
+  border-color: var(--serve-border) !important;
+}
+
+html.dark .ring-slate-200,
+html.dark .ring-slate-200\/80,
+html.dark .ring-white,
+html.dark .ring-black\/5 {
+  --tw-ring-color: color-mix(in srgb, var(--serve-accent) 28%, transparent) !important;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg {
+  --tw-shadow-color: rgb(0 0 0 / 0.45);
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: var(--serve-fg);
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: var(--serve-muted);
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--serve-surface) inset !important;
+  -webkit-text-fill-color: var(--serve-fg) !important;
+  caret-color: var(--serve-fg);
+}
+
+html.light .hover\:bg-slate-50:hover,
+html.light .hover\:bg-slate-100:hover,
+html.light .hover\:bg-gray-100:hover,
+html.light .hover\:bg-gray-200:hover,
+html.dark .hover\:bg-white:hover,
+html.dark .hover\:bg-white\/70:hover,
+html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-slate-100:hover,
+html.dark .hover\:bg-gray-100:hover,
+html.dark .hover\:bg-gray-200:hover {
+  background-color: var(--serve-surface-2) !important;
+}
+
+html.dark .hover\:border-slate-300:hover,
+html.dark .hover\:border-slate-400:hover {
+  border-color: color-mix(in srgb, var(--serve-accent) 35%, var(--serve-border)) !important;
+}
+
+html.dark .hover\:text-slate-800:hover,
+html.dark .hover\:text-slate-700:hover {
+  color: var(--serve-fg) !important;
+}
+
+html.dark .text-violet-700,
+html.dark .text-amber-700,
+html.dark .text-indigo-700,
+html.dark .text-sky-700,
+html.dark .text-teal-700 {
+  color: var(--serve-fg) !important;
+}
+
+html.dark .text-emerald-700,
+html.dark .text-green-700 {
+  color: var(--serve-positive) !important;
+}
+
+html.dark .text-rose-700 {
+  color: var(--serve-negative) !important;
+}
+
+html.dark .bg-violet-50,
+html.dark .bg-amber-50,
+html.dark .bg-indigo-50,
+html.dark .bg-sky-50,
+html.dark .bg-teal-50 {
+  background-color: color-mix(in srgb, var(--serve-accent) 14%, transparent) !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-green-50 {
+  background-color: color-mix(in srgb, var(--serve-positive) 16%, transparent) !important;
+}
+
+html.dark .bg-rose-50 {
+  background-color: color-mix(in srgb, var(--serve-negative) 16%, transparent) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Table row actions
+
+   Every page hand-rolled its own icon-button palette (sky-50/rose-100/slate-50
+   and friends), so the Actions column arrived as a row of mismatched pastel
+   chips that had no relationship to either theme. Normalising centrally keeps
+   the affordance identical everywhere and means colour lives in one place.
+   The per-page utilities are inline classes of equal specificity, so these
+   need !important to win regardless of stylesheet order.
+   --------------------------------------------------------------------------- */
+/* Each action owns a hue, but the chip it sits on is always mixed out of the
+   current surface — so the colour stays vivid while the fill belongs to the
+   background rather than fighting it. Swapping the theme re-derives both.
+   The default lives on the wrapper so the per-action rules below override by
+   inheritance, without needing to out-specify the base button selector. */
+.table-row-actions {
+  --act: var(--serve-accent);
+}
+
+.table-row-actions button:not([role="switch"]):not([role="checkbox"]),
+.table-row-actions a {
+  height: 1.875rem;
+  width: 1.875rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--act) 26%, var(--serve-border)) !important;
+  background: color-mix(in srgb, var(--act) 10%, var(--serve-surface)) !important;
+  color: var(--act) !important;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.table-row-actions button:not([role="switch"]):not([role="checkbox"]):hover:not(:disabled),
+.table-row-actions a:hover {
+  border-color: color-mix(in srgb, var(--act) 55%, var(--serve-border)) !important;
+  background: color-mix(in srgb, var(--act) 20%, var(--serve-surface)) !important;
+}
+
+/* Actions are labelled consistently across every page, so intent comes from
+   the title rather than from each page's ad-hoc utility classes. */
+.table-row-actions button[title^="View"],
+.table-row-actions a[title^="View"] {
+  --act: var(--serve-info);
+}
+
+.table-row-actions button[title^="Edit"],
+.table-row-actions a[title^="Edit"] {
+  --act: var(--serve-accent);
+}
+
+.table-row-actions button[title^="Delete"],
+.table-row-actions button[title^="Cancel"],
+.table-row-actions button[data-variant="danger"] {
+  --act: var(--serve-negative);
+}
+
+.table-row-actions button:disabled {
+  --act: var(--serve-neutral) !important;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.table-row-actions svg {
+  height: 15px;
+  width: 15px;
+  color: currentColor !important;
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────────
+   A dialog has to read as floating above the page. On a light background a
+   plain shadow does that on its own, but on a near-black one there is nothing
+   for a black shadow to darken, so the panel has to come forward instead:
+   a lighter surface, a brighter border, and a hairline highlight along the top
+   edge. The scrim also has to bite harder, since a 40–50% black veil over an
+   already-black page barely registers. */
+.serve-overlay {
+  background: var(--serve-overlay);
+  backdrop-filter: blur(2px);
+}
+
+/* Product tour scrim. Four of these frame the highlighted element, so the
+   cutout stays perfectly sharp while the rest of the app dims. The scrim is
+   deliberately heavier than --serve-overlay: a spotlight only reads as a
+   spotlight when the surroundings genuinely recede. */
+.tour-dim {
+  position: absolute;
+  background: var(--tour-scrim);
+  backdrop-filter: blur(2px);
+  transition:
+    top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Layered glow around the spotlighted element. Only the multi-stop box-shadow
+   lives here — Tailwind cannot express it. The breathing halo is a real child
+   element styled with utilities. */
+.tour-ring {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px rgb(var(--tour-accent-rgb)),
+    0 0 0 6px rgb(var(--tour-accent-rgb) / 0.24),
+    0 0 32px 8px rgb(var(--tour-accent-rgb) / 0.32);
+  transition:
+    top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Caret joining the card to whatever it is describing. Painted before the
+   card, which then covers the inner half and leaves a bordered tip. */
+.tour-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: rgb(var(--tour-surface-rgb));
+  border: 1px solid rgb(255 255 255 / 0.12);
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-dim,
+  .tour-ring {
+    transition: none;
+  }
+}
+
+.serve-modal {
+  background: var(--serve-elevated);
+  border: 1px solid var(--serve-elevated-border);
+  box-shadow: var(--serve-modal-shadow);
+}
+
+/* Side and bottom sheets stay on the base surface: they're large enough that
+   the scrim and edge shadow already separate them, and lifting the whole sheet
+   would make the cards inside it read as recessed. */
+.serve-sheet {
+  background: var(--serve-surface);
+  border: 1px solid var(--serve-elevated-border);
+  box-shadow: var(--serve-modal-shadow);
+}
+
+html.light {
+  --serve-overlay: rgba(24, 24, 27, 0.45);
+  --tour-scrim: rgba(17, 17, 20, 0.6);
+  --serve-elevated: #ffffff;
+  --serve-elevated-border: #d4d4d8;
+  --serve-modal-shadow:
+    0 20px 45px -12px rgba(24, 24, 27, 0.28),
+    0 6px 14px -8px rgba(24, 24, 27, 0.2);
+}
+
+:root,
+html.dark {
+  --serve-overlay: rgba(0, 0, 0, 0.72);
+  --tour-scrim: rgba(0, 0, 0, 0.78);
+  --serve-elevated: #16161a;
+  --serve-elevated-border: #2c2c33;
+  --serve-modal-shadow:
+    0 24px 55px -12px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* The one-off modals across the app each roll their own scrim utility, so map
+   the variants in use onto the shared token rather than editing every caller. */
+html.dark .fixed.inset-0.bg-black\/50,
+html.dark .fixed.inset-0.bg-black\/40,
+html.dark .fixed.inset-0.bg-black.bg-opacity-50,
+html.dark .fixed.inset-0.bg-slate-900\/40 {
+  background-color: var(--serve-overlay) !important;
+}
+
+/* Radix puts role="dialog" on the panel itself, which covers every dialog and
+   drawer built on the shared primitive. */
+html.dark [role="dialog"],
+html.dark [role="alertdialog"] {
+  background-color: var(--serve-elevated) !important;
+  border-color: var(--serve-elevated-border) !important;
+  box-shadow: var(--serve-modal-shadow) !important;
+}
+
+/* Panels nested in a dialog would otherwise match the panel they sit on. */
+html.dark [role="dialog"] .bg-white,
+html.dark [role="alertdialog"] .bg-white {
+  background-color: color-mix(
+    in srgb,
+    var(--serve-fg) 5%,
+    var(--serve-elevated)
+  ) !important;
+}

@@ -1,26 +1,34 @@
 import React, { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../../redux/store/hooks";
-import { useGetProfileQuery } from "@/redux/services/authentication";
+import {
+  useGetProfileQuery,
+  useGetSessionAccessQuery,
+} from "@/redux/services/authentication";
 import { useDispatch } from "react-redux";
 import { clearProfile, setProfile } from "@/redux/feature/profileSlice";
 import { deleteToken, getToken } from "@/utils/tokenHandler";
 import { setAuthData } from "@/redux/feature/authSlice";
 import { jwtDecode } from "jwt-decode";
+import {
+  redirectToServeLogin,
+  startSessionExpiryWatcher,
+} from "@/utils/serveAuth";
+import { isTrialLifecycleError } from "@/utils/trialGate";
 
 interface ProtectedRouteType {
   children: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const auth = useAppSelector((state) => state.auth.token);
+  const auth = useAppSelector((state) => state.auth);
+  const trialGateOpen = useAppSelector((state) => state.trialGate.open);
   const localToken = getToken("token");
-  const sessionToken = auth || localToken || "";
+  const sessionToken = auth.token || localToken || "";
+  const needsAccess = sessionToken && auth.clientAccess.length === 0;
 
   useEffect(() => {
-    if (!auth && localToken) {
+    if (!auth.token && localToken) {
       try {
         const decoded = jwtDecode<{
           id?: number;
@@ -32,8 +40,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
           setAuthData({
             token: localToken,
             id: Number(decoded.id) || null,
-            roleId: Number(decoded.roleId) || 1,
-            roleType: "Super Admin",
+            roleId: Number(decoded.roleId) || null,
+            roleType: "",
             username: String(decoded.email || ""),
             clientAccess: [],
             serverAccess: [],
@@ -44,7 +52,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
         deleteToken("token");
       }
     }
-  }, [auth, localToken, dispatch]);
+  }, [auth.token, localToken, dispatch]);
 
   const {
     data: userProfile,
@@ -52,16 +60,72 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
     error,
   } = useGetProfileQuery("", { skip: !sessionToken });
 
+  const {
+    data: sessionAccess,
+    isSuccess: accessLoaded,
+    error: accessError,
+  } = useGetSessionAccessQuery("", {
+    // Still request access when the trial gate is up so a persisted empty
+    // session can hydrate the sidebar behind the blur if the cafe is only
+    // soft-blocked after a prior successful login. Failures stay non-fatal.
+    skip: !needsAccess,
+  });
+
   useEffect(() => {
     if (error && "status" in error) {
       const status = error.status;
       if (status === 401 || status === 403) {
-        deleteToken("token");
+        if (isTrialLifecycleError(error)) {
+          dispatch(clearProfile());
+          return;
+        }
         dispatch(clearProfile());
-        navigate("/", { replace: true });
+        redirectToServeLogin();
       }
     }
-  }, [error, dispatch, navigate]);
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    if (accessError && "status" in accessError) {
+      const status = accessError.status;
+      if (status === 401 || status === 403) {
+        if (isTrialLifecycleError(accessError)) {
+          dispatch(clearProfile());
+          return;
+        }
+        dispatch(clearProfile());
+        redirectToServeLogin();
+      }
+    }
+  }, [accessError, dispatch]);
+
+  useEffect(() => {
+    if (accessLoaded && sessionAccess?.data) {
+      const access = sessionAccess.data;
+      dispatch(
+        setAuthData({
+          token: sessionToken,
+          id: access.id ?? auth.id,
+          roleId: access.roleId ?? auth.roleId,
+          roleType: access.roleType || auth.roleType,
+          username: access.username || auth.username,
+          clientAccess: access.clientAccess || [],
+          serverAccess: access.serverAccess || [],
+          expiry: access.expiry ?? auth.expiry,
+        }),
+      );
+    }
+  }, [
+    accessLoaded,
+    sessionAccess,
+    dispatch,
+    sessionToken,
+    auth.id,
+    auth.roleId,
+    auth.roleType,
+    auth.username,
+    auth.expiry,
+  ]);
 
   useEffect(() => {
     if (userProfile && userProfile.data) {
@@ -69,8 +133,31 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
     }
   }, [userProfile, success, dispatch]);
 
+  useEffect(() => {
+    if (!sessionToken) {
+      redirectToServeLogin();
+      return;
+    }
+    startSessionExpiryWatcher();
+  }, [sessionToken]);
+
   if (!sessionToken) {
-    return <Navigate to="/" />;
+    return null;
   }
+
+  // Keep the POS/dashboard mounted under the trial modal so the blur
+  // overlay reveals real UI instead of a blank screen.
+  if (trialGateOpen) {
+    return children;
+  }
+
+  if (needsAccess && !accessLoaded) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--serve-bg,#0c0c0e)] text-sm text-[var(--serve-muted,#a3a3ac)]">
+        Loading your workspace…
+      </main>
+    );
+  }
+
   return children;
 };

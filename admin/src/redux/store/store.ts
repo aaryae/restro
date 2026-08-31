@@ -15,11 +15,13 @@ import { persistStore } from "redux-persist";
 import { mediaSlice } from "../feature/mediaSlice";
 import { profileSlice } from "../feature/profileSlice";
 import { socketSlice } from "../feature/socketSlice";
+import { trialGateSlice } from "../feature/trialGateSlice";
+import { onboardingSlice } from "../feature/onboardingSlice";
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "cart", "checkout"],
+  whitelist: ["auth", "cart", "checkout", "onboarding"],
 };
 
 const rootReducer = combineReducers({
@@ -27,6 +29,8 @@ const rootReducer = combineReducers({
   media: mediaSlice.reducer,
   profile: profileSlice.reducer,
   socket: socketSlice.reducer,
+  trialGate: trialGateSlice.reducer,
+  onboarding: onboardingSlice.reducer,
   [api.reducerPath]: api.reducer,
 });
 

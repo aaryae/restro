@@ -1,11 +1,8 @@
-import { FaTrash, FaUserPlus } from "react-icons/fa";
+import { Trash2, UserPlus, RefreshCw, LayoutGrid, List } from "lucide-react";
 import Button from "../Button";
-import { IoReload } from "react-icons/io5";
-import { MdGridView } from "react-icons/md";
 import useTranslation from "@/locale/useTranslation";
 import { useState } from "react";
 import { ViewType } from "@/pages/Users";
-import { IoMdList } from "react-icons/io";
 
 interface PageHeaderType {
   hasAddButton: boolean;
@@ -53,14 +50,14 @@ export default function PageHeader({
       {/* List or Grid View */}
       {hasViewType && (
         <div className="flex gap-[1rem]">
-          <MdGridView
+          <LayoutGrid
             size={22}
             className={` cursor-pointer ${
               viewType === "grid" ? "text-black" : "text-[#A4ADBB]"
             }`}
             onClick={() => toggleViewType?.("grid")}
           />
-          <IoMdList
+          <List
             size={22}
             className={` cursor-pointer ${
               viewType === "list" ? "text-black" : "text-[#A4ADBB]"
@@ -89,7 +86,7 @@ export default function PageHeader({
         >
           <div className="flex items-center gap-[0.5rem] px-3 py-2 sm:px-5 sm:py-2.5 text-[#A4ADBB]">
             <div className={isRotating ? "rotate-animation" : ""}>
-              <IoReload size={18} />
+              <RefreshCw size={18} />
             </div>
             <p className="font-[500] text-sm sm:text-[0.9375rem]">
               {translate("Reload")}
@@ -103,7 +100,7 @@ export default function PageHeader({
           >
             <div className="flex items-center gap-[0.5rem] px-3 py-2 sm:px-5 sm:py-2.5 text-white">
               <div>
-                <FaTrash size={20} />
+                <Trash2 size={20} />
               </div>
               <p className="font-[500] text-sm sm:text-[0.9375rem]">
                 {translate("Delete")}

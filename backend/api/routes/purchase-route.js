@@ -33,7 +33,7 @@ const {
 } = require("../controllers/purchase-controller");
 
 router.post("/", authentication, authorization, purchasePostValidation, create);
-router.get("/list", paginationValidation, list);
+router.get("/list", authentication, paginationValidation, list);
 router.get("/by-account", authentication, purchaseByAccount);
 router.get("/purchase-today", authentication, todayPurchase);
 router.get("/daily-summary", authentication, dailySummary);
@@ -52,11 +52,12 @@ router.get(
 );
 router.get(
   "/unpaid-credits",
+  authentication,
   paginationValidation,
   unpaidCreditsValidation,
   getUnpaidCredits,
 );
-router.get("/:id", idValidation, getById);
+router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/:id",
   authentication,

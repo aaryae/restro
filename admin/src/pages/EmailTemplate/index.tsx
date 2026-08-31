@@ -14,7 +14,7 @@ import { EMAIL_TEMPLATE_ADD_ROUTE } from "@/routes/routeNames";
 import { checkAccess } from "@/utils/accessHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function EmailTemplate() {
@@ -128,7 +128,7 @@ export default function EmailTemplate() {
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                   title="Edit template"
                 >
-                  <MdEditSquare size={16} />
+                  <SquarePen size={16} />
                 </button>
               )}
               {accessList.includes("delete") && (

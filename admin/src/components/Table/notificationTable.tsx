@@ -1,5 +1,5 @@
 import { TimeDifference } from "@/utils/timeDifference";
-import { MdCheck, MdClear } from "react-icons/md";
+import { Check, X } from "lucide-react";
 import Loader from "../Loader";
 import useTranslation from "@/locale/useTranslation";
 
@@ -14,7 +14,7 @@ export default function NotificationTable({
   return (
     <>
       {/* Table Header */}
-      <div className="flex justify-between border py-[1rem] pl-[1.25rem] pr-[5rem] rounded-t-[0.75rem] bg-[#F6F8FA]">
+      <div className="flex justify-between rounded-t-[0.75rem] border border-[var(--serve-border)] bg-[var(--serve-surface-2)] py-[1rem] pl-[1.25rem] pr-[5rem]">
         <div className="flex px-[0.7rem] gap-[0.5rem]">
           {/* <input type="checkbox" /> */}
           <p>Requests</p>
@@ -163,14 +163,14 @@ function PendingButtons({ id, status, handleButtonClick }) {
           className="flex px-[0.75rem] py-[0.5rem] gap-[0.925rem] rounded-[0.5rem] bg-[#1a7f37]"
           onClick={() => handleButtonClick(id, true)}
         >
-          <MdCheck size={16} />
+          <Check />
           Approve
         </button>
         <button
           className="flex px-[0.75rem] py-[0.5rem] gap-[0.925rem] rounded-[0.5rem] bg-[#dc2626] "
           onClick={() => handleButtonClick(id, false)}
         >
-          <MdClear size={16} /> Decline
+          <X /> Decline
         </button>
       </div>
     );

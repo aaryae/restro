@@ -10,6 +10,7 @@ const {
   authChangePassword,
   authListUser,
   authGetProfile,
+  authGetAccess,
   authIsActiveUser,
   updateProfile,
   getTotalOfManyModel,
@@ -43,6 +44,7 @@ router.post(
 
 // this route is for getting the profile of the logged in user
 router.get("/profile", authentication, authGetProfile);
+router.get("/access", authentication, authGetAccess);
 router.get("/getTotalOfManyModel", authentication, getTotalOfManyModel);
 router.put(
   "/update-profile",

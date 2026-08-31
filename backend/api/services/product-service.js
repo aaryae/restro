@@ -1,16 +1,25 @@
 const { Op } = require("sequelize");
 const generalConstant = require("../../constants/general-constant");
-const { parseExcel } = require("../../utils/excelParser");
+const {
+  readSheet,
+  normalizeRows,
+  missingRequiredColumns,
+} = require("../../lib/product-import");
 const {
   productModel,
   productMediaModel,
   productVariantModel,
+  productCategoryModel,
+  departmentModel,
   addonModel,
   orderItemModel,
   sequelize,
 } = require("../../models");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
+
+/** Keeps a single import transaction to a sane size. */
+const MAX_IMPORT_ROWS = 2000;
 // const { Op } = require("sequelize");
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -344,24 +353,195 @@ const updateByOrder = async (req) => {
   }
 };
 
-const importFromExcel = async (file) => {
+/**
+ * Bulk import menu items from an .xlsx/.xls/.csv sheet.
+ *
+ * Categories and departments are referenced by name (not id) because that is
+ * what a cafe actually has in their existing menu sheet. Missing categories can
+ * be created on the fly; departments must already exist since they drive KOT
+ * routing. `dryRun` validates and reports without persisting anything.
+ */
+const importFromExcel = async (file, options = {}) => {
+  const { dryRun = false, createMissingCategories = true } = options;
+
+  let rows;
+  let headerMap;
+  try {
+    ({ rows, headerMap } = readSheet(file.path));
+  } catch {
+    return {
+      status: 400,
+      success: false,
+      message: "That file could not be read. Save it as .xlsx or .csv and try again.",
+      data: null,
+    };
+  }
+
+  const missingColumns = missingRequiredColumns(headerMap);
+  if (missingColumns.length) {
+    return {
+      status: 400,
+      success: false,
+      message: `Missing required column(s): ${missingColumns.join(", ")}`,
+      data: null,
+    };
+  }
+
+  if (!rows.length) {
+    return {
+      status: 400,
+      success: false,
+      message: "The file has no rows to import.",
+      data: null,
+    };
+  }
+
+  if (rows.length > MAX_IMPORT_ROWS) {
+    return {
+      status: 400,
+      success: false,
+      message: `Import up to ${MAX_IMPORT_ROWS} rows at a time — split the file and try again.`,
+      data: null,
+    };
+  }
+
+  const candidates = normalizeRows(rows, headerMap);
+
   const transaction = await sequelize.transaction();
   try {
-    const products = parseExcel(file.path);
-
-    // Create products in database
-    const createdProducts = await productModel.bulkCreate(products, {
+    // Sequential: one transaction rides a single connection.
+    const categories = await productCategoryModel.findAll({ transaction });
+    const departments = await departmentModel.findAll({ transaction });
+    const existingProducts = await productModel.findAll({
+      attributes: ["name"],
       transaction,
-      returning: true,
-      validate: true,
     });
 
-    await transaction.commit();
+    const categoryByName = new Map(
+      categories.map((c) => [c.name.trim().toLowerCase(), c]),
+    );
+    const departmentByName = new Map(
+      departments.map((d) => [d.name.trim().toLowerCase(), d]),
+    );
+    const existingNames = new Set(
+      existingProducts.map((p) => p.name.trim().toLowerCase()),
+    );
+    const defaultDepartment = departments[0] || null;
+
+    const minOrder = await productModel.min("order", { transaction });
+    let nextOrder =
+      minOrder === null || minOrder === undefined ? 0 : Number(minOrder) - 1;
+
+    const results = [];
+    const createdCategories = [];
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const candidate of candidates) {
+      const errors = [...candidate.errors];
+
+      if (!errors.length && existingNames.has(candidate.name.toLowerCase())) {
+        skipped += 1;
+        results.push({
+          rowNumber: candidate.rowNumber,
+          name: candidate.name,
+          status: "skipped",
+          message: "An item with this name already exists",
+        });
+        continue;
+      }
+
+      let category = candidate.category
+        ? categoryByName.get(candidate.category.toLowerCase())
+        : null;
+      if (candidate.category && !category && !createMissingCategories) {
+        errors.push(`Category "${candidate.category}" does not exist`);
+      }
+
+      const department = candidate.department
+        ? departmentByName.get(candidate.department.toLowerCase())
+        : defaultDepartment;
+      if (!department) {
+        errors.push(
+          candidate.department
+            ? `Department "${candidate.department}" does not exist`
+            : "No department found — create one before importing",
+        );
+      }
+
+      if (errors.length) {
+        failed += 1;
+        results.push({
+          rowNumber: candidate.rowNumber,
+          name: candidate.name,
+          status: "failed",
+          message: errors.join("; "),
+        });
+        continue;
+      }
+
+      // Created only now that the row is known to be importable.
+      if (!category) {
+        category = await productCategoryModel.create(
+          {
+            name: candidate.category,
+            slug: slugGenerator(candidate.category),
+          },
+          { transaction },
+        );
+        categoryByName.set(candidate.category.toLowerCase(), category);
+        createdCategories.push(category.name);
+      }
+
+      await productModel.create(
+        {
+          name: candidate.name,
+          slug: slugGenerator(candidate.name),
+          description: candidate.description || null,
+          price: candidate.price,
+          quantity: candidate.quantity,
+          stockStatus: candidate.stockStatus,
+          productCategoryId: category.id,
+          departmentId: department.id,
+          hasVariant: false,
+          order: nextOrder,
+        },
+        { transaction },
+      );
+
+      nextOrder -= 1;
+      existingNames.add(candidate.name.toLowerCase());
+      created += 1;
+      results.push({
+        rowNumber: candidate.rowNumber,
+        name: candidate.name,
+        status: dryRun ? "ready" : "created",
+        message: dryRun ? "Ready to import" : "Imported",
+      });
+    }
+
+    if (dryRun) {
+      await transaction.rollback();
+    } else {
+      await transaction.commit();
+    }
+
     return {
-      status: 201,
+      status: 200,
       success: true,
-      data: { count: createdProducts.length },
-      message: "Products imported successfully",
+      message: dryRun
+        ? `${created} item(s) ready to import`
+        : `${created} item(s) imported successfully`,
+      data: {
+        dryRun,
+        totalRows: candidates.length,
+        created,
+        skipped,
+        failed,
+        createdCategories: dryRun ? [] : createdCategories,
+        rows: results,
+      },
     };
   } catch (error) {
     await transaction.rollback();
@@ -396,7 +576,9 @@ const topSelling = async (req) => {
         status: { [Op.ne]: "cancelled" },
       },
       group: ["productId"],
-      order: [[sequelize.literal("totalSold"), "DESC"]],
+      // Quoted: Postgres folds an unquoted identifier to lowercase, so the
+      // alias no longer matches the quoted one Sequelize emits for the SUM.
+      order: [[sequelize.literal('"totalSold"'), "DESC"]],
       limit,
       raw: true,
     });

@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { FaTimes } from "react-icons/fa";
+import { X } from "lucide-react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -40,20 +40,22 @@ const Modal: React.FC<ModalProps> = ({
       onClick={handleBackdropClick}
     >
       <div className="flex items-center justify-center min-h-screen px-4 py-8">
-        <div className="fixed inset-0 bg-black opacity-50"></div>
+        <div className="serve-overlay fixed inset-0"></div>
 
         <div
-          className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} ${className}`}
+          role="dialog"
+          aria-modal="true"
+          className={`serve-modal relative w-full rounded-xl ${sizeClasses[size]} ${className}`}
         >
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <div className="flex items-center justify-between border-b border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-slate-400 transition-colors hover:text-slate-600"
               >
-                <FaTimes size={18} />
+                <X size={18} />
               </button>
             </div>
           )}
@@ -63,9 +65,9 @@ const Modal: React.FC<ModalProps> = ({
             {!title && (
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-4 top-4 z-10 text-slate-400 transition-colors hover:text-slate-600"
               >
-                <FaTimes size={18} />
+                <X size={18} />
               </button>
             )}
             {children}

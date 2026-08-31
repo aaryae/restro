@@ -42,7 +42,7 @@ const getAccountsRevenue = async (req) => {
       [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
       [literal("SUM(SUM(amount)) OVER ()"), "overallTotal"],
     ],
-    group: ["accountId"],
+    group: ["accountId", "account.id", "account.name"],
     raw: true,
     where: {
       createdAt: createdDateRange(req),
@@ -62,9 +62,9 @@ const getAccountsPurchase = async (req) => {
     attributes: [
       "accountId",
       [sequelize.fn("SUM", sequelize.col("totalAmount")), "totalAmount"],
-      [literal("SUM(SUM(totalAmount)) OVER ()"), "overallTotal"],
+      [literal('SUM(SUM("totalAmount")) OVER ()'), "overallTotal"],
     ],
-    group: ["accountId"],
+    group: ["accountId", "account.id", "account.name"],
     where: {
       paymentDate: createdDateRange(req),
       status: { [Op.ne]: "cancelled" },
@@ -86,7 +86,7 @@ const getAccountsExpense = async (req) => {
       [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
       [literal("SUM(SUM(amount)) OVER ()"), "overallTotal"],
     ],
-    group: ["accountId"],
+    group: ["accountId", "account.id", "account.name"],
     raw: true,
     where: {
       paymentDate: createdDateRange(req),
@@ -111,9 +111,9 @@ const getAccountNetChange = (
   accountsExpense,
   accountsPurchase,
 ) => {
-  const overAllRevenue = accountsRevenue?.[0]?.overAllTotal || 0;
+  const overAllRevenue = accountsRevenue?.[0]?.overallTotal || 0;
   const overAllExpense = accountsExpense?.[0]?.overallTotal || 0;
-  const overAllPurchase = accountsPurchase?.[0]?.overAllTotal || 0;
+  const overAllPurchase = accountsPurchase?.[0]?.overallTotal || 0;
 
   return overAllRevenue - (overAllPurchase + overAllExpense);
 };
@@ -220,9 +220,9 @@ module.exports.getCounterCashSummary = async (req) => {
 
 module.exports.getDailySummary = async (req) => {
   try {
-    const accountsRevenue = await getAccountsRevenue();
-    const accountsPurchase = await getAccountsPurchase();
-    const accountsExpense = await getAccountsExpense();
+    const accountsRevenue = await getAccountsRevenue(req);
+    const accountsPurchase = await getAccountsPurchase(req);
+    const accountsExpense = await getAccountsExpense(req);
     const closingBalance = await getClosingBalance();
     const netChange = getAccountNetChange(
       accountsRevenue,

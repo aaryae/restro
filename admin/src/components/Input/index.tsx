@@ -46,7 +46,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div
-          className={`input-wrapper bg-red-200 ${
+          className={`input-wrapper ${
             type === "checkbox" ? "input-checkbox-wrapper" : ""
           } ${rest.disabled === "true" ? "opacity-90 cursor-not-allowed" : "opacity-100"}`}
         >

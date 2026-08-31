@@ -19,8 +19,9 @@ import Select from "@/components/Select";
 import ViewTableOrder from "./ViewTableOrder";
 import CustomDialog from "@/components/Dialog";
 import ChooseTable from "./TransferModel/ChooseTable";
-import { Plus } from "lucide-react";
+import { Repeat } from "lucide-react";
 import "./TableListCss.css";
+import "../posBrand.css";
 
 export default function TableList() {
   const [paidItemsByOrder, setPaidItemsByOrder] = useState<
@@ -179,6 +180,10 @@ export default function TableList() {
             onStatusChange={handleStatusChange}
             onFloorChange={handleFloorChange}
             floorOptions={floorOptions}
+            onOpenTransfer={() => {
+              setTransferTableId(null);
+              setTransferOpen(true);
+            }}
           />
 
           {allTables?.data?.data && (
@@ -260,7 +265,7 @@ function Tables({
   });
 
   return (
-    <div className="mt-8 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 min-[390px]:gap-3.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {!filteredTables || filteredTables.length === 0 ? (
         <div className="col-span-full text-center text-gray-500 py-8">
           No table found
@@ -288,6 +293,7 @@ interface HeaderProps {
   onStatusChange: (status: string) => void;
   onFloorChange: (floor: string) => void;
   floorOptions: FloorOption[];
+  onOpenTransfer: () => void;
 }
 
 function Header({
@@ -296,8 +302,8 @@ function Header({
   onStatusChange,
   onFloorChange,
   floorOptions = [],
+  onOpenTransfer,
 }: HeaderProps) {
-  const navigate = useNavigate();
   const TableStatus = [
     { value: "all", label: "All" },
     { value: "available", label: "Available" },
@@ -306,40 +312,58 @@ function Header({
   ];
 
   return (
-    <>
-      <div className="flex justify-between items-center">
-        <div className="flex flex-wrap gap-2 items-center mt-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            {TableStatus.map((option) => (
-              <button
-                key={`status-${option.value}`}
-                className={`px-6 py-4 text-sm font-medium rounded-full border text-[15px] ${
-                  selectedStatus === option.value
-                    ? "bg-primaryColor text-white border-none cursor-default"
-                    : "bg-white text-gray-700 hover:bg-gray-200"
-                }`}
-                onClick={() => {
-                  if (selectedStatus !== option.value) {
-                    onStatusChange(option.value);
-                  }
-                }}
-              >
-                {option.label}
-              </button>
-            ))}
-            <div className="ml-4 min-w-[160px]">
-              <Select
-                value={selectedFloor || "all"}
-                options={floorOptions}
-                onValueChange={(next) =>
-                  onFloorChange(next === "all" ? "" : next)
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="pos-segment inline-flex flex-wrap rounded-lg p-1">
+          {TableStatus.map((option) => (
+            <button
+              key={`status-${option.value}`}
+              type="button"
+              className="pos-segment-item rounded-md px-3 py-1.5 text-[13px] font-medium"
+              data-active={selectedStatus === option.value}
+              onClick={() => {
+                if (selectedStatus !== option.value) {
+                  onStatusChange(option.value);
                 }
-                triggerClassName="h-10 min-w-[160px] font-medium"
-              />
-            </div>
-          </div>
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="min-w-[150px]">
+          <Select
+            value={selectedFloor || "all"}
+            options={floorOptions}
+            onValueChange={(next) => onFloorChange(next === "all" ? "" : next)}
+            triggerClassName="h-9 min-w-[150px] font-medium"
+          />
         </div>
       </div>
-    </>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenTransfer}
+          className="pos-ghost-button inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3.5 text-[13px] font-medium"
+        >
+          <Repeat size={14} strokeWidth={2.25} className="shrink-0" />
+          <span>Transfer Table</span>
+        </button>
+        <div className="pos-legend flex flex-wrap items-center gap-3 text-[11px] font-medium">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="pos-dot-available h-2 w-2 rounded-full" />
+            Available
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="pos-dot-occupied h-2 w-2 rounded-full" />
+            Occupied
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="pos-dot-unavailable h-2 w-2 rounded-full" />
+            Unavailable
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

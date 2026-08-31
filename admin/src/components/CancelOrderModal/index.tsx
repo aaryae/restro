@@ -55,7 +55,7 @@ export default function CancelOrderModal({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+          className="pos-action-btn pos-action-btn--cancel"
           title="Cancel order"
           onClick={(e) => {
             e.stopPropagation();

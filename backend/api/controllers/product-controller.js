@@ -1,3 +1,4 @@
+const fs = require("fs");
 const productService = require("../services/product-service");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
@@ -130,6 +131,9 @@ const deleteProduct = async (req, res, next) => {
   }
 };
 
+const isTruthyFlag = (value) =>
+  value === true || value === "true" || value === "1" || value === 1;
+
 const importFromExcel = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -138,12 +142,18 @@ const importFromExcel = async (req, res, next) => {
         400,
         false,
         null,
-        { file: 'No file uploaded' },
-        'Please upload a file',
+        { file: "No file uploaded" },
+        "Please upload a file",
       );
     }
 
-    const result = await productService.importFromExcel(req.file);
+    const result = await productService.importFromExcel(req.file, {
+      dryRun: isTruthyFlag(req.body?.dryRun),
+      createMissingCategories: req.body?.createMissingCategories === undefined
+        ? true
+        : isTruthyFlag(req.body.createMissingCategories),
+    });
+
     return responseHelper.sendResponse(
       res,
       result.status,
@@ -153,10 +163,15 @@ const importFromExcel = async (req, res, next) => {
       result.message,
     );
   } catch (err) {
-    logger.error('Error importing products:', err);
+    logger.error("Error importing products:", err);
     next(err);
+  } finally {
+    // Uploaded sheets are single-use; do not leave them on disk.
+    if (req.file?.path) {
+      fs.promises.unlink(req.file.path).catch(() => {});
+    }
   }
-}
+};
 
 module.exports = {
   create,

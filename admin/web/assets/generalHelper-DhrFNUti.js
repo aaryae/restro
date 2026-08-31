@@ -1,0 +1,1 @@
+function p(n,a){let i=new URLSearchParams;return a.search&&Object.keys(a.search).forEach(t=>{a.search[t]!==""&&a.search[t]!==void 0&&a.search[t]!==null&&i.append(t,a.search[t])}),i.append("page",a.page.toString()),i.append("limit",a.limit.toString()),`${n}?${i}`}export{p as b};

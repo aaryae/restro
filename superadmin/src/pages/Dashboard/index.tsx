@@ -191,7 +191,7 @@ export default function DashboardPage() {
   if (!canDashboard) {
     if (canCafes) return <Navigate to="/cafes" replace />
     if (canAudit) return <Navigate to="/audit" replace />
-    return <Navigate to="/settings" replace />
+    return <Navigate to="/settings/operators" replace />
   }
 
   if (statsQuery.isLoading) return <LoadingScreen label="Loading dashboard…" />

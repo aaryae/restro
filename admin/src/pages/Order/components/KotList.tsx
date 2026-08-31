@@ -11,7 +11,9 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useUpdateKotMutation } from "@/redux/services/kot";
 import { ChefHat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { kotPrintPageStyle } from "@/utils/printPageStyles";
 import { buildCheckoutPath } from "@/utils/checkoutNavigation";
+import "../posBrand.css";
 
 type OrderItem = {
   id: number | string;
@@ -33,85 +35,66 @@ function getKotStatusTheme(status?: string) {
   switch (status) {
     case "all":
       return {
-        border: "border-slate-300",
-        stripe: "bg-slate-400",
-        badge: "bg-slate-100 text-slate-700 border-slate-300",
+        border: "border-slate-200",
+        stripe: "pos-accent-navy",
+        badge: "pos-pill-navy border",
         tint: "bg-white",
         label: "All",
-        dot: "bg-gradient-to-r from-amber-500 via-sky-500 to-emerald-500",
-        filterActive: "border-primaryColor bg-primaryColor text-white",
-        filterInactive:
-          "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+        dot: "pos-dot-navy",
       };
     case "pending":
       return {
-        border: "border-amber-400",
-        stripe: "bg-amber-500",
-        badge: "bg-amber-100 text-amber-800 border-amber-300",
-        tint: "bg-amber-50/60",
+        border: "border-slate-200",
+        stripe: "pos-accent-gold",
+        badge: "pos-pill-gold border",
+        tint: "bg-white",
         label: "Pending",
-        dot: "bg-amber-500",
-        filterActive: "border-amber-500 bg-amber-500 text-white",
-        filterInactive:
-          "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
+        dot: "pos-dot-gold",
       };
     case "preparing":
       return {
-        border: "border-sky-500",
-        stripe: "bg-sky-500",
-        badge: "bg-sky-100 text-sky-800 border-sky-300",
-        tint: "bg-sky-50/60",
+        border: "border-slate-200",
+        stripe: "pos-accent-navy",
+        badge: "pos-pill-navy border",
+        tint: "bg-white",
         label: "Preparing",
-        dot: "bg-sky-500",
-        filterActive: "border-sky-500 bg-sky-500 text-white",
-        filterInactive: "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+        dot: "pos-dot-navy",
       };
     case "ready":
       return {
-        border: "border-emerald-500",
-        stripe: "bg-emerald-500",
-        badge: "bg-emerald-100 text-emerald-800 border-emerald-300",
-        tint: "bg-emerald-50/60",
+        border: "border-slate-200",
+        stripe: "pos-accent-navy",
+        badge: "border-primaryColor bg-primaryColor text-white",
+        tint: "bg-primaryColor/[0.03]",
         label: "Ready · Checkout",
-        dot: "bg-emerald-500",
-        filterActive: "border-emerald-500 bg-emerald-500 text-white",
-        filterInactive:
-          "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+        dot: "pos-dot-navy",
       };
     case "completed":
       return {
-        border: "border-slate-400",
-        stripe: "bg-slate-500",
-        badge: "bg-slate-100 text-slate-700 border-slate-300",
+        border: "border-slate-200",
+        stripe: "bg-slate-400",
+        badge: "bg-slate-100 text-slate-700 border-slate-200",
         tint: "bg-slate-50/80",
         label: "Completed",
-        dot: "bg-slate-500",
-        filterActive: "border-slate-500 bg-slate-500 text-white",
-        filterInactive:
-          "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+        dot: "bg-slate-400",
       };
     case "cancelled":
       return {
-        border: "border-rose-500",
+        border: "border-rose-200",
         stripe: "bg-rose-500",
-        badge: "bg-rose-100 text-rose-800 border-rose-300",
-        tint: "bg-rose-50/60",
+        badge: "bg-rose-50 text-rose-800 border-rose-200",
+        tint: "bg-white",
         label: "Cancelled",
         dot: "bg-rose-500",
-        filterActive: "border-rose-500 bg-rose-500 text-white",
-        filterInactive: "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100",
       };
     default:
       return {
-        border: "border-gray-400",
-        stripe: "bg-gray-400",
-        badge: "bg-gray-100 text-gray-700 border-gray-300",
+        border: "border-slate-200",
+        stripe: "bg-slate-400",
+        badge: "bg-slate-100 text-slate-700 border-slate-200",
         tint: "bg-white",
         label: status ?? "-",
-        dot: "bg-gray-400",
-        filterActive: "border-primaryColor bg-primaryColor text-white",
-        filterInactive:
-          "border-slate-200 bg-white text-slate-600 hover:border-primaryColor/30",
+        dot: "bg-slate-400",
       };
   }
 }
@@ -153,8 +136,7 @@ export default function KotList() {
 
   return (
     <>
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2">
+      <div className="inline-flex w-full flex-wrap rounded-lg border border-slate-200 bg-slate-50/80 p-1 md:w-auto">
           {statusTabs.map((status) => {
             const isActive = queryStringOptions.status === status;
             const theme = getKotStatusTheme(status);
@@ -162,8 +144,10 @@ export default function KotList() {
               <button
                 key={status}
                 type="button"
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium capitalize transition ${
-                  isActive ? theme.filterActive : theme.filterInactive
+                className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium capitalize transition md:flex-none ${
+                  isActive
+                    ? "bg-primaryColor text-white shadow-sm"
+                    : "text-slate-600 hover:bg-white hover:text-slate-800"
                 }`}
                 onClick={() =>
                   setQueryStringOptions((cur) => ({ ...cur, status }))
@@ -179,7 +163,6 @@ export default function KotList() {
             );
           })}
         </div>
-      </div>
       <div className="mt-3 grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {isSuccess && kots?.data?.data?.length > 0 ? (
           kots?.data?.data?.map((kot) => <KotCard key={kot.id} kot={kot} />)
@@ -250,35 +233,7 @@ function KotCard({ kot }) {
   const reactToPrintFn = useReactToPrint({
     contentRef,
     documentTitle: `KOT-${kot.kotNumber}`,
-    pageStyle: `
-      @page { size: 80mm auto; margin: 4mm; }
-      @media print {
-        html, body { margin: 0 !important; padding: 0 !important; }
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .kot-print { width: 80mm !important; font-size: 10px !important; line-height: 1.25 !important; }
-        .kot-print * { font-size: 10px !important; line-height: 1.25 !important; }
-        .kot-print .kot-title { font-size: 14px !important; font-weight: 800 !important; }
-        .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
-        .kot-print .section-gap { margin: 6px 0 !important; }
-        .kot-print .border-dashed { border-color: #000 !important; }
-        .kot-print .border-t { border-top-width: .5008px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
-        .kot-print .divider-dashed {
-          border: 0 !important;
-          height: 1px !important;
-          background-image: repeating-linear-gradient(to right, #000 0, #000 8px, transparent 8px, transparent 12px) !important;
-          background-repeat: repeat-x !important;
-          background-size: 100% 1px !important;
-          background-position: 0 .5008px !important;
-        }
-          .kot-print .number {margin:0 !important; }
-        
-        .no-print { display: none !important; }
-        .screen-compact {
-          max-height: none !important;
-          overflow: visible !important;
-        }
-      }
-    `,
+    pageStyle: kotPrintPageStyle,
   });
 
   const totalDish = items.length;
@@ -304,13 +259,16 @@ function KotCard({ kot }) {
   return (
     <>
       <div
-        className={`relative flex w-full max-w-[280px] flex-col overflow-hidden border border-dashed font-mono text-xs shadow-sm ${statusTheme.border} ${statusTheme.tint}`}
+        className={`relative flex w-full max-w-[280px] flex-col overflow-hidden rounded-xl border font-mono text-xs shadow-sm ${statusTheme.border} ${statusTheme.tint}`}
       >
         <div
           className={`no-print absolute bottom-0 left-0 top-0 w-1.5 ${statusTheme.stripe}`}
         />
 
-        <div ref={contentRef} className="kot-print flex flex-1 flex-col p-3 pl-4">
+        <div
+          ref={contentRef}
+          className="print-surface kot-print flex flex-1 flex-col bg-white p-3 pl-4 text-black"
+        >
           <div className="flex items-start justify-between gap-2">
             <p className="kot-title text-sm font-bold">KOT {kot.kotNumber}</p>
             <span
@@ -405,7 +363,7 @@ function KotCard({ kot }) {
           <p className="mt-3 hidden text-center print:block">Thank You!</p>
         </div>
 
-        <div className="no-print flex flex-wrap justify-center gap-2 border-t border-dashed border-gray-300 bg-white/80 p-2 pl-3">
+        <div className="no-print flex flex-wrap justify-center gap-2 border-t border-slate-200 bg-white/90 p-2 pl-3">
           <Button
             className="submit-button px-3 py-1.5 text-[11px]"
             handleClick={reactToPrintFn}
@@ -415,7 +373,7 @@ function KotCard({ kot }) {
 
           {kot.status === "ready" && (
             <Button
-              className="border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-700"
+              className="border border-primaryColor bg-primaryColor px-3 py-1.5 text-[11px] text-white hover:bg-primaryColor/90"
               handleClick={() =>
                 navigate(
                   buildCheckoutPath({
@@ -431,7 +389,7 @@ function KotCard({ kot }) {
 
           {kot.status === "pending" && (
             <Button
-              className="border border-sky-500 bg-sky-500 px-3 py-1.5 text-[11px] text-white hover:bg-sky-600"
+              className="border border-primaryColor bg-primaryColor px-3 py-1.5 text-[11px] text-white hover:bg-primaryColor/90"
               handleClick={async () => {
                 try {
                   const response = await updateKot({
@@ -449,7 +407,7 @@ function KotCard({ kot }) {
           )}
           {kot.status === "preparing" && (
             <Button
-              className="border border-emerald-500 bg-emerald-500 px-3 py-1.5 text-[11px] text-white hover:bg-emerald-600"
+              className="border border-primaryColor bg-primaryColor px-3 py-1.5 text-[11px] text-white hover:bg-primaryColor/90"
               handleClick={async () => {
                 try {
                   const response = await updateKot({

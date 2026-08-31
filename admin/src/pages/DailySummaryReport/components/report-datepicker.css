@@ -6,7 +6,7 @@
 
 .report-datepicker .react-datepicker__header {
   background: transparent;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--serve-border);
   padding: 0 0 12px;
   margin-bottom: 8px;
 }
@@ -14,7 +14,7 @@
 .report-datepicker .react-datepicker__current-month {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--serve-fg);
   margin-bottom: 10px;
 }
 
@@ -26,7 +26,7 @@
   width: 2.25rem;
   line-height: 2rem;
   margin: 0.1rem;
-  color: #94a3b8;
+  color: var(--serve-muted);
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -41,19 +41,19 @@
   line-height: 2.25rem;
   margin: 0.1rem;
   border-radius: 0.5rem;
-  color: #334155;
+  color: var(--serve-fg);
   font-size: 0.875rem;
 }
 
 .report-datepicker .react-datepicker__day:hover {
-  background: #f1f5f9;
+  background: var(--serve-surface-2);
   border-radius: 0.5rem;
 }
 
 .report-datepicker .react-datepicker__day--selected,
 .report-datepicker .react-datepicker__day--keyboard-selected {
   background: var(--primary-color) !important;
-  color: #fff !important;
+  color: var(--primary-fg, #fff) !important;
   font-weight: 600;
 }
 
@@ -69,15 +69,17 @@
 }
 
 .report-datepicker .react-datepicker__day--today.react-datepicker__day--selected {
-  color: #fff;
+  color: var(--primary-fg, #fff);
 }
 
 .report-datepicker .react-datepicker__day--outside-month {
-  color: #cbd5e1;
+  color: var(--serve-muted);
+  opacity: 0.6;
 }
 
 .report-datepicker .react-datepicker__day--disabled {
-  color: #e2e8f0;
+  color: var(--serve-border);
+  opacity: 0.7;
 }
 
 .report-datepicker .react-datepicker__navigation {
@@ -88,11 +90,11 @@
 }
 
 .report-datepicker .react-datepicker__navigation:hover {
-  background: #f1f5f9;
+  background: var(--serve-surface-2);
 }
 
 .report-datepicker .react-datepicker__navigation-icon::before {
-  border-color: #64748b;
+  border-color: var(--serve-muted);
   border-width: 2px 2px 0 0;
   height: 7px;
   width: 7px;

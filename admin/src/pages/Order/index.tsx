@@ -2,14 +2,19 @@ import { Controller, useForm } from "react-hook-form";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ORDER_ADD_ROUTE } from "@/routes/routeNames";
-import CustomDialog from "@/components/Dialog";
-import { ChefHat, ClipboardList, LayoutGrid, Plus, Repeat } from "lucide-react";
+import {
+  ChefHat,
+  ClipboardList,
+  LayoutGrid,
+  Plus,
+  UtensilsCrossed,
+} from "lucide-react";
 import Loader from "@/components/Loader";
+import "./posBrand.css";
 
 const TableList = lazy(() => import("./components/TableList"));
 const OrderList = lazy(() => import("./components/OrderList"));
 const KotList = lazy(() => import("./components/KotList"));
-const ChooseTable = lazy(() => import("./components/TransferModel/ChooseTable"));
 
 const VIEW_VALUES = ["table", "order", "kot"] as const;
 type OrderView = (typeof VIEW_VALUES)[number];
@@ -35,7 +40,6 @@ export default function Order() {
   });
   const selectedView = watch("accountType");
   const [contentReady, setContentReady] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const fromUrl = resolveView(searchParams.get("view"));
@@ -67,60 +71,61 @@ export default function Order() {
 
   return (
     <>
-      <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm lg:flex-row lg:items-center lg:justify-between lg:p-3">
-        <Controller
-          name="accountType"
-          control={control}
-          render={({ field }) => (
-            <div className="flex min-w-0 w-full shrink-0 rounded-full bg-slate-100 p-1 lg:w-auto">
-              {headerOptions.map((option) => {
-                const Icon = option.icon;
-                const isActive = field.value === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium transition-all duration-200 sm:px-4 lg:flex-none lg:min-w-[104px] lg:px-5 ${
-                      isActive
-                        ? "bg-primaryColor text-white shadow-sm"
-                        : "text-slate-500 hover:bg-white/70 hover:text-slate-700"
-                    }`}
-                    onClick={() => field.onChange(option.value)}
-                  >
-                    <Icon size={15} className="shrink-0" />
-                    <span className="truncate">{option.label}</span>
-                  </button>
-                );
-              })}
+      <div className="pos-panel rounded-xl p-3 sm:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="pos-header-badge inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <UtensilsCrossed size={20} />
+            </span>
+            <div className="min-w-0">
+              <h1 className="pos-header-title truncate">Point of Sale</h1>
+              <p className="pos-header-sub mt-0.5">
+                Floor, orders, and kitchen tickets in one workspace
+              </p>
             </div>
-          )}
-        />
-        <div className="flex min-w-0 w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
-          {["table", "order", "kot"].includes(selectedView) && (
-            <button
-              type="button"
-              onClick={() => navigate(ORDER_ADD_ROUTE)}
-              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-primaryColor bg-primaryColor px-3.5 text-[13px] font-medium text-white transition-all duration-200 hover:bg-primaryColor/90 sm:flex-none"
-            >
-              <Plus size={15} strokeWidth={2.25} className="shrink-0" />
-              <span className="truncate">Create Order</span>
-            </button>
-          )}
-          {selectedView === "table" && (
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 text-[13px] font-medium text-slate-700 transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 sm:flex-none"
-            >
-              <Repeat size={14} strokeWidth={2.25} className="shrink-0" />
-              <span className="truncate">Transfer Table</span>
-            </button>
-          )}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between xl:justify-end">
+            <Controller
+              name="accountType"
+              control={control}
+              render={({ field }) => (
+                <div className="pos-segment inline-flex min-w-0 w-full rounded-lg p-1 sm:w-auto">
+                  {headerOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isActive = field.value === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className="pos-segment-item flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium sm:flex-none sm:px-4"
+                        data-active={isActive}
+                        onClick={() => field.onChange(option.value)}
+                      >
+                        <Icon size={15} className="shrink-0" />
+                        <span className="truncate">{option.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            />
+            <div className="flex min-w-0 w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+              <button
+                type="button"
+                onClick={() => navigate(ORDER_ADD_ROUTE)}
+                className="inline-flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:bg-primaryColor/90 sm:flex-none"
+              >
+                <Plus size={15} strokeWidth={2.25} className="shrink-0" />
+                <span className="truncate">Create Order</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div
-        className={`mt-2 rounded-xl border border-slate-200/80 bg-white p-2 transition-opacity duration-300 ease-out ${
+        className={`pos-panel mt-3 rounded-xl p-2 transition-opacity duration-300 ease-out sm:p-3 ${
           contentReady ? "opacity-100" : "opacity-0"
         }`}
       >
@@ -130,19 +135,6 @@ export default function Order() {
           {selectedView === "kot" && <KotList />}
         </Suspense>
       </div>
-      <CustomDialog
-        dialogOpen={dialogOpen}
-        setDialogOpen={setDialogOpen}
-        title="Transfer Table"
-        titleDescription="Move orders from one table to another."
-        contentClassName="max-w-xl"
-      >
-        <Suspense fallback={<Loader />}>
-          {dialogOpen ? (
-            <ChooseTable tableId={null} onClose={() => setDialogOpen(false)} />
-          ) : null}
-        </Suspense>
-      </CustomDialog>
     </>
   );
 }

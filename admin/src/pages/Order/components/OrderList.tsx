@@ -1,18 +1,21 @@
 import CancelOrderModal from "@/components/CancelOrderModal";
 import Drawer from "@/components/Drawer";
 import Table from "@/components/Table";
+import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useUpdateOrderStatusMutation } from "@/redux/services/orders";
 import { CurrencySign } from "@/constants";
 import { buildQueryString } from "@/utils/generalHelper";
+import { buildCheckoutPath } from "@/utils/checkoutNavigation";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { format } from "date-fns";
 import { ReactNode, useEffect, useState } from "react";
-import { FaEye } from "react-icons/fa";
+import { Eye, Banknote, CircleCheckBig, Clock3, ReceiptText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ViewOrder from "../ViewOrder";
 import OrderFilter from "./OrderFilter";
-import { CircleCheckBig, Clock3, ReceiptText } from "lucide-react";
+import "../posBrand.css";
 
 function formatOrderType(type?: string) {
   if (!type) return "-";
@@ -26,14 +29,13 @@ function StatusPill({
   tone = "slate",
 }: {
   value: string;
-  tone?: "slate" | "amber" | "emerald" | "rose" | "blue";
+  tone?: "slate" | "gold" | "navy" | "rose";
 }) {
   const tones = {
     slate: "border-slate-200 bg-slate-50 text-slate-600",
-    amber: "border-amber-200 bg-amber-50 text-amber-700",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    gold: "pos-pill-gold border",
+    navy: "pos-pill-navy border",
     rose: "border-rose-200 bg-rose-50 text-rose-700",
-    blue: "border-blue-200 bg-blue-50 text-blue-700",
   };
 
   return (
@@ -45,11 +47,11 @@ function StatusPill({
   );
 }
 
-function paymentTone(status?: string) {
+function paymentTone(status?: string): "slate" | "gold" | "navy" | "rose" {
   const value = (status || "").toLowerCase().replace(/_/g, " ");
-  if (value === "paid" || value === "completed") return "emerald";
-  if (value === "pending") return "amber";
-  if (value === "partially paid" || value === "partial") return "blue";
+  if (value === "paid" || value === "completed") return "navy";
+  if (value === "pending") return "gold";
+  if (value === "partially paid" || value === "partial") return "gold";
   if (value === "cancelled" || value === "failed") return "rose";
   return "slate";
 }
@@ -59,22 +61,30 @@ function formatPaymentStatus(status?: string) {
   return status.replace(/_/g, " ");
 }
 
-function orderStatusTone(status?: string) {
+function orderStatusTone(status?: string): "slate" | "gold" | "navy" | "rose" {
   const value = (status || "").toLowerCase();
-  if (value === "completed") return "emerald";
-  if (value === "pending") return "amber";
+  if (value === "completed") return "navy";
+  if (value === "pending") return "gold";
   if (value === "cancelled") return "rose";
   return "slate";
 }
 
+function canCheckoutOrder(status?: string, paymentStatus?: string) {
+  const orderStatus = String(status || "").toLowerCase();
+  const pay = String(paymentStatus || "").toLowerCase();
+  if (orderStatus === "completed" || orderStatus === "cancelled") return false;
+  if (pay === "paid") return false;
+  return true;
+}
+
 export default function OrderList() {
+  const navigate = useNavigate();
   const { query, handlePagination } = usePagination({ limit: 10, page: 1 });
 
   const [queryStringOptions, setQueryStringOptions] = useState({
     start: null,
     end: null,
     paymentStatus: null,
-    status: null,
   });
 
   const url = buildQueryString("order/list", {
@@ -104,6 +114,19 @@ export default function OrderList() {
   const handleViewOrder = (id: number) => {
     setOrderId(id);
     setOpen(true);
+  };
+
+  const handleOpenCheckout = (
+    orderIdForCheckout: number,
+    tableIdForCheckout?: number | null,
+  ) => {
+    setOpen(false);
+    navigate(
+      buildCheckoutPath({
+        orderId: orderIdForCheckout,
+        tableId: tableIdForCheckout ?? null,
+      }),
+    );
   };
 
   const handleCancelTrigger = (id: number) => {
@@ -165,7 +188,7 @@ export default function OrderList() {
               {table?.tableNo || "—"}
             </span>,
             <span className={status === "cancelled" ? "line-through opacity-60" : ""}>
-              <StatusPill value={formatOrderType(orderType)} tone="blue" />
+              <StatusPill value={formatOrderType(orderType)} tone="navy" />
             </span>,
             <span
               className={`whitespace-nowrap text-[12px] text-slate-600 ${
@@ -185,27 +208,34 @@ export default function OrderList() {
             <span className={status === "cancelled" ? "line-through opacity-60" : ""}>
               <StatusPill
                 value={formatPaymentStatus(paymentStatus)}
-                tone={paymentTone(paymentStatus) as any}
+                tone={paymentTone(paymentStatus)}
               />
             </span>,
             <span className={status === "cancelled" ? "line-through opacity-60" : ""}>
               <StatusPill
                 value={formatPaymentStatus(status)}
-                tone={orderStatusTone(status) as any}
+                tone={orderStatusTone(status)}
               />
             </span>,
-            <div
-              key={id}
-              className="flex items-center justify-center gap-2"
-            >
+            <TableRowActions>
               <button
                 type="button"
                 onClick={() => handleViewOrder(id)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-sky-600 transition hover:border-sky-200 hover:bg-sky-50"
+                className="pos-action-btn"
                 title="View order"
               >
-                <FaEye size={14} />
+                <Eye size={16} strokeWidth={2.25} />
               </button>
+              {canCheckoutOrder(status, paymentStatus) ? (
+                <button
+                  type="button"
+                  onClick={() => handleOpenCheckout(id, table?.id)}
+                  className="pos-action-btn pos-action-btn--checkout"
+                  title="Checkout"
+                >
+                  <Banknote size={16} strokeWidth={2.25} />
+                </button>
+              ) : null}
               {status === "pending" ? (
                 <CancelOrderModal
                   open={openCancel}
@@ -216,7 +246,7 @@ export default function OrderList() {
                   handleConfirmCancel={hanldeOrderCancellation}
                 />
               ) : null}
-            </div>,
+            </TableRowActions>,
           ],
         )
       : [];
@@ -242,13 +272,13 @@ export default function OrderList() {
             label="Pending"
             value={String(pendingCount)}
             icon={<Clock3 size={14} />}
-            tone="amber"
+            tone="gold"
           />
           <StatCard
             label="Completed"
             value={String(completedCount)}
             icon={<CircleCheckBig size={14} />}
-            tone="emerald"
+            tone="navy"
           />
         </div>
 
@@ -266,7 +296,12 @@ export default function OrderList() {
         </div>
 
         <Drawer isOpen={open} setIsOpen={setOpen} width="w-full lg:w-[50%]">
-          <ViewOrder id={orderId} isOpen={open} setIsOpen={setOpen} />
+          <ViewOrder
+            id={orderId}
+            isOpen={open}
+            setIsOpen={setOpen}
+            onOpenCheckout={handleOpenCheckout}
+          />
         </Drawer>
       </div>
     </>
@@ -282,12 +317,12 @@ function StatCard({
   label: string;
   value: string;
   icon: ReactNode;
-  tone: "slate" | "amber" | "emerald";
+  tone: "slate" | "gold" | "navy";
 }) {
   const tones = {
     slate: "border-slate-200 bg-white text-slate-600",
-    amber: "border-amber-100 bg-amber-50/70 text-amber-700",
-    emerald: "border-emerald-100 bg-emerald-50/70 text-emerald-700",
+    gold: "pos-card-gold border",
+    navy: "pos-card-navy border",
   };
 
   return (

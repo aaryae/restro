@@ -1,7 +1,7 @@
 import CustomDialog from "@/components/Dialog";
 import Drawer from "@/components/Drawer";
 import { ReactNode, useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { Plus } from "lucide-react";
 
 interface OptionType {
   label: string;
@@ -54,7 +54,7 @@ export default function useSelectHandler({
     <CustomDialog
       buttonTitle={
         <button className="flex items-center gap-[0.25rem] text-primaryColor">
-          <FaPlus /> Create
+          <Plus /> Create
         </button>
       }
       title={`Add ${label}`}

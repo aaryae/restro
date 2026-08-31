@@ -57,7 +57,10 @@ function resolveTenantSlug(req) {
     .toString()
     .trim()
     .toLowerCase();
-  if (headerSlug) return headerSlug;
+  if (headerSlug) {
+    if (RESERVED_SLUGS.includes(headerSlug)) return null;
+    return headerSlug;
+  }
 
   const host = req.headers["x-forwarded-host"] || req.headers.host || "";
   const subdomain = extractSubdomain(host);
@@ -66,7 +69,7 @@ function resolveTenantSlug(req) {
     return subdomain;
   }
 
-  // cafe.* trial hub (and any reserved host): tenant from JWT
+  // Reserved hosts (serveapi, platform, serve, …): tenant only from Admin JWT
   const jwtSlug = peekJwtSlug(req);
   if (jwtSlug) return jwtSlug;
 

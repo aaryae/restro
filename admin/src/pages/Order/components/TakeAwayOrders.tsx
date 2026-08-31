@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, ShoppingBag, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ViewTakeawayOrders from "./ViewTakeawayOrders";
+import "../posBrand.css";
 
 function getCustomerName(order: any): string {
   const takeAway = String(order?.takeAwayName || "").trim();
@@ -32,22 +33,22 @@ function statusStyles(status: string) {
   switch (status) {
     case "prepared":
       return {
-        badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-        accent: "bg-emerald-500",
+        badge: "pos-pill-navy ring-1 ring-inset",
+        accent: "pos-accent-navy",
       };
     case "preparing":
       return {
-        badge: "bg-sky-50 text-sky-700 ring-sky-200",
-        accent: "bg-sky-500",
+        badge: "pos-pill-navy ring-1 ring-inset",
+        accent: "pos-accent-navy",
       };
     case "pending":
       return {
-        badge: "bg-amber-50 text-amber-700 ring-amber-200",
-        accent: "bg-amber-500",
+        badge: "pos-pill-gold ring-1 ring-inset",
+        accent: "pos-accent-gold",
       };
     default:
       return {
-        badge: "bg-slate-50 text-slate-600 ring-slate-200",
+        badge: "bg-slate-50 text-slate-600 ring-slate-200 ring-1 ring-inset",
         accent: "bg-slate-400",
       };
   }
@@ -157,7 +158,7 @@ function TakeAwayOrders() {
             return (
               <div
                 key={id}
-                className={`relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md ${
+                className={`relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-primaryColor/25 hover:shadow-md ${
                   cancelled ? "opacity-60" : ""
                 }`}
               >
@@ -174,7 +175,7 @@ function TakeAwayOrders() {
                         {orderNumber ? ` · #${orderNumber}` : ` · #${id}`}
                       </p>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primaryColor/10 text-primaryColor">
                           <User size={16} strokeWidth={2} />
                         </span>
                         <h3
@@ -209,7 +210,7 @@ function TakeAwayOrders() {
                       <p className="text-[11px] uppercase tracking-wide text-slate-400">
                         Amount
                       </p>
-                      <p className="mt-0.5 font-semibold text-slate-900">
+                      <p className="mt-0.5 font-semibold text-primaryColor">
                         {CurrencySign}
                         {Number(totalAmount || 0).toFixed(2)}
                       </p>

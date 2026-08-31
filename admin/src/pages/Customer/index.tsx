@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { Eye } from "lucide-react";
 import ViewCustomer from "./ViewCustomer";
+import AddEditCustomer from "./AddEditCustomer";
 import { useForm } from "react-hook-form";
 import { CustomerFilterSchema, CustomerFilterType } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,13 +17,10 @@ import PageFilterWrapper from "@/components/PageFilterWrapper";
 import { FilterInput } from "@/components/Input/filterInput";
 import { buildQueryString } from "@/utils/generalHelper";
 import Spinner from "@/components/Spinner";
-import { CUSTOMER_ADD_ROUTE } from "@/routes/routeNames";
-import { useNavigate } from "react-router-dom";
-import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { CUSTOMER_URL } from "@/constants/apiUrlConstants";
-import { UserRound, Mail } from "lucide-react";
+import { UserRound, Mail, SquarePen } from "lucide-react";
 import { checkAccess } from "@/utils/accessHelper";
 
 export default function Customer() {
@@ -30,12 +28,16 @@ export default function Customer() {
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [customerFormOpen, setCustomerFormOpen] = useState(false);
+  const [editCustomerId, setEditCustomerId] = useState<number | null>(null);
   const [customerId, setCustomerId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteTable] = useDeleteApiMutation();
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const navigate = useNavigate();
+
+  const canAddCustomer =
+    accessList.includes("add") || accessList.includes("edit");
 
   const { control, handleSubmit, reset } = useForm<CustomerFilterType>({
     resolver: zodResolver(CustomerFilterSchema),
@@ -48,9 +50,14 @@ export default function Customer() {
   const [queryString, setQueryString] = useState<Record<string, any>>({});
 
   const handleNewButton = (id: number | null) => {
-    id === null
-      ? navigate(CUSTOMER_ADD_ROUTE)
-      : navigate(`${CUSTOMER_ADD_ROUTE}${id}`);
+    setEditCustomerId(id);
+    setCustomerFormOpen(true);
+  };
+
+  const closeCustomerForm = () => {
+    setCustomerFormOpen(false);
+    setEditCustomerId(null);
+    refetch();
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -126,6 +133,12 @@ export default function Customer() {
     refetch();
   }, [queryString, searchTerm]);
 
+  useEffect(() => {
+    if (!customerFormOpen) {
+      setEditCustomerId(null);
+    }
+  }, [customerFormOpen]);
+
   const handleViewCustomer = (id: number) => {
     setCustomerId(id);
     setIsOpen(true);
@@ -159,7 +172,7 @@ export default function Customer() {
       ? allCustomers?.data?.data.map(
           ({ id, firstName, lastName, email, mobileNo, createdAt }) => {
             const row = [
-              <span className="text-sm font-semibold text-slate-800">
+              <span className="text-sm font-semibold text-[var(--serve-fg)]">
                 {`${firstName} ${lastName}`}
               </span>,
               email,
@@ -174,7 +187,7 @@ export default function Customer() {
                     <button
                       type="button"
                       onClick={() => handleViewCustomer(id)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface)] hover:text-[var(--serve-fg)]"
                       title="View customer"
                     >
                       <Eye size={16} />
@@ -184,10 +197,10 @@ export default function Customer() {
                     <button
                       type="button"
                       onClick={() => handleNewButton(id)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--serve-accent)_28%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-accent)_10%,var(--serve-surface))] text-[var(--serve-accent)] transition hover:bg-[color-mix(in_srgb,var(--serve-accent)_16%,var(--serve-surface))]"
                       title="Edit customer"
                     >
-                      <MdEditSquare size={16} />
+                      <SquarePen size={16} />
                     </button>
                   )}
                   {accessList.includes("delete") && (
@@ -220,10 +233,9 @@ export default function Customer() {
         searchPlaceholder="Search by name, email, or phone..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        hasAddButton={accessList.includes("add")}
+        hasAddButton={canAddCustomer}
         newButtonText="Add Customer"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={() => refetch()}
         subText="Manage guest profiles, contact details, and membership records."
       />
       <PageFilterWrapper title="Customer Filters">{Component}</PageFilterWrapper>
@@ -236,10 +248,31 @@ export default function Customer() {
         handlePagination={handlePagination}
       />
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
+        <div className="rounded-xl border border-dashed border-[var(--serve-border)] bg-[var(--serve-surface-2)] py-10 text-center text-[var(--serve-muted)]">
           You do not have permission to view customers.
         </div>
       )}
+      <Drawer
+        isOpen={customerFormOpen}
+        setIsOpen={setCustomerFormOpen}
+        width="w-full max-w-xl"
+      >
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-[var(--serve-fg)]">
+            {editCustomerId ? "Edit Customer" : "Add Customer"}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--serve-muted)]">
+            {editCustomerId
+              ? "Update guest profile and contact details."
+              : "Create a new guest profile for checkout and membership."}
+          </p>
+        </div>
+        <AddEditCustomer
+          isComponent
+          editId={editCustomerId}
+          closeModal={closeCustomerForm}
+        />
+      </Drawer>
       <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-full lg:w-[70%]">
         <ViewCustomer id={customerId} isOpen={isOpen} setIsOpen={setIsOpen} />
       </Drawer>

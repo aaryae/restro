@@ -1,29 +1,74 @@
 import { CurrencySign } from "@/constants";
+import { useTheme } from "@/hooks/useTheme";
 
-/** Burgundy + warm gold + slate — matches restaurant admin brand */
-export const CHART_PALETTE = [
-  "#7F1D1D",
-  "#B45309",
-  "#475569",
-  "#0F766E",
-  "#92400E",
-  "#334155",
-  "#9A3412",
-  "#115E59",
+/**
+ * Distinguishing categories IS the job of a chart, so unlike the KPI cards
+ * these get real hue variety. What keeps it from turning into confetti is
+ * holding chroma and lightness constant across the ramp and walking the hue
+ * wheel in even steps — the colours then read as one family rather than eight
+ * unrelated picks. Bronze leads so the brand still opens every chart.
+ *
+ * Each theme needs its own values at the lightness that background demands:
+ * a ramp tuned for white turns to mud on near-black and vice versa.
+ */
+const PALETTE_LIGHT = [
+  "#b06a28", // bronze — brand
+  "#0f7d6b", // teal
+  "#3f5fc0", // indigo
+  "#a2429c", // plum
+  "#c0433f", // vermilion
+  "#5f8a1f", // olive
+  "#1a7fae", // cerulean
+  "#8a5fd0", // violet
 ];
 
-/** Fiscal year pie: profit, purchases, expense */
-export const CHART_FISCAL_COLORS = ["#166534", "#7F1D1D", "#B45309"];
+const PALETTE_DARK = [
+  "#e8a95c", // bronze — brand
+  "#3fc4a8", // teal
+  "#8296f2", // indigo
+  "#dd88d4", // plum
+  "#f4837c", // vermilion
+  "#a8c95e", // olive
+  "#54b4e0", // cerulean
+  "#b79bf5", // violet
+];
 
-/** Purchase-focused charts */
-export const CHART_PURCHASE_COLORS = ["#7F1D1D", "#991B1B", "#B45309", "#92400E"];
+type Theme = "light" | "dark";
 
-/** Expense-focused charts */
-export const CHART_EXPENSE_COLORS = ["#B45309", "#C2410C", "#92400E", "#78350F"];
+export const getChartPalette = (theme: Theme) =>
+  theme === "dark" ? PALETTE_DARK : PALETTE_LIGHT;
 
-/** Single-series bar / line */
-export const CHART_BRAND = "#7F1D1D";
-export const CHART_BRAND_LIGHT = "#B45309";
+/** Revenue / Purchase / Expense keep fixed slots so colours never shuffle. */
+export const getFiscalColors = (theme: Theme) =>
+  getChartPalette(theme).slice(0, 3);
+
+export const getChartBrand = (theme: Theme) => getChartPalette(theme)[0];
+
+export function useChartPalette() {
+  const { theme } = useTheme();
+  return getChartPalette(theme as Theme);
+}
+
+export function useChartColors() {
+  const { theme } = useTheme();
+  const t = theme as Theme;
+  return {
+    palette: getChartPalette(t),
+    fiscal: getFiscalColors(t),
+    brand: getChartBrand(t),
+  };
+}
+
+/**
+ * Static fallbacks for the handful of call sites that can't use a hook. These
+ * favour the light palette; anything theme-sensitive should use the hooks.
+ */
+export const CHART_PALETTE = PALETTE_LIGHT;
+export const CHART_FISCAL_COLORS = PALETTE_LIGHT.slice(0, 3);
+export const CHART_PURCHASE_COLORS = PALETTE_LIGHT.slice(0, 4);
+export const CHART_EXPENSE_COLORS = PALETTE_LIGHT.slice(3, 7);
+export const CHART_BRAND = PALETTE_LIGHT[0];
+export const CHART_BRAND_LIGHT = PALETTE_DARK[0];
 
 export const chartMargins = {
   bar: { top: 12, right: 12, left: 4, bottom: 8 },
@@ -32,15 +77,25 @@ export const chartMargins = {
 
 export const axisTickStyle = {
   fontSize: 11,
-  fill: "#64748b",
+  fill: "var(--serve-muted)",
   fontWeight: 500,
+};
+
+/** Slice/segment separator — matches the card it sits on, so gaps read as gaps. */
+export const chartSurfaceStroke = "var(--serve-surface)";
+
+export const chartTooltipLabelStyle = {
+  color: "var(--serve-fg)",
+  fontWeight: 600,
+  marginBottom: 4,
 };
 
 export const chartTooltipStyle = {
   borderRadius: 10,
-  border: "1px solid #e2e8f0",
-  backgroundColor: "#fff",
-  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+  border: "1px solid var(--serve-border)",
+  backgroundColor: "var(--serve-surface)",
+  color: "var(--serve-fg)",
+  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
   fontSize: 12,
   padding: "8px 12px",
 };
@@ -48,7 +103,6 @@ export const chartTooltipStyle = {
 export const formatChartValue = (value: number) =>
   `${CurrencySign}${Number(value).toLocaleString()}`;
 
-/** Trim trailing zeros from fixed decimals (2.0 → 2, 5.50 → 5.5). */
 function trimFixed(n: number, digits: number) {
   return n
     .toFixed(digits)
@@ -56,10 +110,6 @@ function trimFixed(n: number, digits: number) {
     .replace(/(\.\d*[1-9])0+$/, "$1");
 }
 
-/**
- * Compact Y-axis labels using South Asian (Nepali/Indian) scales:
- * 1 Lakh = 1,00,000 · 1 Crore = 1,00,00,000
- */
 export const formatCompactAxis = (value: number) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
@@ -72,10 +122,10 @@ export const formatCompactAxis = (value: number) => {
   return String(n);
 };
 
-export const chartGridStroke = "#e2e8f0";
+export const chartGridStroke = "var(--serve-border)";
 
-/** Tooltip / bar hover highlight */
-export const chartCursorFill = "rgba(127, 29, 29, 0.06)";
+/** Neutral translucency reads correctly on both the light and dark card. */
+export const chartCursorFill = "rgba(122, 110, 100, 0.12)";
 
 export function truncateChartLabel(label: string, maxLength: number) {
   const text = String(label || "").trim();

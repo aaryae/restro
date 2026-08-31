@@ -52,7 +52,7 @@ const DynamicQrDisplay: React.FC<Props> = ({
         <p className="text-xs text-gray-500">Expires around {expiryLabel}</p>
       )}
       {status === "pending" && (
-        <p className="text-xs text-blue-600 animate-pulse">
+        <p className="text-xs text-primaryColor animate-pulse">
           Waiting for customer to pay…
         </p>
       )}

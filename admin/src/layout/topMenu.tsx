@@ -7,6 +7,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { useLogoutMutation } from "../redux/services/authentication";
 import { deleteToken } from "../utils/tokenHandler";
+import { redirectToServeLogin } from "../utils/serveAuth";
 import { useDispatch } from "react-redux";
 import { setLogout } from "../redux/feature/authSlice";
 import { persistor } from "../redux/store/store";
@@ -18,7 +19,9 @@ import { clearProfile } from "@/redux/feature/profileSlice";
 import useTranslation from "@/locale/useTranslation";
 import user_image from "@/assets/user_image.jpeg";
 import SearchBox from "@/components/SearchBox";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, Moon, Sun, UserRound } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
+import PageGuideButton from "@/components/Onboarding/PageGuideButton";
 
 export default function TopMenu({
   sideMenuOpen: _sideMenuOpen,
@@ -36,6 +39,7 @@ export default function TopMenu({
   const username = useAppSelector((state) => state.profile.username);
 
   const [logout] = useLogoutMutation();
+  const { theme, toggle } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -48,13 +52,25 @@ export default function TopMenu({
     dispatch(clearProfile());
     dispatch(setLogout());
     persistor.purge();
+    redirectToServeLogin();
   };
 
   return (
     <div className="flex w-full min-w-0 items-center gap-4 px-6 py-4">
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1" data-tour="top-search">
         <SearchBox />
       </div>
+
+      <PageGuideButton />
+
+      <button
+        type="button"
+        onClick={toggle}
+        className="shrink-0 rounded-lg p-2 text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)]"
+        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

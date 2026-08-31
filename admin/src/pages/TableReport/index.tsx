@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { CurrencySign } from "@/constants";
 import Modal from "@/components/Modal";
 import { FLOOR_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { formatDate } from "@/utils/formatDate";
 import { subDays } from "date-fns";
-import TopTablesChart from "./components/TopTablesChart";
 import Select from "@/components/Select";
 import {
   ReportDateChip,
@@ -13,8 +12,11 @@ import {
 } from "@/pages/DailySummaryReport/components/ReportUI";
 import { ReportDatePickerDialog } from "@/pages/DailySummaryReport/components/ReportDatePickerDialog";
 import { TrendingUp, UtensilsCrossed } from "lucide-react";
+import { useChartPalette } from "@/pages/Dashboard/chartTheme";
+import "./tableReport.css";
 
 export const TableReport = () => {
+  const palette = useChartPalette();
   const [selectedTable, setSelectedTable] = useState<any | null>(null);
   const [selectedFloorId, setSelectedFloorId] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -84,9 +86,16 @@ export const TableReport = () => {
     return `start=${fmt(dateRange.startDate)}&end=${fmt(dateRange.endDate)}`;
   };
 
-  const { data: revenueRes, isLoading: loadingRevenue } = useGetApiQuery({
-    url: `report/daily-revenue-report?${getDateParams()}`,
-  });
+  const {
+    data: revenueRes,
+    isLoading: loadingRevenue,
+    isError: revenueError,
+  } = useGetApiQuery(
+    {
+      url: `report/daily-revenue-report?${getDateParams()}`,
+    },
+    { refetchOnMountOrArgChange: true },
+  );
 
   const { data: sessionsRes, isLoading: loadingSessions } = useGetApiQuery(
     selectedTable
@@ -122,16 +131,38 @@ export const TableReport = () => {
     [filteredTables, tableRevenueMap],
   );
 
+  const sortedTables = useMemo(
+    () =>
+      [...filteredTables].sort((a, b) => {
+        const revA = Number(tableRevenueMap[a.id]?.totalRevenue || 0);
+        const revB = Number(tableRevenueMap[b.id]?.totalRevenue || 0);
+        if (revB !== revA) return revB - revA;
+        return String(a.tableNo).localeCompare(String(b.tableNo), undefined, {
+          numeric: true,
+        });
+      }),
+    [filteredTables, tableRevenueMap],
+  );
+
+  const peakRevenue = useMemo(
+    () =>
+      sortedTables.reduce((peak, table) => {
+        const rev = Number(tableRevenueMap[table.id]?.totalRevenue || 0);
+        return Math.max(peak, rev);
+      }, 0),
+    [sortedTables, tableRevenueMap],
+  );
+
   return (
     <div className="w-full space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-xl font-semibold tracking-tight text-[var(--serve-fg)]">
             Table Report
           </h1>
-          <p className="mt-1 text-[13px] text-slate-500">
-            <span className="font-medium text-slate-800">{periodLabel}</span>
-            <span className="mx-1.5 text-slate-300">·</span>
+          <p className="mt-1 text-[13px] text-[var(--serve-muted)]">
+            <span className="font-medium text-[var(--serve-fg)]">{periodLabel}</span>
+            <span className="mx-1.5 text-[var(--serve-border)]">·</span>
             Tap a table for session details
           </p>
         </div>
@@ -172,7 +203,7 @@ export const TableReport = () => {
         }}
       />
 
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+      <div className="flex flex-col gap-3 rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface)] p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
         <div className="w-full max-w-[220px]">
           <Select
             label="Floor"
@@ -190,21 +221,21 @@ export const TableReport = () => {
           />
         </div>
         <div className="flex flex-wrap gap-2 text-[13px]">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="text-slate-500">Tables </span>
-            <span className="font-semibold text-slate-800">
+          <div className="rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 py-2">
+            <span className="text-[var(--serve-muted)]">Tables </span>
+            <span className="font-semibold text-[var(--serve-fg)]">
               {filteredTables.length}
             </span>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="text-slate-500">With sales </span>
-            <span className="font-semibold text-slate-800">
+          <div className="rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 py-2">
+            <span className="text-[var(--serve-muted)]">With sales </span>
+            <span className="font-semibold text-[var(--serve-fg)]">
               {tablesWithRevenue}
             </span>
           </div>
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <span className="text-emerald-700/80">Total </span>
-            <span className="font-semibold text-emerald-700">
+          <div className="rounded-lg border border-[color-mix(in_srgb,var(--serve-accent)_28%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-accent)_10%,var(--serve-surface))] px-3 py-2">
+            <span className="text-[var(--serve-accent)]">Total </span>
+            <span className="font-semibold text-[var(--serve-accent)]">
               {CurrencySign}
               {totalTableRevenue.toLocaleString()}
             </span>
@@ -213,89 +244,103 @@ export const TableReport = () => {
       </div>
 
       {loadingRevenue ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="table-report-grid">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100"
+              className="h-28 animate-pulse rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)]"
             />
           ))}
         </div>
-      ) : !filteredTables.length ? (
+      ) : revenueError ? (
+        <ReportEmptyState
+          icon={UtensilsCrossed}
+          title="Could not load table sales"
+          description="The table report request failed. Try again, or check that the report API is running."
+        />
+      ) : !sortedTables.length ? (
         <ReportEmptyState
           icon={UtensilsCrossed}
           title="No tables found"
           description="Add floors and tables, or switch the floor filter to see results."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredTables.map((table: any) => {
+        <div className="table-report-grid">
+          {sortedTables.map((table: any, index: number) => {
             const tableData = tableRevenueMap[table.id];
             const revenue = Number(tableData?.totalRevenue || 0);
             const hasSales = revenue > 0;
+            const barWidth =
+              hasSales && peakRevenue > 0
+                ? Math.max(6, (revenue / peakRevenue) * 100)
+                : 0;
 
             return (
               <button
                 key={table.id}
                 type="button"
                 onClick={() => setSelectedTable(tableData || table)}
-                className={`rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:shadow ${
+                className={`table-report-card${hasSales ? "" : " is-idle"}`}
+                style={
                   hasSales
-                    ? "border-slate-200"
-                    : "border-dashed border-slate-200 opacity-90"
-                }`}
+                    ? ({
+                        ["--bar-color" as string]:
+                          palette[index % palette.length],
+                      } as CSSProperties)
+                    : undefined
+                }
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="table-report-card__head">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="table-report-card__label">
                       Table {table.tableNo}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-slate-500">
+                    <p className="table-report-card__floor">
                       {floorMap[table.floorId] || `Floor ${table.floorId}`}
                     </p>
                   </div>
                   <div className="text-right">
                     <p
-                      className={`text-base font-bold ${
-                        hasSales ? "text-emerald-600" : "text-slate-400"
+                      className={`table-report-card__amount${
+                        hasSales ? "" : " is-idle"
                       }`}
                     >
                       {CurrencySign}
                       {revenue.toLocaleString()}
                     </p>
-                    {!hasSales && (
-                      <p className="text-[11px] text-slate-400">No sales</p>
-                    )}
+                    {!hasSales ? (
+                      <p className="table-report-card__hint">No sales</p>
+                    ) : null}
                   </div>
                 </div>
 
-                {(tableData?.accounts || []).length > 0 && (
-                  <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+                {hasSales ? (
+                  <div className="table-report-card__bar" aria-hidden>
+                    <span
+                      className="table-report-card__bar-fill"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                ) : null}
+
+                {(tableData?.accounts || []).length > 0 ? (
+                  <div className="table-report-card__accounts">
                     {(tableData.accounts || []).map((a: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-[12px]"
-                      >
-                        <span className="text-slate-500">{a?.name}</span>
-                        <span className="font-medium text-slate-800">
+                      <div key={idx} className="table-report-card__account-row">
+                        <span>{a?.name}</span>
+                        <span>
                           {CurrencySign}
                           {Number(a?.total || 0).toLocaleString()}
                         </span>
                       </div>
                     ))}
                   </div>
-                )}
+                ) : null}
               </button>
             );
           })}
         </div>
       )}
-
-      <TopTablesChart
-        data={tables}
-        isLoading={loadingRevenue}
-        periodLabel={periodLabel}
-      />
 
       <Modal
         isOpen={!!selectedTable}
@@ -309,33 +354,33 @@ export const TableReport = () => {
       >
         <div className="p-5 sm:p-6">
           {loadingSessions ? (
-            <div className="h-40 w-full animate-pulse rounded-xl bg-slate-100" />
+            <div className="h-40 w-full animate-pulse rounded-xl bg-[var(--serve-surface-2)]" />
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                <span className="inline-flex items-center gap-2 text-sm text-emerald-800">
+              <div className="flex items-center justify-between rounded-xl border border-[color-mix(in_srgb,var(--serve-accent)_28%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-accent)_10%,var(--serve-surface))] px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-sm text-[var(--serve-fg)]">
                   <TrendingUp size={15} />
                   Revenue ({periodLabel})
                 </span>
-                <span className="font-bold text-emerald-700">
+                <span className="font-bold text-[var(--serve-accent)]">
                   {CurrencySign}
                   {Number(selectedTable?.totalRevenue || 0).toLocaleString()}
                 </span>
               </div>
 
-              <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+              <div className="divide-y divide-[var(--serve-border)] overflow-hidden rounded-xl border border-[var(--serve-border)]">
                 {(sessionsRes?.data || []).map((s: any) => (
                   <div key={s?.sessionId} className="space-y-2 p-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-semibold text-[var(--serve-fg)]">
                         Session {s?.sessionId}
                       </div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-semibold text-[var(--serve-fg)]">
                         {CurrencySign}
                         {Number(s?.total || 0).toLocaleString()}
                       </div>
                     </div>
-                    <div className="text-[12px] text-slate-500">
+                    <div className="text-[12px] text-[var(--serve-muted)]">
                       <span>
                         {s?.sessionStart
                           ? new Date(s.sessionStart).toLocaleString()
@@ -350,25 +395,25 @@ export const TableReport = () => {
                     </div>
 
                     <div className="mt-2">
-                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--serve-muted)]">
                         Orders
                       </div>
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         {(s?.orders || []).map((o: any) => (
                           <div
                             key={o?.id}
-                            className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 text-[12px]"
+                            className="rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-2.5 text-[12px]"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-600">
+                              <span className="text-[var(--serve-muted)]">
                                 Order #{o?.id}
                               </span>
-                              <span className="font-semibold text-slate-900">
+                              <span className="font-semibold text-[var(--serve-fg)]">
                                 {CurrencySign}
                                 {Number(o?.totalAmount || 0).toLocaleString()}
                               </span>
                             </div>
-                            <div className="mt-1 text-[11px] text-slate-500">
+                            <div className="mt-1 text-[11px] text-[var(--serve-muted)]">
                               {o?.orderStartTime
                                 ? new Date(
                                     o.orderStartTime,

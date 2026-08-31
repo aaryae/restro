@@ -1,7 +1,7 @@
 import Input from "@/components/Input";
 import { TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
-import { RiSeoLine } from "react-icons/ri";
+import { Search } from "lucide-react";
 
 export default function ViewTable({ id }: { id: number | null }) {
   const {
@@ -20,7 +20,7 @@ export default function ViewTable({ id }: { id: number | null }) {
       {/* Tab Section */}
       <div className="flex mt-[4rem] mb-[1.5rem]">
         <p className="flex items-center gap-[6px] px-[20px] py-[8px] rounded-[0.25rem] bg-primaryColor text-white">
-          <RiSeoLine />
+          <Search />
           <p className="font-[500] text-[15px]">Table {id}</p>
         </p>
       </div>

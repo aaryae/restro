@@ -18,7 +18,9 @@ export default function FinanceQuickDateChips({
 }: FinanceQuickDateChipsProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[12px] font-medium text-slate-500">Quick date:</span>
+      <span className="text-[12px] font-medium text-[var(--serve-muted)]">
+        Quick date:
+      </span>
       {options.map((item) => (
         <button
           key={item.value}
@@ -26,8 +28,8 @@ export default function FinanceQuickDateChips({
           onClick={() => onSelect(item.value)}
           className={`h-8 rounded-lg px-2.5 text-[12px] font-medium transition ${
             selected === item.value
-              ? "bg-primaryColor text-white"
-              : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              ? "bg-[var(--primary-color)] text-[var(--primary-fg)]"
+              : "border border-[var(--serve-border)] bg-[var(--serve-surface)] text-[var(--serve-muted)] hover:border-[color-mix(in_srgb,var(--serve-accent)_30%,var(--serve-border))] hover:text-[var(--serve-fg)]"
           }`}
         >
           {item.label}
@@ -37,7 +39,7 @@ export default function FinanceQuickDateChips({
         <button
           type="button"
           onClick={onClear}
-          className="h-8 px-2 text-[12px] font-medium text-rose-500 transition hover:text-rose-600"
+          className="h-8 px-2 text-[12px] font-medium text-[var(--serve-negative)] transition hover:opacity-80"
         >
           Clear
         </button>

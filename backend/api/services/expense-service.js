@@ -229,7 +229,16 @@ const list = async (req) => {
     if (!result) {
       return { ...generalConstant.EN.EXPENSE.EXPENSE_LIST_FAILURE, data: null };
     }
-    return { ...generalConstant.EN.EXPENSE.EXPENSE_LIST_SUCCESS, data: result };
+
+    const grandTotal = await expenseModel.sum("amount", { where: filters });
+
+    return {
+      ...generalConstant.EN.EXPENSE.EXPENSE_LIST_SUCCESS,
+      data: {
+        ...result,
+        grandTotal: parseFloat(grandTotal || 0),
+      },
+    };
   } catch (error) {
     throw error;
   }

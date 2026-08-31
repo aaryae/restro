@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -11,6 +12,7 @@ import {
   getPlatformToken,
   getPlatformUser,
   setPlatformSession,
+  setUnauthorizedHandler,
 } from '@/api/client'
 import { fetchMe, loginPlatform, type PlatformUser } from '@/api/platform'
 import type { PlatformPermission, PlatformRole } from '@/types'
@@ -38,6 +40,7 @@ function normalizeUser(raw: Partial<AuthUser> | null): AuthUser | null {
     id: raw.id,
     username: raw.username,
     name: raw.name,
+    imageUrl: raw.imageUrl || null,
     platformRole,
     permissions: (raw.permissions || []) as PlatformPermission[],
   }
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: data.id,
       username: data.username,
       name: data.name,
+      imageUrl: data.imageUrl || null,
       platformRole: data.platformRole || 'operator',
       permissions: data.permissions || [],
     }
@@ -71,6 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearPlatformSession()
     setToken(null)
     setUser(null)
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setToken(null)
+      setUser(null)
+    })
+    return () => setUnauthorizedHandler(null)
   }, [])
 
   const refreshMe = useCallback(async () => {

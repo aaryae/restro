@@ -12,6 +12,7 @@ import {
   hasErrors,
   intInRange,
   optionalMin,
+  optionalOwnerUsernameText,
   passwordText,
   phoneText,
   requiredText,
@@ -25,6 +26,7 @@ type Props = {
   onCreated: (result: {
     cafeName: string
     slug: string
+    ownerUsername?: string
     ownerPassword?: string
   }) => void
 }
@@ -35,6 +37,7 @@ const emptyForm = {
   phone: '',
   password: '',
   slug: '',
+  username: '',
   ownerName: '',
   businessType: '',
   address: '',
@@ -48,6 +51,7 @@ type CafeField =
   | 'phone'
   | 'password'
   | 'slug'
+  | 'username'
   | 'ownerName'
   | 'trialDays'
 
@@ -67,6 +71,7 @@ function validateCafeForm(form: typeof emptyForm): FieldErrors<CafeField> {
     phone: phoneText(form.phone),
     password: passwordText(form.password, { required: false, min: 6 }),
     slug: slugText(form.slug),
+    username: optionalOwnerUsernameText(form.username),
     ownerName: optionalMin(form.ownerName, 'Owner name', 2),
   }
 
@@ -128,6 +133,7 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
       phone: form.phone.trim() || undefined,
       password: form.password.trim() || undefined,
       slug: form.slug.trim() || undefined,
+      username: form.username.trim() || undefined,
       ownerName: form.ownerName.trim() || undefined,
       businessType: form.businessType.trim() || undefined,
       address: form.address.trim() || undefined,
@@ -143,6 +149,7 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
       onCreated({
         cafeName: result.cafe.name,
         slug: result.cafe.slug,
+        ownerUsername: result.ownerUsername,
         ownerPassword: result.ownerPassword,
       })
       onClose()
@@ -198,6 +205,20 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
                 placeholder="Hillside Cafe"
               />
               <FieldError message={fieldErrors.name} />
+            </label>
+
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-medium text-slate-600">
+                Owner username
+              </span>
+              <input
+                value={form.username}
+                onChange={(e) => update('username', e.target.value)}
+                className={fieldInputClass(Boolean(fieldErrors.username))}
+                placeholder="Same as cafe name if empty"
+                autoComplete="off"
+              />
+              <FieldError message={fieldErrors.username} />
             </label>
 
             <label className="block sm:col-span-2">

@@ -33,7 +33,7 @@ const createUserValidation = async (req, res, next) => {
       username: joi.string().required().label("username"),
       firstName: joi.string().optional().allow(null).label("firstName"),
       lastName: joi.string().optional().allow(null).label("lastName"),
-      email: joi.string().required().email(),
+      email: joi.string().optional().allow(null, "").email().label("email"),
       gender: joi
         .string()
         .valid(...GENDER)

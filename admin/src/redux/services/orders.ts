@@ -9,7 +9,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "kot"],
+      invalidatesTags: ["table", "order", "kot", "report", "revenue"],
     }),
     updateOrder: builder.mutation({
       query: ({ body, id }) => ({
@@ -17,7 +17,7 @@ const ordersApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["table", "order", "kot"],
+      invalidatesTags: ["table", "order", "kot", "report", "revenue"],
     }),
     updateOrderStatus: builder.mutation({
       query: ({ body, id }) => ({
@@ -25,7 +25,7 @@ const ordersApi = api.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: ["table", "order"],
+      invalidatesTags: ["table", "order", "report", "revenue"],
     }),
     checkoutOrder: builder.mutation({
       query: ({ body, id }) => ({
@@ -33,7 +33,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "revenue", "kot", "account"],
+      invalidatesTags: ["table", "order", "revenue", "report", "kot", "account"],
     }),
     moveOrderItems: builder.mutation({
       query: ({ body }) => ({
@@ -41,7 +41,7 @@ const ordersApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["table", "order", "revenue", "kot", "account"],
+      invalidatesTags: ["table", "order", "revenue", "report", "kot", "account"],
     }),
   }),
   overrideExisting: true,

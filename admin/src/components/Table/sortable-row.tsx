@@ -36,12 +36,12 @@ export function SortableRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className="text-sm text-slate-700 transition-colors hover:bg-primaryColor/[0.03]"
+      className="transition-colors"
     >
-      <td className="w-10 px-2 py-3 align-middle">
+      <td className="w-10 align-middle">
         <button
           type="button"
-          className="flex h-8 w-8 touch-none cursor-grab items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 active:cursor-grabbing"
+          className="flex h-8 w-8 touch-none cursor-grab items-center justify-center rounded-md text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)] active:cursor-grabbing"
           style={{ touchAction: "none" }}
           aria-label="Drag to reorder"
           {...attributes}
@@ -52,28 +52,23 @@ export function SortableRow({
       </td>
 
       {mergedActionsLayout && cells.length === 2 ? (
-        <td colSpan={2} className="px-4 py-3 align-middle">
+        <td colSpan={2} className="align-middle">
           <div className="flex w-full max-w-2xl items-center justify-between gap-6">
             <div className="min-w-0 text-left">{cells[0]}</div>
             <div className="shrink-0">{cells[1]}</div>
           </div>
         </td>
       ) : (
-        cells.map((item, cellIndex) => {
-          const isActions = cellIndex === cells.length - 1;
-          return (
-            <td
-              key={cellIndex}
-              className={`px-4 py-3 align-middle ${
-                isActions
-                  ? "whitespace-nowrap pr-6 text-center"
-                  : "whitespace-nowrap text-left"
-              }`}
-            >
-              {item}
-            </td>
-          );
-        })
+        cells.map((item, cellIndex) => (
+          <td
+            key={cellIndex}
+            className={
+              cellIndex === cells.length - 1 ? "text-center" : undefined
+            }
+          >
+            {item}
+          </td>
+        ))
       )}
     </tr>
   );

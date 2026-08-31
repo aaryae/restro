@@ -36,17 +36,24 @@ export default function DateInput({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex h-[42px] w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-sm transition-all duration-200 ease-in-out focus:border-bg-inputBg focus:outline-none focus:ring-1 focus:ring-bg-inputBg hover:border-gray-400"
+            className="flex h-[42px] w-full items-center justify-between rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 text-left text-sm transition-colors hover:border-[color-mix(in_srgb,var(--serve-fg)_18%,var(--serve-border))] focus:border-[var(--serve-accent)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--serve-accent)_18%,transparent)]"
           >
             <span
-              className={`transition-all duration-200 ${hasValue ? "text-gray-900" : "text-transparent"}`}
+              className={
+                hasValue
+                  ? "text-[var(--serve-fg)]"
+                  : "text-[var(--serve-muted)]"
+              }
             >
-              {hasValue ? selected!.toLocaleDateString() : ""}
+              {hasValue ? selected!.toLocaleDateString() : label}
             </span>
-            <Calendar className="h-4 w-4 shrink-0 text-gray-500" />
+            <Calendar className="h-4 w-4 shrink-0 text-[var(--serve-muted)]" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent
+          className="w-auto border-[var(--serve-border)] bg-[var(--serve-surface)] p-0 text-[var(--serve-fg)]"
+          align="start"
+        >
           <CalendarComponent
             mode="single"
             required={true}
@@ -55,16 +62,6 @@ export default function DateInput({
           />
         </PopoverContent>
       </Popover>
-
-      <label
-        className={`pointer-events-none absolute left-3 bg-white px-1 text-gray-500 transition-all duration-200 ease-in-out ${
-          hasValue
-            ? "-top-2 text-xs font-medium text-black"
-            : "top-2.5 text-sm"
-        }`}
-      >
-        {label}
-      </label>
     </div>
   );
 }

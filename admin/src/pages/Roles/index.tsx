@@ -6,7 +6,7 @@ import {
   useDeleteRoleMutation,
   useGetRoleQuery,
 } from "../../redux/services/role";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { format } from "date-fns";
@@ -120,7 +120,7 @@ export default function Roles() {
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                 title="Edit role"
               >
-                <MdEditSquare size={16} />
+                <SquarePen />
               </button>
             )}
             {accessList.includes("delete") && (

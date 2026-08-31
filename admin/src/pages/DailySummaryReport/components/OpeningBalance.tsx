@@ -97,17 +97,17 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
 
   return (
     <ReportSection title="Counter cash" total={totalCounterCash} totalTone="green">
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="overflow-hidden rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface)]">
+        <div className="flex flex-col gap-3 border-b border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm ring-1 ring-slate-200/80">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--serve-surface)] text-[var(--serve-muted)] shadow-sm ring-1 ring-[var(--serve-border)]">
               <Banknote size={16} strokeWidth={1.75} />
             </span>
             <div>
-              <p className="text-[13px] font-medium text-slate-800">
+              <p className="text-[13px] font-medium text-[var(--serve-fg)]">
                 Opening balance
               </p>
-              <p className="text-[12px] text-slate-500">
+              <p className="text-[12px] text-[var(--serve-muted)]">
                 Starting cash in the drawer for this day
               </p>
             </div>
@@ -123,7 +123,7 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 leftSection={
-                  <span className="text-[13px] font-medium text-slate-400">
+                  <span className="text-[13px] font-medium text-[var(--serve-muted)]">
                     {CurrencySign}
                   </span>
                 }
@@ -141,7 +141,7 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-[var(--serve-border)]">
           {rows.map(({ key, label, hint, amount, tone, Icon }) => {
             const isOut = tone === "out";
             const display = isFetching
@@ -157,22 +157,22 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
                   <span
                     className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
                       isOut
-                        ? "bg-rose-50 text-rose-600"
-                        : "bg-emerald-50 text-emerald-600"
+                        ? "bg-[color-mix(in_srgb,var(--serve-negative)_14%,transparent)] text-[var(--serve-negative)]"
+                        : "bg-[color-mix(in_srgb,var(--serve-positive)_14%,transparent)] text-[var(--serve-positive)]"
                     }`}
                   >
                     <Icon size={14} strokeWidth={2} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-slate-700">
+                    <p className="text-[13px] font-medium text-[var(--serve-fg)]">
                       {label}
                     </p>
-                    <p className="truncate text-[11px] text-slate-400">{hint}</p>
+                    <p className="truncate text-[11px] text-[var(--serve-muted)]">{hint}</p>
                   </div>
                 </div>
                 <p
                   className={`shrink-0 text-[13px] font-semibold tabular-nums ${
-                    isOut ? "text-rose-600" : "text-emerald-600"
+                    isOut ? "text-[var(--serve-negative)]" : "text-[var(--serve-positive)]"
                   }`}
                 >
                   {display}
@@ -182,16 +182,16 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
           })}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-emerald-50/40 px-4 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-4 py-3.5">
           <div>
-            <p className="text-[13px] font-semibold text-slate-800">
+            <p className="text-[13px] font-semibold text-[var(--serve-fg)]">
               Total counter cash
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[var(--serve-muted)]">
               Opening + cash in − purchases − expenses
             </p>
           </div>
-          <p className="text-xl font-bold tabular-nums text-emerald-700">
+          <p className="text-xl font-bold tabular-nums text-[var(--serve-positive)]">
             {formatAmount(totalCounterCash)}
           </p>
         </div>

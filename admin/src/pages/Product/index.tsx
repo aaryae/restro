@@ -3,7 +3,7 @@ import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { lazy, Suspense, useState, useMemo } from "react";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen, Upload } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -21,6 +21,7 @@ import { useListAllProductCategoryQuery } from "@/redux/services/productCategory
 import Select from "@/components/Select";
 
 const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
+const BulkUploadModal = lazy(() => import("./BulkUploadModal"));
 
 export default function Product() {
   const translate = useTranslation();
@@ -31,6 +32,8 @@ export default function Product() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const canImport = accessList.includes("add") || accessList.includes("import");
 
   const { data: categoriesData } = useListAllProductCategoryQuery({
     page: 1,
@@ -135,7 +138,7 @@ export default function Product() {
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                 title="Edit item"
               >
-                <MdEditSquare size={16} />
+                <SquarePen size={16} />
               </button>
             )}
             {accessList.includes("delete") && (
@@ -171,11 +174,34 @@ export default function Product() {
             triggerClassName="h-10 py-2.5"
           />
         }
+        extraActions={
+          canImport ? (
+            <button
+              type="button"
+              data-tour="menu-bulk-upload"
+              onClick={() => setBulkUploadOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 text-[13px] font-medium text-[var(--serve-fg)] transition hover:border-[color-mix(in_srgb,var(--serve-accent)_24%,var(--serve-border))] hover:bg-[var(--serve-surface)]"
+            >
+              <Upload size={15} strokeWidth={2.25} />
+              {translate("Bulk Upload")}
+            </button>
+          ) : null
+        }
         hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add New Items")}
         handleNewButton={() => handleNewUser(null)}
         handleReloadButton={() => refetch()}
       />
+
+      {bulkUploadOpen ? (
+        <Suspense fallback={null}>
+          <BulkUploadModal
+            isOpen={bulkUploadOpen}
+            onClose={() => setBulkUploadOpen(false)}
+            onImported={() => refetch()}
+          />
+        </Suspense>
+      ) : null}
 
       {!success ? (
         <Loader />

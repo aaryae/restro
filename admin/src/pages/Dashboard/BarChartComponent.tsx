@@ -1,14 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import { VerticalAlignmentType } from "recharts/types/component/DefaultLegendContent";
 import {
@@ -16,17 +14,18 @@ import {
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
 import {
-  CHART_PALETTE,
+  useChartPalette,
   axisTickStyle,
   chartCursorFill,
-  chartGridStroke,
   chartMargins,
+  chartTooltipLabelStyle,
   chartTooltipStyle,
   formatChartValue,
   formatCompactAxis,
   getBarXAxisConfig,
   truncateChartLabel,
 } from "./chartTheme";
+import ChartEmptyState from "./components/ChartEmptyState";
 
 interface ChartData {
   name: string;
@@ -90,7 +89,6 @@ interface BarChartProps {
   width?: number;
   height?: number;
   barSize?: number;
-  showGrid?: boolean;
   showLegend?: boolean;
   legendPosition?: VerticalAlignmentType;
   showTooltip?: boolean;
@@ -108,18 +106,20 @@ const BarChartComponent: React.FC<BarChartProps> = ({
   dataKeys,
   width = 400,
   height = 300,
-  barSize = 36,
-  showGrid = true,
+  barSize = 30,
   showLegend = false,
   legendPosition = "bottom",
   showTooltip = true,
   tooltipFormatter,
-  colorScale = CHART_PALETTE,
+  colorScale,
   nameKey = "name",
   responsive = true,
   margin = chartMargins.bar,
 }) => {
   const isMobile = useIsMobile();
+  const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const themePalette = useChartPalette();
+  const scale = colorScale ?? themePalette;
   const labels = useMemo(
     () => data.map((item) => String(item[nameKey] ?? "")),
     [data, nameKey],
@@ -136,26 +136,20 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     [margin, xAxisConfig.bottom],
   );
 
-  const barColors = useMemo(() => {
-    if (dataKeys.length > 1) {
-      return dataKeys.map((_, i) => colorScale[i % colorScale.length]);
-    }
-    return data.map((_, i) => colorScale[i % colorScale.length]);
-  }, [data, dataKeys, colorScale]);
+  /**
+   * A single series is one measure, so it gets one colour — cycling hues per
+   * category invents meaning that isn't in the data. Only multi-series charts
+   * need the palette to tell keys apart.
+   */
+  const barColors = useMemo(
+    () => dataKeys.map((_, i) => scale[i % scale.length]),
+    [dataKeys, scale],
+  );
 
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
   const containerProps = responsive ? { width: "100%", height } : {};
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex h-[260px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white text-center">
-        <p className="text-[13px] font-medium text-slate-600">No data yet</p>
-        <p className="mt-1 text-[12px] text-slate-400">
-          Charts will appear once records are available
-        </p>
-      </div>
-    );
-  }
+  if (!data || data.length === 0) return <ChartEmptyState />;
 
   const isValidData = data.every((item) =>
     dataKeys.every(
@@ -164,14 +158,16 @@ const BarChartComponent: React.FC<BarChartProps> = ({
   );
   if (!isValidData) {
     return (
-      <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-rose-200 bg-rose-50/50 text-[13px] text-rose-600">
-        Unable to display chart — invalid data format
-      </div>
+      <ChartEmptyState
+        tone="error"
+        message="Unable to display chart"
+        hint="Invalid data format"
+      />
     );
   }
 
   return (
-    <div className="min-w-0 w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-50/40 to-white p-1">
+    <div className="min-w-0 w-full overflow-hidden">
       <ChartContainer
         id="bar-chart"
         className="recharts-responsive-container"
@@ -184,13 +180,21 @@ const BarChartComponent: React.FC<BarChartProps> = ({
           margin={chartMargin}
           barCategoryGap={isMobile ? "12%" : "18%"}
         >
-          {showGrid && (
-            <CartesianGrid
-              stroke={chartGridStroke}
-              strokeDasharray="4 4"
-              vertical={false}
-            />
-          )}
+          <defs>
+            {barColors.map((color, index) => (
+              <linearGradient
+                key={`bargrad-${index}`}
+                id={`${gradientId}-${index}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor={color} stopOpacity={1} />
+                <stop offset="100%" stopColor={color} stopOpacity={0.72} />
+              </linearGradient>
+            ))}
+          </defs>
           <XAxis
             dataKey={nameKey}
             tick={
@@ -200,7 +204,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
               />
             }
             tickLine={false}
-            axisLine={{ stroke: chartGridStroke }}
+            axisLine={false}
             interval={0}
             height={xAxisConfig.height}
           />
@@ -224,6 +228,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
               }
               labelFormatter={(label) => String(label)}
               contentStyle={chartTooltipStyle}
+              labelStyle={chartTooltipLabelStyle}
             />
           )}
           {showLegend && (
@@ -233,33 +238,19 @@ const BarChartComponent: React.FC<BarChartProps> = ({
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
             />
           )}
-          {dataKeys.length === 1 ? (
+          {dataKeys.map((key, index) => (
             <Bar
-              dataKey={dataKeys[0]}
-              radius={[8, 8, 0, 0]}
+              key={`bar-${key}`}
+              dataKey={key}
+              fill={`url(#${gradientId}-${index})`}
+              radius={[6, 6, 0, 0]}
               barSize={barSize}
+              maxBarSize={48}
               isAnimationActive
-              animationDuration={650}
+              animationDuration={600}
               animationEasing="ease-out"
-            >
-              {data.map((_, index) => (
-                <Cell key={`bar-cell-${index}`} fill={barColors[index]} />
-              ))}
-            </Bar>
-          ) : (
-            dataKeys.map((key, index) => (
-              <Bar
-                key={`bar-${key}`}
-                dataKey={key}
-                fill={barColors[index]}
-                radius={[8, 8, 0, 0]}
-                barSize={barSize}
-                isAnimationActive
-                animationDuration={650}
-                animationEasing="ease-out"
-              />
-            ))
-          )}
+            />
+          ))}
         </BarChart>
       </ChartContainer>
     </div>

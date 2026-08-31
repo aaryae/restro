@@ -81,9 +81,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
 
   const destinationOptions = useMemo(
     () =>
-      accountOptions.filter(
-        (option) => option.value !== watchedFromAccountId,
-      ),
+      accountOptions.filter((option) => option.value !== watchedFromAccountId),
     [accountOptions, watchedFromAccountId],
   );
 
@@ -115,8 +113,12 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white w-[90%] max-w-2xl md:max-w-3xl  rounded-xl shadow-2xl flex flex-col">
+    <div className="serve-overlay fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="serve-modal flex w-[90%] max-w-2xl flex-col rounded-xl md:max-w-3xl"
+      >
         <div className="px-6 md:px-8 py-4 md:py-5 border-b">
           <h3 className="text-lg font-semibold text-gray-900">Transfer</h3>
         </div>

@@ -7,8 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { TbTrashXFilled } from "react-icons/tb";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 import React from "react";
 import useTranslation from "@/locale/useTranslation";
 
@@ -63,6 +62,7 @@ export default function DeleteModal({
           title={disabled ? "Delete unavailable" : "Delete"}
           disabled={disabled}
           aria-disabled={disabled}
+          data-variant="danger"
           className={
             compact
               ? `inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
@@ -78,7 +78,7 @@ export default function DeleteModal({
             handleDeleteTrigger();
           }}
         >
-          <TbTrashXFilled
+          <Trash2
             size={compact ? 16 : 22}
             className={compact ? undefined : "text-red-500"}
           />

@@ -12,7 +12,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
 import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
@@ -132,7 +132,7 @@ const Revenue: React.FC = () => {
                 {amount}
               </span>,
               <span
-                className="mx-auto block max-w-full truncate"
+                className="block max-w-full truncate"
                 title={remarks ?? ""}
               >
                 {remarks ?? ""}
@@ -151,7 +151,7 @@ const Revenue: React.FC = () => {
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                       title="Edit revenue"
                     >
-                      <MdEditSquare size={16} />
+                      <SquarePen />
                     </button>
                   )}
                   {accessList.includes("delete") && (

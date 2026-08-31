@@ -107,7 +107,9 @@ export default function RevenueFilter({
     <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] font-medium text-slate-500">Period:</span>
+          <span className="text-[12px] font-medium text-slate-500">
+            Period:
+          </span>
           <button
             type="button"
             onClick={handleAllClick}
@@ -161,8 +163,12 @@ export default function RevenueFilter({
       </div>
 
       {showDatePicker ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="relative max-w-full rounded-xl bg-white p-4 shadow-xl sm:p-6">
+        <div className="serve-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="serve-modal relative max-w-full rounded-xl p-4 sm:p-6"
+          >
             <button
               type="button"
               onClick={() => setShowDatePicker(false)}

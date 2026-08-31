@@ -92,26 +92,21 @@ export default function DashboardQuickLinks() {
   if (!visibleLinks.length) return null;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Quick navigation
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {visibleLinks.map((link) => {
+    <div className="dash-links">
+      {visibleLinks.map((link) => {
           const Icon = link.icon;
           return (
             <button
               key={link.path}
               type="button"
               onClick={() => navigate(link.path)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-[12px] font-medium text-slate-700 transition hover:border-primaryColor/30 hover:bg-white hover:text-primaryColor sm:text-[13px]"
+              className="dash-chip"
             >
-              <Icon size={14} className="shrink-0 text-slate-500" />
+              <Icon size={14} />
               <span>{link.label}</span>
             </button>
           );
         })}
-      </div>
     </div>
   );
 }

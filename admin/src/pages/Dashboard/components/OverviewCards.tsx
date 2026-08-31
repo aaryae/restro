@@ -15,7 +15,7 @@ import { checkAccess } from "@/utils/accessHelper";
 import SummaryCard from "@/components/SummaryCard";
 import DashboardChartCard from "./DashboardChartCard";
 import { type ChartType } from "./ChartTypeTabs";
-import { CHART_BRAND, CHART_FISCAL_COLORS } from "../chartTheme";
+import { useChartColors } from "../chartTheme";
 import { formatCurrencyAmount } from "@/utils/formatCurrency";
 import { toTrendData } from "../dashboardHelpers";
 
@@ -25,7 +25,7 @@ const LineChartComponent = lazy(() => import("../LineChartComponent"));
 
 function ChartFallback() {
   return (
-    <div className="h-[280px] animate-pulse rounded-lg bg-slate-50" />
+    <div className="h-[280px] animate-pulse rounded-lg bg-[var(--serve-surface-2)]" />
   );
 }
 
@@ -53,11 +53,11 @@ function OverviewCards() {
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="h-[76px] animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+              className="h-[76px] animate-pulse rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)]"
             />
           ))}
         </div>
-        <div className="h-[300px] animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+        <div className="h-[300px] animate-pulse rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface-2)]" />
       </div>
     );
   }
@@ -69,55 +69,81 @@ function OverviewCards() {
   const showTransactions = withdrawAccessList.includes("view");
   const profit = overview?.profit ?? 0;
 
+  const showHero = showRevenue && overview;
+  const margin =
+    overview && overview.totalRevenue > 0
+      ? (profit / overview.totalRevenue) * 100
+      : null;
+
   return (
     <div className="min-w-0 space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {showRevenue && overview && (
-          <SummaryCard
-            title="Total Revenue"
-            value={`${CurrencySign}${overview.totalRevenue.toLocaleString()}`}
-            tone="violet"
-            Icon={PiggyBank}
-          />
-        )}
+      {showHero && (
+        <div className="dash-card dash-hero-kpi">
+          <div className="min-w-0">
+            <p className="dash-kpi-label">Total Revenue</p>
+            <p className="dash-kpi-value truncate">
+              {CurrencySign}
+              {overview.totalRevenue.toLocaleString()}
+            </p>
+            {showPurchase && showExpense && (
+              <p className="dash-hero-note">
+                Net profit{" "}
+                <b>
+                  {CurrencySign}
+                  {profit.toLocaleString()}
+                </b>
+                {margin != null &&
+                  ` · ${margin.toFixed(margin % 1 ? 1 : 0)}% margin`}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {showPurchase && overview && (
           <SummaryCard
-            title="Total Purchase"
+            title="Purchase"
+            tint="cerulean"
             value={`${CurrencySign}${overview.totalPurchase.toLocaleString()}`}
-            tone="emerald"
+            amount={overview.totalPurchase}
             Icon={ShoppingCart}
           />
         )}
         {showExpense && overview && (
           <SummaryCard
-            title="Total Expense"
+            title="Expense"
+            tint="vermilion"
             value={`${CurrencySign}${overview.totalExpense.toLocaleString()}`}
-            tone="sky"
+            amount={overview.totalExpense}
             Icon={IndianRupee}
-          />
-        )}
-        {showRevenue && showPurchase && showExpense && overview && (
-          <SummaryCard
-            title="Profit"
-            value={`${CurrencySign}${profit.toLocaleString()}`}
-            tone="amber"
-            Icon={TrendingUp}
           />
         )}
         {showTransactions && overview && (
           <SummaryCard
-            title="Total Withdrawn"
+            title="Withdrawn"
+            tint="plum"
             value={`${CurrencySign}${overview.totalWithdraw.toLocaleString()}`}
-            tone="rose"
+            amount={overview.totalWithdraw}
             Icon={Wallet}
           />
         )}
         {showTransactions && overview && (
           <SummaryCard
-            title="Total Deposits"
+            title="Deposits"
+            tint="teal"
             value={`${CurrencySign}${overview.totalDeposit.toLocaleString()}`}
-            tone="green"
+            amount={overview.totalDeposit}
             Icon={PiggyBank}
+          />
+        )}
+        {!showHero && showRevenue && overview && (
+          <SummaryCard
+            title="Revenue"
+            tint="bronze"
+            value={`${CurrencySign}${overview.totalRevenue.toLocaleString()}`}
+            amount={overview.totalRevenue}
+            Icon={TrendingUp}
           />
         )}
         {showRevenue &&
@@ -127,30 +153,36 @@ function OverviewCards() {
           overview && (
             <SummaryCard
               title="Remaining Balance"
+              tint="olive"
               value={`${CurrencySign}${overview.remainingBalance.toLocaleString()}`}
-              tone="teal"
+              amount={overview.remainingBalance}
               Icon={Landmark}
             />
           )}
         {overviewData?.success && overview && (
           <SummaryCard
-            title="Total Collection Till Date"
+            title="Collection Till Date"
+            tint="indigo"
             value={`${CurrencySign}${formatCurrencyAmount(overview.totalCollectionBalance)}`}
-            tone="indigo"
+            amount={overview.totalCollectionBalance}
             Icon={Landmark}
           />
         )}
       </div>
 
-      {chartsReady && showRevenue && showPurchase && showExpense && overview && (
-        <FiscalYearSummary
-          totalRevenue={overview.totalRevenue}
-          totalPurchase={overview.totalPurchase}
-          totalExpense={overview.totalExpense}
-          openingBalance={overview.openingBalance}
-          showSalesTrend={orderAccessList.includes("view")}
-        />
-      )}
+      {chartsReady &&
+        showRevenue &&
+        showPurchase &&
+        showExpense &&
+        overview && (
+          <FiscalYearSummary
+            totalRevenue={overview.totalRevenue}
+            totalPurchase={overview.totalPurchase}
+            totalExpense={overview.totalExpense}
+            openingBalance={overview.openingBalance}
+            showSalesTrend={orderAccessList.includes("view")}
+          />
+        )}
     </div>
   );
 }
@@ -169,6 +201,7 @@ function FiscalYearSummary({
   showSalesTrend: boolean;
 }) {
   const [chartType, setChartType] = useState<ChartType>("pie");
+  const { fiscal, brand } = useChartColors();
   const profit = totalRevenue - (totalPurchase + totalExpense);
   const collectedAmount = profit + Number(openingBalance || 0);
 
@@ -227,7 +260,7 @@ function FiscalYearSummary({
                 responsive
                 height={280}
                 showLegend
-                colors={CHART_FISCAL_COLORS}
+                colors={fiscal}
               />
             )}
             {chartType === "bar" && (
@@ -248,7 +281,7 @@ function FiscalYearSummary({
                 xAxisLabel="Date"
                 yAxisLabel="Sales"
                 showLegend={false}
-                colorScale={[CHART_BRAND]}
+                colorScale={[brand]}
               />
             )}
           </Suspense>
@@ -257,29 +290,28 @@ function FiscalYearSummary({
 
       <div className="flex min-w-0 flex-col gap-3">
         <SummaryCard
-          title="Total Collected Amount"
+          title="Total Collected"
+          tint="teal"
           value={`${CurrencySign}${collectedAmount.toLocaleString()}`}
-          tone="indigo"
+          amount={collectedAmount}
           Icon={PiggyBank}
         />
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-[12px] font-medium text-slate-500">
-            Opening Balance
-          </p>
-          <p className="mt-1 text-xl font-semibold tabular-nums text-slate-800">
-            {CurrencySign}
-            {Number(openingBalance || 0).toLocaleString()}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-          <p className="text-[12px] font-medium text-slate-500">Net Profit</p>
-          <p
-            className={`mt-1 text-xl font-semibold tabular-nums ${profit >= 0 ? "text-emerald-700" : "text-rose-700"}`}
-          >
-            {CurrencySign}
-            {profit.toLocaleString()}
-          </p>
-        </div>
+        <SummaryCard
+          title="Opening Balance"
+          tint="bronze"
+          value={`${CurrencySign}${Number(openingBalance || 0).toLocaleString()}`}
+          amount={Number(openingBalance || 0)}
+          Icon={Landmark}
+        />
+        <SummaryCard
+          title="Net Profit"
+          tint="olive"
+          value={`${CurrencySign}${profit.toLocaleString()}`}
+          amount={profit}
+          Icon={TrendingUp}
+          signed
+          dimWhenZero={false}
+        />
       </div>
     </div>
   );

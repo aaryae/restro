@@ -1,32 +1,13 @@
-import { useGetSettingQuery } from "@/redux/services/settings";
 import { useEffect } from "react";
 
 function BrandingWrapper({ children }) {
-  const {
-    data: settings,
-    isSuccess: success,
-    isLoading: loading,
-    refetch,
-  } = useGetSettingQuery("");
-
   useEffect(() => {
-    const cachedColor = localStorage.getItem("brandColor");
-    if (cachedColor) {
-      document.documentElement.style.setProperty(
-        "--primary-color",
-        cachedColor,
-      );
-    }
-
-    if (/^#[0-9A-F]{6}$/i.test(settings?.data?.primaryColor)) {
-      document.documentElement.style.setProperty(
-        "--primary-color",
-        settings?.data?.primaryColor,
-      );
-      localStorage.setItem("brandColor", settings?.data?.primaryColor);
-    }
-    document.documentElement.classList.remove("dark");
-  }, [success, settings]);
+    const stored = localStorage.getItem("serve-theme") || "dark";
+    const html = document.documentElement;
+    html.classList.remove("dark", "light");
+    html.classList.add(stored);
+    localStorage.removeItem("brandColor");
+  }, []);
 
   return <>{children}</>;
 }

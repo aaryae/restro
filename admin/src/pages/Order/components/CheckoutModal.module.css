@@ -14,23 +14,23 @@
 }
 
 .pageShell {
-  --ck-primary: var(--primary-color, #032768);
-  --ck-primary-hover: color-mix(in srgb, var(--ck-primary) 88%, black);
-  --ck-primary-soft: color-mix(in srgb, var(--ck-primary) 9%, white);
-  --ck-primary-soft-strong: color-mix(in srgb, var(--ck-primary) 14%, white);
-  --ck-primary-border: color-mix(in srgb, var(--ck-primary) 22%, #e5e7eb);
+  --ck-primary: var(--primary-color);
+  --ck-primary-hover: color-mix(in srgb, var(--ck-primary) 86%, var(--serve-fg));
+  --ck-primary-soft: color-mix(in srgb, var(--ck-primary) 9%, var(--serve-surface));
+  --ck-primary-soft-strong: color-mix(in srgb, var(--ck-primary) 14%, var(--serve-surface));
+  --ck-primary-border: color-mix(in srgb, var(--ck-primary) 22%, var(--serve-border));
   --ck-primary-ring: color-mix(in srgb, var(--ck-primary) 18%, transparent);
-  --ck-surface: #ffffff;
-  --ck-border: rgb(229 231 235 / 0.85);
-  --ck-muted: #6b7280;
-  --ck-text: #111827;
+  --ck-surface: var(--serve-surface);
+  --ck-border: var(--serve-border);
+  --ck-muted: var(--serve-muted);
+  --ck-text: var(--serve-fg);
 
   width: 100%;
   min-height: calc(100vh - 8rem);
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--serve-surface);
+  border: 1px solid var(--serve-border);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--serve-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -39,15 +39,36 @@
 .pageHeader {
   flex-shrink: 0;
   padding: 1rem 1.25rem;
-  background: #fff;
-  border-bottom: 1px solid #f3f4f6;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ck-primary) 6%, var(--serve-surface)) 0%,
+      var(--serve-surface) 100%
+    );
+  border-bottom: 1px solid var(--serve-border);
+}
+
+.backBtn {
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  color: var(--serve-muted);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.backBtn:hover {
+  border-color: color-mix(in srgb, var(--serve-accent) 45%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-accent) 8%, var(--serve-surface));
+  color: var(--serve-accent);
 }
 
 .pageTitle {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--primary-ink);
   letter-spacing: -0.02em;
 }
 
@@ -58,19 +79,201 @@
   padding: 0.75rem 1.25rem 1.5rem;
 }
 
-.modalContent {
-  --ck-primary: var(--primary-color, #032768);
-  --ck-primary-hover: color-mix(in srgb, var(--ck-primary) 88%, black);
-  --ck-primary-soft: color-mix(in srgb, var(--ck-primary) 9%, white);
-  --ck-primary-soft-strong: color-mix(in srgb, var(--ck-primary) 14%, white);
-  --ck-primary-border: color-mix(in srgb, var(--ck-primary) 22%, #e5e7eb);
-  --ck-primary-ring: color-mix(in srgb, var(--ck-primary) 18%, transparent);
-  --ck-surface: #ffffff;
-  --ck-border: rgb(229 231 235 / 0.85);
-  --ck-muted: #6b7280;
-  --ck-text: #111827;
+/* ── Order details ───────────────────────────────────────────────────────
+   This block used raw Tailwind light-mode utilities (bg-gray-50 headers,
+   odd:bg-white rows, a border on every cell). The row variants aren't covered
+   by the global dark remaps, so the rows stayed white while the text inherited
+   the near-white theme foreground — white on white. Driving it from theme
+   tokens fixes the contrast and drops the cell grid at the same time. */
+.orderCard {
+  border: 1px solid var(--ck-border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--ck-surface);
+}
 
-  background-color: #fff;
+.orderCardHead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .orderCardHead {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0;
+  }
+}
+
+.orderCardTitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ck-text);
+}
+
+.selectAllLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ck-muted);
+  cursor: pointer;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--ck-border);
+  border-radius: 10px;
+}
+
+.itemsTable {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.itemsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.6rem 0.85rem;
+  background: var(--serve-table-head);
+  color: var(--serve-table-head-fg);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.itemsTable tbody td {
+  padding: 0.7rem 0.85rem;
+  border-top: 1px solid var(--serve-row-line, var(--ck-border));
+  color: var(--ck-text);
+  vertical-align: top;
+}
+
+.itemsTable tbody tr:hover td {
+  background: var(--serve-row-hover, var(--serve-surface-2));
+}
+
+.checkCell {
+  width: 2.75rem;
+  text-align: center !important;
+}
+
+.snCell {
+  width: 3rem;
+  color: var(--ck-muted) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Money and counts right-align so digits line up column-wise. */
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.itemName {
+  font-weight: 600;
+  color: var(--ck-text);
+}
+
+.itemSub {
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--ck-muted);
+}
+
+.addonLine {
+  font-size: 0.7rem;
+  color: var(--ck-muted);
+}
+
+.emptyRow {
+  padding: 1.25rem !important;
+  text-align: center;
+  color: var(--ck-muted) !important;
+}
+
+.selectedCount {
+  margin-top: 0.6rem;
+  font-size: 0.7rem;
+  color: var(--ck-muted);
+}
+
+.totalsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--ck-border);
+  border-radius: 10px;
+  background: var(--ck-surface);
+}
+
+.totalsRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.totalsLabel {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ck-muted);
+}
+
+.totalsValue {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ck-text);
+}
+
+.totalsDivider {
+  height: 1px;
+  background: var(--ck-border);
+}
+
+.totalsRowGrand .totalsLabel {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ck-text);
+}
+
+.totalsRowGrand .totalsValue {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-ink);
+}
+
+.modalContent {
+  --ck-primary: var(--primary-color);
+  --ck-primary-hover: color-mix(in srgb, var(--ck-primary) 86%, var(--serve-fg));
+  --ck-primary-soft: color-mix(in srgb, var(--ck-primary) 9%, var(--serve-surface));
+  --ck-primary-soft-strong: color-mix(in srgb, var(--ck-primary) 14%, var(--serve-surface));
+  --ck-primary-border: color-mix(in srgb, var(--ck-primary) 22%, var(--serve-border));
+  --ck-primary-ring: color-mix(in srgb, var(--ck-primary) 18%, transparent);
+  --ck-surface: var(--serve-surface);
+  --ck-border: var(--serve-border);
+  --ck-muted: var(--serve-muted);
+  --ck-text: var(--serve-fg);
+
+  background-color: var(--serve-surface);
   border-radius: 8px;
   padding: 0;
   width: 95%;
@@ -86,8 +289,8 @@
 .modalHeader {
   flex-shrink: 0;
   padding: 1rem 1.25rem 0.5rem;
-  background: #fff;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--serve-surface);
+  border-bottom: 1px solid var(--serve-border);
 }
 
 .modalBody {
@@ -141,7 +344,7 @@
     padding-bottom: 0.15rem;
     background: linear-gradient(
       to top,
-      #fff 70%,
+      var(--serve-surface) 70%,
       rgb(255 255 255 / 0.92)
     );
   }
@@ -164,7 +367,7 @@
 }
 
 .checkmarkCircle {
-  stroke: #10b981;
+  stroke: var(--primary-ink);
   stroke-width: 2;
   stroke-miterlimit: 10;
   stroke-dasharray: 166;
@@ -173,7 +376,7 @@
 }
 
 .checkmarkCheck {
-  stroke: #10b981;
+  stroke: var(--primary-ink);
   stroke-width: 2;
   stroke-miterlimit: 10;
   stroke-dasharray: 48;
@@ -191,18 +394,18 @@
   margin-top: 16px;
   font-size: 18px;
   font-weight: 600;
-  color: #10b981;
+  color: var(--primary-ink);
 }
 
 .modalTitle {
   font-size: 17px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--serve-fg);
 }
 
 .totalAmount {
   font-size: 18px;
-  color: #4b5563;
+  color: var(--serve-muted);
   margin-bottom: 16px;
 }
 
@@ -213,7 +416,7 @@
 .paymentLabel {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--serve-fg);
 }
 
 .paymentGrid {
@@ -227,42 +430,42 @@
   flex-direction: column;
   align-items: center;
   padding: 16px;
-  border: 2px solid #d1d5db;
+  border: 2px solid var(--serve-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .paymentBox:hover {
-  border-color: #34d399;
+  border-color: var(--primary-ink);
 }
 
 .paymentBoxSelectedCash {
-  border-color: #10b981;
-  background-color: #ecfdf5;
+  border-color: var(--primary-ink);
+  background-color: var(--ck-primary-soft, var(--serve-surface-2));
 }
 
 .paymentBoxSelectedQr {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
+  border-color: var(--primary-ink);
+  background-color: var(--ck-primary-soft, var(--serve-surface-2));
 }
 
 .paymentIconCash {
   font-size: 32px;
-  color: #10b981;
+  color: var(--primary-ink);
   margin-bottom: 8px;
 }
 
 .paymentIconQr {
   font-size: 32px;
-  color: #3b82f6;
+  color: var(--primary-ink);
   margin-bottom: 8px;
 }
 
 .paymentText {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--serve-fg);
 }
 
 .qrContainer {
@@ -297,8 +500,8 @@
 .cancelButton {
   padding: 8px 16px;
   border-radius: 4px;
-  background-color: #e5e7eb;
-  color: #4b5563;
+  background-color: var(--serve-border);
+  color: var(--serve-muted);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -306,14 +509,14 @@
 }
 
 .cancelButton:hover {
-  background-color: #d1d5db;
+  background-color: var(--serve-border);
 }
 
 .actionButton {
   padding: 8px 16px;
   border-radius: 4px;
-  background-color: #10b981;
-  color: #fff;
+  background-color: var(--ck-primary);
+  color: var(--primary-fg);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -321,7 +524,7 @@
 }
 
 .actionButton:hover {
-  background-color: #059669;
+  background-color: var(--ck-primary-hover, var(--serve-fg));
 }
 
 /* Clothing-style payment panel */
@@ -351,14 +554,14 @@
 .payHint {
   margin: 0;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--serve-muted);
   text-align: center;
 }
 
 .payHintError {
   margin: 0;
   font-size: 0.8rem;
-  color: #dc2626;
+  color: var(--serve-negative);
   text-align: center;
 }
 
@@ -382,6 +585,126 @@
   gap: 0.75rem;
 }
 
+.customerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--serve-border);
+}
+
+.addCustomerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--serve-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addCustomerBtn:hover {
+  color: var(--primary-ink);
+  background: var(--ck-primary-soft);
+}
+
+.guestCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ck-border);
+  background: var(--serve-surface-2);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.guestCardActive {
+  border-color: var(--ck-primary-border);
+  background: var(--ck-primary-soft);
+  box-shadow: 0 0 0 1px var(--ck-primary-ring);
+}
+
+.guestAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--serve-border);
+  color: var(--serve-muted);
+}
+
+.guestCardActive .guestAvatar {
+  background: var(--ck-primary);
+  color: var(--primary-fg);
+}
+
+.guestInfo {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.guestName {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--serve-fg);
+}
+
+.guestMeta {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--serve-muted);
+}
+
+.customerSearchWrap {
+  position: relative;
+}
+
+.customerSearchIcon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--serve-muted);
+  pointer-events: none;
+}
+
+.customerSearchInput {
+  width: 100%;
+  padding: 0.7rem 0.85rem 0.7rem 2.35rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--ck-border);
+  background: var(--ck-surface);
+  font-size: 0.8125rem;
+  color: var(--ck-text);
+}
+
+.customerSearchInput::placeholder {
+  color: var(--serve-muted);
+}
+
+.customerSearchInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--ck-primary) 40%, var(--serve-border));
+  box-shadow: 0 0 0 3px var(--ck-primary-ring);
+}
+
 .splitLinkBtn {
   display: inline-flex;
   align-items: center;
@@ -392,18 +715,18 @@
   background: transparent;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--serve-muted);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .splitLinkBtn:hover {
-  color: var(--ck-primary);
+  color: var(--primary-ink);
   background: var(--ck-primary-soft);
 }
 
 .splitLinkBtnActive {
-  color: var(--ck-primary);
+  color: var(--primary-ink);
   background: var(--ck-primary-soft);
 }
 
@@ -413,7 +736,7 @@
   gap: 0.5rem;
   margin-top: auto;
   padding-top: 0.85rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--serve-border);
 }
 
 .payActions .completeBtn {
@@ -436,7 +759,7 @@
   border-radius: 0.75rem;
   border: 1px solid var(--ck-border);
   background: var(--ck-surface);
-  color: #4b5563;
+  color: var(--serve-muted);
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -445,14 +768,14 @@
 }
 
 .paymentSourceBtn:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
+  border-color: var(--serve-border);
+  background: var(--serve-surface-2);
 }
 
 .paymentSourceBtnActive {
   border-color: var(--ck-primary-border);
   background: var(--ck-primary-soft);
-  color: var(--ck-primary);
+  color: var(--primary-ink);
   box-shadow: 0 0 0 1px var(--ck-primary-ring);
 }
 
@@ -460,7 +783,7 @@
   width: 100%;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--serve-fg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -469,13 +792,13 @@
 .paymentSourceMeta {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--serve-muted);
 }
 
 .fieldLabel {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--serve-muted);
 }
 
 .tenderInput {
@@ -498,16 +821,16 @@
 
 .tenderInput:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--ck-primary) 40%, #d1d5db);
+  border-color: color-mix(in srgb, var(--ck-primary) 40%, var(--serve-border));
   box-shadow: 0 0 0 3px var(--ck-primary-ring);
 }
 
 .tenderInputError {
-  border-color: #dc2626;
+  border-color: var(--serve-negative);
 }
 
 .tenderInputError:focus {
-  border-color: #dc2626;
+  border-color: var(--serve-negative);
   box-shadow: 0 0 0 3px rgb(220 38 38 / 0.15);
 }
 
@@ -518,14 +841,14 @@
   gap: 0.75rem;
   padding: 0.85rem 1rem;
   border-radius: 0.75rem;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  background: var(--serve-surface-2);
+  border: 1px solid var(--serve-border);
 }
 
 .changeLabel {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--serve-fg);
 }
 
 .changeValue {
@@ -535,11 +858,11 @@
 }
 
 .changeValueGood {
-  color: #059669;
+  color: var(--primary-ink);
 }
 
 .changeValueWarn {
-  color: #d97706;
+  color: color-mix(in srgb, var(--secondary-color) 20%, var(--serve-fg));
 }
 
 .completeBtn {
@@ -549,7 +872,7 @@
   border: none;
   border-radius: 0.75rem;
   background: var(--ck-primary);
-  color: #fff;
+  color: var(--primary-fg);
   font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -573,13 +896,13 @@
   background: var(--ck-surface);
   font-size: 0.85rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--serve-muted);
   transition: background 0.15s ease;
 }
 
 .cancelBtn:hover,
 .previewBtn:hover:not(:disabled) {
-  background: #f9fafb;
+  background: var(--serve-surface-2);
 }
 
 .printBtn {
@@ -591,7 +914,7 @@
   border-radius: 0.75rem;
   border: none;
   background: var(--ck-primary);
-  color: #fff;
+  color: var(--primary-fg);
   font-size: 0.85rem;
   font-weight: 600;
   transition: background 0.15s ease;
@@ -611,8 +934,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 15rem;
-  margin-top: 0.5rem;
+  max-height: 10rem;
   overflow-y: auto;
 }
 
@@ -623,9 +945,9 @@
   gap: 0.15rem;
   width: 100%;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--ck-border, #e5e7eb);
+  border: 1px solid var(--ck-border, var(--serve-border));
   border-radius: 0.65rem;
-  background: #fff;
+  background: var(--serve-surface);
   text-align: left;
   cursor: pointer;
   transition:
@@ -634,35 +956,41 @@
 }
 
 .memberSearchResult:hover {
-  border-color: var(--ck-primary-border, #c7d2fe);
-  background: var(--ck-primary-soft, #eff6ff);
+  border-color: var(--ck-primary-border, color-mix(in srgb, var(--serve-info) 15%, var(--serve-surface)));
+  background: var(--ck-primary-soft, color-mix(in srgb, var(--serve-info) 15%, var(--serve-surface)));
 }
 
 .memberSearchResultName {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--serve-fg);
 }
 
 .memberSearchResultMeta {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--serve-muted);
 }
 
 .memberSearchEmpty {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #dc2626;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--serve-muted);
+}
+
+.memberSearchError {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--serve-negative);
 }
 
 .selectedMemberCard {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--ck-primary-border, #c7d2fe);
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--ck-primary-border, color-mix(in srgb, var(--serve-info) 15%, var(--serve-surface)));
   border-radius: 0.75rem;
-  background: var(--ck-primary-soft, #eff6ff);
+  background: var(--ck-primary-soft, color-mix(in srgb, var(--serve-info) 15%, var(--serve-surface)));
   min-width: 0;
 }
 
@@ -674,8 +1002,8 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 9999px;
-  background: var(--ck-primary, #032768);
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--primary-fg);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -692,14 +1020,14 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .selectedMemberName {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--serve-fg);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -719,7 +1047,7 @@
   min-width: 0;
   max-width: 100%;
   font-size: 0.8rem;
-  color: #4b5563;
+  color: var(--serve-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -735,7 +1063,7 @@
   border: none;
   border-radius: 9999px;
   background: rgb(255 255 255 / 0.75);
-  color: #64748b;
+  color: var(--serve-muted);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -743,6 +1071,6 @@
 }
 
 .selectedMemberClear:hover {
-  background: #fff;
-  color: #dc2626;
+  background: var(--serve-surface);
+  color: var(--serve-negative);
 }

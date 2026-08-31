@@ -28,7 +28,7 @@ const {
 } = require("../controllers/expense-controller");
 
 router.post("/", authentication, authorization, expensePostValidation, create);
-router.get("/list", paginationValidation, list);
+router.get("/list", authentication, paginationValidation, list);
 router.get("/expense-today", authentication, todayExpense);
 router.get("/daily-summary", authentication, dailySummary);
 router.get(
@@ -44,7 +44,7 @@ router.get(
   paginationValidation,
   categorySummary,
 );
-router.get("/:id", idValidation, getById);
+router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/:id",
   authentication,
@@ -69,6 +69,11 @@ router.delete(
   cancelExpenseValidation,
   cancelExpense,
 );
-router.get("/unpaid-credits", paginationValidation, getUnpaidCredits);
+router.get(
+  "/unpaid-credits",
+  authentication,
+  paginationValidation,
+  getUnpaidCredits,
+);
 
 module.exports = router;

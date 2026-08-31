@@ -29,9 +29,17 @@ const {
 } = require("../controllers/product-controller");
 
 router.post("/", authentication, authorization, productPostValidation, create);
-router.get("/list", paginationValidation, list);
-router.get("/top-selling", topSelling);
-router.get("/:id", idValidation, getById);
+// Keep before "/:id" handlers so the literal path always wins.
+router.post(
+  "/import",
+  authentication,
+  authorization,
+  uploadExcel,
+  importFromExcel,
+);
+router.get("/list", authentication, paginationValidation, list);
+router.get("/top-selling", authentication, topSelling);
+router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/update-order",
   authentication,
@@ -54,15 +62,6 @@ router.delete(
   authorization,
   idValidation,
   deleteProduct,
-);
-
-// Import products from Excel
-router.post(
-  "/import",
-  authentication,
-  authorization,
-  uploadExcel,
-  importFromExcel,
 );
 
 module.exports = router;

@@ -44,6 +44,15 @@ export function usernameText(value: string) {
   return ''
 }
 
+/** POS owner username: keep spaces and casing as typed. */
+export function optionalOwnerUsernameText(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (trimmed.length < 2) return 'Username must be at least 2 characters'
+  if (trimmed.length > 64) return 'Username must be at most 64 characters'
+  return ''
+}
+
 export function passwordText(
   value: string,
   opts: { required?: boolean; min?: number; label?: string } = {},

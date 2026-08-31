@@ -2,18 +2,14 @@ import { z } from "zod";
 
 export const PurchaseItemSchema = z.object({
   particulars: z.string().min(1, "Particulars is required"),
-  // Backend (Joi) treats categoryId as optional
   categoryId: z.number().optional().or(z.literal("")),
   qty: z.coerce
     .number({ message: "Qty must be a number" })
     .int()
     .min(1, "Qty must be at least 1"),
-  // Backend requires positive rate
   rate: z.coerce
     .number({ message: "Rate must be a number" })
     .gt(0, "Rate must be greater than 0"),
-
-  // UI-only helpers (not sent to backend)
   discountPercent: z.coerce
     .number({ message: "Discount % must be a number" })
     .min(0, "Discount % cannot be negative")
@@ -26,8 +22,30 @@ export const PurchaseItemSchema = z.object({
     .max(100, "Tax % cannot exceed 100")
     .default(13)
     .optional(),
-  isTaxable: z.boolean().default(true).optional(),
+  isTaxable: z.boolean().default(false).optional(),
 });
+
+export function isBlankPurchaseItem(
+  item: Partial<z.infer<typeof PurchaseItemSchema>>,
+): boolean {
+  const particulars = String(item.particulars ?? "").trim();
+  const qty = Number(item.qty);
+  const rate = Number(item.rate);
+  const hasQty = Number.isFinite(qty) && qty > 0;
+  const hasRate = Number.isFinite(rate) && rate > 0;
+  const hasCategory =
+    item.categoryId !== "" &&
+    item.categoryId !== undefined &&
+    item.categoryId !== null &&
+    Number(item.categoryId) > 0;
+
+  return !particulars && !hasQty && !hasRate && !hasCategory;
+}
+
+export function filterFilledPurchaseItems(items: unknown) {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item) => !isBlankPurchaseItem(item));
+}
 
 export const PurchaseSchema = z.object({
   invoiceDate: z
@@ -36,14 +54,17 @@ export const PurchaseSchema = z.object({
     .refine((v) => !Number.isNaN(Date.parse(v)), {
       message: "Invalid invoice date",
     }),
-  supplierId: z.string().min(1, "Supplier is required"),
+  supplierId: z.string().min(1, "Select a supplier from the list"),
   invoiceNumber: z.string().optional().nullable(),
-
-  items: z.array(PurchaseItemSchema).min(1, "At least one item is required"),
-
-  // Match backend Joi: required enum of payment terms
+  items: z.preprocess(
+    (items) => filterFilledPurchaseItems(items),
+    z
+      .array(PurchaseItemSchema)
+      .min(1, "Add at least one purchase item with particulars, qty, and rate"),
+  ),
   paymentTerm: z.enum(["cash", "cheque", "credit"]).default("cash"),
-  accountId: z.number().min(1, "Account is required"),
+  accountId: z.coerce.number().min(1, "Account is required"),
+  notes: z.string().optional().nullable().or(z.literal("")),
 });
 
 export const PurchaseFilterSchema = z.object({

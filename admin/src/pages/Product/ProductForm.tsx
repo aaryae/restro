@@ -22,7 +22,7 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { Eye, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ProductSchema } from "./schema";
@@ -293,7 +293,7 @@ export default function ProductForm() {
                   className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
                   onClick={openDrawer}
                 >
-                  <FaEye size={14} /> Show
+                  <Eye /> Show
                 </button>
                 <button
                   type="button"
@@ -304,7 +304,7 @@ export default function ProductForm() {
                     setDialogOpen(true);
                   }}
                 >
-                  <FaPlus size={14} /> Add
+                  <Plus /> Add
                 </button>
               </div>
             </div>
@@ -497,7 +497,7 @@ export default function ProductForm() {
                   }}
                   className="text-red-500"
                 >
-                  <FaTrash />
+                  <Trash2 />
                 </button>
               </div>
             ))}

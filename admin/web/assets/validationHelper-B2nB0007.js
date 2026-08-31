@@ -1,0 +1,1 @@
+const c=n=>Object.keys(n).reduce((o,s)=>{const r=n[s],e={...o};return typeof r=="string"?e[s]=r.trim():Array.isArray(r)?e[s]=r.map(t=>typeof t=="object"?c(t):typeof t=="string"?t.trim():t):typeof r=="object"&&r!==null?e[s]=c(r):e[s]=r,e},{}),l=(n,o)=>Object.keys(n).reduce((s,r)=>{const e=n[r],t={...s};return o.includes(r)&&e===""?t[r]=null:t[r]=e,t},{});export{l as c,c as t};

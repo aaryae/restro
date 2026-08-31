@@ -1,4 +1,4 @@
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import Table from "@/components/Table";
 import { useListAccessModuleQuery } from "@/redux/services/role";
 import { format } from "date-fns";
@@ -28,8 +28,7 @@ export default function Access() {
             title ? title : "",
             updatedAt ? format(new Date(updatedAt), "dd MMM, yyyy") : "",
             <div className="flex items-center justify-center gap-[0.5rem]">
-              <MdEditSquare
-                size={18}
+              <SquarePen
                 className="text-primaryColor cursor-pointer"
                 onClick={() => handleAccessEdit(id)}
               />

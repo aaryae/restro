@@ -65,8 +65,8 @@
       "descriptionPrefix": "Photo of "
     },
     {
-      "departmentName": "Beverages",
-      "departmentId": 1,
+      "departmentName": "Kitchen",
+      "departmentId": 2,
       "categoryName": "food",
       "categorySlug": "food",
       "categoryId": 1006,
@@ -95,8 +95,8 @@
       "descriptionPrefix": "Photo of "
     },
     {
-      "departmentName": "Beverages",
-      "departmentId": 1,
+      "departmentName": "Kitchen",
+      "departmentId": 2,
       "categoryName": "bakery",
       "categorySlug": "bakery",
       "categoryId": 1009,
@@ -771,52 +771,14 @@
           "serverPath": "/product/:id",
           "requestMethod": "DELETE",
           "list": "Product"
-        }
-      ]
-    },
-    {
-      "title": "Product Variant",
-      "key": "productVariant",
-      "actions": [
+        },
         {
-          "title": "Add Product Variant",
-          "key": "add",
-          "clientPath": "/product-variant",
-          "serverPath": "/product-variant",
+          "title": "Import Product",
+          "key": "import",
+          "clientPath": "/product/import",
+          "serverPath": "/product/import",
           "requestMethod": "POST",
-          "list": "Product Variant"
-        },
-        {
-          "title": "View Product Variant",
-          "key": "view",
-          "clientPath": "/product-variant/list",
-          "serverPath": "/product-variant/list",
-          "requestMethod": "GET",
-          "list": "Product Variant"
-        },
-        {
-          "title": "View One Product Variant",
-          "key": "view-one",
-          "clientPath": "/product-variant/:id",
-          "serverPath": "/product-variant/:id",
-          "requestMethod": "GET",
-          "list": "Product Variant"
-        },
-        {
-          "title": "Edit Product Variant",
-          "key": "edit",
-          "clientPath": "/product-variant/:id",
-          "serverPath": "/product-variant/:id",
-          "requestMethod": "PUT",
-          "list": "Product Variant"
-        },
-        {
-          "title": "Delete Product Variant",
-          "key": "delete",
-          "clientPath": "/product-variant/:id",
-          "serverPath": "/product-variant/:id",
-          "requestMethod": "DELETE",
-          "list": "Product Variant"
+          "list": "Product"
         }
       ]
     },
@@ -838,6 +800,14 @@
           "clientPath": "/customer-auth/:id",
           "serverPath": "/customer-auth/:id",
           "requestMethod": "GET",
+          "list": "Customer"
+        },
+        {
+          "title": "Add Customer",
+          "key": "add",
+          "clientPath": "/customer-auth/create",
+          "serverPath": "/customer-auth/create",
+          "requestMethod": "POST",
           "list": "Customer"
         },
         {

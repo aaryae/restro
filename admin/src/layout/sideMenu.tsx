@@ -1,14 +1,13 @@
-import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from "react-icons/md";
-import Logo from "../assets/fav.webp";
+import LogoLight from "../assets/serve-logo-light.png";
+import LogoDark from "../assets/serve-logo-dark.png";
 import { SideListMenuType, SideMenuList } from "./sideMenuList";
 import { SetStateAction, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { checkViewAccessList } from "@/utils/accessHelper";
 import useTranslation from "@/locale/useTranslation";
-import { LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
-import { useGetSettingQuery } from "@/redux/services/settings";
-import { buildAssetUrl } from "@/utils/buildAssetUrl";
+import { ChevronLeft, ChevronRight, LayoutDashboard, PanelLeft, ShoppingCart } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 
 /** Active when the /admin/<section> segment matches (avoids sticky click state and prefix collisions). */
 function getAdminSection(path: string): string | null {
@@ -39,16 +38,16 @@ export default function SideMenu({
   const pathname = location.pathname;
   const translate = useTranslation();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const logoSrc = theme === "dark" ? LogoDark : LogoLight;
   const viewAccess = checkViewAccessList();
   const settingsGroup = SideMenuList.find((each) => each.name === "Settings");
-  const settingsSections = new Set(
-    [
-      "settings",
-      ...(settingsGroup?.menu || [])
-        .map((m) => getAdminSection(m.path || ""))
-        .filter(Boolean),
-    ] as string[],
-  );
+  const settingsSections = new Set([
+    "settings",
+    ...(settingsGroup?.menu || [])
+      .map((m) => getAdminSection(m.path || ""))
+      .filter(Boolean),
+  ] as string[]);
   const isSettingsView = settingsSections.has(getAdminSection(pathname) || "");
   const filteredSideMenuList = isSettingsView
     ? SideMenuList.filter((each) => each.name === "Settings")
@@ -66,7 +65,6 @@ export default function SideMenu({
   } | null>(null);
   const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data: settings } = useGetSettingQuery("");
 
   // Keep the parent of the current route expanded (history back/forward included).
   useEffect(() => {
@@ -213,19 +211,17 @@ export default function SideMenu({
         }`}
       >
         {sideMenuOpen && (
-          <img
-            src={
-              settings?.data?.brandingImage
-                ? buildAssetUrl(settings.data.brandingImage)
-                : Logo
-            }
-            alt="Logo"
-            className={`w-[72px] h-[59px] object-contain mx-[4px]`}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = Logo;
-            }}
-          />
+          <Link
+            to="/"
+            aria-label="Serve home"
+            className="mx-[4px] inline-flex shrink-0 items-center"
+          >
+            <img
+              src={logoSrc}
+              alt="Serve"
+              className="h-11 w-auto max-w-[176px] object-contain object-left"
+            />
+          </Link>
         )}
 
         {showCollapseToggle && (
@@ -261,13 +257,14 @@ export default function SideMenu({
               }}
               className="sidebar-back-btn flex items-center gap-2 text-sm px-2 py-1 rounded"
             >
-              <MdKeyboardArrowLeft />
+              <ChevronLeft />
               <span>Go back</span>
             </button>
           </div>
         )}
         {!isSettingsView && viewAccess.includes("Dashboard") && (
           <div
+            data-tour="nav-dashboard"
             className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
               isMenuPathActive(pathname, "/admin/dashboard")
                 ? "sidebar-item-active"
@@ -290,6 +287,7 @@ export default function SideMenu({
 
         {!isSettingsView && viewAccess.includes("Order") && (
           <div
+            data-tour="nav-orders"
             className={`sidebar-item group transition-all duration-300 flex justify-between items-center rounded-[0.75rem] py-[0.875rem] px-[0.875rem] cursor-pointer ${
               isMenuPathActive(pathname, "/admin/order")
                 ? "sidebar-item-active"
@@ -321,10 +319,7 @@ export default function SideMenu({
 
           const visibleSubItems =
             (each.menu as SideListMenuType[] | undefined)?.filter((item) => {
-              if (
-                item.name === "Recently Deleted" ||
-                item.name === "Ledger"
-              ) {
+              if (item.name === "Recently Deleted" || item.name === "Ledger") {
                 return (
                   viewAccess.includes("Company Settings") ||
                   viewAccess.includes("Email Template") ||
@@ -355,6 +350,7 @@ export default function SideMenu({
           return (
             <div
               key={index}
+              data-tour={`nav-${each.name}`}
               className="sidebar-menu-group"
               onMouseEnter={(event) => {
                 if (!sideMenuOpen && hasSubmenu) {
@@ -401,7 +397,7 @@ export default function SideMenu({
                     (!each.path ||
                       (isSettingsView && each.name === "Settings")) && (
                       <div>
-                        <MdKeyboardArrowRight
+                        <ChevronRight
                           className={`sidebar-chevron transition-transform duration-300 ${submenuOpen ? "rotate-[90deg]" : ""}`}
                         />
                       </div>

@@ -1,0 +1,192 @@
+.ledger-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ledger-summary-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ledger-stat {
+  border-radius: 0.75rem;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  padding: 0.85rem 1rem;
+}
+
+.ledger-stat__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--serve-muted);
+}
+
+.ledger-stat__value {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-fg);
+}
+
+.ledger-stat--in {
+  border-color: color-mix(in srgb, var(--serve-positive) 30%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-positive) 10%, var(--serve-surface));
+}
+
+.ledger-stat--in .ledger-stat__label {
+  color: var(--serve-positive);
+}
+
+.ledger-stat--out {
+  border-color: color-mix(in srgb, var(--serve-negative) 30%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-negative) 10%, var(--serve-surface));
+}
+
+.ledger-stat--out .ledger-stat__label {
+  color: var(--serve-negative);
+}
+
+.ledger-stat--net {
+  border-color: color-mix(in srgb, var(--serve-accent) 22%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-accent) 8%, var(--serve-surface));
+}
+
+.ledger-stat--net-positive .ledger-stat__value {
+  color: var(--serve-positive);
+}
+
+.ledger-stat--net-negative .ledger-stat__value {
+  color: var(--serve-negative);
+}
+
+.ledger-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  border: 1px solid transparent;
+}
+
+.ledger-badge--in {
+  border-color: color-mix(in srgb, var(--serve-positive) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-positive) 14%, var(--serve-surface));
+  color: var(--serve-positive);
+}
+
+.ledger-badge--out {
+  border-color: color-mix(in srgb, var(--serve-negative) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-negative) 14%, var(--serve-surface));
+  color: var(--serve-negative);
+}
+
+.ledger-badge--transfer {
+  border-color: color-mix(in srgb, var(--serve-accent) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-accent) 12%, var(--serve-surface));
+  color: var(--serve-accent);
+}
+
+.ledger-badge--neutral {
+  border-color: var(--serve-border);
+  background: var(--serve-surface-2);
+  color: var(--serve-muted);
+}
+
+.ledger-amount--in {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-positive);
+}
+
+.ledger-amount--out {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-negative);
+}
+
+.ledger-account-name {
+  font-weight: 600;
+  color: var(--serve-fg);
+}
+
+.ledger-account-type {
+  font-size: 0.6875rem;
+  text-transform: capitalize;
+  color: var(--serve-muted);
+}
+
+.ledger-detail {
+  display: block;
+  max-width: 11.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--serve-muted);
+}
+
+.ledger-exports {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ledger-export-btn {
+  display: inline-flex;
+  height: 2.25rem;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--serve-fg);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.ledger-export-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--serve-accent) 30%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-accent) 8%, var(--serve-surface));
+  color: var(--serve-accent);
+}
+
+.ledger-export-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ledger-export-btn--accent {
+  border-color: color-mix(in srgb, var(--serve-positive) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-positive) 12%, var(--serve-surface));
+  color: var(--serve-positive);
+}
+
+.ledger-export-btn--accent:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--serve-positive) 50%, var(--serve-border));
+  background: color-mix(in srgb, var(--serve-positive) 18%, var(--serve-surface));
+  color: var(--serve-positive);
+}
+
+.ledger-loading,
+.ledger-denied {
+  border-radius: 0.75rem;
+  border: 1px dashed var(--serve-border);
+  background: var(--serve-surface-2);
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--serve-muted);
+}

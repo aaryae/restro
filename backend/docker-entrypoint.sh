@@ -18,8 +18,11 @@ socket.on('error', () => process.exit(1));
   sleep 1
 done
 
-echo "Running Sequelize migrations..."
+echo "Running Sequelize migrations (public / tenant templates)..."
 npx sequelize db:migrate
+
+echo "Running control-plane migrations (trial users, tenants, platform)..."
+npx sequelize db:migrate --migrations-path migrations-control
 
 echo "Starting API..."
 exec node index.js

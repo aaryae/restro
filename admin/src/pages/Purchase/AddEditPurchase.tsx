@@ -24,15 +24,18 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   PurchaseSchema,
+  isBlankPurchaseItem,
   type PurchaseFormInput,
   type PurchaseItemInput,
 } from "./schema";
 import { Input } from "react-aria-components";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
-import { Controller } from "react-hook-form";
+import { Controller, type FieldErrors } from "react-hook-form";
 import Select from "@/components/Select";
 import Toast from "@/components/Toast";
+import TextArea from "@/components/TextArea";
+import "./purchase.css";
 
 const computeBackendPurchaseTotal = (items: PurchaseItemInput[]) =>
   items.reduce((total, item) => {
@@ -60,10 +63,38 @@ const getInsufficientBalanceMessage = (
 type ItemRow = PurchaseItemInput;
 type FormValues = PurchaseFormInput;
 
-const labelClass =
-  "mb-1 text-sm font-medium text-gray-700 flex items-center gap-1.5";
-const inputClass =
-  "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 transition placeholder:text-gray-400 focus:border-primaryColor focus:outline-none focus:ring-1 focus:ring-primaryColor/30";
+const labelClass = "pur-label";
+const inputClass = "pur-field";
+
+function getFirstFormErrorMessage(errors: FieldErrors<FormValues>): string {
+  if (errors.supplierId?.message) {
+    return String(errors.supplierId.message);
+  }
+  if (errors.accountId?.message) {
+    return String(errors.accountId.message);
+  }
+  if (errors.items?.message) {
+    return String(errors.items.message);
+  }
+  if (Array.isArray(errors.items)) {
+    for (let index = 0; index < errors.items.length; index += 1) {
+      const row = errors.items[index];
+      if (!row || typeof row !== "object") continue;
+      const message =
+        row.particulars?.message ||
+        row.qty?.message ||
+        row.rate?.message ||
+        row.categoryId?.message;
+      if (message) {
+        return `Row ${index + 1}: ${String(message)}`;
+      }
+    }
+  }
+  if (errors.invoiceDate?.message) {
+    return String(errors.invoiceDate.message);
+  }
+  return "Fix the highlighted fields before continuing.";
+}
 
 const AddEditPurchase: React.FC = () => {
   const { id } = useParams();
@@ -96,6 +127,7 @@ const AddEditPurchase: React.FC = () => {
       ],
       paymentTerm: "cash",
       accountId: "",
+      notes: "",
     },
   });
 
@@ -259,13 +291,27 @@ const AddEditPurchase: React.FC = () => {
     const taxAmt =
       row.isTaxable === false ? 0 : (taxableAmount * taxPercent) / 100;
     const lineTotal = taxableAmount + nonTaxableAmount + taxAmt;
-    return { base, discountAmt, taxAmt, lineTotal, taxableAmount, nonTaxableAmount };
+    return {
+      base,
+      discountAmt,
+      taxAmt,
+      lineTotal,
+      taxableAmount,
+      nonTaxableAmount,
+    };
   };
 
-  const totals = items?.reduce(
+  const totals = (items || []).reduce(
     (acc, r) => {
-      const { base, discountAmt, taxAmt, lineTotal, taxableAmount, nonTaxableAmount } =
-        computeRow(r);
+      if (isBlankPurchaseItem(r)) return acc;
+      const {
+        base,
+        discountAmt,
+        taxAmt,
+        lineTotal,
+        taxableAmount,
+        nonTaxableAmount,
+      } = computeRow(r);
       acc.subtotal += base;
       acc.discount += discountAmt;
       acc.taxable += taxableAmount;
@@ -303,8 +349,13 @@ const AddEditPurchase: React.FC = () => {
       })),
       paymentTerm: (p.paymentTerms as any) || "cash",
       accountId: p.accountId ? p.accountId : "",
+      notes: p.notes || "",
     });
   }, [isEdit, purchaseFetched, purchaseData, reset]);
+
+  const onInvalid = (formErrors: FieldErrors<FormValues>) => {
+    Toast(getFirstFormErrorMessage(formErrors), "error");
+  };
 
   const onSubmit = async (data: FormValues) => {
     const payload = {
@@ -323,7 +374,7 @@ const AddEditPurchase: React.FC = () => {
         rate: Number(r.rate) || 0,
         isTaxable: r.isTaxable !== false,
       })),
-      notes: undefined,
+      notes: data.notes?.trim() || null,
     } as any;
 
     const purchaseTotal = computeBackendPurchaseTotal(data.items);
@@ -401,25 +452,21 @@ const AddEditPurchase: React.FC = () => {
       <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
 
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
         className="mt-4 flex flex-col gap-6"
       >
         <fieldset className="contents">
           {/* ── SECTION 1: Invoice Details ── */}
-          <section className="w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+          <section className="pur-section">
             <div className="mb-4">
-              <h3 className="text-base font-semibold text-gray-900">
-                Invoice Details
-              </h3>
+              <h3 className="pur-section-title">Invoice Details</h3>
               <div className="mt-2 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {/* Invoice Date */}
               <div>
-                <label className={labelClass}>
-                  Invoice Date
-                </label>
+                <label className={labelClass}>Invoice Date</label>
                 <input
                   type="date"
                   className={inputClass}
@@ -445,6 +492,9 @@ const AddEditPurchase: React.FC = () => {
                       value={selectedSupplier?.label || supplierSearchTerm}
                       onChange={(e) => {
                         setSelectedSupplier(null);
+                        setValue("supplierId", "", {
+                          shouldValidate: isSubmitted,
+                        });
                         setSupplierSearchTerm(e.target.value);
                         setIsSupplierDropdownOpen(true);
                       }}
@@ -469,15 +519,16 @@ const AddEditPurchase: React.FC = () => {
                         setTimeout(() => setIsSupplierDropdownOpen(false), 150)
                       }
                     />
+                    <input type="hidden" {...register("supplierId")} />
                     {isSupplierDropdownOpen &&
                       supplierSearchTerm.trim().length >= 2 && (
-                        <div className="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                        <div className="pur-dropdown absolute z-30 mt-1 w-full max-h-60 overflow-auto">
                           {!suppliersOk ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">
+                            <div className="pur-dropdown-hint">
                               Type at least 2 characters...
                             </div>
                           ) : supplierRows.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-gray-500">
+                            <div className="pur-dropdown-hint">
                               No suppliers found
                             </div>
                           ) : (
@@ -485,7 +536,7 @@ const AddEditPurchase: React.FC = () => {
                               <button
                                 key={supplier.id}
                                 type="button"
-                                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
+                                className="pur-dropdown-item flex w-full items-start gap-2 text-left"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   setSelectedSupplier({
@@ -500,10 +551,10 @@ const AddEditPurchase: React.FC = () => {
                                 }}
                               >
                                 <div className="flex-1">
-                                  <div className="font-medium text-sm text-gray-800">
+                                  <div className="pur-dropdown-name">
                                     {supplier.name}
                                   </div>
-                                  <div className="text-xs text-gray-500">
+                                  <div className="pur-dropdown-meta">
                                     {[
                                       supplier.contact_number ||
                                         supplier.contactNumber ||
@@ -532,14 +583,12 @@ const AddEditPurchase: React.FC = () => {
                     dialogOpen={supplierDialogOpen}
                     setDialogOpen={setSupplierDialogOpen}
                     title="Add Supplier"
-                    contentClassName="w-[95vw] max-w-[95vw] sm:max-w-2xl p-4 sm:p-6 mx-auto my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
+                    contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
                   >
-                    <div className="max-h-[calc(90vh-100px)] overflow-y-auto pr-2 -mr-2">
-                      <AddEditSupplier
-                        isComponent={true}
-                        closeModal={closeDialog}
-                      />
-                    </div>
+                    <AddEditSupplier
+                      isComponent={true}
+                      closeModal={closeDialog}
+                    />
                   </CustomDialog>
                   <button
                     type="button"
@@ -549,7 +598,7 @@ const AddEditPurchase: React.FC = () => {
                       setViewSuppliersDialogOpen(true);
                       refetchSuppliers();
                     }}
-                    className="inline-flex h-[38px] items-center whitespace-nowrap rounded-md border border-gray-300 bg-white px-2.5 text-[11px] font-medium text-gray-700 transition hover:bg-gray-50"
+                    className="pur-view-all inline-flex h-[38px] items-center whitespace-nowrap rounded-md px-2.5 text-[11px] font-medium"
                   >
                     View All
                   </button>
@@ -574,56 +623,47 @@ const AddEditPurchase: React.FC = () => {
                           }}
                         />
                       </div>
-                      <div className="overflow-hidden rounded-lg border border-slate-200">
-                        <table className="min-w-full divide-y divide-slate-200">
-                          <thead className="bg-slate-50">
+                      <div className="pur-table-wrap">
+                        <table className="pur-table pur-table-plain">
+                          <thead>
                             <tr>
-                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                Name
-                              </th>
-                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                Contact
-                              </th>
-                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                Email
-                              </th>
-                              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500">
-                                Action
-                              </th>
+                              <th>Name</th>
+                              <th>Contact</th>
+                              <th>Email</th>
+                              <th className="w-24">Action</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100 bg-white">
+                          <tbody>
                             {suppliers?.map((supplier: any) => (
-                              <tr
-                                key={supplier.id}
-                                className="transition hover:bg-slate-50"
-                              >
-                                <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                              <tr key={supplier.id}>
+                                <td className="pur-cell-strong">
                                   {supplier.name}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-slate-500">
+                                <td className="pur-cell-muted">
                                   {supplier.contact_number ||
                                     supplier.contactNumber ||
                                     "-"}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-slate-500">
+                                <td className="pur-cell-muted">
                                   {supplier.email || "-"}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setValue(
                                         "supplierId",
                                         String(supplier.id),
+                                        { shouldValidate: true },
                                       );
                                       setSelectedSupplier({
                                         value: String(supplier.id),
                                         label: supplier.name,
                                       });
+                                      setSupplierSearchTerm(supplier.name);
                                       setViewSuppliersDialogOpen(false);
                                     }}
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    className="pur-link"
                                   >
                                     Select
                                   </button>
@@ -632,10 +672,7 @@ const AddEditPurchase: React.FC = () => {
                             ))}
                             {(!suppliers || suppliers.length === 0) && (
                               <tr>
-                                <td
-                                  colSpan={4}
-                                  className="px-4 py-6 text-center text-sm text-slate-400"
-                                >
+                                <td colSpan={4} className="pur-cell-empty">
                                   No suppliers found
                                 </td>
                               </tr>
@@ -651,13 +688,18 @@ const AddEditPurchase: React.FC = () => {
                     {errors.supplierId.message}
                   </span>
                 )}
+                {!errors.supplierId &&
+                supplierSearchTerm.trim().length > 0 &&
+                !selectedSupplier ? (
+                  <span className="mt-1 text-xs text-amber-500">
+                    Select a supplier from the list, or use + Add to create one.
+                  </span>
+                ) : null}
               </div>
 
               {/* Invoice Number */}
               <div>
-                <label className={labelClass}>
-                  Invoice Number
-                </label>
+                <label className={labelClass}>Invoice Number</label>
                 <input
                   type="text"
                   placeholder="Optional"
@@ -672,9 +714,7 @@ const AddEditPurchase: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className={labelClass}>
-                      Payment Terms
-                    </label>
+                    <label className={labelClass}>Payment Terms</label>
                     <Select
                       value={field.value ?? ""}
                       onBlur={field.onBlur}
@@ -728,11 +768,9 @@ const AddEditPurchase: React.FC = () => {
           </section>
 
           {/* ── SECTION 2: Purchase Items ── */}
-          <section className="w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+          <section className="pur-section">
             <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 className="text-base font-semibold text-gray-900">
-                Purchase Items
-              </h3>
+              <h3 className="pur-section-title">Purchase Items</h3>
               <button
                 type="button"
                 onClick={() =>
@@ -744,41 +782,31 @@ const AddEditPurchase: React.FC = () => {
                     rate: undefined as any,
                     discountPercent: 0,
                     taxPercent: 13,
-                    isTaxable: true,
+                    isTaxable: false,
                   })
                 }
-                className="rounded-full bg-primaryColor px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primaryColor/90"
+                className="pur-add-btn"
               >
                 + Add Item
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-              <table className="min-w-[900px] w-full">
-                <thead className="bg-gray-50 sticky top-0 z-10">
+            {errors.items?.message ? (
+              <p className="mb-2 text-xs text-red-500">{errors.items.message}</p>
+            ) : null}
+
+            <div className="pur-table-wrap">
+              <table className="pur-table">
+                <thead>
                   <tr>
-                    <th className="p-3 border-b text-center text-xs font-medium text-gray-500 w-14">
-                      S.N
-                    </th>
-                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500">
-                      Category
-                    </th>
-                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500">
-                      Particulars
-                    </th>
-                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500 w-24">
-                      Qty
-                    </th>
-                    <th className="p-3 border-b text-left text-xs font-medium text-gray-500 w-28">
-                      Rate
-                    </th>
-                    <th className="p-3 border-b text-center text-xs font-medium text-gray-500 w-20">
-                      Taxable
-                    </th>
-                    <th className="p-3 border-b text-right text-xs font-medium text-gray-500 w-28">
-                      Amount
-                    </th>
-                    <th className="p-3 border-b w-16" />
+                    <th className="pur-cell-center w-14">S.N</th>
+                    <th>Category</th>
+                    <th>Particulars</th>
+                    <th className="w-24">Qty</th>
+                    <th className="w-28">Rate</th>
+                    <th className="pur-cell-center w-20">Taxable</th>
+                    <th className="pur-cell-num w-28">Amount</th>
+                    <th className="w-16" />
                   </tr>
                 </thead>
                 <tbody>
@@ -791,16 +819,12 @@ const AddEditPurchase: React.FC = () => {
                       discountPercent: 0,
                       taxPercent: 13,
                     };
+                    const rowIsBlank = isBlankPurchaseItem(row);
                     const { base, discountAmt } = computeRow(row);
                     return (
-                      <tr
-                        key={field.id}
-                        className="border-b border-gray-100 last:border-0"
-                      >
-                        <td className="p-3 text-center text-sm text-gray-600">
-                          {idx + 1}
-                        </td>
-                        <td className="p-3">
+                      <tr key={field.id}>
+                        <td className="pur-cell-sn">{idx + 1}</td>
+                        <td>
                           <Controller
                             name={`items.${idx}.categoryId`}
                             control={control}
@@ -837,60 +861,72 @@ const AddEditPurchase: React.FC = () => {
                             </span>
                           )}
                         </td>
-                        <td className="p-3">
+                        <td>
                           <input
                             type="text"
                             placeholder="Item description"
-                            className="border rounded px-2 py-1.5 w-full min-w-[180px] bg-white text-sm"
-                            {...register(
-                              `items.${idx}.particulars` as const,
-                              { required: true },
-                            )}
+                            className="pur-row-input min-w-[180px]"
+                            {...register(`items.${idx}.particulars` as const, {
+                              required: true,
+                            })}
                           />
+                          {errors.items?.[idx]?.particulars?.message ? (
+                            <span className="text-xs text-red-500">
+                              {String(errors.items[idx]?.particulars?.message)}
+                            </span>
+                          ) : null}
                         </td>
-                        <td className="p-3">
+                        <td>
                           <input
                             type="number"
                             min={0}
                             step="1"
-                            className="border rounded px-2 py-1.5 w-full bg-white text-sm"
+                            className="pur-row-input"
                             {...register(`items.${idx}.qty` as const, {
                               valueAsNumber: true,
                             })}
                           />
+                          {errors.items?.[idx]?.qty?.message ? (
+                            <span className="text-xs text-red-500">
+                              {String(errors.items[idx]?.qty?.message)}
+                            </span>
+                          ) : null}
                         </td>
-                        <td className="p-3">
+                        <td>
                           <input
                             type="number"
                             min={0}
                             step="0.01"
-                            className="border rounded px-2 py-1.5 w-full bg-white text-sm"
+                            className="pur-row-input"
                             {...register(`items.${idx}.rate` as const, {
                               valueAsNumber: true,
                             })}
                           />
+                          {errors.items?.[idx]?.rate?.message ? (
+                            <span className="text-xs text-red-500">
+                              {String(errors.items[idx]?.rate?.message)}
+                            </span>
+                          ) : null}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="pur-cell-center">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-primaryColor focus:ring-primaryColor"
-                            {...register(
-                              `items.${idx}.isTaxable` as const,
-                            )}
-                            defaultChecked={row.isTaxable !== false}
+                            {...register(`items.${idx}.isTaxable` as const)}
                           />
                         </td>
-                        <td className="p-3 text-right text-sm font-medium text-gray-800">
+                        <td className="pur-cell-num">
                           {(base - discountAmt).toFixed(2)}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="pur-cell-center">
                           <button
                             type="button"
                             onClick={() => remove(idx)}
-                            disabled={fields.length === 1}
+                            disabled={fields.length === 1 && !rowIsBlank}
                             title="Remove row"
+                            className="pur-remove-btn"
                           >
-                            <Trash2 className="text-red-600" size={16} />
+                            <Trash2 size={15} />
                           </button>
                         </td>
                       </tr>
@@ -902,41 +938,29 @@ const AddEditPurchase: React.FC = () => {
           </section>
 
           {/* ── SECTION 3: Purchase Summary ── */}
-          <section className="w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-6 shadow-lg relative overflow-hidden">
-            <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primaryColor/10 blur-3xl" />
+          <section className="pur-panel">
+            <h3 className="pur-panel-title">Purchase Summary</h3>
 
-            <div className="mb-5">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Purchase Summary
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="text-[11px] font-medium text-gray-500">
-                  Taxable Items Total
-                </div>
-                <div className="mt-1 text-lg font-semibold text-blue-600">
+            <div className="pur-grid">
+              <div className="pur-stat">
+                <p className="pur-stat-label">Taxable Items Total</p>
+                <p className="pur-stat-value">
                   {CurrencySign} {totals.taxable.toFixed(2)}
-                </div>
+                </p>
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="text-[11px] font-medium text-gray-500">
-                  Non-Taxable Items Total
-                </div>
-                <div className="mt-1 text-lg font-semibold text-purple-600">
+              <div className="pur-stat">
+                <p className="pur-stat-label">Non-Taxable Items Total</p>
+                <p className="pur-stat-value">
                   {CurrencySign} {totals.nonTaxable.toFixed(2)}
-                </div>
+                </p>
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between text-[11px] text-gray-500">
-                  <span className="font-medium">Discount</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-gray-500">
-                      {CurrencySign}
-                    </span>
+              <div className="pur-stat">
+                <p className="pur-stat-label">
+                  <span>Discount</span>
+                  <span className="pur-discount-field">
+                    <span className="pur-discount-sign">{CurrencySign}</span>
                     <input
                       type="number"
                       min={0}
@@ -944,52 +968,54 @@ const AddEditPurchase: React.FC = () => {
                       step="0.01"
                       value={summaryDiscountPct}
                       onChange={(e) => setSummaryDiscountPct(e.target.value)}
-                      className="w-20 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-right text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="pur-discount-input"
                       placeholder="0"
+                      aria-label="Discount amount"
                     />
-                  </div>
-                </div>
-                <div className="mt-1 text-lg font-semibold text-emerald-700">
+                  </span>
+                </p>
+                <p className="pur-stat-value is-deduction">
                   -{CurrencySign} {summaryDiscountAmount.toFixed(2)}
-                </div>
+                </p>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-6">
-              <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 shadow-sm flex-1">
-                <div className="text-[11px] font-medium text-amber-700">
-                  Tax (13%)
-                </div>
-                <div className="mt-1 text-lg font-semibold text-amber-700">
+            <div className="pur-totals">
+              <div className="pur-stat">
+                <p className="pur-stat-label">Tax (13%)</p>
+                <p className="pur-stat-value">
                   {CurrencySign} {totals.tax.toFixed(2)}
-                </div>
+                </p>
               </div>
-              <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 shadow-sm flex-1">
-                <div className="text-[11px] font-medium text-amber-700">
-                  Grand Total
-                </div>
-                <div className="mt-1 text-xl font-bold text-amber-800">
+              <div className="pur-grand">
+                <p className="pur-stat-label">Grand Total</p>
+                <p className="pur-grand-value">
                   {CurrencySign} {grandAfterSummaryDiscount.toFixed(2)}
-                </div>
+                </p>
               </div>
             </div>
 
-            <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+            <div className="pur-rule" />
 
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-600">
-                Entry By: {username || "-"}
-              </span>
-            </div>
+            <TextArea
+              label="Remarks"
+              placeholder="Add any notes for this purchase (optional)"
+              rows={3}
+              className="pur-remarks"
+              {...register("notes")}
+              error={errors.notes?.message}
+            />
+
+            <span className="pur-chip">Entry By: {username || "-"}</span>
           </section>
         </fieldset>
 
         {/* ── ACTION BAR ── */}
-        <div className="flex w-full justify-end gap-3">
+        <div className="pur-actions">
           {isCompleted ? (
             <button
               type="submit"
-              className="rounded bg-sky-600 px-4 py-2 text-white disabled:opacity-60"
+              className="pur-btn pur-btn-primary"
               disabled={creating || updating}
               onClick={() => setSubmitMode("draft")}
             >
@@ -1004,13 +1030,13 @@ const AddEditPurchase: React.FC = () => {
                   setSelectedSupplier(null);
                   setSupplierSearchTerm("");
                 }}
-                className="rounded border px-4 py-2 transition-colors hover:bg-gray-50"
+                className="pur-btn pur-btn-ghost"
               >
                 Clear
               </button>
               <button
                 type="submit"
-                className="rounded bg-gray-600 px-4 py-2 text-white disabled:opacity-60"
+                className="pur-btn pur-btn-secondary"
                 disabled={creating || updating}
                 onClick={() => setSubmitMode("draft")}
               >
@@ -1018,7 +1044,7 @@ const AddEditPurchase: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-60"
+                className="pur-btn pur-btn-primary"
                 disabled={creating || updating}
                 onClick={() => setSubmitMode("complete")}
               >

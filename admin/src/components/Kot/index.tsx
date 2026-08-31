@@ -39,7 +39,7 @@ const Kot = forwardRef<HTMLDivElement, KotProps>(({ data, className }, ref) => {
     <div
       ref={ref}
       id="kot-print"
-      className={`p-5 h-fit kot-print ${className ?? ""}`}
+      className={`print-surface bg-white p-5 h-fit kot-print text-black ${className ?? ""}`}
     >
       <div className="text-center kot-title text-[20px] font-bold tracking-wide mb-3">
         KOT {data?.kotNumber ?? "-"}

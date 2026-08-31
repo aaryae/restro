@@ -21,6 +21,7 @@ import {
 } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
 import { formatDate, formatDateTime } from '@/lib/format'
+import { cafePosUrl } from '@/utils/cafePosUrl'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
 import { useState } from 'react'
@@ -247,15 +248,14 @@ export default function CafeDetailPage() {
           <ul className="mt-4 space-y-2 text-sm text-slate-600">
             <li>
               Public URL:{' '}
-              <span className="font-medium text-slate-900">
-                {cafe.slug}.servecafe.app
-              </span>
-            </li>
-            <li>
-              Local POS:{' '}
-              <span className="font-medium text-slate-900">
-                localhost:7001/?tenant={cafe.slug}
-              </span>
+              <a
+                className="font-medium text-slate-900 underline-offset-2 hover:underline"
+                href={cafePosUrl(cafe.slug)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {cafePosUrl(cafe.slug)}
+              </a>
             </li>
           </ul>
         </div>

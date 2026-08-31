@@ -21,27 +21,34 @@ module.exports.comparePasswordSync = async (password, hash) => {
   return isSame;
 };
 
+const POS_JWT_EXPIRY_SECONDS =
+  Number(process.env.POS_JWT_EXPIRY_HOURS || 72) * 60 * 60;
+
 //this is for admin user
-const generateJWT = (user, tenant) => {
-  const expireAfter = 24 * 60 * 60; // **IN SECONDS**
+const generateJWT = (user, tenant, sessionId) => {
+  const expireAfter = POS_JWT_EXPIRY_SECONDS;
   const payload = {
-    id: user.id,
+    id: Number(user.id),
     email: user.email,
-    roleId: user.roleId,
+    roleId: Number(user.roleId),
     exp: parseInt(new Date().getTime() / 1000 + expireAfter, 10),
   };
   if (tenant?.id) {
     payload.tenantId = tenant.id;
     payload.slug = tenant.slug;
   }
+  if (sessionId) {
+    payload.sessionId = Number(sessionId);
+  }
   return jwt.sign(payload, JWT_SECRET);
 };
 module.exports.generateJWT = generateJWT;
-module.exports.toAuthJSON = function (user, role, tenant) {
+module.exports.POS_JWT_EXPIRY_SECONDS = POS_JWT_EXPIRY_SECONDS;
+module.exports.toAuthJSON = function (user, role, tenant, sessionId) {
   return {
     id: user.id,
     username: user.username,
-    token: generateJWT(user, tenant),
+    token: generateJWT(user, tenant, sessionId),
     roleId: user.roleId,
     roleType: role.title,
     ...(tenant?.slug
@@ -173,6 +180,7 @@ module.exports.toPlatformAuthJSON = function (user) {
     id: user.id,
     username: user.username,
     name: user.name,
+    imageUrl: user.imageUrl || null,
     platformRole,
     permissions,
     token: module.exports.generatePlatformJWT(user),

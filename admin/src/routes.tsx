@@ -5,6 +5,7 @@ import { adminLinks } from "./routes/adminLinks";
 import Layout from "./layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
+import ServeLoginRedirect from "./components/ServeLoginRedirect";
 
 interface adminLinksType {
   path: string;
@@ -21,8 +22,13 @@ interface RouteItem {
 
 export const Routes: RouteItem[] = [
   {
-    path: "/", // Make the login page the default route for /admin
+    path: "/",
     element: <App />,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: "/login",
+    element: <ServeLoginRedirect />,
     errorElement: <ErrorBoundary />,
   },
 

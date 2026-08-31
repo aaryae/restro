@@ -13,13 +13,12 @@ import {
 import { checkAccess } from "@/utils/accessHelper";
 import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useState } from "react";
-import { Eye } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Eye, Power, PowerOff, SquarePen } from "lucide-react";
 import ViewFloor from "./ViewFloor";
 import Spinner from "@/components/Spinner";
 import { FLOOR_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
-import { MdEditSquare } from "react-icons/md";
 
 interface FloorResponseType {
   id: number;
@@ -34,6 +33,17 @@ export default function Floor() {
   const [patchApi] = usePatchApiMutation();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchTerm]);
 
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
@@ -46,7 +56,7 @@ export default function Floor() {
   const url = buildQueryString(`${FLOOR_URL}list`, {
     page: query.page,
     limit: query.limit,
-    search: { name: searchTerm },
+    search: { name: debouncedSearch },
   });
 
   const {
@@ -127,7 +137,7 @@ export default function Floor() {
             <span className="font-medium text-slate-700">{floorNo}</span>,
             <span className="text-sm font-semibold text-slate-800">{name}</span>,
             <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+              className={`inline-flex min-w-[4.25rem] justify-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
                 isActive
                   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                   : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
@@ -140,7 +150,7 @@ export default function Floor() {
                 <button
                   type="button"
                   onClick={() => handleDrawerOpen(id)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface)] hover:text-[var(--serve-fg)]"
                   title="View floor"
                 >
                   <Eye size={16} />
@@ -151,21 +161,26 @@ export default function Floor() {
                   <button
                     type="button"
                     onClick={() => handleNewButton(id)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--serve-accent)_28%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-accent)_10%,var(--serve-surface))] text-[var(--serve-accent)] transition hover:bg-[color-mix(in_srgb,var(--serve-accent)_16%,var(--serve-surface))]"
                     title="Edit floor"
                   >
-                    <MdEditSquare size={16} />
+                    <SquarePen />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleFloorStatus(id, isActive)}
-                    className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
                       isActive
-                        ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        ? "border-[var(--serve-border)] bg-[var(--serve-surface-2)] text-[var(--serve-muted)] hover:border-[color-mix(in_srgb,var(--serve-accent)_28%,var(--serve-border))] hover:bg-[color-mix(in_srgb,var(--serve-accent)_10%,var(--serve-surface))] hover:text-[var(--serve-accent)]"
+                        : "border-[color-mix(in_srgb,var(--serve-positive)_28%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-positive)_10%,var(--serve-surface))] text-[var(--serve-positive)] hover:bg-[color-mix(in_srgb,var(--serve-positive)_16%,var(--serve-surface))]"
                     }`}
+                    title={isActive ? "Deactivate floor" : "Activate floor"}
                   >
-                    {isActive ? "Deactivate" : "Activate"}
+                    {isActive ? (
+                      <PowerOff size={16} strokeWidth={2.25} />
+                    ) : (
+                      <Power size={16} strokeWidth={2.25} />
+                    )}
                   </button>
                 </>
               )}

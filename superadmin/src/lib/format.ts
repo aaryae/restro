@@ -53,8 +53,29 @@ export function formatAuditAction(action?: string | null) {
   if (!action) return '—'
   const key = action.trim()
   if (AUDIT_ACTION_LABELS[key]) return AUDIT_ACTION_LABELS[key]
+  return humanizeEnum(key)
+}
+
+/** Stored in audit meta for ops, never shown in the UI. */
+const HIDDEN_AUDIT_META_KEYS = new Set(['ip', 'userAgent'])
+
+const AUDIT_VALUE_LABELS: Record<string, string> = {
+  not_found_or_inactive: 'Account not found or inactive',
+  bad_password: 'Incorrect password',
+  owner: 'Owner',
+  operator: 'Operator',
+}
+
+/** Turn snake_case / enum tokens into a readable label. */
+function humanizeEnum(value?: string | null) {
+  if (!value) return '—'
+  const key = value.trim()
+  if (AUDIT_VALUE_LABELS[key]) return AUDIT_VALUE_LABELS[key]
+  if (AUDIT_ACTION_LABELS[key]) return AUDIT_ACTION_LABELS[key]
   return key
-    .replace(/[._]/g, ' ')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
@@ -112,8 +133,8 @@ function samePermissions(a: unknown, b: unknown) {
 }
 
 function statusLabel(value: unknown) {
-  if (typeof value === 'boolean') return value ? 'active' : 'inactive'
-  if (typeof value === 'string') return value
+  if (typeof value === 'boolean') return value ? 'Active' : 'Inactive'
+  if (typeof value === 'string') return humanizeEnum(value)
   return String(value)
 }
 
@@ -131,7 +152,7 @@ function pushOperatorDiffLines(
   }
   if (previous.platformRole !== next.platformRole) {
     lines.push(
-      `Role: ${String(previous.platformRole ?? '—')} → ${String(next.platformRole ?? '—')}`,
+      `Role: ${humanizeEnum(String(previous.platformRole ?? ''))} → ${humanizeEnum(String(next.platformRole ?? ''))}`,
     )
     changed = true
   }
@@ -169,19 +190,19 @@ export function formatAuditMetaLines(meta?: string | null): string[] {
     lines.push(`Slug: ${data.slug}`)
   }
   if (typeof data.status === 'string') {
-    lines.push(`Status: ${data.status}`)
+    lines.push(`Status: ${humanizeEnum(data.status)}`)
   }
   if (typeof data.ownerEmail === 'string') {
     lines.push(`Owner email: ${data.ownerEmail}`)
   }
   if (typeof data.platformRole === 'string') {
-    lines.push(`Role: ${data.platformRole}`)
+    lines.push(`Role: ${humanizeEnum(data.platformRole)}`)
   }
   if (typeof data.previousStatus === 'string') {
-    lines.push(`From: ${data.previousStatus}`)
+    lines.push(`From: ${humanizeEnum(data.previousStatus)}`)
   }
   if (typeof data.reason === 'string' && data.reason) {
-    lines.push(`Reason: ${data.reason}`)
+    lines.push(`Reason: ${humanizeEnum(data.reason)}`)
   } else if (data.reason === null) {
     lines.push('Reason: none')
   }
@@ -213,12 +234,14 @@ export function formatAuditMetaLines(meta?: string | null): string[] {
       } else if (field === 'isActive') {
         lines.push(`Status: ${statusLabel(diff.from)} → ${statusLabel(diff.to)}`)
       } else if (field === 'platformRole') {
-        lines.push(`Role: ${String(diff.from ?? '—')} → ${String(diff.to ?? '—')}`)
+        lines.push(
+          `Role: ${humanizeEnum(String(diff.from ?? ''))} → ${humanizeEnum(String(diff.to ?? ''))}`,
+        )
       } else if (field === 'name') {
         lines.push(`Name: ${String(diff.from ?? '—')} → ${String(diff.to ?? '—')}`)
       } else {
         lines.push(
-          `${field}: ${String(diff.from ?? '—')} → ${String(diff.to ?? '—')}`,
+          `${humanizeEnum(field)}: ${String(diff.from ?? '—')} → ${String(diff.to ?? '—')}`,
         )
       }
     }
@@ -263,11 +286,11 @@ export function formatAuditMetaLines(meta?: string | null): string[] {
     'passwordChanged',
   ])
   for (const [key, value] of Object.entries(data)) {
-    if (known.has(key) || value == null) continue
+    if (known.has(key) || HIDDEN_AUDIT_META_KEYS.has(key) || value == null) continue
     if (typeof value === 'object') {
-      lines.push(`${key}: ${JSON.stringify(value)}`)
+      lines.push(`${humanizeEnum(key)}: ${JSON.stringify(value)}`)
     } else {
-      lines.push(`${key}: ${String(value)}`)
+      lines.push(`${humanizeEnum(key)}: ${String(value)}`)
     }
   }
 
@@ -315,21 +338,21 @@ export function formatAuditDetailSections(
     overview.push({ label: 'Slug', value: data.slug })
   }
   if (typeof data.status === 'string') {
-    overview.push({ label: 'Status', value: data.status })
+    overview.push({ label: 'Status', value: humanizeEnum(data.status) })
   }
   if (typeof data.ownerEmail === 'string') {
     overview.push({ label: 'Owner email', value: data.ownerEmail })
   }
   if (typeof data.platformRole === 'string') {
-    overview.push({ label: 'Role', value: data.platformRole })
+    overview.push({ label: 'Role', value: humanizeEnum(data.platformRole) })
   }
   if (typeof data.previousStatus === 'string') {
-    overview.push({ label: 'Previous status', value: data.previousStatus })
+    overview.push({ label: 'Previous status', value: humanizeEnum(data.previousStatus) })
   }
   if (typeof data.reason === 'string' && data.reason) {
-    overview.push({ label: 'Reason', value: data.reason })
+    overview.push({ label: 'Reason', value: humanizeEnum(data.reason) })
   } else if (data.reason === null) {
-    overview.push({ label: 'Reason', value: 'none' })
+    overview.push({ label: 'Reason', value: 'None' })
   }
   if (typeof data.days === 'number') {
     overview.push({ label: 'Extended by', value: `${data.days} days` })
@@ -371,11 +394,11 @@ export function formatAuditDetailSections(
     if (previous.platformRole !== next.platformRole) {
       rows.push({
         label: 'Role (before)',
-        value: String(previous.platformRole ?? '—'),
+        value: humanizeEnum(String(previous.platformRole ?? '')),
       })
       rows.push({
         label: 'Role (after)',
-        value: String(next.platformRole ?? '—'),
+        value: humanizeEnum(String(next.platformRole ?? '')),
       })
     }
     if (previous.isActive !== next.isActive) {
@@ -457,39 +480,6 @@ export function formatAuditDetailSections(
       title: 'What changed',
       rows: [{ label: 'Password', value: 'Updated' }],
     })
-  }
-
-  const known = new Set([
-    'username',
-    'name',
-    'email',
-    'slug',
-    'status',
-    'ownerEmail',
-    'platformRole',
-    'previousStatus',
-    'reason',
-    'days',
-    'trialEndsAt',
-    'ownerUserId',
-    'targetUserId',
-    'permissions',
-    'previous',
-    'next',
-    'changes',
-    'passwordChanged',
-  ])
-  const extraRows: AuditDetailSection['rows'] = []
-  for (const [key, value] of Object.entries(data)) {
-    if (known.has(key) || value == null) continue
-    if (typeof value === 'object') {
-      extraRows.push({ label: key, value: JSON.stringify(value, null, 2) })
-    } else {
-      extraRows.push({ label: key, value: String(value) })
-    }
-  }
-  if (extraRows.length) {
-    sections.push({ title: 'Other', rows: extraRows })
   }
 
   return sections

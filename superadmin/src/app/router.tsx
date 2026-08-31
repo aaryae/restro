@@ -13,6 +13,8 @@ const CafeListPage = lazy(() => import('@/pages/Cafes/CafeList'))
 const CafeDetailPage = lazy(() => import('@/pages/Cafes/CafeDetail'))
 const AuditPage = lazy(() => import('@/pages/Audit'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
+const SmtpSettingsPage = lazy(() => import('@/pages/Settings/Smtp'))
+const ProfilePage = lazy(() => import('@/pages/Profile'))
 
 function withSuspense(element: ReactNode) {
   return <Suspense fallback={<LoadingScreen />}>{element}</Suspense>
@@ -68,9 +70,29 @@ export const router = createBrowserRouter([
             path: 'settings',
             element: withSuspense(
               <RequirePermission permission="users.manage">
+                <Navigate to="/settings/operators" replace />
+              </RequirePermission>,
+            ),
+          },
+          {
+            path: 'settings/operators',
+            element: withSuspense(
+              <RequirePermission permission="users.manage">
                 <SettingsPage />
               </RequirePermission>,
             ),
+          },
+          {
+            path: 'settings/smtp',
+            element: withSuspense(
+              <RequirePermission permission="users.manage">
+                <SmtpSettingsPage />
+              </RequirePermission>,
+            ),
+          },
+          {
+            path: 'profile',
+            element: withSuspense(<ProfilePage />),
           },
           { path: '*', element: <Navigate to="/" replace /> },
         ],

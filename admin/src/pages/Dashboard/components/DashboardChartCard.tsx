@@ -26,22 +26,15 @@ export default function DashboardChartCard({
   className,
 }: DashboardChartCardProps) {
   return (
-    <section
-      className={cn(
-        "min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-        <div className="flex min-w-0 items-center gap-2">
+    <section className={cn("dash-card min-w-0 overflow-hidden", className)}>
+      <div className="dash-chart-head">
+        <div className="flex min-w-0 items-center gap-2.5">
           {Icon ? (
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primaryColor/10 text-primaryColor">
+            <span className="dash-kpi-icon">
               <Icon size={16} />
             </span>
           ) : null}
-          <h3 className="truncate text-[13px] font-semibold text-slate-800">
-            {title}
-          </h3>
+          <h3 className="dash-chart-title truncate">{title}</h3>
         </div>
         <ChartTypeTabs
           value={chartType}
@@ -51,7 +44,7 @@ export default function DashboardChartCard({
       </div>
       <div className="min-w-0 overflow-hidden p-4 sm:p-5">
         {loading ? (
-          <div className="h-[300px] animate-pulse rounded-xl bg-gradient-to-b from-slate-50 to-slate-100/50" />
+          <div className="h-[300px] animate-pulse rounded-xl bg-[var(--serve-surface-2)]" />
         ) : (
           <AnimatedPanel panelKey={chartType} variant="chart">
             {children}

@@ -12,28 +12,35 @@ const initWebSocket = (server) => {
       const protocolHeader = req.headers["sec-websocket-protocol"];
       if (!protocolHeader) {
         console.log("No token provided, closing connection.");
-        ws.close(4000, "Authentication required");
+        ws.terminate();
         return;
       }
 
-      const token = protocolHeader.replace("Admin", " ").trim();
+      const authHeader = String(protocolHeader || "").trim();
+      if (!authHeader.startsWith("Admin")) {
+        console.log("Malformed websocket auth header.");
+        ws.terminate();
+        return;
+      }
+
+      const token = authHeader.replace("Admin", " ").trim();
       if (!token) {
         console.log("Token is empty, closing connection.");
-        ws.close(4000, "Invalid token");
+        ws.terminate();
         return;
       }
 
       const userData = await verifyToken(token);
       if (!userData || !userData.id) {
         console.log("Invalid token, closing connection.");
-        ws.close(4000, "Invalid token");
+        ws.terminate();
         return;
       }
 
       const isSession = await findSingleUserLog(userData.id);
       if (!isSession) {
         console.log("Unauthorized user, closing connection.");
-        ws.close(4000, "You're not authorized!");
+        ws.terminate();
         return;
       }
 
@@ -66,7 +73,7 @@ const initWebSocket = (server) => {
       });
     } catch (err) {
       console.log("Error in WebSocket connection:", err.message);
-      ws.close(4000, "Internal Server Error");
+      ws.terminate();
     }
   });
 };

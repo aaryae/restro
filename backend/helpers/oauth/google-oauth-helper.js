@@ -1,49 +1,54 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const { customerModel } = require("../../models"); // Adjust path to your models
+const { customerModel } = require("../../models");
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: googleClientId,
-      clientSecret: googleClientSecret,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        console.log("Google profile:", profile);
-        let customer = await customerModel.findOne({
-          where: { email: profile.emails[0].value },
-        });
-        if (customer) {
-          // Email exists, update social ID if missing
-          if (!customer.googleId) {
-            customer.googleId = profile.id;
-            await customer.save();
-          }
-        } else {
-          // Create new customer
-          customer = await customerModel.create({
-            email: profile.emails[0]?.value,
-            username: `${profile?.name?.givenName} ${profile?.name?.familyName}`,
-            googleId: profile.id,
-            isEmailVerified: true,
-            isActive: true,
-            gender: "other",
+if (googleClientId && googleClientSecret && googleCallbackUrl) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: googleClientId,
+        clientSecret: googleClientSecret,
+        callbackURL: googleCallbackUrl,
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          console.log("Google profile:", profile);
+          let customer = await customerModel.findOne({
+            where: { email: profile.emails[0].value },
           });
+          if (customer) {
+            if (!customer.googleId) {
+              customer.googleId = profile.id;
+              await customer.save();
+            }
+          } else {
+            customer = await customerModel.create({
+              email: profile.emails[0]?.value,
+              username: `${profile?.name?.givenName} ${profile?.name?.familyName}`,
+              googleId: profile.id,
+              isEmailVerified: true,
+              isActive: true,
+              gender: "other",
+            });
+          }
+          console.log("Customer:", customer.dataValues);
+          return done(null, customer);
+        } catch (error) {
+          console.error("Error in GoogleStrategy:", error);
+          return done(error);
         }
-        console.log("Customer:", customer.dataValues);
-        return done(null, customer);
-      } catch (error) {
-        console.error("Error in GoogleStrategy:", error);
-        return done(error);
-      }
-    },
-  ),
-);
+      },
+    ),
+  );
+} else {
+  console.warn(
+    "[oauth] Google strategy skipped (set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL to enable)",
+  );
+}
 
 passport.serializeUser((customer, done) => {
   console.log("Serializing user ID:", customer.id);

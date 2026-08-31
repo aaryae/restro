@@ -4,7 +4,7 @@ import TableRowActions from "@/components/Table/TableRowActions";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { useState } from "react";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PaginationType } from "@/types/commonTypes";
@@ -92,7 +92,7 @@ export default function ProductVariant() {
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                 title="Edit variant"
               >
-                <MdEditSquare size={16} />
+                <SquarePen />
               </button>
             )}
             {accessList.includes("delete") && (

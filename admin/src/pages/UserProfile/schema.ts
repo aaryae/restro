@@ -21,7 +21,9 @@ export const UserSchema = z.object({
     z.string().trim().min(1, "Role is Required"), // Accept non-empty strings
     z.number().positive("Role ID must be a positive number"), // Accept positive numbers
   ]),
-  gender: z.string().trim().min(1, "Gender is Required"),
+  gender: z.enum(["male", "female", "other"], {
+    errorMap: () => ({ message: "Gender is Required" }),
+  }),
   mobilePrefix: z.string().trim().min(1, "Mobile Prefix is Required"),
 });
 

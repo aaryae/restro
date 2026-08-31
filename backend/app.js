@@ -22,6 +22,7 @@ const morgan = require("morgan");
 const session = require("express-session");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
+const { apiRateLimiter } = require("./utils/loginRateLimit");
 
 //path
 const messageConstants = require("./constants/message-constant");
@@ -42,7 +43,7 @@ app.use(
   "/resources",
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
@@ -54,6 +55,8 @@ app.use(
   express.static(path.join(__dirname, "resources")),
 );
 
+const { isTenantBaseOrigin } = require("./lib/pos-public-url");
+
 const allowedOrigins = [
   "http://localhost:3000", // serve marketing site
   "http://localhost:5171",
@@ -63,11 +66,37 @@ const allowedOrigins = [
   "http://192.168.1.200:7002",
 ];
 
+function isPrivateLanHost(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    /^192\.168\.\d+\.\d+$/.test(hostname) ||
+    /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(hostname)
+  );
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (process.env.NODE_ENV === "development") return true;
+  if (isTenantBaseOrigin(origin)) return true;
+  const extra = (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (extra.includes(origin)) return true;
+  try {
+    return isPrivateLanHost(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow non-browser / same-origin tools
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
@@ -163,8 +192,22 @@ app.get("/health", async (req, res) => {
     res.status(503).json({ status: "error", message: "Backend is unhealthy" });
   }
 });
+app.use(baseUrl + "/api/v1", apiRateLimiter);
 app.use(baseUrl + "/api/v1", require("./api")); // -------- main api -----------
 
+app.use("/setup/", (req, res, next) => {
+  const allowSetupRoute = process.env.ALLOW_SETUP_ROUTE === "true";
+  const isLocalhost =
+    req.ip === "127.0.0.1" || req.ip === "::1" || req.ip === "::ffff:127.0.0.1";
+  if (allowSetupRoute && process.env.NODE_ENV === "development" && isLocalhost) {
+    return next();
+  }
+  return res.status(404).json({
+    success: false,
+    status: 404,
+    message: "Not Found",
+  });
+});
 app.use("/setup/", setupPath);
 
 //image serve for public

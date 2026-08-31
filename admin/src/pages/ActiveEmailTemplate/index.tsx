@@ -4,7 +4,7 @@ import {
 } from "@/redux/services/emailTemplate";
 import { handleError } from "@/utils/responseHandler";
 import { useState } from "react";
-import { MdArrowDropDown } from "react-icons/md";
+import { ChevronDown } from "lucide-react";
 
 export default function ActiveEmailTemplate() {
   const [activeEmailTemplate, { data: activeEmailData }] =
@@ -42,7 +42,7 @@ export default function ActiveEmailTemplate() {
             className="bg-gray-500 text-white flex justify-between items-center py-[0.5rem] px-[1rem] cursor-pointer"
             onClick={() => handleClick(each.value)}
           >
-            {each.label} <MdArrowDropDown size="20" />
+            {each.label} <ChevronDown size="20" />
           </div>
           {each.value === currentTemplateKey ? (
             <div>

@@ -10,41 +10,34 @@ const chartTypes: { label: string; value: ChartType }[] = [
 
 type ChartTypeTabsProps = {
   value: ChartType;
-  onChange: (value: ChartType) => void;
+  onChange: (type: ChartType) => void;
   allowed?: ChartType[];
   className?: string;
 };
 
 export default function ChartTypeTabs({
-  value,
+  value = "pie",
   onChange,
   allowed = ["pie", "bar", "line"],
   className,
 }: ChartTypeTabsProps) {
+  const options = chartTypes.filter((t) => allowed.includes(t.value));
+  const active = options.some((t) => t.value === value)
+    ? value
+    : (options[0]?.value ?? "pie");
   return (
-    <div
-      className={cn(
-        "inline-flex gap-1 rounded-lg border border-slate-200 bg-slate-50/80 p-1",
-        className,
-      )}
-    >
-      {chartTypes
-        .filter((t) => allowed.includes(t.value))
-        .map((type) => (
-          <button
-            key={type.value}
-            type="button"
-            onClick={() => onChange(type.value)}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-[12px] font-medium transition-all duration-200 sm:px-3",
-              value === type.value
-                ? "bg-primaryColor text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-800",
-            )}
-          >
-            {type.label}
-          </button>
-        ))}
+    <div className={cn("dash-tabs", className)}>
+      {options.map((type) => (
+        <button
+          key={type.value}
+          type="button"
+          data-active={active === type.value}
+          className="dash-tab"
+          onClick={() => onChange(type.value)}
+        >
+          {type.label}
+        </button>
+      ))}
     </div>
   );
 }

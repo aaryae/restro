@@ -4,6 +4,7 @@ import { ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { StickyNote, UtensilsCrossed } from "lucide-react";
 import React, { useMemo } from "react";
+import "../posBrand.css";
 
 type ViewTakeawayOrdersProps = {
   id?: number | null;
@@ -14,12 +15,12 @@ type ViewTakeawayOrdersProps = {
 function statusStyles(status?: string) {
   switch ((status || "").toLowerCase()) {
     case "pending":
-      return "bg-amber-50 text-amber-800";
+      return "pos-pill-gold";
     case "preparing":
-      return "bg-sky-50 text-sky-800";
+      return "pos-pill-navy";
     case "ready":
     case "prepared":
-      return "bg-emerald-50 text-emerald-800";
+      return "pos-pill-navy";
     case "served":
     case "completed":
       return "bg-slate-100 text-slate-700";
@@ -122,11 +123,11 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
         )}
 
         {success && orderNote && (
-          <div className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900">
+          <div className="pos-note flex gap-2 rounded-lg px-3 py-2 text-left text-sm">
             <StickyNote
               size={14}
               strokeWidth={2.2}
-              className="mt-0.5 shrink-0 text-amber-700"
+              className="mt-0.5 shrink-0"
             />
             <p className="whitespace-pre-wrap leading-relaxed">{orderNote}</p>
           </div>
@@ -212,7 +213,7 @@ const ViewTakeawayOrders: React.FC<ViewTakeawayOrdersProps> = ({
         <div className="shrink-0 border-t border-slate-100 bg-white px-5 py-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <span className="text-sm text-slate-500">Total</span>
-            <span className="text-base font-semibold text-slate-900">
+            <span className="text-base font-semibold text-primaryColor">
               {formatMoney(grandTotal)}
             </span>
           </div>

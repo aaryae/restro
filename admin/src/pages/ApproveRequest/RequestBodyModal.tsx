@@ -16,8 +16,12 @@ export default function RequestBodyModal({ data }: { data: object }) {
         {translate("View Details")}
       </button>
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-4 rounded max-w-lg w-full shadow-lg">
+        <div className="serve-overlay fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="serve-modal w-full max-w-lg rounded-lg p-4"
+          >
             <button onClick={handleToggle} className="text-red-500 float-right">
               Close
             </button>

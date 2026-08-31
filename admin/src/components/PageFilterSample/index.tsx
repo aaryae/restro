@@ -67,23 +67,23 @@ export default function PageFilterSample(
             />
           ),
         )}
-        <div className="flex items-center gap-2 h-full">
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
           {resetFn && (
             <button
               type="button"
               onClick={() => {
                 resetFn();
               }}
-              className="h-[42px] px-4 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-2"
+              className="inline-flex h-[42px] flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 text-sm font-medium text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)] sm:flex-none"
             >
-              <RotateCcw className="w-4 h-4 mr-2" /> Clear
+              <RotateCcw className="h-4 w-4" /> Clear
             </button>
           )}
           <Button
             type="submit"
-            className="bg-primaryColor h-[42px] text-white px-6"
+            className="h-[42px] flex-1 bg-primaryColor px-6 text-white sm:flex-none"
           >
-            <Search className="w-4 h-4 mr-2" /> Search
+            <Search className="mr-2 h-4 w-4" /> Search
           </Button>
         </div>
       </form>

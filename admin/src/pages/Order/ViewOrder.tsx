@@ -5,6 +5,7 @@ import { SetStateAction } from "react";
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import { format } from "date-fns";
 import { StickyNote, UtensilsCrossed } from "lucide-react";
+import "./posBrand.css";
 
 interface Addon {
   id: number;
@@ -34,9 +35,10 @@ type OrderItem = {
 };
 
 type ViewCustomerProps = {
-  id: number;
+  id: number | null;
   isOpen: boolean;
   setIsOpen: React.Dispatch<SetStateAction<boolean>>;
+  onOpenCheckout?: (orderId: number, tableId?: number | null) => void;
 };
 
 function getProductImageSrc(item: OrderItem) {
@@ -52,34 +54,32 @@ function getItemName(item: OrderItem) {
 function statusStyles(status?: string) {
   switch ((status || "").toLowerCase()) {
     case "pending":
-      return "border-amber-400 bg-amber-50 text-amber-800";
+      return "pos-pill-gold border";
     case "preparing":
-      return "border-sky-400 bg-sky-50 text-sky-800";
+      return "pos-pill-navy border";
     case "ready":
     case "prepared":
-      return "border-emerald-400 bg-emerald-50 text-emerald-800";
+      return "pos-pill-navy border";
     case "served":
-      return "border-violet-400 bg-violet-50 text-violet-800";
+      return "pos-pill-navy border";
     case "completed":
-      return "border-slate-400 bg-slate-100 text-slate-700";
+      return "border-slate-200 bg-slate-100 text-slate-700";
     case "cancelled":
-      return "border-rose-400 bg-rose-50 text-rose-800";
+      return "border-rose-200 bg-rose-50 text-rose-800";
     default:
-      return "border-slate-300 bg-slate-50 text-slate-600";
+      return "border-slate-200 bg-slate-50 text-slate-600";
   }
 }
 
 function itemAccent(status?: string) {
   switch ((status || "").toLowerCase()) {
     case "pending":
-      return "bg-amber-400";
+      return "pos-accent-gold";
     case "preparing":
-      return "bg-sky-400";
     case "ready":
     case "prepared":
-      return "bg-emerald-400";
     case "served":
-      return "bg-violet-400";
+      return "pos-accent-navy";
     case "cancelled":
       return "bg-rose-400";
     default:
@@ -121,7 +121,19 @@ function getLineTotal(item: OrderItem) {
   return base + (addons > 0 && base < productOnly + addons ? addons : 0);
 }
 
-export default function ViewOrder({ id }: ViewCustomerProps) {
+function canCheckoutOrder(status?: string, paymentStatus?: string) {
+  const orderStatus = String(status || "").toLowerCase();
+  const pay = String(paymentStatus || "").toLowerCase();
+  if (orderStatus === "completed" || orderStatus === "cancelled") return false;
+  if (pay === "paid") return false;
+  return true;
+}
+
+function isTakeawayOrder(orderType?: string | null) {
+  return String(orderType || "").toLowerCase() === "takeaway";
+}
+
+export default function ViewOrder({ id, onOpenCheckout }: ViewCustomerProps) {
   const { data: orderData, isSuccess: success, isLoading } = useGetApiQuery(
     { url: `order/${id}` },
     {
@@ -174,13 +186,12 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                Table
+                {isTakeawayOrder(order.orderType) ? "Name" : "Table"}
               </p>
               <p className="mt-0.5 font-medium text-slate-800">
-                {order.table?.tableNo ||
-                  (order.orderType === "takeaway"
-                    ? order.takeAwayName || "Takeaway"
-                    : "—")}
+                {isTakeawayOrder(order.orderType)
+                  ? order.takeAwayName || "—"
+                  : order.table?.tableNo || "—"}
               </p>
             </div>
             <div>
@@ -197,14 +208,14 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
         )}
 
         {success && orderNote && (
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 p-3 text-left">
-            <div className="mb-1.5 flex items-center gap-2 text-amber-800">
+          <div className="pos-note rounded-xl border p-3 text-left">
+            <div className="mb-1.5 flex items-center gap-2">
               <StickyNote size={15} strokeWidth={2.2} />
               <span className="text-xs font-semibold uppercase tracking-wide">
                 Order notes
               </span>
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-amber-950/90">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
               {orderNote}
             </p>
           </div>
@@ -323,7 +334,7 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
 
       {success && order && (
         <div className="shrink-0 border-t border-slate-200/80 bg-white pt-3 pb-2">
-          <div className="flex items-center justify-between rounded-xl bg-slate-900 px-4 py-3 text-white">
+          <div className="flex items-center justify-between rounded-xl bg-primaryColor px-4 py-3 text-white">
             <span className="text-sm font-medium text-white/70">Total</span>
             <span className="text-lg font-semibold tracking-tight">
               {formatMoney(order.totalAmount)}
@@ -334,6 +345,21 @@ export default function ViewOrder({ id }: ViewCustomerProps) {
               <p className="mt-2 text-right text-xs text-slate-500">
                 Payable {formatMoney(order.payableAmount)}
               </p>
+            )}
+          {onOpenCheckout &&
+            canCheckoutOrder(order.status, order.paymentStatus) && (
+              <button
+                type="button"
+                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primaryColor text-sm font-semibold text-white transition hover:bg-primaryColor/90"
+                onClick={() =>
+                  onOpenCheckout(
+                    Number(order.id ?? id),
+                    order.table?.id ?? null,
+                  )
+                }
+              >
+                Checkout
+              </button>
             )}
         </div>
       )}

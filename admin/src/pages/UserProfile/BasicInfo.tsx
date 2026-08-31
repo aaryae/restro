@@ -24,6 +24,12 @@ import Select from "@/components/Select";
 import { useGetRoleQuery } from "@/redux/services/role";
 import { Camera, RotateCcw } from "lucide-react";
 
+const GenderOptions = [
+  { label: "Male", value: "male" },
+  { label: "Female", value: "female" },
+  { label: "Others", value: "other" },
+];
+
 type UserFormType = z.infer<typeof UserSchema>;
 
 export default function BasicInfo() {
@@ -73,9 +79,15 @@ export default function BasicInfo() {
 
   useEffect(() => {
     if (getUser?.data) {
+      const rawGender = String(getUser.data.gender || "male").toLowerCase();
+      const gender = ["male", "female", "other"].includes(rawGender)
+        ? rawGender
+        : "male";
+
       reset({
         ...getUser.data,
         roleId: getUser.data.roleId != null ? String(getUser.data.roleId) : "",
+        gender,
       });
       setImage(getUser.data.imageUrl || "");
       dispatch(
@@ -84,7 +96,7 @@ export default function BasicInfo() {
           firstName: getUser.data.firstName ?? "",
           lastName: getUser.data.lastName ?? "",
           email: getUser.data.email ?? "",
-          gender: getUser.data.gender ?? "male",
+          gender,
           id: getUser.data.id ?? null,
           imageUrl: getUser.data.imageUrl || "",
           mobileNo: getUser.data.mobileNo ?? "",
@@ -289,17 +301,23 @@ export default function BasicInfo() {
               />
             )}
           />
-          <Input
-            label="Gender"
-            placeholder="Male"
-            type="text"
-            {...register("gender")}
-            error={
-              typeof errors.gender === "string"
-                ? errors.gender
-                : errors.gender?.message
-            }
-            isRequired
+          <Controller
+            name="gender"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                value={field.value != null ? String(field.value) : ""}
+                options={GenderOptions}
+                label="Gender"
+                error={
+                  typeof errors.gender === "string"
+                    ? errors.gender
+                    : errors.gender?.message
+                }
+                isRequired
+              />
+            )}
           />
 
           <div className="col-span-full flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">

@@ -1,5 +1,19 @@
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+function lanAwareApiBase(raw: string) {
+  if (typeof window === 'undefined') return raw.replace(/\/$/, '')
+  try {
+    const u = new URL(raw, window.location.origin)
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+      u.hostname = window.location.hostname
+    }
+    return (u.origin + u.pathname).replace(/\/$/, '')
+  } catch {
+    return raw.replace(/\/$/, '')
+  }
+}
+
+const API_BASE = lanAwareApiBase(
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+)
 
 const TOKEN_KEY = 'serve_platform_token'
 const USER_KEY = 'serve_platform_user'
@@ -21,6 +35,7 @@ export function setPlatformSession(data: {
   id: number
   username: string
   name: string
+  imageUrl?: string | null
   platformRole?: string
   permissions?: string[]
 }) {
@@ -31,6 +46,7 @@ export function setPlatformSession(data: {
       id: data.id,
       username: data.username,
       name: data.name,
+      imageUrl: data.imageUrl || null,
       platformRole: data.platformRole || 'operator',
       permissions: data.permissions || [],
     }),
@@ -61,6 +77,25 @@ type FetchOptions = {
   signal?: AbortSignal
 }
 
+let onUnauthorized: (() => void) | null = null
+
+/** AuthProvider registers this so 401s clear React auth state and redirect. */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler
+}
+
+function handleUnauthorized() {
+  clearPlatformSession()
+  onUnauthorized?.()
+  // Hard navigate so pages never flash the "Session expired" error banner.
+  if (
+    typeof window !== 'undefined' &&
+    !window.location.pathname.startsWith('/login')
+  ) {
+    window.location.assign('/login')
+  }
+}
+
 export async function platformFetch<T = unknown>(
   path: string,
   { method = 'GET', body, auth = true, signal }: FetchOptions = {},
@@ -72,6 +107,7 @@ export async function platformFetch<T = unknown>(
   if (auth) {
     const token = getPlatformToken()
     if (!token) {
+      handleUnauthorized()
       throw new ApiError('Not authenticated', 401)
     }
     headers.Authorization = `Platform ${token}`
@@ -86,14 +122,66 @@ export async function platformFetch<T = unknown>(
 
   const json = await res.json().catch(() => ({}))
   if (!res.ok || json.success === false) {
+    const status = res.status || 500
+    if (auth && status === 401) {
+      handleUnauthorized()
+    }
     throw new ApiError(
       json.msg || json.message || 'Request failed',
-      res.status || 500,
+      status,
       json,
     )
   }
 
   return json.data as T
+}
+
+/** Multipart upload (do not set Content-Type — browser sets boundary). */
+export async function platformUpload<T = unknown>(
+  path: string,
+  formData: FormData,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<T> {
+  const token = getPlatformToken()
+  if (!token) {
+    handleUnauthorized()
+    throw new ApiError('Not authenticated', 401)
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Platform ${token}` },
+    body: formData,
+    signal,
+  })
+
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok || json.success === false) {
+    const status = res.status || 500
+    if (status === 401) {
+      handleUnauthorized()
+    }
+    throw new ApiError(
+      json.msg || json.message || 'Upload failed',
+      status,
+      json,
+    )
+  }
+
+  return json.data as T
+}
+
+/** Resolve a stored resource path (e.g. resources/foo.jpg) to a full URL. */
+export function buildAssetUrl(path?: string | null): string {
+  if (!path || path === 'null' || path === 'undefined') return ''
+  const trimmed = String(path).trim()
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+    return trimmed
+  }
+  const origin = API_BASE.replace(/\/api\/v1\/?$/, '')
+  const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  return `${origin}${normalized}`
 }
 
 export { API_BASE }

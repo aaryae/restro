@@ -1,4 +1,3 @@
-import { GiHamburgerMenu } from "react-icons/gi";
 import user_image from "@/assets/user_image.jpeg";
 import { useAppSelector } from "@/redux/store/hooks";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
@@ -17,11 +16,14 @@ import useTranslation from "@/locale/useTranslation";
 import { useDispatch } from "react-redux";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { deleteToken } from "@/utils/tokenHandler";
+import { redirectToServeLogin } from "@/utils/serveAuth";
 import { useLogoutMutation } from "@/redux/services/authentication";
 import { clearProfile } from "@/redux/feature/profileSlice";
 import { setLogout } from "@/redux/feature/authSlice";
 import { persistor } from "@/redux/store/store";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, UserRound } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
+import PageGuideButton from "@/components/Onboarding/PageGuideButton";
 
 export default function TopMenuMobile() {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ export default function TopMenuMobile() {
   const username = useAppSelector((state) => state.profile.username);
 
   const [toggleState, setToggleState] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -47,6 +50,7 @@ export default function TopMenuMobile() {
     dispatch(clearProfile());
     dispatch(setLogout());
     persistor.purge();
+    redirectToServeLogin();
   };
 
   return (
@@ -59,8 +63,20 @@ export default function TopMenuMobile() {
             className="rounded-lg p-1.5 text-slate-700 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-primaryColor/25"
             aria-label="Open menu"
           >
-            <GiHamburgerMenu size={22} />
+            <Menu />
           </button>
+
+          <div className="flex items-center gap-2">
+            <PageGuideButton />
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="shrink-0 rounded-lg p-2 text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)]"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -100,6 +116,7 @@ export default function TopMenuMobile() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </div>
       <Drawer

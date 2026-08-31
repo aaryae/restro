@@ -29,8 +29,8 @@ router.post(
   productCategoryPostValidation,
   create,
 );
-router.get("/list", paginationValidation, list);
-router.get("/:id", idValidation, getById);
+router.get("/list", authentication, paginationValidation, list);
+router.get("/:id", authentication, idValidation, getById);
 router.put(
   "/update-order",
   authentication,

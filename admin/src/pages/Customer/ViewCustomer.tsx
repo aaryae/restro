@@ -4,9 +4,8 @@ import { useGetApiQuery } from "@/redux/services/crudApi";
 import { SetStateAction, useState } from "react";
 import userImage from "@/assets/user_image.jpeg";
 import { format } from "date-fns";
-import { FaCircleCheck, FaCircleXmark } from "react-icons/fa6";
 import Table from "@/components/Table";
-import { User } from "lucide-react";
+import { User, CircleCheck, CircleX } from "lucide-react";
 import Select from "@/components/Select";
 
 type ViewCustomerProps = {
@@ -52,8 +51,6 @@ export default function ViewCustomer({
           orderNumber,
           orderStartTime,
           createdAt,
-          paymentMethods,
-          paymentMethod,
           paymentStatus,
           totalAmount,
         } = order || {};
@@ -86,9 +83,7 @@ export default function ViewCustomer({
             (id ? `Order #${id}` : "—");
         }
 
-        const paymentMethodLabel = Array.isArray(paymentMethods)
-          ? paymentMethods.filter(Boolean).join(", ") || "—"
-          : paymentMethod || "—";
+        const paymentMethodLabel = getOrderPaymentMethodLabel(order);
 
         const orderDateValue = orderStartTime || createdAt;
 
@@ -302,3 +297,54 @@ const formatPaymentStatus = (status?: string | null) => {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
+
+function normalizePaymentMethods(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map(String);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean).map(String);
+      }
+    } catch {
+      return [trimmed];
+    }
+  }
+  return [];
+}
+
+function formatPaymentMethodName(method: string) {
+  return method.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getOrderPaymentMethodLabel(order: any) {
+  const fromOrder = normalizePaymentMethods(order?.paymentMethods);
+  if (fromOrder.length > 0) {
+    return fromOrder.map(formatPaymentMethodName).join(", ");
+  }
+
+  if (order?.paymentMethod) {
+    return formatPaymentMethodName(String(order.paymentMethod));
+  }
+
+  const fromRevenues = Array.isArray(order?.revenues)
+    ? [
+        ...new Set(
+          order.revenues
+            .map((revenue: any) => revenue?.paymentMethod)
+            .filter(Boolean)
+            .map(String),
+        ),
+      ]
+    : [];
+
+  if (fromRevenues.length > 0) {
+    return fromRevenues.map(formatPaymentMethodName).join(", ");
+  }
+
+  return "—";
+}

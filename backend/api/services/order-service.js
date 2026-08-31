@@ -113,6 +113,26 @@ const categorySalesSummary = async (req) => {
       );
     }
 
+    // Robust "manual revenue" detection: manually created revenues have no linked order.
+    // In case historical data contains 0 instead of NULL, include that too.
+    const manualWhere = { [Op.or]: [{ orderId: null }, { orderId: 0 }] };
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      manualWhere.createdAt = { [Op.between]: [startDate, endDate] };
+    }
+
+    const manualTotal = await revenueModel.sum("amount", {
+      where: manualWhere,
+    });
+    const manualAmount = Number(manualTotal) || 0;
+    if (manualAmount > 0) {
+      totals.set(
+        "Manual Revenue",
+        (totals.get("Manual Revenue") || 0) + manualAmount,
+      );
+    }
+
     const data = Array.from(totals.entries())
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount);
@@ -178,6 +198,24 @@ const productTopSales = async (req) => {
       name: r["product.name"] || "Unknown",
       amount: Number(r.amount) || 0,
     }));
+
+    // Robust "manual revenue" detection: manually created revenues have no linked order.
+    // In case historical data contains 0 instead of NULL, include that too.
+    const manualWhere = { [Op.or]: [{ orderId: null }, { orderId: 0 }] };
+    if (start && end) {
+      const startDate = startOfDay(parseISO(start));
+      const endDate = endOfDay(parseISO(end));
+      manualWhere.createdAt = { [Op.between]: [startDate, endDate] };
+    }
+
+    const manualTotal = await revenueModel.sum("amount", {
+      where: manualWhere,
+    });
+    const manualAmount = Number(manualTotal) || 0;
+    if (manualAmount > 0) {
+      data.push({ name: "Manual Revenue", amount: manualAmount });
+      data.sort((a, b) => b.amount - a.amount);
+    }
 
     return {
       status: 200,
@@ -1033,7 +1071,7 @@ const updateOrderItems = async (req) => {
 };
 
 const getTableActiveOrders = async (req) => {
-  const { id: tableId } = req.params;
+  const tableId = req.params.tableId ?? req.params.id;
 
   try {
     // Find the table with the given ID

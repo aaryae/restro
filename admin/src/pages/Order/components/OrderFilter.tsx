@@ -11,7 +11,6 @@ interface OrderFilterPropsType {
   start: string;
   end: string;
   paymentStatus: string;
-  status: string;
 }
 
 export default function OrderFilter({
@@ -104,13 +103,6 @@ export default function OrderFilter({
     });
   };
 
-  const handleOrderStatusChange = (status: string) => {
-    setQueryStringOptions({
-      ...queryStringOptions,
-      status,
-    });
-  };
-
   const handleDateRangeSelect = (ranges: any) => {
     const { startDate, endDate } = ranges.selection;
     setQueryStringOptions({
@@ -192,7 +184,7 @@ export default function OrderFilter({
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:shrink-0 xl:gap-3">
+          <div className="grid grid-cols-1 gap-3 xl:flex xl:shrink-0 xl:gap-3">
             <div className="min-w-0 xl:min-w-[150px]">
               <Select
                 id="paymentStatus"
@@ -209,30 +201,17 @@ export default function OrderFilter({
                 triggerClassName="h-9 text-[13px]"
               />
             </div>
-            <div className="min-w-0 xl:min-w-[150px]">
-              <Select
-                id="orderStatus"
-                label="Order Status"
-                value={queryStringOptions.status}
-                onValueChange={handleOrderStatusChange}
-                options={[
-                  { value: "", label: "All" },
-                  { value: "pending", label: "Pending" },
-                  { value: "completed", label: "Completed" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
-                triggerClassName="h-9 text-[13px]"
-              />
-            </div>
           </div>
         </div>
       </div>
 
       {showDatePicker &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3">
+          <div className="serve-overlay fixed inset-0 z-[100] flex items-center justify-center p-3">
             <div
-              className={`relative max-h-[85vh] overflow-auto rounded-xl bg-white shadow-lg ${
+              role="dialog"
+              aria-modal="true"
+              className={`serve-modal relative max-h-[85vh] overflow-auto rounded-xl ${
                 mobileView ? "w-full max-w-[95vw] p-4 pt-10" : "p-8"
               }`}
             >

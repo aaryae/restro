@@ -10,12 +10,11 @@ import { checkAccess } from "@/utils/accessHelper";
 import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useState } from "react";
-import { Eye } from "lucide-react";
+import { Eye, SquarePen } from "lucide-react";
 import ViewTable from "./ViewTable";
 import Spinner from "@/components/Spinner";
 import { TABLE_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
-import { MdEditSquare } from "react-icons/md";
 
 interface TableResponseType {
   id: number;
@@ -149,7 +148,7 @@ export default function OrderTable() {
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                   title="Edit table"
                 >
-                  <MdEditSquare size={16} />
+                  <SquarePen />
                 </button>
               )}
               {accessList.includes("delete") && (

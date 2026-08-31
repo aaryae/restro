@@ -3,6 +3,7 @@
 const Sequelize = require("sequelize");
 const { hashPassword } = require("../utils/bcrypt");
 const { setTenantSearchPath } = require("./run-tenant-migrations");
+const { seedDefaultMedia } = require("./seed-default-media");
 
 const rolesSeeder = require("../seeders/20240516054600-demo-roles");
 
@@ -29,7 +30,9 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
   await rolesSeeder.up(queryInterface, Sequelize);
 
   const passwordHash = await hashPassword(owner.password);
-  const username = owner.username || owner.email.split("@")[0];
+  const username = String(
+    owner.username || owner.email.split("@")[0] || "owner",
+  ).trim();
 
   await queryInterface.bulkInsert("settings", [
     {
@@ -85,6 +88,9 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
       { replacements: { accountId, now } },
     );
   }
+
+  // Packaged menu photos (momo, chowmein, coffee, …) for the Media library.
+  await seedDefaultMedia(sequelize, schemaName, { createdBy: ownerUserId });
 
   return { ownerUserId };
 }

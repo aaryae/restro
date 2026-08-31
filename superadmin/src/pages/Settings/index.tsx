@@ -240,7 +240,8 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Settings"
+        title="Operators"
+        subtitle="Manage platform owner and operator access"
         actions={
           canManage ? (
             <Button
@@ -297,9 +298,13 @@ export default function SettingsPage() {
                   : 'None'}
             </span>,
             account.isActive ? (
-              <span className="text-xs font-medium text-emerald-700">Active</span>
+              <span className="text-xs font-medium text-emerald-700">
+                Active
+              </span>
             ) : (
-              <span className="text-xs font-medium text-slate-400">Inactive</span>
+              <span className="text-xs font-medium text-slate-400">
+                Inactive
+              </span>
             ),
             <Button
               key={`${account.id}-a`}

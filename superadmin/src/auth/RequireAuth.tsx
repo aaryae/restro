@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { ApiError } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { LoadingScreen } from '@/components/LoadingScreen'
 
 export function RequireAuth() {
-  const { isAuthenticated, refreshMe } = useAuth()
+  const { isAuthenticated, refreshMe, logout } = useAuth()
   const location = useLocation()
   const [ready, setReady] = useState(!isAuthenticated)
 
@@ -15,8 +16,12 @@ export function RequireAuth() {
     }
     let cancelled = false
     refreshMe()
-      .catch(() => {
-        // Session may be stale; keep token until a protected call fails.
+      .catch((err) => {
+        if (cancelled) return
+        // Expired / invalid token — send user to login (platformFetch also clears session).
+        if (err instanceof ApiError && err.status === 401) {
+          logout()
+        }
       })
       .finally(() => {
         if (!cancelled) setReady(true)
@@ -24,7 +29,7 @@ export function RequireAuth() {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, refreshMe])
+  }, [isAuthenticated, refreshMe, logout])
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />

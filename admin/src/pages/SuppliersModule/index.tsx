@@ -4,7 +4,6 @@ import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Spinner from "@/components/Spinner";
-import { MdEditSquare } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import usePagination from "@/hooks/usePagination";
 import DeleteModal from "@/components/DeleteModal";
@@ -23,7 +22,7 @@ import { FilterInput } from "@/components/Input/filterInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SupplierFilterSchema, type SupplierFilterInput } from "./schema";
-import { UserRound, MapPin, Phone } from "lucide-react";
+import { UserRound, MapPin, Phone, SquarePen } from "lucide-react";
 
 export default function Supplier() {
   const accessList = checkAccess("Supplier");
@@ -204,7 +203,7 @@ export default function Supplier() {
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                       title="Edit supplier"
                     >
-                      <MdEditSquare size={16} />
+                      <SquarePen />
                     </button>
                   )}
                   {accessList.includes("delete") && (
@@ -238,7 +237,6 @@ export default function Supplier() {
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Supplier"
         handleNewButton={() => handleNewButton(null)}
-        handleReloadButton={() => refetch()}
         subText="Manage vendor details for purchase entries."
       />
 

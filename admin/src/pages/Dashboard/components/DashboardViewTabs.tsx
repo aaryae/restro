@@ -22,16 +22,13 @@ export default function DashboardViewTabs({
 }: DashboardViewTabsProps) {
   return (
     <div className="w-full min-w-0 overflow-x-auto xl:w-auto">
-      <div className="inline-flex min-w-max gap-1 rounded-lg border border-slate-200 bg-slate-50/80 p-1">
+      <div className="dash-tabs">
         {viewOptions.map((option) => (
           <button
             key={option.value}
             type="button"
-            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] font-medium transition-all duration-200 sm:text-[13px] ${
-              value === option.value
-                ? "bg-primaryColor text-white shadow-sm"
-                : "text-slate-600 hover:bg-white/60 hover:text-slate-800"
-            }`}
+            data-active={value === option.value}
+            className="dash-tab"
             onClick={() => onChange(option.value)}
           >
             {option.label}

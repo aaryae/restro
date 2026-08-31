@@ -9,7 +9,7 @@ const {
   actionRequestModel,
   userModel,
 } = require("../models/index");
-const { findSingleUserLog } = require("../api/services/session-logs");
+const { findActiveSession } = require("../api/services/session-logs");
 const httpStatus = require("http-status");
 const { sendNotification } = require("../helpers/send-notification");
 const messageConstant = require("../constants/message-constant");
@@ -56,7 +56,19 @@ authMiddleware.authentication = async (req, res, next) => {
           );
         }
 
-        const isSession = await findSingleUserLog(d.id);
+        if (!d.sessionId) {
+          return responseHelper.sendResponse(
+            res,
+            httpStatus.FORBIDDEN,
+            false,
+            null,
+            null,
+            "Session expired. Please log in again.",
+            null,
+          );
+        }
+
+        const isSession = await findActiveSession(d.id, d.sessionId);
         if (!isSession)
           return responseHelper.sendResponse(
             res,
@@ -179,6 +191,7 @@ authMiddleware.authorization = async (req, res, next) => {
     }
     serverPath = serverPath.replace(/^\/api\/v\d+\//, "/");
     const requestMethod = req.method;
+    const roleId = Number(req.user.roleId);
 
     let access = await roleMenuActionModel?.findOne({
       where: { isDeleted: false, requestMethod, serverPath },
@@ -188,21 +201,25 @@ authMiddleware.authorization = async (req, res, next) => {
     if (access && access.id) {
       let serverAccess = await roleActionModel?.findOne({
         where: {
-          roleId: req.user.roleId,
+          roleId,
           roleMenuActionId: access.id,
           isDeleted: false,
         },
         raw: true,
       });
 
-      const isSuperAdmin = req.user.roleId === 1;
-
       // Super Admin always has full API access (role grants can lag behind setup.json).
-      if (isSuperAdmin) {
+      if (roleId === 1) {
         return next();
       }
 
-      if (serverAccess && serverAccess.requiredApproval === 1) {
+      // role_actions.requiredApproval is BOOLEAN; older checks used 0/1.
+      const requiresApproval =
+        serverAccess?.requiredApproval === true ||
+        serverAccess?.requiredApproval === 1 ||
+        serverAccess?.requiredApproval === "1";
+
+      if (serverAccess && requiresApproval) {
         const result = await actionRequestModel.create({
           userId: req.user.id,
           requestedAction: requestMethod,
@@ -269,19 +286,19 @@ authMiddleware.authorization = async (req, res, next) => {
         }
       }
 
-      if (serverAccess && serverAccess.requiredApproval === 0) {
+      if (serverAccess && !requiresApproval) {
         return next();
-      } else {
-        return responseHelper.sendResponse(
-          res,
-          HttpStatus.UNAUTHORIZED,
-          false,
-          null,
-          null,
-          messageConstant.EN.ACCESS_DENIED,
-          null,
-        );
       }
+
+      return responseHelper.sendResponse(
+        res,
+        HttpStatus.UNAUTHORIZED,
+        false,
+        null,
+        null,
+        messageConstant.EN.ACCESS_DENIED,
+        null,
+      );
     }
 
     return next();

@@ -25,12 +25,12 @@ module.exports = {
     },
   },
   production: {
-    username: process.env.PROD_DB_USER,
-    password: process.env.PROD_DB_PASSWORD,
-    database: process.env.PROD_DB_NAME,
-    host: process.env.PROD_DB_HOST,
-    port: Number(process.env.PROD_DB_PORT) || 5432,
-    dialect: process.env.PROD_DB_DIALECT || "postgres",
+    username: process.env.PROD_DB_USER || process.env.DB_USER || "postgres",
+    password: process.env.PROD_DB_PASSWORD || process.env.DB_PASSWORD || "root",
+    database: process.env.PROD_DB_NAME || process.env.DB_NAME,
+    host: process.env.PROD_DB_HOST || process.env.DB_HOST || "127.0.0.1",
+    port: Number(process.env.PROD_DB_PORT || process.env.DB_PORT) || 5432,
+    dialect: process.env.PROD_DB_DIALECT || process.env.DB_DIALECT || "postgres",
     dialectOptions: {
       prependSearchPath: true,
     },

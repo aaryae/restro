@@ -1,6 +1,4 @@
-import { FaFolder, FaPlus } from "react-icons/fa";
-import { HiTrash } from "react-icons/hi";
-import { MdArrowBackIos, MdEditSquare, MdPhotoLibrary } from "react-icons/md";
+import { ChevronLeft, Folder, Images, Plus, SquarePen, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -272,7 +270,7 @@ export default function MediaComponent({
                   }
                 }}
               >
-                <MdArrowBackIos size={16} />
+                <ChevronLeft />
                 Back to folders
               </button>
             )}
@@ -285,7 +283,7 @@ export default function MediaComponent({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
                 onClick={handleButtonClick}
               >
-                <MdPhotoLibrary size={18} />
+                <Images />
                 {fileButtonText}
               </button>
             )}
@@ -299,10 +297,10 @@ export default function MediaComponent({
             {accessListFolder.includes("add") && currentFolder === null && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-secondaryBtn px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
                 onClick={handleOpenModel}
               >
-                <FaPlus size={14} />
+                <Plus />
                 New Folder
               </button>
             )}
@@ -327,7 +325,7 @@ export default function MediaComponent({
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
                   onClick={handleConfirmImage}
                 >
-                  <MdPhotoLibrary size={18} />
+                  <Images />
                   Confirm Image
                 </button>
               </>
@@ -350,8 +348,7 @@ export default function MediaComponent({
                         style={{ userSelect: "none" }}
                       >
                         {accessListFolder.includes("delete") && (
-                          <HiTrash
-                            size={18}
+                          <Trash2
                             className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -360,8 +357,7 @@ export default function MediaComponent({
                           />
                         )}
                         {accessListFolder.includes("edit") && (
-                          <MdEditSquare
-                            size={18}
+                          <SquarePen
                             className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-primaryColor z-10"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -369,8 +365,7 @@ export default function MediaComponent({
                             }}
                           />
                         )}
-                        <FaFolder
-                          size={108}
+                        <Folder
                           className="text-yellow-500 group-hover:text-blue-500 mb-2 sm:mb-3 flex-shrink-0 pointer-events-none"
                         />
                         <textarea

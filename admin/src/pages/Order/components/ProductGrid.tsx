@@ -24,8 +24,9 @@ type ProductGridProps = {
 };
 
 const LIST_ROW_HEIGHT = 92;
-const CARD_ROW_HEIGHT = 200;
+const CARD_ROW_HEIGHT = 280;
 const CARD_COLUMNS = 4;
+const VIRTUALIZE_AFTER = 24;
 
 function ProductCard({
   product,
@@ -45,7 +46,6 @@ function ProductCard({
       className={`${styles.productCard} ${
         inCartQty > 0 ? styles.productCardActive : ""
       }`}
-      style={menuView === "card" ? { contentVisibility: "auto" } : undefined}
       onClick={onAdd}
     >
       <div className={styles.productImageWrap}>
@@ -116,16 +116,18 @@ export default function ProductGrid({
   onAdjustQty,
 }: ProductGridProps) {
   const isList = menuView === "list";
+  const useVirtual = products.length > VIRTUALIZE_AFTER;
   const virtualCount = isList
     ? products.length
     : Math.ceil(products.length / CARD_COLUMNS);
   const itemHeight = isList ? LIST_ROW_HEIGHT : CARD_ROW_HEIGHT;
   const { containerRef, range, totalHeight, offsetY } = useVirtualWindow(
-    virtualCount,
+    useVirtual ? virtualCount : 0,
     { itemHeight },
   );
 
   const visibleProducts = useMemo(() => {
+    if (!useVirtual) return products;
     if (isList) {
       return products.slice(range.start, range.end);
     }
@@ -139,7 +141,29 @@ export default function ProductGrid({
       }
     }
     return items;
-  }, [isList, products, range.end, range.start]);
+  }, [isList, products, range.end, range.start, useVirtual]);
+
+  const gridClassName = `${styles.productGrid} ${
+    isList ? styles.productGridList : styles.productGridCards
+  }`;
+
+  const cards = visibleProducts.map((product) => {
+    const inCartQty = qtyForProduct(product.id);
+    return (
+      <ProductCard
+        key={product.id}
+        product={product}
+        inCartQty={inCartQty}
+        menuView={menuView}
+        onAdd={() => onAdd(product)}
+        onAdjustQty={(delta) => onAdjustQty(product, delta)}
+      />
+    );
+  });
+
+  if (!useVirtual) {
+    return <div className={gridClassName}>{cards}</div>;
+  }
 
   return (
     <div
@@ -148,9 +172,7 @@ export default function ProductGrid({
     >
       <div style={{ height: totalHeight, position: "relative" }}>
         <div
-          className={`${styles.productGrid} ${
-            isList ? styles.productGridList : styles.productGridCards
-          }`}
+          className={gridClassName}
           style={{
             position: "absolute",
             top: offsetY,
@@ -158,19 +180,7 @@ export default function ProductGrid({
             right: 0,
           }}
         >
-          {visibleProducts.map((product) => {
-            const inCartQty = qtyForProduct(product.id);
-            return (
-              <ProductCard
-                key={product.id}
-                product={product}
-                inCartQty={inCartQty}
-                menuView={menuView}
-                onAdd={() => onAdd(product)}
-                onAdjustQty={(delta) => onAdjustQty(product, delta)}
-              />
-            );
-          })}
+          {cards}
         </div>
       </div>
     </div>

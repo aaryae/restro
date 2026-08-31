@@ -18,25 +18,8 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import galleryIcon from "@/assets/gallery_icon.svg";
 import Spinner from "@/components/Spinner";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
-import {
-  Button as AriaBtn,
-  ColorPicker,
-  Dialog,
-  DialogTrigger,
-  Popover,
-  ColorSwatch,
-  ColorSlider,
-  ColorArea,
-  ColorField,
-  ColorThumb,
-  parseColor,
-  Label,
-  SliderTrack,
-  FieldError,
-} from "react-aria-components";
-import isValidHex from "@/utils/isValidHex";
 import { PRIMARY_COLOR } from "@/constants/projectConstants";
-import { Building2, ImageIcon, Palette } from "lucide-react";
+import { Building2, ImageIcon } from "lucide-react";
 
 type SettingFormType = z.infer<typeof SettingSchema>;
 
@@ -48,7 +31,6 @@ export default function Settings() {
     register,
     handleSubmit,
     reset,
-    getValues,
     setValue,
     setError,
     watch,
@@ -63,12 +45,9 @@ export default function Settings() {
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
   const [isFaviconOpen, setIsFavIconOpen] = useState(false);
   const [isBrandingImage, setIsBrandingImage] = useState(false);
-  const [isBrandingFooterImage, setIsBrandingFooterImage] = useState(false);
 
   const fav_icon = watch("fav_icon");
   const brandingImage = watch("brandingImage");
-  const brandingFooterImage = watch("brandingFooterImage");
-  const primaryColor = watch("primaryColor");
 
   const {
     data: settings,
@@ -77,21 +56,9 @@ export default function Settings() {
   } = useGetSettingQuery("");
   const [updateSetting] = useUpdateSettingMutation();
 
-  const [colorValue, setColorValue] = React.useState(
-    parseColor(getValues("primaryColor") || "#5100FF"),
-  );
-  const [colorFieldValue, setColorFieldValue] = useState("");
-
   useEffect(() => {
     if (settings?.data) {
-      reset({ ...settings.data });
-      if (settings.data.primaryColor) {
-        try {
-          setColorValue(parseColor(settings.data.primaryColor));
-        } catch (error) {
-          console.error("Invalid color format in settings:", error);
-        }
-      }
+      reset({ ...settings.data, primaryColor: PRIMARY_COLOR });
     }
   }, [reset, settings?.data, success]);
 
@@ -105,27 +72,16 @@ export default function Settings() {
         setValue("brandingImage", selectedImage);
         setIsBrandingImage(false);
         break;
-      case "brandingFooterImage":
-        setValue("brandingFooterImage", selectedImage);
-        setIsBrandingFooterImage(false);
-        break;
       default:
         break;
     }
     dispatch(clearSelectedMedia());
   };
 
-  const applyColor = (value: typeof colorValue) => {
-    setColorValue(value);
-    setValue("primaryColor", value.toString("hex").toUpperCase(), {
-      shouldValidate: true,
-    });
-  };
-
   const onSubmit = async (data: SettingFormType) => {
     const body = {
       ...data,
-      primaryColor: colorValue.toString("hex").toUpperCase(),
+      primaryColor: PRIMARY_COLOR,
     };
     try {
       const settingId = Number(settings?.data?.id);
@@ -156,7 +112,7 @@ export default function Settings() {
           {translate("Company Settings")}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Update your brand details, contact info, logos, and theme color.
+          Update your brand details, contact info, and logos.
         </p>
       </div>
 
@@ -207,7 +163,6 @@ export default function Settings() {
             type="text"
             {...register("secondary_phone")}
             error={errors?.secondary_phone?.message}
-            isRequired
           />
           <Input
             label="Address"
@@ -216,29 +171,6 @@ export default function Settings() {
             {...register("address")}
             error={errors?.address?.message}
             isRequired
-          />
-          <Input
-            label="Footer Description"
-            placeholder="Footer Description"
-            type="text"
-            {...register("footer_desc")}
-            error={errors?.footer_desc?.message}
-            isRequired
-          />
-          <Input
-            label="Google Analytics"
-            placeholder="Google Analytics"
-            type="text"
-            {...register("google_analytics")}
-            error={errors?.google_analytics?.message}
-            isRequired
-          />
-          <Input
-            label="Map Url"
-            placeholder="url from google map"
-            type="text"
-            {...register("mapUrl")}
-            error={errors?.mapUrl?.message}
           />
           <Input
             label="Pan/Vat Number"
@@ -268,12 +200,12 @@ export default function Settings() {
               {translate("Image Settings")}
             </h2>
             <p className="text-xs text-slate-500">
-              Logos, favicon, and brand color
+              Logos and favicon
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5 xl:grid-cols-3">
           <ImageField
             label={translate("Favicon Image")}
             required
@@ -290,110 +222,6 @@ export default function Settings() {
             image={brandingImage}
             onConfirm={() => handleConfirmImage("brandingImage")}
           />
-          <ImageField
-            label={translate("Footer Branding Image")}
-            required
-            open={isBrandingFooterImage}
-            setOpen={setIsBrandingFooterImage}
-            image={brandingFooterImage}
-            onConfirm={() => handleConfirmImage("brandingFooterImage")}
-          />
-
-          <div className="flex min-w-0 flex-col">
-            <label className="mb-2 text-left text-xs font-medium text-slate-600">
-              {translate("Primary Color")}
-            </label>
-            <div className="flex min-h-[11.5rem] flex-1 flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-              <div className="flex items-start gap-3">
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
-                  <Palette size={18} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800">
-                    Theme color
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Used across buttons and accents
-                  </p>
-                </div>
-              </div>
-
-              <ColorPicker value={colorValue} onChange={applyColor}>
-                <DialogTrigger>
-                  <AriaBtn className="mt-4 inline-flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-white">
-                    <ColorSwatch className="h-9 w-9 shrink-0 rounded-lg shadow-sm ring-1 ring-black/5" />
-                    <div className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-slate-800">
-                        {translate("Primary Color")}
-                      </span>
-                      <span className="block truncate font-mono text-xs text-slate-500">
-                        {(primaryColor || colorValue.toString("hex")).toUpperCase()}
-                      </span>
-                    </div>
-                  </AriaBtn>
-                  <Popover
-                    placement="bottom start"
-                    className="z-50 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
-                  >
-                    <Dialog className="flex flex-col gap-4 outline-none">
-                      <ColorArea
-                        colorSpace="hsb"
-                        xChannel="saturation"
-                        yChannel="brightness"
-                        value={colorValue}
-                        onChange={applyColor}
-                        className="aspect-square w-full max-w-[16rem] rounded-lg"
-                      >
-                        <ColorThumb className="size-7 rounded-full border-2 border-white shadow">
-                          <div className="size-full rounded-full border border-black/40" />
-                        </ColorThumb>
-                      </ColorArea>
-                      <ColorSlider
-                        colorSpace="hsb"
-                        channel="hue"
-                        value={colorValue}
-                        onChange={applyColor}
-                        className="h-4 w-full rounded-full"
-                      >
-                        <SliderTrack className="relative h-4 w-full rounded-full bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444)]">
-                          <ColorThumb className="absolute top-1/2 size-7 -translate-y-1/2 rounded-full border-2 border-white shadow">
-                            <div className="size-full rounded-full border border-black/40" />
-                          </ColorThumb>
-                        </SliderTrack>
-                      </ColorSlider>
-                      <ColorField
-                        value={colorValue}
-                        onChange={applyColor}
-                        className="flex flex-col gap-1"
-                      >
-                        <Label className="text-sm font-medium text-slate-700">
-                          Hex Color
-                        </Label>
-                        <Input
-                          value={
-                            colorFieldValue.trim().length > 0
-                              ? colorFieldValue
-                              : colorValue.toString("hex").toUpperCase()
-                          }
-                          onChange={(e) => {
-                            const hex = e.target.value.replace("#", "");
-                            setColorFieldValue(hex);
-                            if (isValidHex(hex)) {
-                              applyColor(parseColor(`#${hex}`));
-                            }
-                          }}
-                          placeholder="#RRGGBB"
-                        />
-                        <FieldError className="text-sm text-red-500">
-                          {errors?.primaryColor?.message}
-                        </FieldError>
-                      </ColorField>
-                    </Dialog>
-                  </Popover>
-                </DialogTrigger>
-              </ColorPicker>
-            </div>
-          </div>
         </div>
       </section>
 

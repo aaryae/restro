@@ -1,32 +1,22 @@
 import {
-  MdDisplaySettings,
-  MdOutlineFactCheck,
-  MdOutlineMailOutline,
-  MdOutlinePerson,
-  MdOutlineTableBar,
-} from "react-icons/md";
-
-import { FaMoneyBillWave } from "react-icons/fa";
-import { CircleDollarSign, ClipboardList } from "lucide-react";
-import { AiFillBank } from "react-icons/ai";
-import { FiShoppingCart } from "react-icons/fi";
-
-import { GiExpense } from "react-icons/gi";
-
-import {
-  Users,
-  ImageIcon,
-  Mail,
-  Settings,
-  UserCheck,
-  LogsIcon,
-  LandmarkIcon,
-  Sofa,
-  HandPlatter,
-  Layers,
-  UtensilsCrossed,
+  Banknote,
   ChartBarStacked,
+  CircleDollarSign,
+  ClipboardList,
   ClipboardPlus,
+  HandPlatter,
+  ImageIcon,
+  LandmarkIcon,
+  Layers,
+  LogsIcon,
+  Mail,
+  Receipt,
+  Settings,
+  ShoppingCart,
+  Sofa,
+  UserCheck,
+  Users,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export type SideListMenuType = {
@@ -80,13 +70,13 @@ export const SideMenuList: SideListMenuType[] = [
       {
         key: 3.1,
         name: "Revenue",
-        icon: <FaMoneyBillWave />,
+        icon: <Banknote />,
         path: "/admin/revenue/list",
       },
       {
         key: 3.2,
         name: "Purchase",
-        icon: <FiShoppingCart />,
+        icon: <ShoppingCart />,
         path: "/admin/purchase/list",
       },
       {
@@ -98,19 +88,19 @@ export const SideMenuList: SideListMenuType[] = [
       {
         key: 3.4,
         name: "Expense",
-        icon: <GiExpense />,
+        icon: <Receipt />,
         path: "/admin/expense/list",
       },
       {
         key: 3.5,
         name: "Expense Category",
-        icon: <GiExpense />,
+        icon: <Receipt />,
         path: "/admin/expense-category/list",
       },
       {
         key: 3.6,
         name: "Supplier",
-        icon: <GiExpense />,
+        icon: <Receipt />,
         path: "/admin/supplier/list",
       },
     ],
@@ -151,19 +141,19 @@ export const SideMenuList: SideListMenuType[] = [
         key: 4.1,
         name: "Floor",
         path: "/admin/floor/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
       },
       {
         key: 4.2,
         name: "Table",
         path: "/admin/table/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
       },
       {
         key: 4.3,
         name: "Department",
         path: "/admin/department/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
       },
     ],
   },
@@ -176,13 +166,13 @@ export const SideMenuList: SideListMenuType[] = [
         key: 8.1,
         name: "Account",
         label: "Accounts",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
         path: "/admin/account/list",
       },
       {
         key: 8.2,
         name: "Transaction",
-        icon: <GiExpense />,
+        icon: <Receipt />,
         path: "/admin/transaction/list",
       },
       {
@@ -203,13 +193,13 @@ export const SideMenuList: SideListMenuType[] = [
         key: 5.1,
         name: "Users",
         path: "/admin/auth/list",
-        icon: <MdOutlinePerson />,
+        icon: <UserCheck size={12} />,
       },
       {
         key: 5.2,
         name: "Roles",
         path: "/admin/roles/list",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
       },
     ],
   },
@@ -237,31 +227,19 @@ export const SideMenuList: SideListMenuType[] = [
         key: 9.1,
         name: "Company Settings",
         path: "/admin/settings/list",
-        icon: <MdDisplaySettings />,
+        icon: <Settings size={12} />,
       },
       {
         key: 9.2,
-        name: "Email Template",
-        path: "/admin/email-template/list",
-        icon: <MdOutlineMailOutline />,
-      },
-      {
-        key: 9.3,
-        name: "Email SMTP",
-        path: "/admin/smtp",
-        icon: <MdOutlineMailOutline />,
-      },
-      {
-        key: 9.4,
         name: "Ledger",
         path: "/admin/ledger/list",
         icon: <ClipboardList size={12} />,
       },
       {
-        key: 9.5,
+        key: 9.3,
         name: "Recently Deleted",
         path: "/admin/recently-deleted",
-        icon: <MdOutlineFactCheck />,
+        icon: <ClipboardList size={12} />,
       },
     ],
   },

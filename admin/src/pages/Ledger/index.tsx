@@ -20,6 +20,7 @@ import {
 } from "@/redux/services/crudApi";
 import { checkAccess, checkViewAccessList } from "@/utils/accessHelper";
 import { exportToExcel, exportToPdf } from "@/utils/singleExport";
+import "./ledger.css";
 
 type LedgerFilters = {
   startDate?: Date;
@@ -56,15 +57,15 @@ const categoryBadgeClass = (category: string) => {
   switch (category) {
     case "revenue":
     case "deposit":
-      return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
+      return "ledger-badge ledger-badge--in";
     case "expense":
     case "withdraw":
     case "purchase":
-      return "bg-rose-50 text-rose-700 ring-1 ring-rose-200";
+      return "ledger-badge ledger-badge--out";
     case "transfer":
-      return "bg-sky-50 text-sky-700 ring-1 ring-sky-200";
+      return "ledger-badge ledger-badge--transfer";
     default:
-      return "bg-slate-50 text-slate-700 ring-1 ring-slate-200";
+      return "ledger-badge ledger-badge--neutral";
   }
 };
 
@@ -285,16 +286,16 @@ const Ledger: React.FC = () => {
 
   const listQueryParams = {
     ...dateParams,
-    ...(filters.accountId ? { accountId: filters.accountId } : {}),
-    ...(filters.accountType ? { accountType: filters.accountType } : {}),
-    ...(filters.direction ? { direction: filters.direction } : {}),
-    ...(filters.category ? { category: filters.category } : {}),
+    ...(filters.accountId ? { accountId: String(filters.accountId) } : {}),
+    ...(filters.accountType ? { accountType: String(filters.accountType) } : {}),
+    ...(filters.direction ? { direction: String(filters.direction) } : {}),
+    ...(filters.category ? { category: String(filters.category) } : {}),
   };
 
   const url = buildQueryString("ledger/list", {
     page: query.page,
     limit: query.limit,
-    ...listQueryParams,
+    search: listQueryParams,
   });
 
   const {
@@ -335,38 +336,38 @@ const Ledger: React.FC = () => {
             ? new Date(row.entryDate).toLocaleString()
             : "-",
           <div className="min-w-0">
-            <div className="font-medium text-slate-800">
+            <div className="ledger-account-name">
               {row?.account?.name || "-"}
             </div>
-            <div className="text-[11px] capitalize text-slate-500">
+            <div className="ledger-account-type">
               {row?.account?.accountType || ""}
             </div>
           </div>,
-          <span
-            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${categoryBadgeClass(row?.category)}`}
-          >
+          <span className={categoryBadgeClass(row?.category)}>
             {CATEGORY_LABELS[row?.category] || row?.category}
           </span>,
           <span
-            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+            className={`ledger-badge ${
               row?.direction === "in"
-                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                ? "ledger-badge--in"
+                : "ledger-badge--out"
             }`}
           >
             {row?.direction === "in" ? "In" : "Out"}
           </span>,
           <span
-            className={`font-semibold ${
-              row?.direction === "in" ? "text-emerald-700" : "text-rose-700"
-            }`}
+            className={
+              row?.direction === "in"
+                ? "ledger-amount--in"
+                : "ledger-amount--out"
+            }
           >
             {row?.direction === "in" ? "+" : "-"}
             {CurrencySign}
             {Number(row?.amount || 0).toFixed(2)}
           </span>,
           <span
-            className="block max-w-[180px] truncate text-slate-600"
+            className="ledger-detail"
             title={row?.reference || row?.counterpartyAccount?.name || ""}
           >
             {row?.reference ||
@@ -390,7 +391,7 @@ const Ledger: React.FC = () => {
       const exportUrl = buildQueryString("ledger/list", {
         page: 1,
         limit: 5000,
-        ...listQueryParams,
+        search: listQueryParams,
       });
       const result = await fetchLedgerExport({ url: exportUrl }).unwrap();
       const rows = (result?.data?.data || []) as any[];
@@ -427,7 +428,7 @@ const Ledger: React.FC = () => {
 
   if (!canView) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+      <div className="ledger-denied">
         You do not have permission to view the cash &amp; bank ledger.
       </div>
     );
@@ -437,36 +438,33 @@ const Ledger: React.FC = () => {
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
         showSearch={false}
-        handleReloadButton={() => refetch()}
         subText="Watch every cash and bank money movement — inflows, outflows, and transfers."
       />
 
-      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 px-4 py-3">
-          <div className="text-[12px] font-medium text-emerald-700">
-            Money In
-          </div>
-          <div className="mt-1 text-lg font-semibold text-emerald-800">
+      <div className="ledger-summary-grid">
+        <div className="ledger-stat ledger-stat--in">
+          <div className="ledger-stat__label">Money In</div>
+          <div className="ledger-stat__value">
             {CurrencySign}
             {Number(summary?.moneyIn || 0).toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-rose-100 bg-rose-50/60 px-4 py-3">
-          <div className="text-[12px] font-medium text-rose-700">Money Out</div>
-          <div className="mt-1 text-lg font-semibold text-rose-800">
+        <div className="ledger-stat ledger-stat--out">
+          <div className="ledger-stat__label">Money Out</div>
+          <div className="ledger-stat__value">
             {CurrencySign}
             {Number(summary?.moneyOut || 0).toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="text-[12px] font-medium text-slate-600">Net</div>
-          <div
-            className={`mt-1 text-lg font-semibold ${
-              Number(summary?.net || 0) >= 0
-                ? "text-emerald-800"
-                : "text-rose-800"
-            }`}
-          >
+        <div
+          className={`ledger-stat ledger-stat--net ${
+            Number(summary?.net || 0) >= 0
+              ? "ledger-stat--net-positive"
+              : "ledger-stat--net-negative"
+          }`}
+        >
+          <div className="ledger-stat__label">Net</div>
+          <div className="ledger-stat__value">
             {CurrencySign}
             {Number(summary?.net || 0).toFixed(2)}
           </div>
@@ -500,9 +498,7 @@ const Ledger: React.FC = () => {
       <PageFilterWrapper title="Ledger Filters">{Component}</PageFilterWrapper>
 
       {isFetching ? (
-        <div className="py-12 text-center text-sm text-slate-500">
-          Loading ledger...
-        </div>
+        <div className="ledger-loading">Loading ledger...</div>
       ) : (
         <Table
           headers={headers}
@@ -512,12 +508,12 @@ const Ledger: React.FC = () => {
         />
       )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+      <div className="ledger-exports">
         <button
           type="button"
           disabled={!!exporting || !success}
           onClick={() => handleDownload("pdf")}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="ledger-export-btn"
         >
           <FileDown size={15} />
           {exporting === "pdf" ? "Preparing PDF..." : "Download PDF"}
@@ -526,7 +522,7 @@ const Ledger: React.FC = () => {
           type="button"
           disabled={!!exporting || !success}
           onClick={() => handleDownload("excel")}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="ledger-export-btn ledger-export-btn--accent"
         >
           <FileSpreadsheet size={15} />
           {exporting === "excel" ? "Preparing Excel..." : "Download Excel"}

@@ -4,7 +4,8 @@ WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile
+# Pin pnpm 9 — pnpm 10+ blocks sharp's install scripts unless interactively approved.
+RUN npm install -g pnpm@9.15.9 && pnpm install --prod --frozen-lockfile
 
 # Stage 2: Runtime
 FROM node:20-alpine3.20 AS production

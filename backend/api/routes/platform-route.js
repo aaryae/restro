@@ -4,6 +4,9 @@ const router = require("express").Router();
 const {
   login,
   me,
+  updateMe,
+  changeMyPassword,
+  uploadMyAvatar,
   stats,
   statsTrends,
   listCafes,
@@ -18,6 +21,8 @@ const {
   listPlatformUsers,
   createPlatformUser,
   updatePlatformUser,
+  getSmtp,
+  upsertSmtp,
 } = require("../controllers/platform-controller");
 const {
   platformAuthentication,
@@ -27,10 +32,26 @@ const {
   loginRateLimiter,
   provisionRateLimiter,
 } = require("../../utils/loginRateLimit");
+const uploaderHelper = require("../../utils/multer");
+
+const uploadAvatar = uploaderHelper.uploadFiles(
+  "resources",
+  "single",
+  "image",
+  false,
+);
 
 router.post("/login", loginRateLimiter, login);
 
 router.get("/me", platformAuthentication, me);
+router.patch("/me", platformAuthentication, updateMe);
+router.put("/me/password", platformAuthentication, changeMyPassword);
+router.post(
+  "/me/avatar",
+  platformAuthentication,
+  uploadAvatar,
+  uploadMyAvatar,
+);
 router.get(
   "/stats",
   platformAuthentication,
@@ -118,6 +139,19 @@ router.patch(
   platformAuthentication,
   requirePlatformPermission("users.manage"),
   updatePlatformUser,
+);
+
+router.get(
+  "/smtp",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  getSmtp,
+);
+router.put(
+  "/smtp",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  upsertSmtp,
 );
 
 module.exports = router;

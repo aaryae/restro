@@ -1,9 +1,18 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from "@reduxjs/toolkit/query/react";
 import { getToken } from "../../utils/tokenHandler";
 import { getTenantSlug } from "../../utils/tenantHandler";
 import { BACKEND_BASE_URL } from "../../constants";
+import { redirectToServeLogin } from "../../utils/serveAuth";
+import { parseTrialLifecyclePayload } from "../../utils/trialGate";
+import { openTrialGate } from "../feature/trialGateSlice";
 
-const baseQuery = fetchBaseQuery({
+const rawBaseQuery = fetchBaseQuery({
   baseUrl: BACKEND_BASE_URL,
   prepareHeaders: (headers) => {
     if (!headers.has("content-type")) {
@@ -24,6 +33,38 @@ const baseQuery = fetchBaseQuery({
     return headers;
   },
 });
+
+const baseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+
+  if (
+    result.error &&
+    (result.error.status === 401 || result.error.status === 403)
+  ) {
+    const trial = parseTrialLifecyclePayload(result.error);
+    if (trial) {
+      // Lazy import avoids circular store ↔ api dependency.
+      const { store } = await import("./store");
+      store.dispatch(
+        openTrialGate({
+          code: trial.code,
+          canSelfExtend: trial.canSelfExtend,
+          selfServeExtendDays: trial.selfServeExtendDays,
+          message: trial.message,
+          cafe: trial.cafe,
+        }),
+      );
+      return result;
+    }
+    redirectToServeLogin();
+  }
+
+  return result;
+};
 
 export const api = createApi({
   reducerPath: "api",
@@ -54,6 +95,7 @@ export const api = createApi({
     "transfer",
     "supplier",
     "revenue",
+    "report",
     "purchase",
     "purchase-category",
     "kot",

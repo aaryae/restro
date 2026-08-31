@@ -1,7 +1,6 @@
 import QR_IMAGE from "@/assets/qr-code.png";
 import Bill from "@/components/Bill";
 import CustomDialog from "@/components/Dialog";
-import Input from "@/components/Input";
 import { CurrencySign } from "@/constants";
 import { ACCOUNT_URL, ORDER_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery } from "@/redux/services/crudApi";
@@ -25,7 +24,19 @@ import {
 import { buildQueryString } from "@/utils/generalHelper";
 import { isNepalPayAccount } from "@/utils/paymentAccount";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { ArrowLeft, Banknote, Mail, Phone, Plus, Printer, QrCode, Split, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  Mail,
+  Phone,
+  Plus,
+  Printer,
+  QrCode,
+  Search,
+  Split,
+  User,
+  X,
+} from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -34,6 +45,7 @@ import React, {
   useState,
 } from "react";
 import { useReactToPrint } from "react-to-print";
+import { billPrintPageStyle } from "@/utils/printPageStyles";
 import AddEditCustomer from "../../Customer/AddEditCustomer";
 import styles from "./CheckoutModal.module.css";
 import DynamicQrDisplay from "./DynamicQrDisplay";
@@ -84,8 +96,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
   const [selectedCashId, setSelectedCashId] = useState<number | null>(null);
-  const [dynamicIntent, setDynamicIntent] =
-    useState<PaymentIntentData | null>(null);
+  const [dynamicIntent, setDynamicIntent] = useState<PaymentIntentData | null>(
+    null,
+  );
   const [dynamicQrError, setDynamicQrError] = useState<string | null>(null);
   const [tenderAmount, setTenderAmount] = useState<string>("");
 
@@ -152,44 +165,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const printBill = useReactToPrint({
     contentRef: billRef,
     documentTitle: `Bill-${order?.data?.orderNumber || "Invoice"}`,
-    pageStyle: `
-      @page {
-        size: 80mm auto;
-        margin: 5mm 3mm;
-      }
-      @media print {
-        html, body {
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-        }
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-        /* Ensure only the bill area is printed nicely for 80mm */
-        #bill-print {
-          width: 80mm !important;
-          max-width: 80mm !important;
-          margin: 0 auto !important;
-          padding: 0 !important;
-          background: #fff !important;
-        }
-
-        #bill-print h1 { font-size: 14px !important; }
-        #bill-print h2 { font-size: 12px !important; }
-        #bill-print h3, #bill-print p, #bill-print span { font-size: 10px !important; }
-
-        #bill-print table { width: 100% !important; border-collapse: collapse !important; }
-        #bill-print th, #bill-print td { padding: 4px 6px !important; }
-        #bill-print th { font-weight: 600 !important; }
-
-        /* Prevent awkward page breaks */
-        #bill-print tr { page-break-inside: avoid; }
-        #bill-print thead { display: table-header-group; }
-        #bill-print tfoot { display: table-footer-group; }
-
-        .no-print { display: none !important; }
-      }
-    `,
+    pageStyle: billPrintPageStyle,
   });
 
   // Fetch all accounts to populate bank and wallet dropdowns
@@ -282,8 +258,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const selectedPaymentSource = useMemo(
     () =>
       paymentType === "cash"
-        ? paymentSources.find((s) => s.id === selectedCashId) ?? null
-        : paymentSources.find((s) => s.id === selectedBankId) ?? null,
+        ? (paymentSources.find((s) => s.id === selectedCashId) ?? null)
+        : (paymentSources.find((s) => s.id === selectedBankId) ?? null),
     [paymentSources, paymentType, selectedCashId, selectedBankId],
   );
 
@@ -295,7 +271,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     refetch: customerRefetch,
   } = useGetApiQuery(
     { url: customerUrl },
-    { skip: !isOpen || checkoutType !== "member" },
+    { skip: !isOpen || customerSearchTerm.trim().length === 0 },
   );
 
   const customerResults = useMemo(
@@ -324,9 +300,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleCustomerSearchChange = (value: string) => {
     setCustomerSearchTerm(value);
-    if (value.trim()) {
-      setSelectedMember(null);
-    }
+  };
+
+  const handleSelectMember = (customer: Customer) => {
+    setSelectedMember(customer);
+    setCheckoutType("member");
+    setCustomerSearchTerm("");
   };
 
   const closeDialog = () => {
@@ -337,6 +316,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setCheckoutType(type);
     if (type === "guest") {
       setSelectedMember(null);
+      setCustomerSearchTerm("");
     }
   };
 
@@ -1101,9 +1081,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const tableLabel =
     order?.data?.table?.tableNo || table?.data?.tableNo || null;
-  const pageTitle = tableLabel
-    ? `Checkout — Table ${tableLabel}`
-    : "Checkout";
+  const pageTitle = tableLabel ? `Checkout — Table ${tableLabel}` : "Checkout";
 
   const body = (
     <>
@@ -1146,7 +1124,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                    className={`${styles.backBtn} inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg`}
                     aria-label="Back"
                   >
                     <ArrowLeft size={18} />
@@ -1175,580 +1153,542 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <div
             className={variant === "page" ? styles.pageBody : styles.modalBody}
           >
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
-                {/* Left column: Order details and member section */}
-                <div className="flex flex-col gap-4 lg:col-span-2">
-                  <div className="mt-4 border border-1 rounded p-3 sm:p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4 ">
-                      <h2 className="font-semibold text-[17px]">
-                        Order Details
-                      </h2>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          onChange={toggleSelectAll}
-                          aria-label="Select all order items"
-                        />
-                        <span>Select All</span>
-                      </label>
-                    </div>
-                    <div className="overflow-x-auto rounded border">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50">
-                          <tr className="text-[15px]">
-                            <th className="p-2 border text-center w-12">
-                              <input
-                                type="checkbox"
-                                checked={allSelected}
-                                onChange={toggleSelectAll}
-                                aria-label="Select all order items"
-                              />
-                            </th>
-                            <th className="p-2 sm:p-4 border text-left w-12">
-                              S.N
-                            </th>
-                            <th className="p-2 sm:p-4 border text-left">
-                              Item
-                            </th>
-                            <th className="p-2 sm:p-4 border text-right min-w-[10rem]">
-                              Price
-                            </th>
-                            <th className="p-2 sm:p-4 border text-right w-24">
-                              Quantity
-                            </th>
-                            <th className="p-2 sm:p-4 border text-right w-28">
-                              Total
-                            </th>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
+              {/* Left column: Order details */}
+              <div className="flex flex-col gap-4 lg:col-span-2">
+                <div className={`mt-4 ${styles.orderCard}`}>
+                  <div className={styles.orderCardHead}>
+                    <h2 className={styles.orderCardTitle}>Order Details</h2>
+                    <label className={styles.selectAllLabel}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all order items"
+                      />
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                  <div className={styles.tableWrap}>
+                    <table className={styles.itemsTable}>
+                      <thead>
+                        <tr>
+                          <th className={styles.checkCell}>
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              onChange={toggleSelectAll}
+                              aria-label="Select all order items"
+                            />
+                          </th>
+                          <th className={styles.snCell}>S.N</th>
+                          <th>Item</th>
+                          <th className={styles.numCell}>Price</th>
+                          <th className={styles.numCell}>Qty</th>
+                          <th className={styles.numCell}>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(!items || items.length === 0) && (
+                          <tr>
+                            <td className={styles.emptyRow} colSpan={6}>
+                              No items
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {(!items || items.length === 0) && (
-                            <tr>
-                              <td
-                                className="p-3 text-center text-gray-500"
-                                colSpan={6}
-                              >
-                                No items
+                        )}
+                        {items?.map((it: any, idx) => {
+                          const sid = String(it.id);
+                          const qty = Number(it.quantity ?? 0);
+                          const unitPrice = Number(it.productPrice ?? 0);
+                          const baseSubtotal = Number(
+                            it.subtotal ?? unitPrice * qty,
+                          );
+                          const addons = Array.isArray(it.addons)
+                            ? it.addons
+                            : [];
+                          const lineTotal =
+                            Number(it.totalWithAddons ?? 0) ||
+                            baseSubtotal +
+                              addons.reduce(
+                                (s: number, a: any) =>
+                                  s +
+                                  (Number(
+                                    a.subtotal ??
+                                      Number(a.price || 0) *
+                                        Number(a.quantity || 0),
+                                  ) || 0),
+                                0,
+                              );
+                          const priceLabel =
+                            qty > 1
+                              ? `${CurrencySign}${unitPrice.toFixed(2)} × ${qty} = ${CurrencySign}${baseSubtotal.toFixed(2)}`
+                              : `${CurrencySign}${unitPrice.toFixed(2)}`;
+
+                          return (
+                            <tr key={sid}>
+                              <td className={styles.checkCell}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(sid)}
+                                  onChange={() => toggleRow(it.id)}
+                                  aria-label={`Select item ${it.productName}`}
+                                />
+                              </td>
+                              <td className={styles.snCell}>{idx + 1}</td>
+                              <td>
+                                <div className={styles.itemName}>
+                                  {it.productName}
+                                </div>
+                                {addons.length === 0 && (
+                                  <div className={styles.itemSub}>
+                                    No addons
+                                  </div>
+                                )}
+                              </td>
+                              <td className={styles.numCell}>
+                                <div className="flex flex-col gap-1 items-end">
+                                  <div>{priceLabel}</div>
+                                  {addons.map((addon: any) => {
+                                    const addonQty = Number(
+                                      addon.quantity ?? 1,
+                                    );
+                                    const addonUnit = Number(addon.price ?? 0);
+                                    const addonTotal = Number(
+                                      addon.subtotal ?? addonUnit * addonQty,
+                                    );
+                                    return (
+                                      <div
+                                        key={`${sid}_addon_price_${addon.id}`}
+                                        className={styles.addonLine}
+                                      >
+                                        {`+ ${addon.name} ×${addonQty} (${CurrencySign.trim()}${addonUnit.toFixed(2)}) = ${CurrencySign}${addonTotal.toFixed(2)}`}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                              <td className={styles.numCell}>{qty}</td>
+                              <td className={styles.numCell}>
+                                {lineTotal.toFixed(2)}
                               </td>
                             </tr>
-                          )}
-                          {items?.map((it: any, idx) => {
-                            const sid = String(it.id);
-                            const qty = Number(it.quantity ?? 0);
-                            const unitPrice = Number(it.productPrice ?? 0);
-                            const baseSubtotal = Number(
-                              it.subtotal ?? unitPrice * qty,
-                            );
-                            const addons = Array.isArray(it.addons)
-                              ? it.addons
-                              : [];
-                            const lineTotal =
-                              Number(it.totalWithAddons ?? 0) ||
-                              baseSubtotal +
-                                addons.reduce(
-                                  (s: number, a: any) =>
-                                    s +
-                                    (Number(
-                                      a.subtotal ??
-                                        Number(a.price || 0) *
-                                          Number(a.quantity || 0),
-                                    ) || 0),
-                                  0,
-                                );
-                            const priceLabel =
-                              qty > 1
-                                ? `${CurrencySign}${unitPrice.toFixed(2)} × ${qty} = ${CurrencySign}${baseSubtotal.toFixed(2)}`
-                                : `${CurrencySign}${unitPrice.toFixed(2)}`;
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className={styles.selectedCount}>
+                    Selected: {selectedIds.length} / {items?.length || 0}
+                  </div>
+                </div>
+                <div className={styles.totalsCard}>
+                  <div className={styles.totalsRow}>
+                    <h3 className={styles.totalsLabel}>Sub Total</h3>
+                    <h3 className={styles.totalsValue}>
+                      {CurrencySign} {selectedSubtotal.toFixed(2)}
+                    </h3>
+                  </div>
+                  <div className={styles.totalsDivider} />
+                  <div
+                    className={`${styles.totalsRow} ${styles.totalsRowGrand}`}
+                  >
+                    <h3 className={styles.totalsLabel}>Total</h3>
+                    <h3 className={styles.totalsValue}>
+                      {CurrencySign} {selectedSubtotal.toFixed(2)}
+                    </h3>
+                  </div>
+                </div>
+              </div>
 
-                            return (
-                              <tr
-                                key={sid}
-                                className="odd:bg-white even:bg-gray-50 text-[15px]"
-                              >
-                                <td className="p-2 sm:p-4 border text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedIds.includes(sid)}
-                                    onChange={() => toggleRow(it.id)}
-                                    aria-label={`Select item ${it.productName}`}
-                                  />
-                                </td>
-                                <td className="p-2 sm:p-4 border">{idx + 1}</td>
-                                <td className="p-2 sm:p-4 border">
-                                  <div className="flex flex-col gap-1">
-                                    <div className="font-medium">
-                                      {it.productName}
-                                    </div>
-                                    {addons.length === 0 && (
-                                      <div className="text-xs text-gray-500 text-left">
-                                        No addons
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-2 sm:p-4 border text-right">
-                                  <div className="flex flex-col gap-1 items-end">
-                                    <div>{priceLabel}</div>
-                                    {addons.map((addon: any) => {
-                                      const addonQty = Number(
-                                        addon.quantity ?? 1,
-                                      );
-                                      const addonUnit = Number(
-                                        addon.price ?? 0,
-                                      );
-                                      const addonTotal = Number(
-                                        addon.subtotal ??
-                                          addonUnit * addonQty,
-                                      );
-                                      return (
-                                        <div
-                                          key={`${sid}_addon_price_${addon.id}`}
-                                          className="text-xs text-gray-600"
-                                        >
-                                          {`+ ${addon.name} ×${addonQty} (${CurrencySign.trim()}${addonUnit.toFixed(2)}) = ${CurrencySign}${addonTotal.toFixed(2)}`}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </td>
-                                <td className="p-2 sm:p-4 border text-right">
-                                  {qty}
-                                </td>
-                                <td className="p-2 sm:p-4 border text-right">
-                                  {lineTotal.toFixed(2)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-600">
-                      Selected: {selectedIds.length} / {items?.length || 0}
-                    </div>
-                  </div>
-                  <div className="flex flex-col border border-1 rounded p-4 sm:p-6 gap-4 sm:gap-6 font-semibold">
-                    <div className="flex justify-between">
-                      <h3 className="text-[17px]">Sub Total</h3>
-                      <h3 className="text-[17px]">
-                        {CurrencySign} {selectedSubtotal.toFixed(2)}
-                      </h3>
-                    </div>
-                    <div className="flex justify-between">
-                      <h3 className="text-[17px]">Total</h3>
-                      <h3 className="text-[17px]">
-                        {CurrencySign} {selectedSubtotal.toFixed(2)}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="flex flex-col border border-1 rounded p-4 gap-4 sm:gap-6 font-bold ">
-                    <div className="flex justify-between">
-                      <h2 className="text-[17px]">Checkout As:</h2>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          value="guest"
-                          checked={checkoutType === "guest"}
-                          onChange={() => handleCheckoutTypeChange("guest")}
-                          className="mr-2"
-                        />
-                        <span className={styles.paymentText}>Guest</span>
-                      </label>
-                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            value="member"
-                            checked={checkoutType === "member"}
-                            onChange={() => handleCheckoutTypeChange("member")}
-                            className="mr-2"
-                          />
-                          <span className={styles.paymentText}>Member</span>
-                        </label>
-                        {checkoutType === "member" && (
-                          <CustomDialog
-                            buttonTitle={
-                              <button
-                                type="button"
-                                className="flex gap-[0.5rem] items-center py-[0.25rem] px-[0.75rem] bg-primaryColor text-white rounded-[0.25rem]"
-                              >
-                                <Plus />
-                                Add
-                              </button>
-                            }
-                            dialogOpen={dialogOpen}
-                            setDialogOpen={setDialogOpen}
-                            title="Add User"
-                          >
-                            <AddEditCustomer
-                              isComponent={true}
-                              closeModal={closeDialog}
-                            />
-                          </CustomDialog>
-                        )}
-                      </div>
-                    </div>
-                    {checkoutType === "member" && (
-                      <div>
-                        <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-8">
-                          <label
-                            className={`${styles.paymentLabel} block mb-1 w-[12rem]`}
-                          >
-                            Search Member:
-                          </label>
-                          <Input
-                            value={customerSearchTerm}
-                            onChange={(e) => {
-                              handleCustomerSearchChange(e.target.value);
-                            }}
-                            className="w-full sm:w-[75%]"
-                          />
+              {/* Right column: Customer then payment */}
+              <div className="mt-4 lg:mt-4">
+                <div className={styles.payPanel}>
+                  <div className={styles.customerSection}>
+                    <div className={styles.payPanelHeader}>
+                      <h3 className={styles.paySectionTitle}>Customer</h3>
+                      <CustomDialog
+                        buttonTitle={
                           <button
-                            onClick={customerRefetch}
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            type="button"
+                            className={styles.addCustomerBtn}
                           >
-                            Search
+                            <Plus size={14} />
+                            Add new
                           </button>
-                        </div>
-                        {customerDataLoading && isSearchingMember ? (
-                          <p className="text-gray-500">Loading members...</p>
-                        ) : isSearchingMember ? (
-                          customerSuccess && customerResults.length > 0 ? (
-                            <div className={styles.memberSearchResults}>
-                              {customerResults.map((customer: Customer) => (
-                                <button
-                                  key={customer.id}
-                                  type="button"
-                                  className={styles.memberSearchResult}
-                                  onClick={() => {
-                                    setSelectedMember(customer);
-                                    setCustomerSearchTerm("");
-                                  }}
-                                >
-                                  <span className={styles.memberSearchResultName}>
-                                    {getMemberDisplayName(customer)}
-                                  </span>
-                                  <span className={styles.memberSearchResultMeta}>
-                                    {customer.mobileNo || "No phone"}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : customerSuccess ? (
-                            <p className={styles.memberSearchEmpty}>
-                              No members found
-                            </p>
-                          ) : customerSearchError ? (
-                            <div>
-                              <p className={styles.memberSearchEmpty}>
-                                Could not search members
-                              </p>
-                              <button
-                                type="button"
-                                onClick={customerRefetch}
-                                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                              >
-                                Retry
-                              </button>
-                            </div>
-                          ) : null
-                        ) : null}
-                      </div>
-                    )}
-                    {selectedMember && !isSearchingMember && (
+                        }
+                        dialogOpen={dialogOpen}
+                        setDialogOpen={setDialogOpen}
+                        title="Add customer"
+                        contentClassName="max-h-none max-w-md gap-3 overflow-hidden p-5 sm:p-5"
+                      >
+                        <AddEditCustomer
+                          isComponent={true}
+                          closeModal={closeDialog}
+                          onCreated={handleSelectMember}
+                        />
+                      </CustomDialog>
+                    </div>
+
+                    {checkoutType === "member" && selectedMember ? (
                       <div className={styles.selectedMemberCard}>
                         <div className={styles.selectedMemberAvatar}>
                           {getMemberInitials(selectedMember)}
                         </div>
                         <div className={styles.selectedMemberInfo}>
-                          <p className={styles.selectedMemberLabel}>
-                            Selected Member
-                          </p>
                           <p className={styles.selectedMemberName}>
                             {getMemberDisplayName(selectedMember)}
                           </p>
                           <div className={styles.selectedMemberMeta}>
-                            {selectedMember.email ? (
-                              <span className={styles.selectedMemberMetaItem}>
-                                <Mail size={14} />
-                                {selectedMember.email}
-                              </span>
-                            ) : null}
                             {selectedMember.mobileNo ? (
                               <span className={styles.selectedMemberMetaItem}>
                                 <Phone size={14} />
                                 {selectedMember.mobileNo}
                               </span>
-                            ) : null}
+                            ) : selectedMember.email ? (
+                              <span className={styles.selectedMemberMetaItem}>
+                                <Mail size={14} />
+                                {selectedMember.email}
+                              </span>
+                            ) : (
+                              <span className={styles.guestMeta}>
+                                Loyalty member
+                              </span>
+                            )}
                           </div>
                         </div>
                         <button
                           type="button"
                           className={styles.selectedMemberClear}
-                          onClick={() => setSelectedMember(null)}
-                          aria-label="Remove selected member"
+                          onClick={() => handleCheckoutTypeChange("guest")}
+                          aria-label="Switch back to guest"
                         >
                           <X size={16} />
                         </button>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right column: Payment Method panel */}
-                <div className="mt-4 lg:mt-4">
-                  <div className={styles.payPanel}>
-                    <div className={styles.payPanelHeader}>
-                      <h3 className={styles.paySectionTitle}>
-                        {paymentType === "split"
-                          ? "Split payment"
-                          : "How are they paying?"}
-                      </h3>
+                    ) : (
                       <button
                         type="button"
-                        className={`${styles.splitLinkBtn} ${
-                          paymentType === "split" ? styles.splitLinkBtnActive : ""
-                        }`}
-                        onClick={() =>
-                          setPaymentType((prev) =>
-                            prev === "split" ? "cash" : "split",
-                          )
-                        }
+                        className={`${styles.guestCard} ${styles.guestCardActive}`}
+                        onClick={() => handleCheckoutTypeChange("guest")}
                       >
-                        <Split size={14} />
-                        {paymentType === "split" ? "Single payment" : "Split"}
+                        <span className={styles.guestAvatar}>
+                          <User size={16} />
+                        </span>
+                        <span className={styles.guestInfo}>
+                          <span className={styles.guestName}>Guest</span>
+                          <span className={styles.guestMeta}>Walk-in sale</span>
+                        </span>
                       </button>
+                    )}
+
+                    <div className={styles.customerSearchWrap}>
+                      <Search
+                        size={16}
+                        className={styles.customerSearchIcon}
+                        aria-hidden
+                      />
+                      <input
+                        type="search"
+                        value={customerSearchTerm}
+                        onChange={(e) =>
+                          handleCustomerSearchChange(e.target.value)
+                        }
+                        placeholder="Search customer by name or phone"
+                        className={styles.customerSearchInput}
+                        aria-label="Search customer by name or phone"
+                      />
                     </div>
 
-                    {paymentType === "split" ? (
-                      <SplitPayment
-                        key={selectedSubtotal.toFixed(2)}
-                        grandTotal={selectedSubtotal}
-                        setSplitPaymentData={setSplitPaymentData}
-                        isMemberAssigned={
-                          checkoutType === "member" && !!selectedMember
-                        }
-                      />
-                    ) : (
-                      <>
-                        <div className={styles.paymentSourceGrid}>
-                          {paymentSources.length === 0 ? (
-                            <p className={styles.payHintError}>
-                              No active payment accounts found.
-                            </p>
-                          ) : (
-                            paymentSources.map((source) => {
-                              const isCash = source.accountType === "cash";
-                              const isActive =
-                                (isCash &&
-                                  paymentType === "cash" &&
-                                  selectedCashId === source.id) ||
-                                (!isCash &&
-                                  paymentType === "qr" &&
-                                  selectedBankId === source.id);
-                              return (
-                                <button
-                                  key={source.id}
-                                  type="button"
-                                  className={`${styles.paymentSourceBtn} ${
-                                    isActive
-                                      ? styles.paymentSourceBtnActive
-                                      : ""
-                                  }`}
-                                  onClick={() => {
-                                    if (isCash) {
-                                      setPaymentType("cash");
-                                      setSelectedCashId(source.id);
-                                    } else {
-                                      setPaymentType("qr");
-                                      setSelectedBankId(source.id);
-                                    }
-                                  }}
-                                >
-                                  {isCash ? (
-                                    <Banknote size={16} />
-                                  ) : (
-                                    <QrCode size={16} />
-                                  )}
-                                  <span className={styles.paymentSourceName}>
-                                    {source.name}
-                                  </span>
-                                  <span className={styles.paymentSourceMeta}>
-                                    {isCash
-                                      ? "Cash counter"
-                                      : source.supportsDynamicQr
-                                        ? "Dynamic QR"
-                                        : "Static QR"}
-                                  </span>
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
-
-                        {paymentType === "cash" && (
-                          <div className={styles.cashPanel}>
-                            <p className={styles.payHint}>
-                              {selectedPaymentSource?.name ??
-                                "Select a cash counter"}
-                            </p>
-                            <label
-                              className={styles.fieldLabel}
-                              htmlFor="cash-received"
+                    {customerDataLoading && isSearchingMember ? (
+                      <p className={styles.memberSearchEmpty}>
+                        Searching customers…
+                      </p>
+                    ) : isSearchingMember ? (
+                      customerSuccess && customerResults.length > 0 ? (
+                        <div className={styles.memberSearchResults}>
+                          {customerResults.map((customer: Customer) => (
+                            <button
+                              key={customer.id}
+                              type="button"
+                              className={styles.memberSearchResult}
+                              onClick={() => handleSelectMember(customer)}
                             >
-                              Cash received
-                            </label>
-                            <input
-                              id="cash-received"
-                              type="number"
-                              value={tenderAmount}
-                              onChange={(e) =>
-                                handleTenderAmountChange(e.target.value)
-                              }
-                              placeholder="0.00"
-                              className={`${styles.tenderInput} ${
-                                cashTenderShort || cashTenderExcessive
-                                  ? styles.tenderInputError
-                                  : ""
-                              }`}
-                              min="0"
-                              max={selectedSubtotal}
-                              step="0.01"
-                            />
-                            {cashTenderShort ? (
-                              <p className={styles.payHintError}>
-                                Cash received must be at least {CurrencySign}{" "}
-                                {selectedSubtotal.toFixed(2)}
-                              </p>
-                            ) : null}
-                            <div className={styles.changeBox}>
-                              <span className={styles.changeLabel}>
-                                {tenderValue >= selectedSubtotal
-                                  ? "Change"
-                                  : "Short"}
+                              <span className={styles.memberSearchResultName}>
+                                {getMemberDisplayName(customer)}
                               </span>
-                              <span
-                                className={`${styles.changeValue} ${
-                                  tenderValue >= selectedSubtotal
-                                    ? styles.changeValueGood
-                                    : styles.changeValueWarn
+                              <span className={styles.memberSearchResultMeta}>
+                                {customer.mobileNo || "No phone"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : customerSuccess ? (
+                        <p className={styles.memberSearchEmpty}>
+                          No customers found
+                        </p>
+                      ) : customerSearchError ? (
+                        <div>
+                          <p className={styles.memberSearchError}>
+                            Could not search customers
+                          </p>
+                          <button
+                            type="button"
+                            onClick={customerRefetch}
+                            className={styles.addCustomerBtn}
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : null
+                    ) : null}
+                  </div>
+
+                  <div className={styles.payPanelHeader}>
+                    <h3 className={styles.paySectionTitle}>
+                      {paymentType === "split"
+                        ? "Split payment"
+                        : "How are they paying?"}
+                    </h3>
+                    <button
+                      type="button"
+                      className={`${styles.splitLinkBtn} ${
+                        paymentType === "split" ? styles.splitLinkBtnActive : ""
+                      }`}
+                      onClick={() =>
+                        setPaymentType((prev) =>
+                          prev === "split" ? "cash" : "split",
+                        )
+                      }
+                    >
+                      <Split size={14} />
+                      {paymentType === "split" ? "Single payment" : "Split"}
+                    </button>
+                  </div>
+
+                  {paymentType === "split" ? (
+                    <SplitPayment
+                      key={selectedSubtotal.toFixed(2)}
+                      grandTotal={selectedSubtotal}
+                      setSplitPaymentData={setSplitPaymentData}
+                      isMemberAssigned={
+                        checkoutType === "member" && !!selectedMember
+                      }
+                    />
+                  ) : (
+                    <>
+                      <div className={styles.paymentSourceGrid}>
+                        {paymentSources.length === 0 ? (
+                          <p className={styles.payHintError}>
+                            No active payment accounts found.
+                          </p>
+                        ) : (
+                          paymentSources.map((source) => {
+                            const isCash = source.accountType === "cash";
+                            const isActive =
+                              (isCash &&
+                                paymentType === "cash" &&
+                                selectedCashId === source.id) ||
+                              (!isCash &&
+                                paymentType === "qr" &&
+                                selectedBankId === source.id);
+                            return (
+                              <button
+                                key={source.id}
+                                type="button"
+                                className={`${styles.paymentSourceBtn} ${
+                                  isActive ? styles.paymentSourceBtnActive : ""
                                 }`}
+                                onClick={() => {
+                                  if (isCash) {
+                                    setPaymentType("cash");
+                                    setSelectedCashId(source.id);
+                                  } else {
+                                    setPaymentType("qr");
+                                    setSelectedBankId(source.id);
+                                  }
+                                }}
                               >
-                                {CurrencySign}{" "}
-                                {(tenderValue >= selectedSubtotal
-                                  ? changeDue
-                                  : amountDue
-                                ).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
+                                {isCash ? (
+                                  <Banknote size={16} />
+                                ) : (
+                                  <QrCode size={16} />
+                                )}
+                                <span className={styles.paymentSourceName}>
+                                  {source.name}
+                                </span>
+                                <span className={styles.paymentSourceMeta}>
+                                  {isCash
+                                    ? "Cash counter"
+                                    : source.supportsDynamicQr
+                                      ? "Dynamic QR"
+                                      : "Static QR"}
+                                </span>
+                              </button>
+                            );
+                          })
                         )}
+                      </div>
 
-                        {paymentType === "qr" && (
-                          <div className={styles.payBlockBody}>
+                      {paymentType === "cash" && (
+                        <div className={styles.cashPanel}>
+                          {/* The chosen tile above already names the counter,
+                                so only prompt when nothing is selected. */}
+                          {selectedPaymentSource ? null : (
                             <p className={styles.payHint}>
-                              {selectedPaymentSource?.name ??
-                                "Select a bank or wallet"}
+                              Select a cash counter
                             </p>
+                          )}
+                          <label
+                            className={styles.fieldLabel}
+                            htmlFor="cash-received"
+                          >
+                            Cash received
+                          </label>
+                          <input
+                            id="cash-received"
+                            type="number"
+                            value={tenderAmount}
+                            onChange={(e) =>
+                              handleTenderAmountChange(e.target.value)
+                            }
+                            placeholder="0.00"
+                            className={`${styles.tenderInput} ${
+                              cashTenderShort || cashTenderExcessive
+                                ? styles.tenderInputError
+                                : ""
+                            }`}
+                            min="0"
+                            max={selectedSubtotal}
+                            step="0.01"
+                          />
+                          {cashTenderShort ? (
+                            <p className={styles.payHintError}>
+                              Cash received must be at least {CurrencySign}{" "}
+                              {selectedSubtotal.toFixed(2)}
+                            </p>
+                          ) : null}
+                          <div className={styles.changeBox}>
+                            <span className={styles.changeLabel}>
+                              {tenderValue >= selectedSubtotal
+                                ? "Change"
+                                : "Short"}
+                            </span>
+                            <span
+                              className={`${styles.changeValue} ${
+                                tenderValue >= selectedSubtotal
+                                  ? styles.changeValueGood
+                                  : styles.changeValueWarn
+                              }`}
+                            >
+                              {CurrencySign}{" "}
+                              {(tenderValue >= selectedSubtotal
+                                ? changeDue
+                                : amountDue
+                              ).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
-                            <div className={styles.qrPreview}>
-                              {selectedBankId && isNepalPaySelected && (
-                                <>
-                                  {dynamicQrError && (
-                                    <p className={styles.payHintError}>
-                                      {dynamicQrError}
-                                    </p>
-                                  )}
-                                  {!dynamicQrError &&
-                                    (!dynamicIntent ||
-                                      Math.abs(
-                                        dynamicIntent.amount - selectedSubtotal,
-                                      ) >= 0.01) && (
-                                      <p className={styles.payHint}>
-                                        Updating QR…
-                                      </p>
-                                    )}
-                                  {dynamicIntent &&
+                      {paymentType === "qr" && (
+                        <div className={styles.payBlockBody}>
+                          <p className={styles.payHint}>
+                            {selectedPaymentSource?.name ??
+                              "Select a bank or wallet"}
+                          </p>
+
+                          <div className={styles.qrPreview}>
+                            {selectedBankId && isNepalPaySelected && (
+                              <>
+                                {dynamicQrError && (
+                                  <p className={styles.payHintError}>
+                                    {dynamicQrError}
+                                  </p>
+                                )}
+                                {!dynamicQrError &&
+                                  (!dynamicIntent ||
                                     Math.abs(
                                       dynamicIntent.amount - selectedSubtotal,
-                                    ) < 0.01 && (
-                                      <DynamicQrDisplay
-                                        qrImageUrl={dynamicIntent.qrImageUrl}
-                                        qrPayload={dynamicIntent.qrPayload}
-                                        amount={dynamicIntent.amount}
-                                        merchantTxnRef={
-                                          dynamicIntent.merchantTxnRef
-                                        }
-                                        expiresAt={dynamicIntent.expiresAt}
-                                        status={dynamicIntent.status}
-                                      />
-                                    )}
-                                </>
-                              )}
-                              {selectedBankId && !isNepalPaySelected && (
-                                <img
-                                  src={
-                                    bankQrUrl
-                                      ? buildAssetUrl(bankQrUrl)
-                                      : QR_IMAGE
-                                  }
-                                  alt="Scan to pay"
-                                  className={styles.qrImage}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      QR_IMAGE;
-                                  }}
-                                />
-                              )}
-                              {!selectedBankId && (
-                                <p className={styles.payHint}>
-                                  Choose a QR account to continue
-                                </p>
-                              )}
-                            </div>
+                                    ) >= 0.01) && (
+                                    <p className={styles.payHint}>
+                                      Updating QR…
+                                    </p>
+                                  )}
+                                {dynamicIntent &&
+                                  Math.abs(
+                                    dynamicIntent.amount - selectedSubtotal,
+                                  ) < 0.01 && (
+                                    <DynamicQrDisplay
+                                      qrImageUrl={dynamicIntent.qrImageUrl}
+                                      qrPayload={dynamicIntent.qrPayload}
+                                      amount={dynamicIntent.amount}
+                                      merchantTxnRef={
+                                        dynamicIntent.merchantTxnRef
+                                      }
+                                      expiresAt={dynamicIntent.expiresAt}
+                                      status={dynamicIntent.status}
+                                    />
+                                  )}
+                              </>
+                            )}
+                            {selectedBankId && !isNepalPaySelected && (
+                              <img
+                                src={
+                                  bankQrUrl
+                                    ? buildAssetUrl(bankQrUrl)
+                                    : QR_IMAGE
+                                }
+                                alt="Scan to pay"
+                                className={styles.qrImage}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = QR_IMAGE;
+                                }}
+                              />
+                            )}
+                            {!selectedBankId && (
+                              <p className={styles.payHint}>
+                                Choose a QR account to continue
+                              </p>
+                            )}
                           </div>
-                        )}
-                      </>
-                    )}
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                    <div className={styles.payActions}>
-                      <button
-                        type="button"
-                        disabled={paymentSubmitDisabled}
-                        onClick={handlePayment}
-                        className={styles.completeBtn}
-                      >
-                        {paymentSubmitLabel}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleOpenPreview}
-                        className={styles.previewBtn}
-                        disabled={
-                          checkoutType === "member" && !selectedMember
-                        }
-                      >
-                        Preview bill
-                      </button>
-                      <button
-                        type="button"
-                        disabled={paymentSubmitDisabled}
-                        onClick={handleSubmitAndPrint}
-                        className={styles.printBtn}
-                      >
-                        <Printer size={15} />
-                        Print & pay
-                      </button>
-                    </div>
+                  <div className={styles.payActions}>
+                    <button
+                      type="button"
+                      disabled={paymentSubmitDisabled}
+                      onClick={handlePayment}
+                      className={styles.completeBtn}
+                    >
+                      {paymentSubmitLabel}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenPreview}
+                      className={styles.previewBtn}
+                      disabled={checkoutType === "member" && !selectedMember}
+                    >
+                      Preview bill
+                    </button>
+                    <button
+                      type="button"
+                      disabled={paymentSubmitDisabled}
+                      onClick={handleSubmitAndPrint}
+                      className={styles.printBtn}
+                    >
+                      <Printer size={15} />
+                      Print & pay
+                    </button>
                   </div>
                 </div>
               </div>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 

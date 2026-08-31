@@ -39,6 +39,20 @@ const findSingleUserLog = async (userId) => {
   }
 };
 
+const findActiveSession = async (userId, sessionId) => {
+  if (!userId || !sessionId) return null;
+  try {
+    const userLog = await sessionLogsModel.findOne({
+      where: { userId, id: sessionId, logout: null },
+      attributes: { exclude: ["updatedAt", "createdAt"] },
+      raw: true,
+    });
+    return userLog;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const updateSessionLog = async (userSession, req, res) => {
   try {
     const userId = userSession.userId ?? userSession.id ?? userSession.user?.id;
@@ -77,4 +91,9 @@ const updateSessionLog = async (userSession, req, res) => {
   }
 };
 
-module.exports = { createSessionLog, findSingleUserLog, updateSessionLog };
+module.exports = {
+  createSessionLog,
+  findSingleUserLog,
+  findActiveSession,
+  updateSessionLog,
+};

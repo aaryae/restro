@@ -4,14 +4,19 @@ export const SettingSchema = z.object({
   brand_name: z.string().min(1, "Brand Name is Required"),
   email: z.string().min(1, "Email is Required"),
   primary_phone: z.string().min(1, "Primary Phone is Required"),
-  secondary_phone: z.string().min(1, "Secondary Phone is Required"),
+  secondary_phone: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val === "" ? null : val)),
   fav_icon: z.string().min(1, "Fav Icon is Required"),
   brandingImage: z.string().min(1, "Branding Image is Required"),
-  brandingFooterImage: z.string().min(1, "Branding Footer Image is Required"),
+  brandingFooterImage: z.string().optional().nullable(),
   address: z.string().min(1, "Address is Required"),
-  footer_desc: z.string().min(1, "Footer Description is Required"),
-  google_analytics: z.string().min(1, "Google Analytics Required"),
-  mapUrl: z.string().nullable(),
+  // Kept optional so existing DB values are not wiped if still returned by the API.
+  footer_desc: z.string().optional().nullable(),
+  google_analytics: z.string().optional().nullable(),
+  mapUrl: z.string().optional().nullable(),
   primaryColor: z
     .string()
     .optional()

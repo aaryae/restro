@@ -1,10 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useId, useMemo } from "react";
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
@@ -15,14 +15,17 @@ import {
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
 import {
-  CHART_PALETTE,
+  useChartPalette,
   axisTickStyle,
   chartGridStroke,
   chartMargins,
+  chartSurfaceStroke,
+  chartTooltipLabelStyle,
   chartTooltipStyle,
   formatChartValue,
   formatCompactAxis,
 } from "./chartTheme";
+import ChartEmptyState from "./components/ChartEmptyState";
 
 interface ChartData {
   name: string;
@@ -34,7 +37,6 @@ interface LineChartProps {
   dataKeys: string[];
   width?: number;
   height?: number;
-  showGrid?: boolean;
   showLegend?: boolean;
   legendPosition?: VerticalAlignmentType;
   showTooltip?: boolean;
@@ -54,36 +56,32 @@ const LineChartComponent: React.FC<LineChartProps> = ({
   dataKeys,
   width = 400,
   height = 300,
-  showGrid = true,
   showLegend = false,
   legendPosition = "bottom",
   showTooltip = true,
   tooltipFormatter,
-  colorScale = CHART_PALETTE,
+  colorScale,
   nameKey = "name",
   responsive = true,
   margin = chartMargins.line,
   lineType = "monotone",
   dotSize = 5,
 }) => {
+  const gradientId = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const themePalette = useChartPalette();
+  const scale = colorScale ?? themePalette;
   const colors = useMemo(
-    () => dataKeys.map((_, i) => colorScale[i % colorScale.length]),
-    [dataKeys, colorScale],
+    () => dataKeys.map((_, i) => scale[i % scale.length]),
+    [dataKeys, scale],
   );
+  /** A soft wash under a single trend line reads as volume; stacking several
+   * translucent fills just muddies them, so only fill when there's one key. */
+  const showArea = dataKeys.length === 1;
 
   const ChartContainer = responsive ? ResponsiveContainer : React.Fragment;
   const containerProps = responsive ? { width: "100%", height } : {};
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex h-[260px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white text-center">
-        <p className="text-[13px] font-medium text-slate-600">No data yet</p>
-        <p className="mt-1 text-[12px] text-slate-400">
-          Charts will appear once records are available
-        </p>
-      </div>
-    );
-  }
+  if (!data || data.length === 0) return <ChartEmptyState />;
 
   const isValidData = data.every((item) =>
     dataKeys.every(
@@ -93,39 +91,58 @@ const LineChartComponent: React.FC<LineChartProps> = ({
   );
   if (!isValidData) {
     return (
-      <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-rose-200 bg-rose-50/50 text-[13px] text-rose-600">
-        Unable to display chart — invalid data format
-      </div>
+      <ChartEmptyState
+        tone="error"
+        message="Unable to display chart"
+        hint="Invalid data format"
+      />
     );
   }
 
+  const denseAxis = data.length > 8;
+  const chartMargin = {
+    ...margin,
+    bottom: Math.max(margin?.bottom ?? 8, denseAxis ? 28 : margin?.bottom ?? 8),
+  };
+
   return (
-    <div className="min-w-0 w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-50/40 to-white p-1">
+    <div className="min-w-0 w-full overflow-hidden">
       <ChartContainer
         id="line-chart"
         className="recharts-responsive-container"
         {...containerProps}
       >
-        <LineChart
+        <ComposedChart
           width={responsive ? undefined : width}
           height={height}
           data={data}
-          margin={margin}
+          margin={chartMargin}
         >
-          {showGrid && (
-            <CartesianGrid
-              stroke={chartGridStroke}
-              strokeDasharray="4 4"
-              vertical={false}
-            />
-          )}
+          <defs>
+            {colors.map((color, index) => (
+              <linearGradient
+                key={`grad-${index}`}
+                id={`${gradientId}-${index}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            ))}
+          </defs>
           <XAxis
             dataKey={nameKey}
             tick={axisTickStyle}
             tickLine={false}
-            axisLine={{ stroke: chartGridStroke }}
-            interval="preserveStartEnd"
-            minTickGap={24}
+            axisLine={false}
+            interval={0}
+            minTickGap={4}
+            angle={denseAxis ? -35 : 0}
+            textAnchor={denseAxis ? "end" : "middle"}
+            height={denseAxis ? 52 : 30}
           />
           <YAxis
             tick={axisTickStyle}
@@ -145,7 +162,11 @@ const LineChartComponent: React.FC<LineChartProps> = ({
                     ]
               }
               contentStyle={chartTooltipStyle}
-              labelStyle={{ color: "#475569", fontWeight: 600, marginBottom: 4 }}
+              labelStyle={chartTooltipLabelStyle}
+              cursor={{
+                stroke: chartGridStroke,
+                strokeWidth: 1,
+              }}
             />
           )}
           {showLegend && (
@@ -155,31 +176,39 @@ const LineChartComponent: React.FC<LineChartProps> = ({
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
             />
           )}
+          {showArea && (
+            <Area
+              type={lineType}
+              dataKey={dataKeys[0]}
+              stroke="none"
+              fill={`url(#${gradientId}-0)`}
+              isAnimationActive
+              animationDuration={700}
+              animationEasing="ease-out"
+              legendType="none"
+              tooltipType="none"
+            />
+          )}
           {dataKeys.map((key, index) => (
             <Line
               key={`line-${key}`}
               type={lineType}
               dataKey={key}
               stroke={colors[index]}
-              strokeWidth={2.5}
-              dot={{
-                r: 3,
-                fill: "#fff",
-                stroke: colors[index],
-                strokeWidth: 2,
-              }}
+              strokeWidth={2.25}
+              dot={false}
               activeDot={{
                 r: dotSize,
                 fill: colors[index],
-                stroke: "#fff",
-                strokeWidth: 2,
+                stroke: chartSurfaceStroke,
+                strokeWidth: 2.5,
               }}
               isAnimationActive
               animationDuration={700}
               animationEasing="ease-out"
             />
           ))}
-        </LineChart>
+        </ComposedChart>
       </ChartContainer>
     </div>
   );

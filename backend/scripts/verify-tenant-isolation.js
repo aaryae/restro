@@ -34,7 +34,7 @@ const CAFES = [
     slug: "brew",
     name: "Brew Cafe",
     email: "owner@brew.com",
-    username: "owner",
+    username: "lasta",
     password: "brewpass123",
   },
 ];

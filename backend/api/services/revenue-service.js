@@ -736,7 +736,7 @@ const groupedList = async (req) => {
     }
 
     // Query for daily revenues
-    const dailyRevenues = await sequelize.models.Revenue.findAll({
+    const dailyRevenues = await revenueModel.findAll({
       attributes: [
         [Sequelize.fn("DATE", Sequelize.col("Revenue.createdAt")), "day"],
         [Sequelize.fn("SUM", Sequelize.col("Revenue.amount")), "dailyTotal"],
@@ -751,7 +751,7 @@ const groupedList = async (req) => {
     });
 
     // Get grand total over the entire filtered range
-    const grandTotalResult = await sequelize.models.Revenue.sum("amount", {
+    const grandTotalResult = await revenueModel.sum("amount", {
       where: filters,
       include: includes,
     });
@@ -1108,7 +1108,7 @@ const revenueByAccount = async (req) => {
       },
     ];
 
-    const revenuesByAccount = await sequelize.models.Revenue.findAll({
+    const revenuesByAccount = await revenueModel.findAll({
       attributes: [
         "accountId",
         [sequelize.col("account.name"), "accountName"],
@@ -1118,12 +1118,17 @@ const revenueByAccount = async (req) => {
       ],
       where: filters,
       include: includes,
-      group: ["accountId", sequelize.col("account.name"), sequelize.col("account.accountType")],
+      group: [
+        sequelize.col("Revenue.accountId"),
+        sequelize.col("account.id"),
+        sequelize.col("account.name"),
+        sequelize.col("account.accountType"),
+      ],
       order: [[sequelize.fn("SUM", sequelize.col("Revenue.amount")), "DESC"]],
       raw: true,
     });
 
-    const grandTotal = await sequelize.models.Revenue.sum("amount", {
+    const grandTotal = await revenueModel.sum("amount", {
       where: filters,
       include: includes,
     });
@@ -1195,7 +1200,7 @@ const todayRevenue = async (req) => {
       include: includes,
     });
 
-    const revenuesByAccount = await sequelize.models.Revenue.findAll({
+    const revenuesByAccount = await revenueModel.findAll({
       attributes: [
         "accountId",
         [sequelize.col("account.name"), "accountName"],
@@ -1205,7 +1210,12 @@ const todayRevenue = async (req) => {
       ],
       where: filters,
       include: includes,
-      group: ["accountId", sequelize.col("account.name"), sequelize.col("account.accountType")],
+      group: [
+        sequelize.col("Revenue.accountId"),
+        sequelize.col("account.id"),
+        sequelize.col("account.name"),
+        sequelize.col("account.accountType"),
+      ],
       order: [[sequelize.fn("SUM", sequelize.col("Revenue.amount")), "DESC"]],
       raw: true,
     });

@@ -4,6 +4,7 @@ const {
   orderModel,
   orderItemModel,
   productModel,
+  revenueModel,
 } = require("../../models");
 const paginate = require("../../utils/paginate");
 
@@ -109,6 +110,12 @@ const getById = async (req) => {
                   required: false,
                 },
               ],
+            },
+            {
+              model: revenueModel,
+              as: "revenues",
+              attributes: ["paymentMethod"],
+              required: false,
             },
           ],
         },

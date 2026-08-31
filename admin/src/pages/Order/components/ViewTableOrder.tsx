@@ -3,7 +3,7 @@ import { CurrencySign } from "@/constants";
 import { ORDER_URL, TABLE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
 import React, { useEffect } from "react";
-import { LuChefHat } from "react-icons/lu";
+import { ChefHat } from "lucide-react";
 import { Link } from "react-router-dom";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import styles from "./ViewTableOrder.module.css";
@@ -87,11 +87,13 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
     data: tableOrder,
     isSuccess: success,
     isLoading: loading,
+    isError: ordersError,
     refetch: refetchOrders,
   } = useGetApiQuery(
     { url: `${ORDER_URL}active-orders/${id}` },
     {
       skip: id == null || Number.isNaN(Number(id)),
+      refetchOnMountOrArgChange: true,
     },
   );
   const { data: table } = useGetApiQuery(
@@ -158,11 +160,11 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
           </div>
           <div className={styles.actions}>
             <Link to={`/admin/order/${id}`} className={styles.addOrderBtn}>
-              <LuChefHat className="h-4 w-4" />
+              <ChefHat className="h-4 w-4" />
               <span>Add Order</span>
             </Link>
             <Button
-              className={`${styles.transferBtn} w-fit text-white disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`${styles.transferBtn} w-fit disabled:cursor-not-allowed disabled:opacity-50`}
               handleClick={() => id != null && onOpenTransfer?.(id)}
               disabled={!hasOrders}
             >
@@ -175,6 +177,19 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
       <div className={styles.body}>
         {loading ? (
           <div className={styles.loading}>Loading orders...</div>
+        ) : ordersError ? (
+          <div className={styles.emptyState}>
+            <p className={styles.emptyTitle}>Could not load orders</p>
+            <p className={styles.emptyHint}>
+              Try again, or refresh the page if this table still looks occupied.
+            </p>
+            <Button
+              className="mx-auto bg-primaryColor px-5 py-2 text-white"
+              handleClick={() => refetchOrders()}
+            >
+              Retry
+            </Button>
+          </div>
         ) : (
           <div className={styles.ordersList}>
             {orders.length === 0 ? (
@@ -187,7 +202,7 @@ const ViewTableOrder: React.FC<ViewTableOrderProps> = ({
                       Free it so new customers can be seated here.
                     </p>
                     <Button
-                      className="mx-auto bg-green-600 px-5 py-2 text-white hover:bg-green-700"
+                      className="mx-auto bg-primaryColor px-5 py-2 text-white hover:bg-primaryColor/90"
                       handleClick={handleMarkAvailable}
                       disabled={clearingTable}
                     >

@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Button } from '@/components/ui/Button'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { CreateCafeModal } from '@/pages/Cafes/CreateCafeModal'
+import { cafePosUrl } from '@/utils/cafePosUrl'
 import {
   CafeActionConfirmModal,
   type CafeActionKind,
@@ -239,13 +240,15 @@ export default function CafeListPage() {
         <CreateCafeModal
           open={createOpen}
           onClose={() => setCreateOpen(false)}
-          onCreated={({ cafeName, slug, ownerPassword }) => {
+          onCreated={({ cafeName, slug, ownerUsername, ownerPassword }) => {
             invalidate()
             setPage(1)
+            const who = ownerUsername ? ` · username: ${ownerUsername}` : ''
+            const posLink = cafePosUrl(slug)
             showToast(
               ownerPassword
-                ? `Created ${cafeName} (${slug}). Temp password: ${ownerPassword}`
-                : `Created ${cafeName} (${slug})`,
+                ? `Created ${cafeName}. POS: ${posLink}${who} · temp password: ${ownerPassword}`
+                : `Created ${cafeName}. Sign in at ${posLink}${who} with the password you set.`,
             )
           }}
         />

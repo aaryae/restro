@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { SortableRow } from "./sortable-row";
 import { PaginationType } from "@/types/commonTypes";
-import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./index.module.css";
 import Select from "@/components/Select";
 
@@ -108,14 +108,14 @@ export default function DraggableTable({
   }
 
   return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="max-w-full overflow-x-auto">
+    <div className={styles.shell}>
+      <div className={styles.scroller}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <table className="w-full border-collapse text-[13px] text-slate-700">
+          <table className={styles.table}>
             <colgroup>
               <col className="w-10" />
               {mergedActionsLayout ? (
@@ -133,16 +133,14 @@ export default function DraggableTable({
                 ))
               )}
             </colgroup>
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/90">
-                <th className="px-2 py-3.5" aria-label="Reorder" />
+            <thead className={styles.head}>
+              <tr>
+                <th aria-label="Reorder" />
                 {mergedActionsLayout ? (
-                  <th colSpan={2} className="px-4 py-3.5 text-left">
+                  <th colSpan={2}>
                     <div className="flex w-full max-w-2xl items-center justify-between gap-6">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        {headers[0]}
-                      </span>
-                      <span className="min-w-[4.5rem] text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      <span>{headers[0]}</span>
+                      <span className="min-w-[4.5rem] text-center">
                         {headers[1]}
                       </span>
                     </div>
@@ -151,11 +149,11 @@ export default function DraggableTable({
                   headers.map((header, index) => (
                     <th
                       key={header}
-                      className={`px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                      className={
                         isActionsHeader(header, index, headers.length)
-                          ? "pr-6 text-center"
-                          : "text-left"
-                      }`}
+                          ? styles.center
+                          : undefined
+                      }
                     >
                       {header}
                     </th>
@@ -167,7 +165,7 @@ export default function DraggableTable({
               items={products.map((product) => product[0])}
               strategy={verticalListSortingStrategy}
             >
-              <tbody className={styles.tableBody}>
+              <tbody className={styles.body}>
                 {products.map((product) => (
                   <SortableRow
                     key={product[0]}
@@ -181,8 +179,8 @@ export default function DraggableTable({
         </DndContext>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <label className="inline-flex items-center gap-2 text-[12px] font-medium text-slate-600">
+      <div className={styles.footer}>
+        <label className={styles.footerLabel}>
           Show
           <Select
             value={pagination.limit}
@@ -203,43 +201,37 @@ export default function DraggableTable({
           entries
         </label>
 
-        <div className="flex items-center gap-1.5">
+        <div className={styles.pager}>
           <button
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 ${
-              pagination.page === 1 ? "cursor-not-allowed opacity-40" : ""
-            }`}
+            type="button"
+            className={styles.pagerBtn}
             disabled={pagination.page === 1}
             onClick={() =>
               handlePagination({ ...pagination, page: pagination.page - 1 })
             }
             aria-label="Previous Page"
           >
-            <FaAngleLeft size={14} />
+            <ChevronLeft />
           </button>
-          <span className="min-w-[88px] text-center text-[12px] font-medium text-slate-600">
+          <span className={styles.pagerCount}>
             {pagination.page} / {Math.max(pagination.totalPages, 1)}
           </span>
           <button
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 ${
-              pagination.page === pagination.totalPages
-                ? "cursor-not-allowed opacity-40"
-                : ""
-            }`}
+            type="button"
+            className={styles.pagerBtn}
             disabled={pagination.page === pagination.totalPages}
             onClick={() =>
               handlePagination({ ...pagination, page: pagination.page + 1 })
             }
             aria-label="Next Page"
           >
-            <FaAngleRight size={14} />
+            <ChevronRight />
           </button>
         </div>
 
-        <div className="text-[12px] font-medium text-slate-500">
-          Total{" "}
-          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700">
-            {pagination.total}
-          </span>
+        <div className={styles.total}>
+          Total
+          <span className={styles.totalValue}>{pagination.total}</span>
         </div>
       </div>
     </div>

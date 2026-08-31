@@ -15,7 +15,12 @@
   z-index: 2;
   flex-shrink: 0;
   padding: 0.75rem 0 1rem;
-  background: linear-gradient(180deg, #ffffff 75%, rgba(255, 255, 255, 0));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary-color) 6%, var(--serve-surface)) 0%,
+    var(--serve-surface) 72%,
+    rgba(255, 255, 255, 0)
+  );
 }
 
 .headerTop {
@@ -31,9 +36,9 @@
   gap: 0.5rem;
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--primary-color) 8%, white);
-  border: 1px solid color-mix(in srgb, var(--primary-color) 14%, #e2e8f0);
-  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
+  border: 1px solid color-mix(in srgb, var(--primary-color) 14%, var(--serve-border));
+  color: var(--primary-ink);
   font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -61,7 +66,7 @@
   padding: 0.45rem 0.85rem;
   border-radius: 10px;
   background: var(--primary-color);
-  color: #fff;
+  color: var(--primary-fg);
   font-size: 0.875rem;
   font-weight: 600;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--primary-color) 24%, transparent);
@@ -78,8 +83,10 @@
   border-radius: 10px !important;
   font-size: 0.875rem !important;
   font-weight: 600 !important;
-  background: linear-gradient(135deg, #b832d4 0%, #9333ea 100%) !important;
-  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.22);
+  color: var(--primary-ink) !important;
+  background: var(--serve-surface) !important;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--serve-border)) !important;
+  box-shadow: none;
 }
 
 .body {
@@ -109,8 +116,8 @@
 .orderCard {
   flex-shrink: 0;
   border-radius: 16px;
-  border: 1px solid #e8edf3;
-  background: #ffffff;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 8px 24px rgba(15, 23, 42, 0.05);
@@ -124,14 +131,18 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.85rem 1rem;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-  border-bottom: 1px solid #eef2f7;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary-color) 5%, var(--serve-surface)) 0%,
+    var(--serve-surface) 100%
+  );
+  border-bottom: 1px solid var(--serve-border);
 }
 
 .orderNumber {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--serve-fg);
 }
 
 .statusGroup {
@@ -152,70 +163,70 @@
 }
 
 .statusPending {
-  background: #fef3c7;
-  color: #92400e;
+  background: color-mix(in srgb, var(--secondary-color) 18%, var(--serve-surface));
+  color: color-mix(in srgb, var(--secondary-color) 30%, var(--serve-fg));
 }
 
 .statusPrepared,
 .statusReady {
-  background: #d1fae5;
-  color: #065f46;
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--serve-surface));
+  color: var(--primary-ink);
 }
 
 .statusCompleted {
-  background: #dcfce7;
-  color: #166534;
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--serve-surface));
+  color: var(--primary-ink);
 }
 
 .statusCancelled {
-  background: #fee2e2;
-  color: #991b1b;
+  background: color-mix(in srgb, var(--serve-negative) 15%, var(--serve-surface));
+  color: var(--serve-negative);
 }
 
 .statusDefault {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--serve-surface-2);
+  color: var(--serve-fg);
 }
 
 .statusPaid {
-  background: #dcfce7;
-  color: #166534;
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--serve-surface));
+  color: var(--primary-ink);
 }
 
 .statusPartial {
-  background: #dbeafe;
-  color: #1e40af;
+  background: color-mix(in srgb, var(--secondary-color) 16%, var(--serve-surface));
+  color: color-mix(in srgb, var(--secondary-color) 30%, var(--serve-fg));
 }
 
 .statusFailed {
-  background: #fee2e2;
-  color: #991b1b;
+  background: color-mix(in srgb, var(--serve-negative) 15%, var(--serve-surface));
+  color: var(--serve-negative);
 }
 
 .statusUnpaid {
-  background: #fef3c7;
-  color: #92400e;
+  background: color-mix(in srgb, var(--secondary-color) 18%, var(--serve-surface));
+  color: color-mix(in srgb, var(--secondary-color) 30%, var(--serve-fg));
 }
 
 .statusTakeaway {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
+  color: var(--primary-ink);
 }
 
 .orderNote {
   margin: 0.75rem 1rem 0;
   padding: 0.65rem 0.75rem;
   border-radius: 10px;
-  border: 1px solid #fde68a;
-  background: #fffbeb;
-  color: #78350f;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--secondary-color) 10%, var(--serve-surface));
+  color: var(--serve-fg);
   font-size: 0.8125rem;
   text-align: left;
 }
 
 .orderNoteLabel {
   font-weight: 700;
-  color: #b45309;
+  color: color-mix(in srgb, var(--secondary-color) 40%, var(--serve-fg));
 }
 
 .itemsList {
@@ -228,7 +239,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--serve-border);
 }
 
 .itemRow:last-child {
@@ -244,27 +255,27 @@
 .itemName {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--serve-fg);
   line-height: 1.35;
 }
 
 .itemMeta {
   margin-top: 0.2rem;
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .itemNote {
   margin-top: 0.25rem;
   font-size: 0.75rem;
   font-style: italic;
-  color: #94a3b8;
+  color: var(--serve-muted);
 }
 
 .addons {
   margin-top: 0.35rem;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .addons ul {
@@ -282,13 +293,13 @@
 
 .unitPrice {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .subtotal {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--serve-fg);
 }
 
 .orderFooter {
@@ -298,8 +309,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.85rem 1rem 1rem;
-  background: #fafbfd;
-  border-top: 1px solid #eef2f7;
+  background: var(--serve-surface-2);
+  border-top: 1px solid var(--serve-border);
 }
 
 .orderActions {
@@ -313,15 +324,15 @@
   align-items: center;
   padding: 0.45rem 0.9rem;
   border-radius: 10px;
-  background: #16a34a;
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--primary-fg);
   font-size: 0.8125rem;
   font-weight: 600;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .checkoutBtn:hover {
-  background: #15803d;
+  opacity: 0.9;
 }
 
 .updateBtn {
@@ -329,21 +340,22 @@
   align-items: center;
   padding: 0.45rem 0.9rem;
   border-radius: 10px;
-  background: #2563eb;
-  color: #fff;
+  background: var(--serve-surface);
+  color: var(--primary-ink);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--serve-border));
   font-size: 0.8125rem;
   font-weight: 600;
   transition: background-color 0.15s ease;
 }
 
 .updateBtn:hover {
-  background: #1d4ed8;
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
 }
 
 .orderTotal {
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--serve-fg);
 }
 
 .emptyState {
@@ -359,32 +371,32 @@
 .emptyTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--serve-fg);
 }
 
 .emptyHint {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .stuckCard {
   max-width: 20rem;
   padding: 1rem;
   border-radius: 14px;
-  border: 1px solid #fde68a;
-  background: #fffbeb;
+  border: 1px solid color-mix(in srgb, var(--secondary-color) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--secondary-color) 10%, var(--serve-surface));
 }
 
 .stuckText {
   font-size: 0.875rem;
-  color: #92400e;
+  color: var(--serve-fg);
   margin-bottom: 0.75rem;
 }
 
 .loading {
   padding: 2rem 0;
   text-align: center;
-  color: #64748b;
+  color: var(--serve-muted);
 }
 
 .footerBar {
@@ -393,8 +405,8 @@
   justify-content: flex-end;
   margin-top: auto;
   padding-top: 0.75rem;
-  border-top: 1px solid #eef2f7;
-  background: #ffffff;
+  border-top: 1px solid var(--serve-border);
+  background: var(--serve-surface);
 }
 
 .checkoutAllBtn {

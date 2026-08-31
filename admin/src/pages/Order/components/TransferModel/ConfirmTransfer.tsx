@@ -54,10 +54,6 @@ function ConfirmTransfer({
   const [moveOrderItems] = useMoveOrderItemsMutation();
 
   const summary = useMemo(() => {
-    const orderNumbers = selectedOrderDetails
-      .map((o) => o.orderNumber || `#${o.id}`)
-      .filter(Boolean);
-
     const totalItems = selectedOrderDetails.reduce((sum, order) => {
       const items = Array.isArray(order.orderItems) ? order.orderItems : [];
       return (
@@ -82,13 +78,11 @@ function ConfirmTransfer({
     ];
 
     return {
-      orderNumber:
-        orderNumbers.length > 0 ? orderNumbers.join(", ") : `${selectedOrders.length} selected`,
       totalItems,
       grandTotal,
       paymentStatus: paymentStatuses.join(", ") || "-",
     };
-  }, [selectedOrderDetails, selectedOrders.length]);
+  }, [selectedOrderDetails]);
 
   const handleConfirmTransfer = async () => {
     if (!sourceTableId || !destinationTableId || selectedOrders.length === 0) {
@@ -138,7 +132,6 @@ function ConfirmTransfer({
             ? `Table ID ${destinationTableId}`
             : "-",
     },
-    { label: "Order Number", value: summary.orderNumber },
     { label: "Total Items", value: String(summary.totalItems) },
     {
       label: "Grand total",

@@ -30,6 +30,8 @@ module.exports = (sequelize, DataTypes) => {
       /** Snapshot of status at suspend time; restored on unsuspend. */
       statusBeforeSuspend: { type: DataTypes.STRING(32), allowNull: true },
       trialEndsAt: { type: DataTypes.DATE, allowNull: true },
+      /** Set once when cafe uses the POS self-serve +3 day trial extension. */
+      selfServeTrialExtendedAt: { type: DataTypes.DATE, allowNull: true },
       activatedAt: { type: DataTypes.DATE, allowNull: true },
       hostingEndsAt: { type: DataTypes.DATE, allowNull: true },
       ownerEmail: { type: DataTypes.STRING, allowNull: true },

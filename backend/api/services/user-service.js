@@ -22,8 +22,17 @@ const passport = require("passport");
 const responseHelper = require("../../helpers/response-helper");
 const httpStatus = require("http-status");
 const { hashPassword } = require("../../utils/bcrypt");
+const {
+  recordLoginFailure,
+  clearLoginFailures,
+  wrongPasswordMessage,
+} = require("../../utils/loginRateLimit");
 const paginate = require("../../utils/paginate");
-const { comparePassword } = require("../../helpers/jwt-helper");
+const {
+  comparePassword,
+  generateJWT,
+  POS_JWT_EXPIRY_SECONDS,
+} = require("../../helpers/jwt-helper");
 const { syncPrivilegedRoleAccess } = require("../../helpers/role-access-sync");
 const internal = {};
 
@@ -39,8 +48,15 @@ internal.userLoginPassport = (req, res, next) => {
 const userLogin = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
+    const loginId = String(req.body.username || "").trim();
     const isDeletedUser = await userModel.findOne({
-      where: { username: req.body.username, isDeleted: false },
+      where: {
+        isDeleted: false,
+        [Op.or]: [
+          { username: { [Op.iLike]: loginId } },
+          { email: { [Op.iLike]: loginId } },
+        ],
+      },
     });
 
     if (isDeletedUser?.isDeleted === true) {
@@ -67,6 +83,16 @@ const userLogin = async (req, res, next) => {
       }
 
       await createSessionLog(loginData.user, req);
+      const sessionLog = await findSingleUserLog(loginData.user.id);
+      const sessionToken = generateJWT(
+        {
+          id: loginData.user.id,
+          email: loginData.user.email,
+          roleId: loginData.user.roleId,
+        },
+        req.tenant,
+        sessionLog?.id,
+      );
 
       // Super Admin / Admin always receive every menu action (additive sync).
       // Fixes gaps when setup wasn't re-run or Super Admin role can't be edited in UI.
@@ -96,19 +122,25 @@ const userLogin = async (req, res, next) => {
         key: x["role_menu_action.key"],
         requiredApproval: x["requiredApproval"],
       }));
-      const expiry = 24 * 60 * 60;
       returnData = {
         ...generalConstant.EN.USERS.LOGIN_SUCCESS,
         data: {
           ...loginData.user,
+          token: sessionToken,
           clientAccess: clientAccess,
-          expiry: parseInt(new Date().getTime() / 1000 + expiry, 10),
+          expiry: parseInt(
+            new Date().getTime() / 1000 + POS_JWT_EXPIRY_SECONDS,
+            10,
+          ),
           serverAccess: serverAccess,
         },
       };
+      clearLoginFailures(req);
     } else {
+      recordLoginFailure(req);
       returnData = {
         ...generalConstant.EN.USERS.LOGIN_FAILURE,
+        message: wrongPasswordMessage(req),
         data: null,
       };
     }
@@ -155,7 +187,28 @@ const createUser = async (req, res, next) => {
     req.body.password = await hashPassword(req.body.password);
     req.body.addedBy = +req.user.id;
 
-    // Check if username already exists
+    const {
+      validateUsernameFormat,
+      claimUsername,
+    } = require("../../lib/global-username");
+
+    const usernameCheck = validateUsernameFormat(req.body.username);
+    if (!usernameCheck.ok) {
+      return {
+        status: 400,
+        success: false,
+        message: usernameCheck.message,
+        data: null,
+      };
+    }
+    req.body.username = usernameCheck.username;
+
+    // Email is optional for staff accounts — username is the login id.
+    if (req.body.email != null && String(req.body.email).trim() === "") {
+      req.body.email = null;
+    }
+
+    // Check if username already exists in this cafe
     const existingUser = await userModel.findOne({
       where: { username: req.body.username, isDeleted: false },
     });
@@ -165,6 +218,22 @@ const createUser = async (req, res, next) => {
         ...generalConstant.EN.USERS.USER_NAME_EXISTS,
         data: null,
       };
+    }
+
+    try {
+      await claimUsername(req.body.username, {
+        source: "tenant",
+        tenantId: req.tenant?.id || null,
+      });
+    } catch (err) {
+      if (err.status === 409) {
+        return {
+          ...generalConstant.EN.USERS.USER_NAME_EXISTS,
+          message: err.message,
+          data: null,
+        };
+      }
+      throw err;
     }
 
     //checking roleId
@@ -385,24 +454,27 @@ const getOneUser = async (req, res, next) => {
 const authGetProfile = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
-    console.log(req.user.id, "req.user.id");
     const result = await userModel.findOne({
       where: { id: +req.user.id },
+      attributes: [
+        "id",
+        "username",
+        "firstName",
+        "lastName",
+        "email",
+        "gender",
+        "imageUrl",
+        "mobileNo",
+        "roleId",
+      ],
       include: [
         {
           model: userModel,
           as: "subordinates",
-          attributes: ["username", "email"],
-          include: [
-            {
-              model: actionRequestModel,
-              as: "actionRequests",
-            },
-          ],
+          attributes: ["id", "username"],
         },
       ],
     });
-    console.log(result, "result");
     if (result) {
       returnData = {
         ...generalConstant.EN.USERS.USER_FOUND,
@@ -415,6 +487,75 @@ const authGetProfile = async (req, res, next) => {
       };
     }
     return returnData;
+  } catch (err) {
+    throw err;
+  }
+};
+
+/** Menu permissions for an already-authenticated POS session (Serve bootstrap). */
+const getSessionAccess = async (req) => {
+  try {
+    const user = await userModel.findOne({
+      where: { id: +req.user.id, isDeleted: false },
+      raw: true,
+    });
+    if (!user) {
+      return {
+        status: 404,
+        success: false,
+        message: "User not found",
+        data: null,
+      };
+    }
+
+    await syncPrivilegedRoleAccess(user);
+
+    const role = await roleModel.findOne({
+      where: { id: user.roleId },
+      raw: true,
+    });
+
+    const accessList = await roleActionModel.findAll({
+      where: { roleId: user.roleId, isDeleted: false },
+      attributes: ["roleMenuActionId", "requiredApproval"],
+      raw: true,
+      include: [
+        {
+          model: roleMenuActionModel,
+          attributes: ["clientPath", "serverPath", "key", "list"],
+        },
+      ],
+    });
+
+    const clientAccess = accessList.map((x) => ({
+      path: x["role_menu_action.clientPath"],
+      key: x["role_menu_action.key"],
+      list: x["role_menu_action.list"],
+      requiredApproval: x["requiredApproval"],
+    }));
+
+    const serverAccess = accessList.map((x) => ({
+      path: x["role_menu_action.serverPath"],
+      key: x["role_menu_action.key"],
+      requiredApproval: x["requiredApproval"],
+    }));
+
+    const expiry = 24 * 60 * 60;
+
+    return {
+      status: 200,
+      success: true,
+      message: "Session access loaded",
+      data: {
+        id: user.id,
+        username: user.username,
+        roleId: user.roleId,
+        roleType: role?.title || "User",
+        clientAccess,
+        serverAccess,
+        expiry: parseInt(new Date().getTime() / 1000 + expiry, 10),
+      },
+    };
   } catch (err) {
     throw err;
   }
@@ -606,6 +747,7 @@ module.exports = {
   userLogin,
   toggleIsActive,
   authGetProfile,
+  getSessionAccess,
   userLogout,
   createUser,
   updateUser,

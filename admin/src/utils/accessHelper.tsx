@@ -8,6 +8,7 @@ const SUPER_ADMIN_UI_KEYS = [
   "add",
   "edit",
   "delete",
+  "import",
   "edit-status",
   "edit-default",
   "edit-order",

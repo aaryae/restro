@@ -1,6 +1,7 @@
 "use strict";
 
 const platformService = require("../services/platform-service");
+const platformSmtpService = require("../services/platform-smtp-service");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
 
@@ -29,6 +30,9 @@ const wrap =
 module.exports = {
   login: wrap(platformService.login),
   me: wrap(platformService.me),
+  updateMe: wrap(platformService.updateMe),
+  changeMyPassword: wrap(platformService.changeMyPassword),
+  uploadMyAvatar: wrap(platformService.uploadMyAvatar),
   stats: wrap(platformService.stats),
   statsTrends: wrap(platformService.statsTrends),
   listCafes: wrap(platformService.listCafes),
@@ -43,4 +47,6 @@ module.exports = {
   listPlatformUsers: wrap(platformService.listPlatformUsers),
   createPlatformUser: wrap(platformService.createPlatformUser),
   updatePlatformUser: wrap(platformService.updatePlatformUser),
+  getSmtp: wrap(platformSmtpService.getSmtp),
+  upsertSmtp: wrap(platformSmtpService.upsertSmtp),
 };

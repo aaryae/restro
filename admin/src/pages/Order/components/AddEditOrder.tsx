@@ -27,6 +27,7 @@ import {
   List,
   Minus,
   Plus,
+  Printer,
   Search,
   ShoppingBasket,
   ShoppingCart,
@@ -50,6 +51,7 @@ import {
   writeCreateOrderDraft,
   type OrderItemDraft,
 } from "./orderDraft";
+import { kotPrintPageStyle } from "@/utils/printPageStyles";
 import styles from "./AddEditOrder.module.css";
 
 type OrderFormType = z.infer<typeof OrderSchema>;
@@ -321,29 +323,7 @@ export default function AddEditOrder({
   const printKot = useReactToPrint({
     contentRef: kotRef,
     documentTitle: `KOT`,
-    pageStyle: `
-      @page { size: 80mm auto; margin: 4mm; }
-      @media print {
-        html, body { margin: 0 !important; padding: 0 !important; }
-        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .kot-print { width: 80mm !important; font-size: 10px !important; line-height: 1.25 !important; }
-        .kot-print * { font-size: 10px !important; line-height: 1.25 !important; }
-        .kot-print .kot-title { font-size: 14px !important; font-weight: 800 !important; }
-        .kot-print .tight { margin: 4px 0 !important; padding: 0 !important; }
-        .kot-print .section-gap { margin: 6px 0 !important; }
-        .kot-print .border-dashed { border-color: #000 !important; }
-        .kot-print .border-t { border-top-width: .5008px !important; border-top-style: dashed !important; border-top-color: #000 !important; }
-        .kot-print .divider-dashed {
-          border: 0 !important;
-          height: 1px !important;
-          background-image: repeating-linear-gradient(to right, #000 0, #000 8px, transparent 8px, transparent 12px) !important;
-          background-repeat: repeat-x !important;
-          background-size: 100% 1px !important;
-          background-position: 0 .5008px !important;
-        }
-        .no-print { display: none !important; }
-      }
-    `,
+    pageStyle: kotPrintPageStyle,
   });
 
   const { data: currentOrders, isSuccess: currentOrderIsSuccess } =
@@ -1043,7 +1023,7 @@ export default function AddEditOrder({
                 <p className={styles.emptyTitle}>
                   {debouncedProductSearch
                     ? "No menu items match your search"
-                    : "No products available"}
+                    : "No items available"}
                 </p>
                 {debouncedProductSearch && (
                   <p className={styles.emptyHint}>
@@ -1349,147 +1329,144 @@ export default function AddEditOrder({
       {isConfirmOpen &&
         createPortal(
           <div className={styles.modalBackdrop}>
-            <div className={styles.modal}>
-              <div className={styles.modalHeader}>
-                <h3 className={styles.modalTitle}>
-                  Confirm {isEditMode ? "Update" : "Order"}
-                </h3>
-                <div className={styles.modalMeta}>
-                  <span className={styles.modalMetaChip}>
-                    {watchedOrderType === "dineIn"
-                      ? "Dine In"
-                      : watchedOrderType === "takeaway"
-                        ? "Takeaway"
-                        : watchedOrderType}
-                  </span>
-                  {watchedOrderType === "dineIn" && (
-                    <span className={styles.modalMetaChip}>
-                      Table{" "}
-                      {getTableLabel(
-                        (pendingData as any)?.tableId ?? watchedTableId ?? "",
-                      )}
-                    </span>
-                  )}
-                  {watchedOrderType === "takeaway" &&
-                    (watchedTableId || tableId) && (
-                      <span className={styles.modalMetaChip}>
-                        Table{" "}
-                        {getTableLabel(
-                          (pendingData as any)?.tableId ??
-                            watchedTableId ??
-                            tableId ??
-                            "",
-                        )}
-                      </span>
-                    )}
-                  {watchedOrderType === "takeaway" &&
-                    String(
-                      pendingData?.takeAwayName || watchedTakeAwayName || "",
-                    ).trim() && (
-                      <span className={styles.modalMetaChip}>
-                        {String(
-                          pendingData?.takeAwayName || watchedTakeAwayName || "",
-                        ).trim()}
-                      </span>
-                    )}
-                  {pendingData?.deliveryAddress && (
-                    <span className={styles.modalMetaChip}>
-                      {pendingData.deliveryAddress}
-                    </span>
-                  )}
+            <div className={`${styles.modal} ${styles.confirmModal}`}>
+              <div className={styles.confirmHeader}>
+                <div className={styles.confirmHeaderMain}>
+                  <h3 className={styles.confirmTitle}>
+                    Confirm {isEditMode ? "Update" : "Order"}
+                  </h3>
+                  <p className={styles.confirmMeta}>
+                    {[
+                      watchedOrderType === "dineIn"
+                        ? "Dine In"
+                        : watchedOrderType === "takeaway"
+                          ? "Takeaway"
+                          : watchedOrderType,
+                      watchedOrderType === "dineIn"
+                        ? getTableLabel(
+                            (pendingData as any)?.tableId ??
+                              watchedTableId ??
+                              "",
+                          )
+                        : null,
+                      watchedOrderType === "takeaway" &&
+                      (watchedTableId || tableId)
+                        ? getTableLabel(
+                            (pendingData as any)?.tableId ??
+                              watchedTableId ??
+                              tableId ??
+                              "",
+                          )
+                        : null,
+                      watchedOrderType === "takeaway" &&
+                      String(
+                        pendingData?.takeAwayName || watchedTakeAwayName || "",
+                      ).trim()
+                        ? String(
+                            pendingData?.takeAwayName ||
+                              watchedTakeAwayName ||
+                              "",
+                          ).trim()
+                        : null,
+                      pendingData?.deliveryAddress || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                 </div>
+                <p className={styles.confirmSummary}>
+                  {visibleOrderItems.length} item
+                  {visibleOrderItems.length === 1 ? "" : "s"} · {CurrencySign}
+                  {Number(totalAmount).toFixed(2)}
+                </p>
               </div>
 
-              <div className={styles.modalBody}>
-                <div className={styles.modalTableWrap}>
-                  <table className={styles.modalTable}>
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th className={styles.modalTableQty}>Qty</th>
-                        <th className={styles.modalTableAmount}>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleOrderItems.map((item) => {
-                        const addons = Array.isArray(item.addons)
-                          ? item.addons
-                          : [];
-                        const lineTotal =
-                          Number(item.subtotal) || calcSubtotal(item);
+              <div className={styles.confirmBody}>
+                <div className={styles.confirmList}>
+                  <div className={styles.confirmListHead}>
+                    <span>Item</span>
+                    <span>Qty</span>
+                    <span>Amount</span>
+                  </div>
+                  <div className={styles.confirmListBody}>
+                    {visibleOrderItems.map((item) => {
+                      const addons = Array.isArray(item.addons)
+                        ? item.addons
+                        : [];
+                      const lineTotal =
+                        Number(item.subtotal) || calcSubtotal(item);
+                      const qty = Number(item.quantity) || 1;
 
-                        return (
-                          <tr
-                            key={item.id}
-                            className={
-                              item.status === "cancelled"
-                                ? "line-through"
-                                : undefined
-                            }
-                          >
-                            <td>
-                              <p className={styles.modalItemName}>
-                                {item.productName}
+                      return (
+                        <div
+                          key={item.id}
+                          className={`${styles.confirmRow}${
+                            item.status === "cancelled"
+                              ? ` ${styles.confirmRowCancelled}`
+                              : ""
+                          }`}
+                        >
+                          <div className={styles.confirmRowItem}>
+                            <p className={styles.confirmItemName}>
+                              {item.productName}
+                            </p>
+                            {qty > 1 ? (
+                              <p className={styles.confirmItemMeta}>
+                                {CurrencySign}
+                                {Number(item.productPrice).toFixed(2)} each
                               </p>
-                              <p className={styles.modalPriceLine}>
-                                Item · {CurrencySign}
-                                {Number(item.productPrice).toFixed(2)}
-                                {Number(item.quantity) > 1
-                                  ? ` × ${item.quantity}`
-                                  : ""}
-                              </p>
-                              {addons.map((addon: any) => {
-                                const name =
-                                  addon.name ||
-                                  addon.addon?.name ||
-                                  addon.addonName ||
-                                  String(addon.addonId ?? "Addon");
-                                const addonQty = Number(
-                                  addon.quantity ?? addon.qty ?? 1,
-                                );
-                                const unit = Number(addon.price || 0);
-                                return (
-                                  <p
-                                    key={`${item.id}_${addon.addonId || name}`}
-                                    className={styles.modalAddonLine}
-                                  >
-                                    Addon · {name} · {CurrencySign}
-                                    {unit.toFixed(2)}
-                                    {addonQty > 1 ? ` × ${addonQty}` : ""}
-                                  </p>
-                                );
-                              })}
-                            </td>
-                            <td className={styles.modalTableQty}>
-                              {item.quantity}
-                            </td>
-                            <td className={styles.modalTableAmount}>
-                              {CurrencySign}
-                              {lineTotal.toFixed(2)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={2} className={styles.modalTableTotalLabel}>
-                          Total
-                        </td>
-                        <td className={styles.modalTableTotalValue}>
-                          {CurrencySign}
-                          {Number(totalAmount).toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                            ) : null}
+                            {addons.map((addon: any) => {
+                              const name =
+                                addon.name ||
+                                addon.addon?.name ||
+                                addon.addonName ||
+                                String(addon.addonId ?? "Addon");
+                              const addonQty = Number(
+                                addon.quantity ?? addon.qty ?? 1,
+                              );
+                              const unit = Number(addon.price || 0);
+                              return (
+                                <p
+                                  key={`${item.id}_${addon.addonId || name}`}
+                                  className={styles.confirmAddonLine}
+                                >
+                                  + {name}
+                                  {addonQty > 1 ? ` × ${addonQty}` : ""}
+                                  {unit > 0
+                                    ? ` · ${CurrencySign}${unit.toFixed(2)}`
+                                    : ""}
+                                </p>
+                              );
+                            })}
+                          </div>
+                          <span className={styles.confirmRowQty}>{qty}</span>
+                          <span className={styles.confirmRowAmount}>
+                            {CurrencySign}
+                            {lineTotal.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className={styles.modalNotes}>
-                  <label className={styles.modalNotesLabel}>Order notes</label>
+                <div className={styles.confirmTotalBar}>
+                  <span>Total due</span>
+                  <strong>
+                    {CurrencySign}
+                    {Number(totalAmount).toFixed(2)}
+                  </strong>
+                </div>
+
+                <div className={styles.confirmNotes}>
+                  <label className={styles.confirmNotesLabel} htmlFor="order-note">
+                    Order notes
+                  </label>
                   <TextArea
+                    id="order-note"
                     rows={3}
-                    placeholder="Any special instructions or notes"
+                    placeholder="Special instructions for the kitchen…"
                     className="w-full"
                     {...register("orderNote")}
                     error={errors.orderNote?.message}
@@ -1497,30 +1474,33 @@ export default function AddEditOrder({
                 </div>
               </div>
 
-              <div className={styles.modalActions}>
+              <div className={styles.confirmActions}>
                 <button
                   type="button"
                   onClick={() => setIsConfirmOpen(false)}
-                  className={styles.modalSecondary}
+                  className={styles.confirmCancelBtn}
                 >
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmCreate}
-                  disabled={isConfirming}
-                  className={styles.modalPrimary}
-                >
-                  {isConfirming ? "Processing..." : "Confirm"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmCreateAndPrint}
-                  disabled={isConfirming}
-                  className={styles.modalPrimary}
-                >
-                  Confirm and Print
-                </button>
+                <div className={styles.confirmActionGroup}>
+                  <button
+                    type="button"
+                    onClick={handleConfirmCreate}
+                    disabled={isConfirming}
+                    className={styles.confirmPrimaryBtn}
+                  >
+                    {isConfirming ? "Processing…" : "Confirm"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmCreateAndPrint}
+                    disabled={isConfirming}
+                    className={styles.confirmPrintBtn}
+                  >
+                    <Printer size={15} strokeWidth={2.25} aria-hidden />
+                    Confirm &amp; Print
+                  </button>
+                </div>
               </div>
             </div>
           </div>,

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { RxCross2 } from "react-icons/rx";
+import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface DrawerType {
@@ -93,9 +93,7 @@ export default function Drawer({
     setIsOpen(false);
   };
 
-  const stopBackgroundScroll = (
-    event: React.TouchEvent | React.WheelEvent,
-  ) => {
+  const stopBackgroundScroll = (event: React.TouchEvent | React.WheelEvent) => {
     event.preventDefault();
   };
 
@@ -107,7 +105,7 @@ export default function Drawer({
         <button
           type="button"
           aria-label="Close drawer backdrop"
-          className="fixed inset-0 z-[90] touch-none bg-slate-900/40 backdrop-blur-[1px]"
+          className="serve-overlay fixed inset-0 z-[90] touch-none"
           onClick={toggleDrawer}
           onTouchMove={stopBackgroundScroll}
           onWheel={stopBackgroundScroll}
@@ -115,7 +113,7 @@ export default function Drawer({
       )}
       <div
         className={cn(
-          "fixed z-[100] flex max-w-full flex-col bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          "serve-sheet fixed z-[100] flex max-w-full flex-col transition-transform duration-300 ease-in-out",
           isBottom
             ? "inset-x-0 bottom-0 h-[min(85dvh,36rem)] max-h-[min(92dvh,40rem)] rounded-t-2xl"
             : "inset-y-0 h-[100dvh] max-h-[100dvh]",
@@ -139,14 +137,14 @@ export default function Drawer({
         )}
 
         {!hideHeader && (
-          <div className="flex h-12 shrink-0 items-center justify-end border-b border-slate-100 px-3">
+          <div className="flex h-12 shrink-0 items-center justify-end border-b border-[var(--serve-border)] px-3">
             <button
               type="button"
               onClick={toggleDrawer}
               aria-label="Close drawer"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface)] text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)]"
             >
-              <RxCross2 size={18} />
+              <X />
             </button>
           </div>
         )}

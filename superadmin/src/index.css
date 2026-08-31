@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #032768;
-  --secondary-color: #ffba00;
+  --primary-color: #18181b;
+  --secondary-color: #583820;
   --page-bg: #f2f6fa;
   font-family: 'Google Sans', system-ui, sans-serif;
   color: #0f172a;

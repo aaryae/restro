@@ -7,7 +7,7 @@ import { PaginationType } from "@/types/commonTypes";
 import useTranslation from "@/locale/useTranslation";
 import { EXPENSE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 import { useNavigate } from "react-router-dom";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
@@ -100,7 +100,7 @@ const ExpenseCategory: React.FC = () => {
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
               title="Edit expense category"
             >
-              <MdEditSquare size={16} />
+              <SquarePen size={16} />
             </button>
           )}
           {accessList.includes("delete") && (

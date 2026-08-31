@@ -18,7 +18,6 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { buildQueryString } from "@/utils/generalHelper";
 import { EXPENSE_LIST_ROUTE } from "@/routes/routeNames";
 import Select from "@/components/Select";
-import Input from "@/components/Input";
 import Button from "@/components/Button";
 import CustomDialog from "@/components/Dialog";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
@@ -27,6 +26,31 @@ import { ExpenseSchema } from "./schema";
 import { Plus, Search, Wallet } from "lucide-react";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
+
+function FieldHeader({
+  label,
+  required,
+  actions,
+}: {
+  label: string;
+  required?: boolean;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-1.5 flex h-7 items-center justify-between gap-2">
+      <label className="min-w-0 truncate text-xs font-medium text-slate-600">
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </label>
+      {actions ? (
+        <div className="flex shrink-0 items-center gap-1.5">{actions}</div>
+      ) : null}
+    </div>
+  );
+}
+
+const fieldControlClass =
+  "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15";
 
 const AddEditExpense: React.FC = () => {
   const { id } = useParams();
@@ -233,42 +257,44 @@ const AddEditExpense: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5">
+          <div className="grid grid-cols-1 items-start gap-4 p-4 sm:grid-cols-2 sm:gap-5 sm:p-5">
             <Controller
               name="categoryId"
               control={control}
               render={({ field }) => (
                 <div className="flex min-w-0 flex-col">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <label className="text-left text-xs font-medium text-slate-600">
-                      Category <span className="text-red-500">*</span>
-                      </label>
-                    <CustomDialog
-                      buttonTitle={
-                        <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-lg bg-primaryColor px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
-                        >
-                          <Plus size={12} strokeWidth={2.5} />
-                          Add Category
-                        </button>
-                      }
-                      dialogOpen={expenseCategoryDialogOpen}
-                      setDialogOpen={setExpenseCategoryDialogOpen}
-                      title="Add Expense Category"
-                      contentClassName="max-h-[90vh] w-[min(95vw,37.5rem)] overflow-auto p-4"
-                    >
-                      <AddEditExpenseCategory
-                        isComponent={true}
-                        closeModal={() => setExpenseCategoryDialogOpen(false)}
-                      />
-                    </CustomDialog>
-                  </div>
+                  <FieldHeader
+                    label="Category"
+                    required
+                    actions={
+                      <CustomDialog
+                        buttonTitle={
+                          <button
+                            type="button"
+                            className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                          >
+                            <Plus size={12} strokeWidth={2.5} />
+                            Add
+                          </button>
+                        }
+                        dialogOpen={expenseCategoryDialogOpen}
+                        setDialogOpen={setExpenseCategoryDialogOpen}
+                        title="Add Expense Category"
+                        contentClassName="max-h-[90vh] w-[min(95vw,37.5rem)] overflow-auto p-4"
+                      >
+                        <AddEditExpenseCategory
+                          isComponent={true}
+                          closeModal={() => setExpenseCategoryDialogOpen(false)}
+                        />
+                      </CustomDialog>
+                    }
+                  />
                   <Select
                     required
                     {...field}
                     options={expenseCategoryOptions}
                     error={errors.categoryId?.message}
+                    triggerClassName="h-10"
                   />
                 </div>
               )}
@@ -278,19 +304,21 @@ const AddEditExpense: React.FC = () => {
               name="paymentMethod"
               control={control}
               render={({ field }) => (
-                <Select
-                  required
-                  {...field}
-                  value={field.value ?? ""}
-                  options={[
-                    { value: "cash", label: "Cash" },
-                    { value: "card", label: "Card" },
-                    { value: "online", label: "Online" },
-                  ]}
-                  label="Payment Method"
-                  error={errors.paymentMethod?.message}
-                  isRequired
-                />
+                <div className="flex min-w-0 flex-col">
+                  <FieldHeader label="Payment Method" required />
+                  <Select
+                    required
+                    {...field}
+                    value={field.value ?? ""}
+                    options={[
+                      { value: "cash", label: "Cash" },
+                      { value: "card", label: "Card" },
+                      { value: "online", label: "Online" },
+                    ]}
+                    error={errors.paymentMethod?.message}
+                    triggerClassName="h-10"
+                  />
+                </div>
               )}
             />
 
@@ -299,66 +327,67 @@ const AddEditExpense: React.FC = () => {
                 name="accountId"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    required
-                    {...field}
-                    options={paymentSourceOptions}
-                    label="Payment Source"
-                    error={errors.accountId?.message}
-                    isRequired
-                  />
+                  <div className="flex min-w-0 flex-col">
+                    <FieldHeader label="Payment Source" required />
+                    <Select
+                      required
+                      {...field}
+                      options={paymentSourceOptions}
+                      error={errors.accountId?.message}
+                      triggerClassName="h-10"
+                    />
+                  </div>
                 )}
               />
             </div>
 
             <div className="flex min-w-0 flex-col">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <label className="text-left text-xs font-medium text-slate-600">
-                  Supplier
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  <CustomDialog
-                    buttonTitle={
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-lg bg-primaryColor px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAddSupplierDialogOpen(true);
+              <FieldHeader
+                label="Supplier"
+                actions={
+                  <>
+                    <CustomDialog
+                      buttonTitle={
+                        <button
+                          type="button"
+                          className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddSupplierDialogOpen(true);
+                          }}
+                        >
+                          <Plus size={12} strokeWidth={2.5} />
+                          Add
+                        </button>
+                      }
+                      dialogOpen={addSupplierDialogOpen}
+                      setDialogOpen={setAddSupplierDialogOpen}
+                      title="Add New Supplier"
+                      contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
+                    >
+                      <AddEditSupplier
+                        isComponent={true}
+                        closeModal={() => {
+                          setAddSupplierDialogOpen(false);
+                          refetchSuppliers();
                         }}
-                      >
-                        <Plus size={12} strokeWidth={2.5} />
-                        Add New
-                      </button>
-                    }
-                    dialogOpen={addSupplierDialogOpen}
-                    setDialogOpen={setAddSupplierDialogOpen}
-                    title="Add New Supplier"
-                    contentClassName="max-h-[90vh] w-full max-w-[95vw] overflow-auto p-2 sm:max-w-2xl sm:p-4 md:max-w-3xl lg:max-w-4xl"
-                  >
-                    <AddEditSupplier
-                      isComponent={true}
-                      closeModal={() => {
-                        setAddSupplierDialogOpen(false);
+                      />
+                    </CustomDialog>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAllSuppliers(true);
+                        setSupplierSearchTerm("");
+                        setViewSuppliersDialogOpen(true);
                         refetchSuppliers();
                       }}
-                    />
-                  </CustomDialog>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAllSuppliers(true);
-                      setSupplierSearchTerm("");
-                      setViewSuppliersDialogOpen(true);
-                      refetchSuppliers();
-                    }}
-                    className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    View All
-                  </button>
-                </div>
-              </div>
+                      className="inline-flex h-7 items-center rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      View All
+                    </button>
+                  </>
+                }
+              />
 
               <div className="relative">
                 <Search
@@ -367,7 +396,7 @@ const AddEditExpense: React.FC = () => {
                 />
                 <input
                   placeholder="Search supplier"
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
+                  className={`${fieldControlClass} pl-9`}
                   value={selectedSupplier?.label || supplierSearchTerm}
                   onChange={(e) => {
                     setSelectedSupplier(null);
@@ -552,26 +581,29 @@ const AddEditExpense: React.FC = () => {
               </CustomDialog>
             </div>
 
-            <Input
-              label="Amount"
-              placeholder="0"
-              type="number"
-              className="w-full"
-              {...register("amount")}
-              error={errors.amount?.message}
-              isRequired
-            />
+            <div className="flex min-w-0 flex-col">
+              <FieldHeader label="Amount" required />
+              <input
+                placeholder="0"
+                type="number"
+                className={fieldControlClass}
+                {...register("amount")}
+              />
+              {errors.amount?.message ? (
+                <span className="mt-1 text-sm text-red-500">
+                  {errors.amount.message}
+                </span>
+              ) : null}
+            </div>
 
             <div className="flex min-w-0 flex-col sm:col-span-2">
-              <label className="mb-2 text-left text-xs font-medium text-slate-600">
-                Remarks <span className="text-red-500">*</span>
+              <FieldHeader label="Remarks" required />
               <textarea
                 rows={3}
                 placeholder="Additional remarks"
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
                 {...register("remarks")}
-                />
-                </label>
+              />
               {errors.remarks && (
                 <span className="mt-1 text-sm text-red-600">
                   {errors.remarks.message}

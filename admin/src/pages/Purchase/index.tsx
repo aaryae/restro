@@ -8,7 +8,6 @@ import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
 import { useNavigate } from "react-router-dom";
 import { PURCHASE_ADD_ROUTE } from "@/routes/routeNames";
-import { MdEditSquare } from "react-icons/md";
 import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
@@ -16,7 +15,7 @@ import { FilterInput } from "@/components/Input/filterInput";
 import { FilterSelect } from "@/components/Select/FilterSelect";
 import DateInput from "@/components/DateInput";
 import { useForm } from "react-hook-form";
-import { UserRound, Eye } from "lucide-react";
+import { UserRound, Eye, SquarePen } from "lucide-react";
 import { buildQueryString } from "@/utils/generalHelper";
 import { PURCHASE_URL } from "@/constants/apiUrlConstants";
 import { useGetApiQuery, useDeleteApiMutation } from "@/redux/services/crudApi";
@@ -390,7 +389,7 @@ const Purchase: React.FC = () => {
               title="Edit"
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
             >
-              <MdEditSquare size={16} />
+              <SquarePen size={16} />
             </button>
           )}
           {accessList.includes("delete") && (
@@ -420,7 +419,6 @@ const Purchase: React.FC = () => {
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Purchase"
         handleNewButton={() => handleNewUser(null)}
-        handleReloadButton={() => refetch()}
         subText="Manage supplier purchases, invoices, and payment status."
         filters={
           <FinanceQuickDateChips
@@ -439,15 +437,30 @@ const Purchase: React.FC = () => {
         }
       />
 
-      <PageFilterWrapper title="Purchase Filters">{Component}</PageFilterWrapper>
+      <PageFilterWrapper title="Purchase Filters">
+        {Component}
+      </PageFilterWrapper>
 
       {accessList.includes("view") ? (
-      <Table
-        headers={headers}
-        data={data}
-        pagination={pagination}
-        handlePagination={(p) => handlePagination({ ...p, total })}
-      />
+        <>
+          <Table
+            headers={headers}
+            data={data}
+            pagination={pagination}
+            handlePagination={(p) => handlePagination({ ...p, total })}
+          />
+          <div className="mt-4 flex justify-end">
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <span className="text-[13px] font-medium text-slate-600">
+                Grand Total:{" "}
+              </span>
+              <span className="text-lg font-semibold text-slate-800">
+                {CurrencySign}
+                {Number((apiData as any)?.data?.grandTotal ?? 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view purchases.
@@ -457,13 +470,17 @@ const Purchase: React.FC = () => {
       {accessList.includes("view-one") && openDrawer ? (
         <div className="fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="serve-overlay absolute inset-0"
             onClick={() => {
               setOpenDrawer(false);
               setSelectedId(null);
             }}
           />
-          <div className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-slate-200 bg-white shadow-xl sm:w-[480px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="serve-sheet absolute right-0 top-0 h-full w-full overflow-y-auto sm:w-[480px]"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
               <h3 className="text-lg font-semibold text-slate-800">
                 Purchase Details

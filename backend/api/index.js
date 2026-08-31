@@ -24,13 +24,6 @@ router.get("/", (req, res) => {
   res.json({
     ok: true,
     message: "api/v1 health check!",
-    tenant: req.tenant
-      ? {
-          slug: req.tenant.slug,
-          schemaName: req.tenant.schemaName,
-          status: req.tenant.status,
-        }
-      : null,
   });
 });
 

@@ -6,6 +6,7 @@ import { CurrencySign } from "@/constants";
 import { Wallet, Landmark, PiggyBank, ChartPie } from "lucide-react";
 import BarChartComponent from "../BarChartComponent";
 import PieChartComponent from "../PieChartComponent";
+import { CHART_BRAND, CHART_PALETTE } from "../chartTheme";
 
 function PurchaseSection() {
   const { control, watch } = useForm<{
@@ -278,7 +279,7 @@ function PurchaseSection() {
               }
               yAxisLabel="Amount"
               showLegend={false}
-              colorScale={["#f97316"]}
+              colorScale={[CHART_BRAND]}
             />
           </>
         )}
@@ -300,14 +301,7 @@ function PurchaseSection() {
                 height={260}
                 showLegend
                 legendPosition="bottom"
-                colorScale={[
-                  "#fb923c",
-                  "#fdba74",
-                  "#f59e0b",
-                  "#fbbf24",
-                  "#fcd34d",
-                  "#fca5a5",
-                ]}
+                colorScale={CHART_PALETTE}
               />
             </>
           )}

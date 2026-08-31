@@ -7,7 +7,7 @@ import { PaginationType } from "@/types/commonTypes";
 import usePagination from "@/hooks/usePagination";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { ACCOUNT_PERMISSION_ADD_ROUTE } from "@/routes/routeNames";
@@ -126,7 +126,7 @@ const AccountPermission = () => {
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                     title="Edit permission"
                   >
-                    <MdEditSquare size={16} />
+                    <SquarePen size={16} />
                   </button>
                 )}
                 {accessList.includes("delete") && (

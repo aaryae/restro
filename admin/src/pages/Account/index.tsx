@@ -7,7 +7,7 @@ import usePagination from "@/hooks/usePagination";
 import { useNavigate } from "react-router-dom";
 import { BANK_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign } from "@/constants";
-import { MdEditSquare } from "react-icons/md";
+import { SquarePen, ArrowLeftRight } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
@@ -20,7 +20,6 @@ import {
   useDeleteApiMutation,
 } from "@/redux/services/crudApi";
 import Spinner from "@/components/Spinner";
-import { BiTransfer } from "react-icons/bi";
 import { ACCOUNT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import TransferModel from "./TransferModel";
@@ -251,7 +250,7 @@ const Account: React.FC = () => {
                     className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
                     title="Edit account"
                   >
-                    <MdEditSquare size={16} />
+                    <SquarePen size={16} />
                   </button>
                 )}
                 {accessList.includes("edit-status") && (
@@ -301,7 +300,6 @@ const Account: React.FC = () => {
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Account"
         handleNewButton={() => handleNewBank(null)}
-        handleReloadButton={() => refetch()}
         subText="Manage cash drawers, bank accounts, and wallet balances."
         extraActions={
           transferAccess.includes("add") ? (
@@ -310,7 +308,7 @@ const Account: React.FC = () => {
             onClick={() => setTransferOpen(true)}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
           >
-            <BiTransfer size={16} />
+            <ArrowLeftRight size={16} />
             Transfer
           </button>
           ) : undefined

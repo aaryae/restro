@@ -1,0 +1,134 @@
+.table-report-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .table-report-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .table-report-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.table-report-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 1rem 1rem 0.85rem;
+  border-radius: var(--serve-radius);
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  box-shadow: var(--serve-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.table-report-card:hover {
+  border-color: color-mix(in srgb, var(--serve-accent) 22%, var(--serve-border));
+  box-shadow: var(--serve-shadow-hover, var(--serve-shadow));
+  transform: translateY(-1px);
+}
+
+.table-report-card.is-idle {
+  border-style: dashed;
+  opacity: 0.88;
+}
+
+.table-report-card.is-idle:hover {
+  opacity: 1;
+}
+
+.table-report-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.table-report-card__label {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--serve-fg);
+}
+
+.table-report-card__floor {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--serve-muted);
+}
+
+.table-report-card__amount {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-accent);
+  white-space: nowrap;
+}
+
+.table-report-card__amount.is-idle {
+  color: var(--serve-muted);
+}
+
+.table-report-card__hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--serve-muted);
+}
+
+.table-report-card__bar {
+  margin-top: 0.85rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--serve-surface-2);
+  overflow: hidden;
+}
+
+.table-report-card__bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--bar-color, var(--serve-accent));
+  transition: width 0.35s ease;
+}
+
+.table-report-card__accounts {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--serve-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.table-report-card__account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.table-report-card__account-row span:first-child {
+  color: var(--serve-muted);
+}
+
+.table-report-card__account-row span:last-child {
+  font-weight: 600;
+  color: var(--serve-fg);
+  font-variant-numeric: tabular-nums;
+}

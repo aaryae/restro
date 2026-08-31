@@ -1,10 +1,18 @@
 import { QueryClient } from '@tanstack/react-query'
+import { ApiError } from '@/api/client'
+
+function isUnauthorized(error: unknown) {
+  return error instanceof ApiError && error.status === 401
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (isUnauthorized(error)) return false
+        return failureCount < 1
+      },
       refetchOnWindowFocus: false,
     },
   },
@@ -19,4 +27,5 @@ export const queryKeys = {
   cafe: (id: string | number) => ['platform', 'cafe', String(id)] as const,
   audit: (params: unknown) => ['platform', 'audit', params] as const,
   users: (params: unknown) => ['platform', 'users', params] as const,
+  smtp: ['platform', 'smtp'] as const,
 }
