@@ -22,6 +22,14 @@ module.exports = (sequelize, DataTypes) => {
       phone: { type: DataTypes.STRING, allowNull: true },
       tenantId: { type: DataTypes.INTEGER, allowNull: true },
       isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      emailVerified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      otpSecret: { type: DataTypes.STRING, allowNull: true },
+      otpExpiresAt: { type: DataTypes.DATE, allowNull: true },
+      passwordChangedAt: { type: DataTypes.DATE, allowNull: true },
     },
     {
       sequelize,

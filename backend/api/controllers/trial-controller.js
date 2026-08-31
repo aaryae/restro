@@ -33,6 +33,51 @@ const login = async (req, res, next) => {
   }
 };
 
+const verifyOtp = async (req, res, next) => {
+  try {
+    return send(res, await trialService.verifyOtp(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const resendOtp = async (req, res, next) => {
+  try {
+    return send(res, await trialService.resendOtp(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    return send(res, await trialService.forgotPassword(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    return send(res, await trialService.resetPassword(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const checkUsername = async (req, res, next) => {
+  try {
+    return send(res, await trialService.checkUsername(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 const googleAuth = async (req, res, next) => {
   try {
     return send(res, await trialService.googleAuth(req));
@@ -78,12 +123,27 @@ const createRestaurant = async (req, res, next) => {
   }
 };
 
+const posBootstrap = async (req, res, next) => {
+  try {
+    return send(res, await trialService.posBootstrap(req));
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   register,
   login,
+  verifyOtp,
+  resendOtp,
+  forgotPassword,
+  resetPassword,
+  checkUsername,
   googleAuth,
   me,
   checkSlug,
   suggestSlug,
   createRestaurant,
+  posBootstrap,
 };

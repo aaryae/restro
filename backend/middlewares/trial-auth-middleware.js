@@ -39,6 +39,21 @@ async function trialAuthentication(req, res, next) {
       );
     }
 
+    if (user.passwordChangedAt && decoded.iat) {
+      const changedMs = new Date(user.passwordChangedAt).getTime();
+      if (decoded.iat * 1000 < changedMs - 2000) {
+        return responseHelper.sendResponse(
+          res,
+          httpStatus.FORBIDDEN,
+          false,
+          null,
+          null,
+          "Session expired. Please sign in again.",
+          null,
+        );
+      }
+    }
+
     req.trialUser = user;
     return next();
   } catch (err) {
