@@ -13,16 +13,17 @@ export default function HowItWorks() {
   const ref = useReveal()
 
   return (
-    <section id="how" ref={ref} className="py-28 px-[5vw] bg-cream relative overflow-hidden">
+    <section id="how" ref={ref} className="relative overflow-hidden bg-cream px-[5vw] py-28">
 
-      {/* Decorative arc */}
-      <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full border border-caramel/8 pointer-events-none" />
-      <div className="absolute -bottom-48 -left-48 w-[700px] h-[700px] rounded-full border border-caramel/5 pointer-events-none" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 h-[500px] w-[500px] rounded-full border border-caramel/8" />
+      <div className="pointer-events-none absolute -bottom-48 -left-48 h-[700px] w-[700px] rounded-full border border-caramel/5" />
 
+      <div className="site-wrap relative">
       <div data-reveal>
         <div className="section-label">How It Works</div>
         <h2 className="section-headline">Up and running in<br />less than a day</h2>
         <p className="section-sub">We handle the entire setup so you can focus on what you do best — running your cafe.</p>
+        <div className="section-rule" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-16 relative">
@@ -55,6 +56,7 @@ export default function HowItWorks() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

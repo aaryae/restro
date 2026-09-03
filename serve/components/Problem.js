@@ -14,33 +14,33 @@ export default function Problem() {
   const ref = useReveal()
 
   return (
-    <section id="problem" ref={ref} className="py-28 px-[5vw] bg-espresso text-cream relative overflow-hidden">
+    <section id="problem" ref={ref} className="relative overflow-hidden bg-espresso px-[5vw] py-28 text-cream">
 
-      {/* Background texture */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(245,239,230,1) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
         }}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start relative z-10">
+      <div className="site-wrap relative z-10">
+      <div className="grid grid-cols-1 items-start gap-16 md:grid-cols-2">
         <div data-reveal="left">
           <div className="section-label" style={{ color: '#c4763a' }}>The Problem</div>
-          <h2 className="font-syne text-[clamp(2rem,4vw,3.2rem)] font-extrabold tracking-tight leading-[1.08] text-cream mb-4">
+          <h2 className="mb-4 font-syne text-[clamp(2rem,4vw,3.2rem)] font-extrabold leading-[1.08] tracking-tight text-cream">
             Running a cafe without a system is brutal
           </h2>
-          <div className="w-16 h-[3px] bg-caramel rounded-sm mt-2" />
+          <div className="section-rule" />
         </div>
         <div data-reveal="right" data-delay="2">
-          <p className="text-[1.05rem] leading-relaxed font-light mt-6 max-w-[480px]"
+          <p className="mt-6 max-w-[480px] text-[1.05rem] leading-relaxed font-light"
             style={{ color: 'rgba(245,239,230,0.6)' }}>
             Most cafe owners are expert at coffee — not spreadsheets, manual KOTs, WhatsApp orders, and guessing month-end numbers. SERVE was built because we lived this chaos.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mt-14 rounded-[20px] overflow-hidden relative z-10"
+      <div className="relative z-10 mt-14 grid grid-cols-1 overflow-hidden rounded-3xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
         style={{ gap: '1.5px', background: 'rgba(245,239,230,0.06)' }}>
         {problems.map((p, i) => (
           <div key={p.title}
@@ -56,6 +56,7 @@ export default function Problem() {
               style={{ color: 'rgba(245,239,230,0.5)' }}>{p.desc}</p>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

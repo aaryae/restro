@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { createCafe, type CreateCafeInput } from '@/api/platform'
 import { ApiError } from '@/api/client'
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock'
+import { generateOwnerPassword } from '@/lib/password'
 import {
   emailText,
   FieldError,
@@ -111,6 +112,17 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
       if (touched) setFieldErrors(validateCafeForm(next))
       return next
     })
+    if (error) setError('')
+  }
+
+  function fillGeneratedPassword() {
+    const password = generateOwnerPassword()
+    setForm((prev) => {
+      const next = { ...prev, password }
+      if (touched) setFieldErrors(validateCafeForm(next))
+      return next
+    })
+    setFieldErrors((prev) => ({ ...prev, password: '' }))
     if (error) setError('')
   }
 
@@ -283,13 +295,24 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
             </label>
 
             <label className="block sm:col-span-2">
-              <span className="mb-1 block text-xs font-medium text-slate-600">
-                Owner password
-              </span>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-slate-600">
+                  Owner password
+                </span>
+                <button
+                  type="button"
+                  onClick={fillGeneratedPassword}
+                  disabled={submitting}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Auto-generate
+                </button>
+              </div>
               <PasswordInput
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
-                placeholder="Leave blank to auto-generate"
+                placeholder="Optional — use auto-generate or leave blank"
                 className={
                   fieldErrors.password
                     ? '[&_input]:border-red-400 [&_input]:focus:border-red-500'

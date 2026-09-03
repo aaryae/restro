@@ -28,7 +28,8 @@ export default function About() {
           backgroundSize: '40px 40px',
         }} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center relative z-10">
+      <div className="site-wrap relative z-10">
+      <div className="grid grid-cols-1 items-center gap-20 md:grid-cols-2">
         <div data-reveal="left">
           <div className="section-label" style={{ color: '#c4763a' }}>About SERVE</div>
           <h2 className="font-syne text-[clamp(2rem,4vw,3.2rem)] font-extrabold tracking-tight leading-[1.08] text-cream mb-5">
@@ -71,6 +72,7 @@ export default function About() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </section>
   )

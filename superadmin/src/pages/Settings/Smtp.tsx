@@ -155,7 +155,7 @@ export default function SmtpSettingsPage() {
         <LoadingScreen label="Loading SMTP…" />
       ) : smtpQuery.isError && !smtpQuery.data ? (
         <PageError
-          message={(smtpQuery.error as Error).message}
+          error={smtpQuery.error}
           onRetry={() => smtpQuery.refetch()}
         />
       ) : (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { ApiError } from '@/api/client'
+import { isSessionFailure, forceLoginRedirect } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { LoadingScreen } from '@/components/LoadingScreen'
 
@@ -19,8 +19,9 @@ export function RequireAuth() {
       .catch((err) => {
         if (cancelled) return
         // Expired / invalid token — send user to login (platformFetch also clears session).
-        if (err instanceof ApiError && err.status === 401) {
+        if (isSessionFailure(err)) {
           logout()
+          forceLoginRedirect()
         }
       })
       .finally(() => {

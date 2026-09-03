@@ -14,9 +14,12 @@ export type Cafe = {
   status: CafeStatus
   ownerEmail?: string | null
   ownerPhone?: string | null
+  ownerUsername?: string | null
   businessType?: string | null
   address?: string | null
   trialEndsAt?: string | null
+  selfServeTrialExtendedAt?: string | null
+  statusBeforeSuspend?: CafeStatus | null
   activatedAt?: string | null
   hostingEndsAt?: string | null
   createdAt: string
@@ -96,4 +99,28 @@ export type PlatformSmtpInput = {
   port: number
   secure: boolean
   passkey?: string
+}
+
+export type CafeEmailTemplate = {
+  key: string
+  label: string
+  description: string
+  trigger: string
+  variables: string[]
+  isCustom: boolean
+  subject: string
+  bodyHtml: string
+  bodyText: string
+  preview: {
+    subject: string
+    html: string
+    text: string
+  }
+  updatedAt?: string | null
+}
+
+export type CafeEmailTemplateInput = {
+  subject: string
+  bodyHtml: string
+  bodyText: string
 }

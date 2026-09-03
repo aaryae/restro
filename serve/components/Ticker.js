@@ -16,7 +16,7 @@ export default function Ticker() {
   const repeated = [...items, ...items]
 
   return (
-    <div className="bg-espresso py-4 overflow-hidden border-y border-caramel/20 select-none">
+    <div id="ticker" className="bg-espresso py-4 overflow-hidden border-y border-caramel/20 select-none">
       <div className="ticker-track flex gap-0 whitespace-nowrap" style={{ width: 'max-content' }}>
         {repeated.map((item, i) => (
           <div key={i} className="inline-flex items-center gap-3 px-8">

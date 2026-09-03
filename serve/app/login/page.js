@@ -50,9 +50,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialMode =
-    searchParams.get('mode') === 'login' ? 'login' : 'register'
-  const [mode, setMode] = useState(initialMode)
+  const mode = searchParams.get('mode') === 'login' ? 'login' : 'register'
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [cafeSlug, setCafeSlug] = useState('')
@@ -88,14 +86,6 @@ function LoginForm() {
     setExisting(getTrialUser())
     setCafeSlug(getRememberedCafeSlug())
   }, [])
-
-  useEffect(() => {
-    const q = searchParams.get('mode')
-    if (q === 'login' || q === 'register') {
-      setFieldErrors({})
-      setMode(q)
-    }
-  }, [searchParams])
 
   const copy = useMemo(() => {
     if (resetStep === 'confirm') {
@@ -156,6 +146,7 @@ function LoginForm() {
   }
 
   function switchMode(nextMode) {
+    if (nextMode === mode) return
     setToast('')
     setFieldErrors({})
     setOtpPending(null)
@@ -163,7 +154,9 @@ function LoginForm() {
     setResetStep(null)
     setNewPassword('')
     setConfirmPassword('')
-    setMode(nextMode)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('mode', nextMode)
+    router.replace(`/login?${params.toString()}`, { scroll: false })
   }
 
   function startForgotPassword() {
@@ -174,7 +167,6 @@ function LoginForm() {
     setNewPassword('')
     setConfirmPassword('')
     setResetStep('request')
-    setMode('login')
   }
 
   function leaveForgotPassword() {

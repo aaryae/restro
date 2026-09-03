@@ -19,37 +19,33 @@ export default function Features() {
   const ref = useReveal(0.08)
 
   return (
-    <section id="features" ref={ref} className="py-28 px-[5vw] bg-milk">
+    <section id="features" ref={ref} className="bg-milk py-28 px-[5vw]">
+      <div className="site-wrap">
       <div data-reveal>
         <div className="section-label">Features</div>
         <h2 className="section-headline">Everything your cafe needs,<br />nothing it doesn't</h2>
         <p className="section-sub">Designed from scratch for real cafe operations — not adapted from a generic POS system.</p>
-        <div className="w-16 h-[3px] bg-accent rounded-sm mt-4" />
+        <div className="section-rule" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-16">
+      <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((f, i) => (
           <div key={f.title}
             data-reveal data-delay={`${(i % 3) + 1}`}
-            className="group bg-white border border-caramel/10 rounded-[20px] p-8
-              transition-all duration-400 cursor-default relative overflow-hidden
-              hover:-translate-y-[5px] hover:shadow-[0_16px_48px_rgba(26,15,10,0.10)]
-              hover:border-caramel/30">
+            className="site-card group cursor-default p-8">
 
-            {/* Hover gradient */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+            <div className="absolute inset-0 opacity-0 transition-opacity duration-400 pointer-events-none group-hover:opacity-100"
               style={{ background: 'radial-gradient(circle at 20% 20%, rgba(232,135,58,0.05), transparent 60%)' }} />
 
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-[1.4rem] mb-5 relative z-10
-              transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
+            <div className="relative z-10 mb-5 flex h-12 w-12 items-center justify-center rounded-xl text-[1.4rem] transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
               style={{ background: 'rgba(232,135,58,0.1)' }}>
               {f.icon}
             </div>
-            <h3 className="font-syne text-base font-bold text-ink mb-2 relative z-10
-              group-hover:text-accent transition-colors duration-300">{f.title}</h3>
-            <p className="text-[0.88rem] text-muted leading-relaxed font-light relative z-10">{f.desc}</p>
+            <h3 className="relative z-10 mb-2 font-syne text-base font-bold text-ink transition-colors duration-300 group-hover:text-accent">{f.title}</h3>
+            <p className="relative z-10 text-[0.88rem] leading-relaxed font-light text-muted">{f.desc}</p>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

@@ -78,22 +78,65 @@ type FetchOptions = {
 }
 
 let onUnauthorized: (() => void) | null = null
+let redirectingToLogin = false
 
-/** AuthProvider registers this so 401s clear React auth state and redirect. */
+function getErrorStatus(error: unknown): number {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = (error as { status: unknown }).status
+    if (typeof status === 'number') return status
+  }
+  return 0
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message: unknown }).message
+    if (typeof message === 'string') return message
+  }
+  return ''
+}
+
+function shouldForceLogin(status: number, message: string) {
+  const normalized = message.toLowerCase()
+  if (
+    normalized.includes('session expired') ||
+    normalized.includes('sign in again') ||
+    normalized.includes('invalid platform session') ||
+    normalized.includes('authentication failed') ||
+    normalized.includes("you're not authorized") ||
+    normalized.includes('not authenticated')
+  ) {
+    return true
+  }
+  if (status === 401) return true
+  if (status === 403 && !normalized.includes('do not have permission')) {
+    return true
+  }
+  return false
+}
+
+export function isSessionFailure(error: unknown) {
+  return shouldForceLogin(getErrorStatus(error), getErrorMessage(error))
+}
+
+/** AuthProvider registers this so auth failures clear React auth state and redirect. */
 export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
 
-function handleUnauthorized() {
+export function forceLoginRedirect() {
+  if (redirectingToLogin || typeof window === 'undefined') return
+  if (window.location.pathname.startsWith('/login')) return
+  redirectingToLogin = true
   clearPlatformSession()
   onUnauthorized?.()
-  // Hard navigate so pages never flash the "Session expired" error banner.
-  if (
-    typeof window !== 'undefined' &&
-    !window.location.pathname.startsWith('/login')
-  ) {
-    window.location.assign('/login')
-  }
+  window.location.replace('/login')
+}
+
+function handleUnauthorized() {
+  forceLoginRedirect()
 }
 
 export async function platformFetch<T = unknown>(
@@ -123,14 +166,11 @@ export async function platformFetch<T = unknown>(
   const json = await res.json().catch(() => ({}))
   if (!res.ok || json.success === false) {
     const status = res.status || 500
-    if (auth && status === 401) {
+    const message = json.msg || json.message || 'Request failed'
+    if (auth && shouldForceLogin(status, message)) {
       handleUnauthorized()
     }
-    throw new ApiError(
-      json.msg || json.message || 'Request failed',
-      status,
-      json,
-    )
+    throw new ApiError(message, status, json)
   }
 
   return json.data as T
@@ -158,14 +198,11 @@ export async function platformUpload<T = unknown>(
   const json = await res.json().catch(() => ({}))
   if (!res.ok || json.success === false) {
     const status = res.status || 500
-    if (status === 401) {
+    const message = json.msg || json.message || 'Upload failed'
+    if (shouldForceLogin(status, message)) {
       handleUnauthorized()
     }
-    throw new ApiError(
-      json.msg || json.message || 'Upload failed',
-      status,
-      json,
-    )
+    throw new ApiError(message, status, json)
   }
 
   return json.data as T

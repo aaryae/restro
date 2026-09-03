@@ -198,7 +198,7 @@ export default function DashboardPage() {
   if (statsQuery.isError) {
     return (
       <PageError
-        message={(statsQuery.error as Error).message}
+        error={statsQuery.error}
         onRetry={() => statsQuery.refetch()}
       />
     )

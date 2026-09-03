@@ -2,6 +2,8 @@ import { platformFetch, platformUpload } from '@/api/client'
 import type {
   AuditLog,
   Cafe,
+  CafeEmailTemplate,
+  CafeEmailTemplateInput,
   CafeStatus,
   PlatformAccount,
   PlatformPermission,
@@ -9,7 +11,6 @@ import type {
   PlatformRole,
   PlatformSmtp,
   PlatformSmtpInput,
-  ProvisioningJob,
 } from '@/types'
 
 export type PlatformUser = {
@@ -144,7 +145,7 @@ export async function fetchCafes(params: {
 }
 
 export async function fetchCafe(id: string | number) {
-  return platformFetch<{ cafe: Cafe; jobs: ProvisioningJob[] }>(
+  return platformFetch<{ cafe: Cafe; activity: AuditLog[] }>(
     `/platform/cafes/${id}`,
   )
 }
@@ -268,6 +269,12 @@ export async function updatePlatformUser(
   })
 }
 
+export async function deletePlatformUser(id: number) {
+  return platformFetch<{ id: number }>(`/platform/users/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function fetchPlatformSmtp() {
   return platformFetch<PlatformSmtp>('/platform/smtp')
 }
@@ -277,4 +284,32 @@ export async function upsertPlatformSmtp(input: PlatformSmtpInput) {
     method: 'PUT',
     body: input,
   })
+}
+
+export async function fetchCafeEmailTemplates() {
+  return platformFetch<{ items: CafeEmailTemplate[] }>(
+    '/platform/cafe-email-templates',
+  )
+}
+
+export async function saveCafeEmailTemplate(
+  key: string,
+  input: CafeEmailTemplateInput,
+) {
+  return platformFetch<CafeEmailTemplate>(
+    `/platform/cafe-email-templates/${encodeURIComponent(key)}`,
+    {
+      method: 'PUT',
+      body: input,
+    },
+  )
+}
+
+export async function resetCafeEmailTemplate(key: string) {
+  return platformFetch<CafeEmailTemplate>(
+    `/platform/cafe-email-templates/${encodeURIComponent(key)}/reset`,
+    {
+      method: 'POST',
+    },
+  )
 }

@@ -200,4 +200,41 @@ const sendOtpMail = async ({ to, name, otp, purpose = "verify" }) => {
   }
 };
 
-module.exports = { sendMail, sendOtpMail };
+/**
+ * Send a platform (Serve / superadmin) email using public SMTP.
+ */
+async function sendPlatformMail({ to, subject, text, html }) {
+  const recipient = String(to || "").trim();
+  if (!recipient) {
+    logger.warn("[platform-mail] Skipped — missing recipient");
+    return { delivered: false };
+  }
+
+  const transport = await getSmtpTransport({ publicOnly: true });
+  if (!transport) {
+    logger.warn(`[platform-mail] SMTP not configured; skipped mail to ${recipient}`);
+    return { delivered: false };
+  }
+
+  const from = mailFrom(transport);
+  if (!from) {
+    logger.error("[platform-mail] Refusing to send mail with an empty From address");
+    return { delivered: false };
+  }
+
+  try {
+    await transport.transporter.sendMail({
+      from,
+      to: recipient,
+      subject,
+      text,
+      html,
+    });
+    return { delivered: true };
+  } catch (err) {
+    logger.error(`[platform-mail] Failed to email ${recipient}: ${err.message}`);
+    return { delivered: false };
+  }
+}
+
+module.exports = { sendMail, sendOtpMail, sendPlatformMail, getSmtpTransport, mailFrom };

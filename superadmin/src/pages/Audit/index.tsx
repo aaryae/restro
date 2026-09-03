@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { PageHeader } from '@/components/PageHeader'
+import { PageHeader, PageFilterResetButton } from '@/components/PageHeader'
 import { DataTable } from '@/components/Table/DataTable'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
@@ -17,19 +17,10 @@ import {
   AuditInfoButton,
 } from '@/pages/Audit/AuditDetailPanel'
 
-const PAGE_SIZE = 20
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
+
+const DEFAULT_PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const id = window.setTimeout(() => setDebounced(value), delayMs)
-    return () => window.clearTimeout(id)
-  }, [value, delayMs])
-
-  return debounced
-}
 
 const filterInputClass =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary'
@@ -38,6 +29,7 @@ export default function AuditPage() {
   const { can } = useAuth()
   const canAudit = can('audit.read')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE)
   const [actorInput, setActorInput] = useState('')
   const [cafeInput, setCafeInput] = useState('')
   const [action, setAction] = useState('')
@@ -53,12 +45,12 @@ export default function AuditPage() {
   const params = useMemo(
     () => ({
       page,
-      limit: PAGE_SIZE,
+      limit,
       actor: actor || undefined,
       cafe: cafe || undefined,
       action: action || undefined,
     }),
-    [page, actor, cafe, action],
+    [page, actor, cafe, action, limit],
   )
 
   const auditQuery = useQuery({
@@ -67,6 +59,17 @@ export default function AuditPage() {
     placeholderData: keepPreviousData,
     enabled: canAudit,
   })
+
+  function resetFilters() {
+    setActorInput('')
+    setCafeInput('')
+    setAction('')
+    setPage(1)
+  }
+
+  const hasActiveFilters = Boolean(
+    actorInput.trim() || cafeInput.trim() || action,
+  )
 
   if (!canAudit) {
     return <PageError message="You do not have access to Audit logs." />
@@ -78,7 +81,7 @@ export default function AuditPage() {
   if (auditQuery.isError && !auditQuery.data) {
     return (
       <PageError
-        message={(auditQuery.error as Error).message}
+        error={auditQuery.error}
         onRetry={() => auditQuery.refetch()}
       />
     )
@@ -91,7 +94,15 @@ export default function AuditPage() {
     <div>
       <PageHeader title="Audit logs" />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-slate-700">Filters</p>
+          <PageFilterResetButton
+            onReset={resetFilters}
+            disabled={!hasActiveFilters}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-slate-500">
             Actor
@@ -131,6 +142,7 @@ export default function AuditPage() {
             className={filterInputClass}
           />
         </label>
+        </div>
       </div>
 
       <div className="relative">
@@ -142,9 +154,13 @@ export default function AuditPage() {
         <DataTable
           headers={['When', 'Actor', 'Action', 'Cafe', 'Details']}
           page={page}
-          limit={PAGE_SIZE}
+          limit={limit}
           total={total}
           onPageChange={setPage}
+          onLimitChange={(nextLimit) => {
+            setLimit(nextLimit)
+            setPage(1)
+          }}
           emptyMessage="No audit events match these filters"
           rows={items.map((log) => [
             formatDateTime(log.createdAt),

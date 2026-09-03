@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
   Legend,
@@ -18,6 +18,7 @@ import {
   type StatsTrendsParams,
 } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
+import { isSessionFailure, forceLoginRedirect } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { DateRangeCalendarModal } from '@/components/ui/DateRangeCalendarModal'
 
@@ -152,6 +153,12 @@ export function DashboardTrendChart() {
     placeholderData: keepPreviousData,
   })
 
+  useEffect(() => {
+    if (trendsQuery.error && isSessionFailure(trendsQuery.error)) {
+      forceLoginRedirect()
+    }
+  }, [trendsQuery.error])
+
   const activeKeys = useMemo<StatsTrendSeriesKey[]>(() => {
     if (scenario === 'overview') {
       return ['cafesCreated', 'activations', 'suspensions']
@@ -272,14 +279,20 @@ export function DashboardTrendChart() {
           </div>
         ) : trendsQuery.isError && !trendsQuery.data ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-slate-500">
-            <p>{(trendsQuery.error as Error).message}</p>
-            <button
-              type="button"
-              className="text-primary"
-              onClick={() => trendsQuery.refetch()}
-            >
-              Retry
-            </button>
+            {isSessionFailure(trendsQuery.error) ? (
+              <p>Redirecting to sign in…</p>
+            ) : (
+              <>
+                <p>{(trendsQuery.error as Error).message}</p>
+                <button
+                  type="button"
+                  className="text-primary"
+                  onClick={() => trendsQuery.refetch()}
+                >
+                  Retry
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

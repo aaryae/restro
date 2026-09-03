@@ -7,6 +7,7 @@ const {
   provisioningJobModel,
   platformUserModel,
   platformAuditLogModel,
+  globalUsernameModel,
   sequelize,
 } = require("../../models");
 const { hashPassword, comparePasswords } = require("../../utils/bcrypt");
@@ -32,6 +33,7 @@ const {
 } = require("../../constants/platform-rbac");
 const { createSessionLog } = require("./session-logs");
 const { runWithTenantContext } = require("../../lib/tenant-context");
+const { queueCafeOwnerMail } = require("../../lib/platform-cafe-mail");
 
 const PLATFORM_PASSWORD_MIN = 10;
 
@@ -48,7 +50,7 @@ function clientMeta(req) {
   };
 }
 
-function serializeCafe(tenant) {
+function serializeCafe(tenant, extras = {}) {
   if (!tenant) return null;
   const row = tenant.toJSON ? tenant.toJSON() : tenant;
   return {
@@ -58,15 +60,55 @@ function serializeCafe(tenant) {
     status: row.status,
     ownerEmail: row.ownerEmail,
     ownerPhone: row.ownerPhone,
+    ownerUsername: extras.ownerUsername ?? null,
     businessType: row.businessType,
     address: row.address,
     trialEndsAt: row.trialEndsAt,
     selfServeTrialExtendedAt: row.selfServeTrialExtendedAt || null,
+    statusBeforeSuspend: row.statusBeforeSuspend || null,
     activatedAt: row.activatedAt,
     hostingEndsAt: row.hostingEndsAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+function serializeAuditLog(log) {
+  return {
+    id: log.id,
+    actor: log.actor?.username || "system",
+    actorName: log.actor?.name || null,
+    action: log.action,
+    cafeName: log.tenant?.name || null,
+    cafeSlug: log.tenant?.slug || null,
+    meta: log.meta
+      ? typeof log.meta === "string"
+        ? log.meta
+        : JSON.stringify(log.meta)
+      : null,
+    createdAt: log.createdAt,
+  };
+}
+
+async function resolveOwnerUsername(tenant) {
+  const schemaName = String(tenant?.schemaName || "");
+  if (/^[a-z0-9_]+$/i.test(schemaName)) {
+    try {
+      const [rows] = await sequelize.query(
+        `SELECT username FROM "${schemaName}".users WHERE "roleId" = 1 ORDER BY id ASC LIMIT 1`,
+      );
+      if (rows[0]?.username) return rows[0].username;
+    } catch {
+      // Schema may not exist yet during provisioning.
+    }
+  }
+
+  const hit = await globalUsernameModel.findOne({
+    where: { tenantId: tenant.id },
+    attributes: ["username"],
+    order: [["id", "ASC"]],
+  });
+  return hit?.username || null;
 }
 
 async function writeAudit({ platformUserId, tenantId, action, meta }) {
@@ -112,16 +154,30 @@ const login = async (req) => {
   const user = await platformUserModel.findOne({
     where: { username: normalized },
   });
-  if (!user || !user.isActive) {
+  if (!user) {
     await writeAudit({
       action: "login_failed",
-      meta: { username: normalized, reason: "not_found_or_inactive", ...clientMeta(req) },
+      meta: { username: normalized, reason: "not_found", ...clientMeta(req) },
     });
     recordLoginFailure(req);
     return {
       status: 401,
       success: false,
       message: wrongPasswordMessage(req),
+    };
+  }
+
+  if (!user.isActive) {
+    await writeAudit({
+      platformUserId: user.id,
+      action: "login_failed",
+      meta: { username: normalized, reason: "inactive", ...clientMeta(req) },
+    });
+    return {
+      status: 403,
+      success: false,
+      message:
+        "This operator account is inactive. Contact the platform owner to reactivate it.",
     };
   }
 
@@ -654,26 +710,30 @@ const getCafe = async (req) => {
     return { status: 404, success: false, message: "Cafe not found" };
   }
 
-  const jobs = await provisioningJobModel.findAll({
-    where: { tenantId: tenant.id },
-    order: [["id", "DESC"]],
-    limit: 20,
-  });
+  const [activityRows, ownerUsername] = await Promise.all([
+    platformAuditLogModel.findAll({
+      where: { tenantId: tenant.id },
+      include: [
+        {
+          model: platformUserModel,
+          as: "actor",
+          attributes: ["id", "username", "name"],
+          required: false,
+        },
+      ],
+      order: [["id", "DESC"]],
+      limit: 15,
+    }),
+    resolveOwnerUsername(tenant),
+  ]);
 
   return {
     status: 200,
     success: true,
     message: "OK",
     data: {
-      cafe: serializeCafe(tenant),
-      jobs: jobs.map((j) => ({
-        id: j.id,
-        tenantId: j.tenantId,
-        status: j.status,
-        errorMessage: j.errorMessage,
-        startedAt: j.startedAt,
-        finishedAt: j.finishedAt,
-      })),
+      cafe: serializeCafe(tenant, { ownerUsername }),
+      activity: activityRows.map(serializeAuditLog),
     },
   };
 };
@@ -792,6 +852,19 @@ const createCafe = async (req) => {
     },
   });
 
+  queueCafeOwnerMail(
+    "cafe_created",
+    tenant,
+    {
+      ownerName,
+      ownerUsername,
+      ownerPassword: usedClientPassword ? undefined : ownerPassword,
+      passwordGenerated: !usedClientPassword,
+      status: tenant.status,
+    },
+    req,
+  );
+
   return {
     status: 201,
     success: true,
@@ -852,6 +925,12 @@ const activateCafe = async (req) => {
     });
 
     await tenant.reload();
+    queueCafeOwnerMail(
+      "cafe_unsuspended",
+      tenant,
+      { restoredStatus: restoreStatus },
+      req,
+    );
     return {
       status: 200,
       success: true,
@@ -874,6 +953,7 @@ const activateCafe = async (req) => {
   });
 
   await tenant.reload();
+  queueCafeOwnerMail("cafe_activated", tenant, {}, req);
   return {
     status: 200,
     success: true,
@@ -917,6 +997,7 @@ const suspendCafe = async (req) => {
   });
 
   await tenant.reload();
+  queueCafeOwnerMail("cafe_suspended", tenant, { reason }, req);
   return {
     status: 200,
     success: true,
@@ -949,6 +1030,12 @@ const extendTrial = async (req) => {
   });
 
   await tenant.reload();
+  queueCafeOwnerMail(
+    "cafe_trial_extended",
+    tenant,
+    { days, trialEndsAt: tenant.trialEndsAt },
+    req,
+  );
   return {
     status: 200,
     success: true,
@@ -1220,7 +1307,10 @@ const listPlatformUsers = async (req) => {
   const offset = (page - 1) * limit;
 
   const { rows, count } = await platformUserModel.findAndCountAll({
-    order: [["id", "ASC"]],
+    order: [
+      ["createdAt", "DESC"],
+      ["id", "DESC"],
+    ],
     limit,
     offset,
   });
@@ -1475,6 +1565,55 @@ const updatePlatformUser = async (req) => {
   };
 };
 
+const deletePlatformUser = async (req) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return { status: 400, success: false, message: "Invalid user id" };
+  }
+
+  const user = await platformUserModel.findByPk(id);
+  if (!user) {
+    return { status: 404, success: false, message: "Platform user not found" };
+  }
+
+  if (user.id === req.platformUser.id) {
+    return {
+      status: 400,
+      success: false,
+      message: "You cannot delete your own account",
+    };
+  }
+
+  if (normalizePlatformRole(user.platformRole) === "owner") {
+    return {
+      status: 400,
+      success: false,
+      message: "Cannot delete an Owner account",
+    };
+  }
+
+  const snapshot = {
+    targetUserId: user.id,
+    username: user.username,
+    name: user.name,
+  };
+
+  await writeAudit({
+    platformUserId: req.platformUser.id,
+    action: "platform_user.delete",
+    meta: snapshot,
+  });
+
+  await user.destroy();
+
+  return {
+    status: 200,
+    success: true,
+    message: "Operator deleted",
+    data: { id: snapshot.targetUserId },
+  };
+};
+
 module.exports = {
   login,
   me,
@@ -1495,5 +1634,6 @@ module.exports = {
   listPlatformUsers,
   createPlatformUser,
   updatePlatformUser,
+  deletePlatformUser,
   ensureSeedUser,
 };

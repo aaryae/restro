@@ -14,6 +14,7 @@ const CafeDetailPage = lazy(() => import('@/pages/Cafes/CafeDetail'))
 const AuditPage = lazy(() => import('@/pages/Audit'))
 const SettingsPage = lazy(() => import('@/pages/Settings'))
 const SmtpSettingsPage = lazy(() => import('@/pages/Settings/Smtp'))
+const EmailTemplatesPage = lazy(() => import('@/pages/Settings/EmailTemplates'))
 const ProfilePage = lazy(() => import('@/pages/Profile'))
 
 function withSuspense(element: ReactNode) {
@@ -87,6 +88,14 @@ export const router = createBrowserRouter([
             element: withSuspense(
               <RequirePermission permission="users.manage">
                 <SmtpSettingsPage />
+              </RequirePermission>,
+            ),
+          },
+          {
+            path: 'settings/email-templates',
+            element: withSuspense(
+              <RequirePermission permission="users.manage">
+                <EmailTemplatesPage />
               </RequirePermission>,
             ),
           },

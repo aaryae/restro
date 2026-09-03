@@ -31,6 +31,43 @@ export function formatRelativeTime(value?: string | null) {
   return formatDate(value)
 }
 
+export function formatCafeStatus(status?: string | null) {
+  if (!status) return '—'
+  const key = status.trim()
+  if (CAFE_STATUS_LABELS[key]) return CAFE_STATUS_LABELS[key]
+  return humanizeEnum(key)
+}
+
+const CAFE_STATUS_LABELS: Record<string, string> = {
+  provisioning: 'Provisioning',
+  trial: 'Trial',
+  active: 'Active',
+  expired: 'Expired',
+  suspended: 'Suspended',
+  failed: 'Failed',
+  deleted: 'Deleted',
+}
+
+/** Countdown until trial ends, or how long ago it expired. */
+export function formatTrialDaysLeft(
+  trialEndsAt?: string | null,
+  status?: string | null,
+) {
+  if (!trialEndsAt) return '—'
+  if (status === 'active') return 'N/A (active)'
+
+  const end = new Date(trialEndsAt).getTime()
+  if (Number.isNaN(end)) return '—'
+
+  const diffDays = Math.ceil((end - Date.now()) / (24 * 60 * 60 * 1000))
+  if (diffDays > 1) return `${diffDays} days left`
+  if (diffDays === 1) return '1 day left'
+  if (diffDays === 0) return 'Ends today'
+
+  const past = Math.abs(diffDays)
+  return `Expired ${past} day${past === 1 ? '' : 's'} ago`
+}
+
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   create: 'Created cafe',
   unsuspend: 'Unsuspended cafe',
@@ -43,6 +80,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'platform_user.create': 'Created operator',
   'platform_user.update': 'Updated operator',
   'platform_user.deactivate': 'Deactivated operator',
+  'platform_user.delete': 'Deleted operator',
 }
 
 export const AUDIT_ACTION_FILTER_OPTIONS = Object.entries(AUDIT_ACTION_LABELS).map(
@@ -61,6 +99,8 @@ const HIDDEN_AUDIT_META_KEYS = new Set(['ip', 'userAgent'])
 
 const AUDIT_VALUE_LABELS: Record<string, string> = {
   not_found_or_inactive: 'Account not found or inactive',
+  not_found: 'Account not found',
+  inactive: 'Account inactive',
   bad_password: 'Incorrect password',
   owner: 'Owner',
   operator: 'Operator',

@@ -2,6 +2,7 @@
 
 const platformService = require("../services/platform-service");
 const platformSmtpService = require("../services/platform-smtp-service");
+const platformEmailTemplateService = require("../services/platform-email-template-service");
 const responseHelper = require("../../helpers/response-helper");
 const logger = require("../../configs/logger");
 
@@ -47,6 +48,16 @@ module.exports = {
   listPlatformUsers: wrap(platformService.listPlatformUsers),
   createPlatformUser: wrap(platformService.createPlatformUser),
   updatePlatformUser: wrap(platformService.updatePlatformUser),
+  deletePlatformUser: wrap(platformService.deletePlatformUser),
   getSmtp: wrap(platformSmtpService.getSmtp),
   upsertSmtp: wrap(platformSmtpService.upsertSmtp),
+  listCafeEmailTemplates: wrap(
+    platformEmailTemplateService.listCafeEmailTemplates,
+  ),
+  upsertCafeEmailTemplate: wrap(
+    platformEmailTemplateService.upsertCafeEmailTemplate,
+  ),
+  resetCafeEmailTemplate: wrap(
+    platformEmailTemplateService.resetCafeEmailTemplate,
+  ),
 };

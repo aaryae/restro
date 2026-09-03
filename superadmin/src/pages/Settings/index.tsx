@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Pencil, Plus } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { DataTable } from '@/components/Table/DataTable'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +9,7 @@ import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
 import {
   createPlatformUser,
+  deletePlatformUser,
   fetchPlatformUsers,
   updatePlatformUser,
 } from '@/api/platform'
@@ -90,6 +91,7 @@ export default function SettingsPage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PlatformAccount | null>(null)
+  const [deleting, setDeleting] = useState<PlatformAccount | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<OperatorField>>({})
   const [formError, setFormError] = useState('')
@@ -194,7 +196,23 @@ export default function SettingsPage() {
       setFormError(err instanceof ApiError ? err.message : 'Update failed'),
   })
 
+  const deleteMut = useMutation({
+    mutationFn: deletePlatformUser,
+    onSuccess: () => {
+      toast('Operator deleted', 'success')
+      queryClient.invalidateQueries({ queryKey: ['platform', 'users'] })
+      queryClient.invalidateQueries({ queryKey: ['platform', 'audit'] })
+      setDeleting(null)
+    },
+    onError: (err) =>
+      toast(
+        err instanceof ApiError ? err.message : 'Delete failed',
+        'error',
+      ),
+  })
+
   const busy = createMut.isPending || updateMut.isPending
+  const deleteBusy = deleteMut.isPending
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -235,7 +253,14 @@ export default function SettingsPage() {
   }
 
   const items = usersQuery.data?.items || []
-  useBodyScrollLock(modalOpen)
+  useBodyScrollLock(modalOpen || Boolean(deleting))
+
+  function canDeleteOperator(account: PlatformAccount) {
+    return (
+      account.platformRole !== 'owner' &&
+      account.id !== me?.id
+    )
+  }
 
   return (
     <div>
@@ -265,7 +290,7 @@ export default function SettingsPage() {
         <LoadingScreen label="Loading operators…" />
       ) : usersQuery.isError && !usersQuery.data ? (
         <PageError
-          message={(usersQuery.error as Error).message}
+          error={usersQuery.error}
           onRetry={() => usersQuery.refetch()}
         />
       ) : (
@@ -306,18 +331,30 @@ export default function SettingsPage() {
                 Inactive
               </span>
             ),
-            <Button
-              key={`${account.id}-a`}
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setEditing(account)
-                setModalOpen(true)
-              }}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Button>,
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditing(account)
+                  setModalOpen(true)
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+              {canDeleteOperator(account) ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={deleteBusy}
+                  onClick={() => setDeleting(account)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              ) : null}
+            </div>,
           ])}
           emptyMessage="No operators yet"
         />
@@ -470,6 +507,52 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deleting ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
+          <div
+            className="absolute inset-0"
+            onClick={() => !deleteBusy && setDeleting(null)}
+          />
+          <div className="relative w-full max-w-md rounded-t-2xl border border-slate-200 bg-white p-5 shadow-xl sm:rounded-2xl">
+            <h2 className="text-base font-semibold text-slate-900">
+              Delete operator?
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              This permanently removes{' '}
+              <span className="font-medium text-slate-900">
+                {deleting.name}
+              </span>{' '}
+              (@{deleting.username}). This cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={deleteBusy}
+                onClick={() => setDeleting(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={deleteBusy}
+                onClick={() => deleteMut.mutate(deleting.id)}
+              >
+                {deleteBusy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting…
+                  </>
+                ) : (
+                  'Delete operator'
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

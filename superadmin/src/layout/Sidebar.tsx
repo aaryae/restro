@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, PanelLeft } from 'lucide-react'
 import { sideMenuItems, type SideMenuItem } from '@/layout/sideMenu'
 import { useAuth } from '@/auth/AuthContext'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,92 @@ function itemVisible(
 function isPathActive(pathname: string, path: string, end = false) {
   if (end) return pathname === path
   return pathname === path || pathname.startsWith(`${path}/`)
+}
+
+function NavTooltip({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <div className="group/tip relative">
+      {children}
+      <div
+        className={cn(
+          'pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap',
+          'rounded-lg border border-slate-200 bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-md',
+          'opacity-0 transition-opacity duration-150',
+          'before:absolute before:-left-2 before:top-0 before:h-full before:w-2 before:content-[""]',
+          'group-hover/tip:opacity-100',
+        )}
+      >
+        {label}
+      </div>
+    </div>
+  )
+}
+
+function CollapsedSubmenuFlyout({
+  item,
+  pathname,
+  childActive,
+}: {
+  item: SideMenuItem & { children?: SideMenuItem['children'] }
+  pathname: string
+  childActive: boolean
+}) {
+  const Icon = item.icon
+  const children = item.children || []
+
+  return (
+    <div className="group/menu relative">
+      <div
+        className={cn(
+          'flex cursor-default items-center justify-center rounded-xl px-2 py-3 text-sm font-medium transition',
+          childActive
+            ? 'bg-primary text-white shadow-sm shadow-primary/20'
+            : 'text-slate-600 hover:bg-slate-100',
+        )}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+      </div>
+
+      <div
+        className={cn(
+          'pointer-events-none absolute left-full top-0 z-50 ml-2 min-w-[12rem]',
+          'rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg',
+          'opacity-0 transition-opacity duration-150',
+          'before:absolute before:-left-2 before:top-0 before:h-full before:w-2 before:content-[""]',
+          'group-hover/menu:pointer-events-auto group-hover/menu:opacity-100',
+        )}
+      >
+        <p className="px-2.5 py-1.5 text-xs font-semibold text-slate-400">
+          {item.label}
+        </p>
+        {children.map((child) => {
+          const ChildIcon = child.icon
+          const active = isPathActive(pathname, child.path)
+          return (
+            <Link
+              key={child.key}
+              to={child.path}
+              className={cn(
+                'flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-medium transition',
+                active
+                  ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                  : 'text-slate-600 hover:bg-slate-100',
+              )}
+            >
+              <ChildIcon className="h-4 w-4 shrink-0 opacity-90" />
+              {child.label}
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export function Sidebar({ open, onToggle }: Props) {
@@ -52,47 +138,51 @@ export function Sidebar({ open, onToggle }: Props) {
   }, [pathname])
 
   return (
-    <aside className="flex h-full flex-col bg-white">
+    <aside className={cn('flex h-full flex-col bg-white', !open && 'overflow-visible')}>
       <div
         className={cn(
-          'relative flex h-16 items-center border-b border-slate-200 px-3',
+          'flex h-16 shrink-0 items-center border-b border-slate-200 px-3',
           open ? 'justify-between' : 'justify-center',
         )}
       >
         {open ? (
-          <Link to="/" className="flex min-w-0 cursor-pointer items-center gap-2.5">
-            <img
-              src={serveLogo}
-              alt="Serve"
-              className="h-10 w-auto max-w-[120px] object-contain object-left"
-            />
-          </Link>
+          <>
+            <Link to="/" className="flex min-w-0 cursor-pointer items-center gap-2.5">
+              <img
+                src={serveLogo}
+                alt="Serve"
+                className="h-10 w-auto max-w-[120px] object-contain object-left"
+              />
+            </Link>
+            <button
+              type="button"
+              onClick={onToggle}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          </>
         ) : (
-          <img
-            src={serveLogo}
-            alt="Serve"
-            className="h-9 w-9 object-contain"
-          />
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-lg p-1 transition-opacity hover:opacity-80"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <img src={serveLogo} alt="Serve" className="h-9 w-9 object-contain" />
+          </button>
         )}
-
-        <button
-          type="button"
-          onClick={onToggle}
-          className={cn(
-            'hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 md:inline-flex',
-            !open && 'absolute left-[4.25rem] top-4 z-10 bg-white shadow-sm',
-          )}
-          aria-label="Toggle sidebar"
-        >
-          {open ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav
+        className={cn(
+          'flex-1 space-y-1 p-3',
+          open ? 'overflow-y-auto' : 'overflow-visible',
+        )}
+      >
         {items.map((item) => {
           const Icon = item.icon
           const children = item.children || []
@@ -101,47 +191,47 @@ export function Sidebar({ open, onToggle }: Props) {
             isPathActive(pathname, c.path),
           )
           const isExpanded = Boolean(expanded[item.key]) || childActive
-          const defaultChildPath = children[0]?.path || item.path
 
           if (!hasChildren) {
-            return (
+            const link = (
               <NavLink
                 key={item.key}
                 to={item.path}
                 end={item.path === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                    'flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition',
                     isActive
                       ? 'bg-primary text-white shadow-sm shadow-primary/20'
                       : 'text-slate-600 hover:bg-slate-100',
                     !open && 'justify-center px-2',
                   )
                 }
-                title={item.label}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-5 w-5 shrink-0" />
                 {open ? <span>{item.label}</span> : null}
               </NavLink>
             )
+
+            if (!open) {
+              return (
+                <NavTooltip key={item.key} label={item.label}>
+                  {link}
+                </NavTooltip>
+              )
+            }
+
+            return link
           }
 
-          // Collapsed rail: jump to first child; no nested indent.
           if (!open) {
             return (
-              <NavLink
+              <CollapsedSubmenuFlyout
                 key={item.key}
-                to={defaultChildPath}
-                className={cn(
-                  'flex items-center justify-center rounded-xl px-2 py-2.5 text-sm font-medium transition',
-                  childActive
-                    ? 'bg-primary text-white shadow-sm shadow-primary/20'
-                    : 'text-slate-600 hover:bg-slate-100',
-                )}
-                title={item.label}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-              </NavLink>
+                item={item}
+                pathname={pathname}
+                childActive={childActive}
+              />
             )
           }
 
@@ -156,14 +246,14 @@ export function Sidebar({ open, onToggle }: Props) {
                   }))
                 }
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors',
+                  'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors',
                   childActive || isExpanded
                     ? 'text-slate-900 hover:bg-slate-100'
                     : 'text-slate-600 hover:bg-slate-100',
                 )}
                 aria-expanded={isExpanded}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-5 w-5 shrink-0" />
                 <span className="flex-1">{item.label}</span>
                 <ChevronDown
                   className={cn(
@@ -206,7 +296,7 @@ export function Sidebar({ open, onToggle }: Props) {
                             )
                           }
                         >
-                          <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                          <ChildIcon className="h-4 w-4 shrink-0 opacity-80" />
                           <span>{child.label}</span>
                         </NavLink>
                       )

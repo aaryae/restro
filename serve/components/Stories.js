@@ -26,25 +26,24 @@ export default function Stories() {
   const ref = useReveal()
 
   return (
-    <section id="stories" ref={ref} className="py-28 px-[5vw] bg-cream relative overflow-hidden">
+    <section id="stories" ref={ref} className="relative overflow-hidden bg-cream px-[5vw] py-28">
 
-      <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full pointer-events-none opacity-60"
+      <div className="pointer-events-none absolute top-0 left-0 h-[400px] w-[400px] rounded-full opacity-60"
         style={{ background: 'radial-gradient(circle, rgba(196,118,58,0.07), transparent 70%)', transform: 'translate(-30%,-30%)' }} />
 
+      <div className="site-wrap relative">
       <div data-reveal>
         <div className="section-label">Success Stories</div>
         <h2 className="section-headline">Cafes that made the switch</h2>
         <p className="section-sub">Real stories from real owners who moved from chaos to clarity.</p>
+        <div className="section-rule" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-16">
+      <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {stories.map((s, i) => (
           <div key={s.name}
             data-reveal data-delay={`${(i % 3) + 1}`}
-            className="group bg-white border border-caramel/10 rounded-[20px] p-8
-              transition-all duration-400 cursor-default relative overflow-hidden
-              hover:-translate-y-[4px] hover:shadow-[0_12px_40px_rgba(26,15,10,0.09)]
-              hover:border-caramel/20">
+            className="site-card group cursor-default p-8">
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
               style={{ background: 'linear-gradient(135deg, rgba(232,135,58,0.03), transparent 60%)' }} />
             <Stars />
@@ -62,6 +61,7 @@ export default function Stories() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

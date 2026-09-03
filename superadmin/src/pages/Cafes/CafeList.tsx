@@ -41,19 +41,10 @@ const FILTERS: Array<'all' | CafeStatus> = [
   'failed',
 ]
 
-const PAGE_SIZE = 10
-const SEARCH_DEBOUNCE_MS = 300
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const id = window.setTimeout(() => setDebounced(value), delayMs)
-    return () => window.clearTimeout(id)
-  }, [value, delayMs])
-
-  return debounced
-}
+const DEFAULT_PAGE_SIZE = 10
+const DEFAULT_SORT_BY = 'createdAt'
+const DEFAULT_SORT_DIR: SortDir = 'desc'
+const DEFAULT_STATUS: (typeof FILTERS)[number] = 'all'
 
 export default function CafeListPage() {
   const { can } = useAuth()
@@ -67,11 +58,12 @@ export default function CafeListPage() {
   const canSuspend = can('cafes.suspend')
   const canImpersonate = can('cafes.impersonate')
   const [searchInput, setSearchInput] = useState('')
-  const query = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS)
-  const [status, setStatus] = useState<(typeof FILTERS)[number]>('all')
+  const query = searchInput.trim()
+  const [status, setStatus] = useState<(typeof FILTERS)[number]>(DEFAULT_STATUS)
   const [page, setPage] = useState(1)
-  const [sortBy, setSortBy] = useState('createdAt')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE)
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT_BY)
+  const [sortDir, setSortDir] = useState<SortDir>(DEFAULT_SORT_DIR)
   const [createOpen, setCreateOpen] = useState(false)
   const [confirm, setConfirm] = useState<{
     action: CafeActionKind
@@ -85,13 +77,13 @@ export default function CafeListPage() {
   const params = useMemo(
     () => ({
       page,
-      limit: PAGE_SIZE,
+      limit,
       q: query || undefined,
       status,
       sortBy,
       sortDir,
     }),
-    [page, query, status, sortBy, sortDir],
+    [page, query, status, sortBy, sortDir, limit],
   )
 
   const cafesQuery = useQuery({
@@ -193,6 +185,20 @@ export default function CafeListPage() {
     } else if (action === 'impersonate') impersonateMut.mutate(cafe.id)
   }
 
+  function resetFilters() {
+    setSearchInput('')
+    setStatus(DEFAULT_STATUS)
+    setSortBy(DEFAULT_SORT_BY)
+    setSortDir(DEFAULT_SORT_DIR)
+    setPage(1)
+  }
+
+  const hasActiveFilters =
+    Boolean(searchInput.trim()) ||
+    status !== DEFAULT_STATUS ||
+    sortBy !== DEFAULT_SORT_BY ||
+    sortDir !== DEFAULT_SORT_DIR
+
   if (!canSection) {
     return (
       <PageError message="You do not have access to the Cafes section." />
@@ -216,7 +222,7 @@ export default function CafeListPage() {
   if (cafesQuery.isError && !cafesQuery.data) {
     return (
       <PageError
-        message={(cafesQuery.error as Error).message}
+        error={cafesQuery.error}
         onRetry={() => cafesQuery.refetch()}
       />
     )
@@ -254,13 +260,18 @@ export default function CafeListPage() {
         />
       ) : null}
 
-      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <PageToolbarSearch
-          value={searchInput}
-          onChange={setSearchInput}
-          placeholder="Search name, slug, email…"
-        />
-        <div className="flex flex-wrap gap-1.5">
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:gap-4">
+        <div className="min-w-0 flex-1">
+          <PageToolbarSearch
+            value={searchInput}
+            onChange={setSearchInput}
+            onReset={resetFilters}
+            resetDisabled={!hasActiveFilters}
+            placeholder="Search name, slug, email…"
+            className="max-w-none"
+          />
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-1.5">
           {FILTERS.map((item) => (
             <button
               key={item}
@@ -305,9 +316,13 @@ export default function CafeListPage() {
             { label: 'Actions', align: 'center' },
           ]}
           page={page}
-          limit={PAGE_SIZE}
+          limit={limit}
           total={total}
           onPageChange={setPage}
+          onLimitChange={(nextLimit) => {
+            setLimit(nextLimit)
+            setPage(1)
+          }}
           sortBy={sortBy}
           sortDir={sortDir}
           onSortChange={(nextSortBy, nextSortDir) => {
@@ -363,7 +378,7 @@ export default function CafeListPage() {
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                 </Button>
               ) : null}
-              {canExtend ? (
+              {canExtend && cafe.status !== 'suspended' ? (
                 <Button
                   variant="outline"
                   size="sm"

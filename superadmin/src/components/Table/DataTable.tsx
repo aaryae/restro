@@ -20,6 +20,8 @@ type Props = {
   limit?: number
   total?: number
   onPageChange?: (page: number) => void
+  onLimitChange?: (limit: number) => void
+  pageSizeOptions?: number[]
   sortBy?: string
   sortDir?: SortDir
   onSortChange?: (sortBy: string, sortDir: SortDir) => void
@@ -53,6 +55,8 @@ export function DataTable({
   limit = 10,
   total = rows.length,
   onPageChange,
+  onLimitChange,
+  pageSizeOptions = [10, 20, 50],
   sortBy,
   sortDir = 'desc',
   onSortChange,
@@ -60,6 +64,8 @@ export function DataTable({
 }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
   const cols = headers.map(normalizeHeader)
+  const rangeStart = total === 0 ? 0 : (page - 1) * limit + 1
+  const rangeEnd = Math.min(page * limit, total)
 
   return (
     <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -164,10 +170,31 @@ export function DataTable({
       </div>
 
       {onPageChange && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
-          <span>
-            Showing {(page - 1) * limit + (rows.length ? 1 : 0)}–
-            {Math.min(page * limit, total)} of {total}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1">
+            Showing {rangeStart}–
+            {onLimitChange ? (
+              <>
+                <label htmlFor="table-page-size" className="sr-only">
+                  Rows per page
+                </label>
+                <select
+                  id="table-page-size"
+                  value={limit}
+                  onChange={(e) => onLimitChange(Number(e.target.value))}
+                  className="h-7 rounded-md border border-slate-200 bg-white px-1.5 text-xs text-slate-700 outline-none focus:border-primary"
+                >
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              rangeEnd
+            )}{' '}
+            of {total}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -178,7 +205,7 @@ export function DataTable({
             >
               Prev
             </button>
-            <span>
+            <span className="min-w-[2.5rem] text-center">
               {page} / {totalPages}
             </span>
             <button

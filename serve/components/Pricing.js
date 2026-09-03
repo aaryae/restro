@@ -1,5 +1,6 @@
 'use client'
 'use client'
+import Link from 'next/link'
 import { useReveal } from './useReveal'
 
 const included = [
@@ -28,16 +29,17 @@ export default function Pricing() {
   const ref = useReveal()
 
   return (
-    <section id="pricing" ref={ref} className="py-28 px-[5vw] bg-milk relative overflow-hidden">
+    <section id="pricing" ref={ref} className="relative overflow-hidden bg-milk px-[5vw] py-28">
 
-      {/* BG decoration */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none"
+      <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(232,135,58,0.05) 0%, transparent 65%)', transform: 'translate(30%,-30%)' }} />
 
+      <div className="site-wrap relative">
       <div data-reveal>
         <div className="section-label">Pricing</div>
         <h2 className="section-headline">Simple, transparent pricing</h2>
         <p className="section-sub">No hidden fees. No surprise subscriptions. One honest cost to get your cafe running properly.</p>
+        <div className="section-rule" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16">
@@ -62,14 +64,15 @@ export default function Pricing() {
             ))}
           </ul>
 
-          <a href="#contact"
+          <Link href="/login?mode=register"
             className="relative z-10 flex items-center justify-center w-full py-[0.88em] rounded-full bg-accent text-white
               text-base font-medium no-underline transition-all duration-300
               hover:bg-accent-dark hover:-translate-y-[2px] hover:shadow-[0_10px_32px_rgba(232,135,58,0.45)]
               active:scale-[0.98]">
             Get Started →
-          </a>
+          </Link>
         </div>
+    
 
         {/* Right column */}
         <div className="flex flex-col gap-6">
@@ -115,6 +118,7 @@ export default function Pricing() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </section>
   )

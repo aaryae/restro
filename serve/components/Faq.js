@@ -18,11 +18,13 @@ export default function Faq() {
   const ref = useReveal()
 
   return (
-    <section id="faq" ref={ref} className="py-28 px-[5vw] bg-milk">
+    <section id="faq" ref={ref} className="bg-milk px-[5vw] py-28">
+      <div className="site-wrap">
       <div data-reveal>
         <div className="section-label">FAQ</div>
         <h2 className="section-headline">Questions we get asked</h2>
         <p className="section-sub">Everything you need to know before making the switch.</p>
+        <div className="section-rule" />
       </div>
 
       <div className="mt-16 max-w-[780px] border border-caramel/12 rounded-[24px] overflow-hidden
@@ -53,6 +55,7 @@ export default function Faq() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </section>
   )

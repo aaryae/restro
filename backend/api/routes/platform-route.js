@@ -21,8 +21,12 @@ const {
   listPlatformUsers,
   createPlatformUser,
   updatePlatformUser,
+  deletePlatformUser,
   getSmtp,
   upsertSmtp,
+  listCafeEmailTemplates,
+  upsertCafeEmailTemplate,
+  resetCafeEmailTemplate,
 } = require("../controllers/platform-controller");
 const {
   platformAuthentication,
@@ -140,6 +144,12 @@ router.patch(
   requirePlatformPermission("users.manage"),
   updatePlatformUser,
 );
+router.delete(
+  "/users/:id",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  deletePlatformUser,
+);
 
 router.get(
   "/smtp",
@@ -152,6 +162,25 @@ router.put(
   platformAuthentication,
   requirePlatformPermission("users.manage"),
   upsertSmtp,
+);
+
+router.get(
+  "/cafe-email-templates",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  listCafeEmailTemplates,
+);
+router.put(
+  "/cafe-email-templates/:key",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  upsertCafeEmailTemplate,
+);
+router.post(
+  "/cafe-email-templates/:key/reset",
+  platformAuthentication,
+  requirePlatformPermission("users.manage"),
+  resetCafeEmailTemplate,
 );
 
 module.exports = router;

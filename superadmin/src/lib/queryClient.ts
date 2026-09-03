@@ -1,16 +1,17 @@
-import { QueryClient } from '@tanstack/react-query'
-import { ApiError } from '@/api/client'
-
-function isUnauthorized(error: unknown) {
-  return error instanceof ApiError && error.status === 401
-}
+import { QueryCache, QueryClient } from '@tanstack/react-query'
+import { forceLoginRedirect, isSessionFailure } from '@/api/client'
 
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (isSessionFailure(error)) forceLoginRedirect()
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,
       retry: (failureCount, error) => {
-        if (isUnauthorized(error)) return false
+        if (isSessionFailure(error)) return false
         return failureCount < 1
       },
       refetchOnWindowFocus: false,
@@ -28,4 +29,5 @@ export const queryKeys = {
   audit: (params: unknown) => ['platform', 'audit', params] as const,
   users: (params: unknown) => ['platform', 'users', params] as const,
   smtp: ['platform', 'smtp'] as const,
+  emailTemplates: ['platform', 'cafe-email-templates'] as const,
 }

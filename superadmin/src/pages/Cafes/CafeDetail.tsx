@@ -13,6 +13,10 @@ import {
   type CafeActionKind,
 } from '@/pages/Cafes/CafeActionConfirmModal'
 import {
+  AuditDetailPanel,
+  AuditInfoButton,
+} from '@/pages/Audit/AuditDetailPanel'
+import {
   activateCafe,
   extendCafeTrial,
   fetchCafe,
@@ -20,11 +24,18 @@ import {
   suspendCafe,
 } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
-import { formatDate, formatDateTime } from '@/lib/format'
+import {
+  formatAuditAction,
+  formatCafeStatus,
+  formatDate,
+  formatDateTime,
+  formatTrialDaysLeft,
+} from '@/lib/format'
 import { cafePosUrl } from '@/utils/cafePosUrl'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
 import { useState } from 'react'
+import type { AuditLog } from '@/types'
 
 export default function CafeDetailPage() {
   const { id } = useParams()
@@ -37,6 +48,9 @@ export default function CafeDetailPage() {
   const canImpersonate = can('cafes.impersonate')
   const queryClient = useQueryClient()
   const [confirmAction, setConfirmAction] = useState<CafeActionKind | null>(
+    null,
+  )
+  const [selectedActivity, setSelectedActivity] = useState<AuditLog | null>(
     null,
   )
 
@@ -132,14 +146,14 @@ export default function CafeDetailPage() {
   if (cafeQuery.isError) {
     return (
       <PageError
-        message={(cafeQuery.error as Error).message}
+        error={cafeQuery.error}
         onRetry={() => cafeQuery.refetch()}
       />
     )
   }
 
   const cafe = cafeQuery.data?.cafe
-  const jobs = cafeQuery.data?.jobs || []
+  const activity: AuditLog[] = cafeQuery.data?.activity || []
   if (!cafe) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
@@ -163,7 +177,7 @@ export default function CafeDetailPage() {
         title={cafe.name}
         subtitle={`${cafe.slug}.servecafe.app`}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link to="/cafes">
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4" />
@@ -172,6 +186,7 @@ export default function CafeDetailPage() {
             </Link>
             {canActivate && cafe.status !== 'active' ? (
               <Button
+                variant="success"
                 disabled={busy}
                 onClick={() =>
                   setConfirmAction(
@@ -183,9 +198,9 @@ export default function CafeDetailPage() {
                 {cafe.status === 'suspended' ? 'Unsuspend' : 'Activate'}
               </Button>
             ) : null}
-            {canExtend ? (
+            {canExtend && cafe.status !== 'suspended' ? (
               <Button
-                variant="secondary"
+                variant="warning"
                 disabled={busy}
                 onClick={() => setConfirmAction('extend')}
               >
@@ -195,7 +210,7 @@ export default function CafeDetailPage() {
             ) : null}
             {canSuspend && cafe.status !== 'suspended' ? (
               <Button
-                variant="outline"
+                variant="danger"
                 disabled={busy}
                 onClick={() => setConfirmAction('suspend')}
               >
@@ -234,12 +249,44 @@ export default function CafeDetailPage() {
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
             <Item label="Status" value={<StatusBadge status={cafe.status} />} />
             <Item label="Business type" value={cafe.businessType || '—'} />
+            <Item
+              label="Owner username"
+              value={cafe.ownerUsername ? `@${cafe.ownerUsername}` : '—'}
+            />
             <Item label="Owner email" value={cafe.ownerEmail || '—'} />
             <Item label="Owner phone" value={cafe.ownerPhone || '—'} />
             <Item label="Address" value={cafe.address || '—'} />
             <Item label="Created" value={formatDateTime(cafe.createdAt)} />
-            <Item label="Trial ends" value={formatDate(cafe.trialEndsAt)} />
+            <Item
+              label="Trial ends"
+              value={
+                cafe.trialEndsAt ? (
+                  <span>
+                    {formatDate(cafe.trialEndsAt)}
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {formatTrialDaysLeft(cafe.trialEndsAt, cafe.status)}
+                    </span>
+                  </span>
+                ) : (
+                  '—'
+                )
+              }
+            />
             <Item label="Activated" value={formatDate(cafe.activatedAt)} />
+            <Item
+              label="Self-serve extension"
+              value={
+                cafe.selfServeTrialExtendedAt
+                  ? formatDate(cafe.selfServeTrialExtendedAt)
+                  : 'Not used'
+              }
+            />
+            {cafe.status === 'suspended' && cafe.statusBeforeSuspend ? (
+              <Item
+                label="Suspended from"
+                value={formatCafeStatus(cafe.statusBeforeSuspend)}
+              />
+            ) : null}
           </dl>
         </div>
 
@@ -263,20 +310,32 @@ export default function CafeDetailPage() {
 
       <section className="mt-6 min-w-0">
         <h2 className="mb-3 text-sm font-semibold text-slate-800">
-          Provisioning history
+          Recent activity
         </h2>
         <DataTable
-          headers={['Job ID', 'Status', 'Started', 'Finished', 'Error']}
-          rows={jobs.map((job) => [
-            `#${job.id}`,
-            <StatusBadge key={job.id} status={job.status} />,
-            formatDateTime(job.startedAt),
-            formatDateTime(job.finishedAt),
-            job.errorMessage || '—',
+          headers={['When', 'Actor', 'Action', 'Details']}
+          rows={activity.map((log) => [
+            formatDateTime(log.createdAt),
+            log.actorName ? `${log.actorName} (@${log.actor})` : log.actor,
+            <span
+              key={`${log.id}-action`}
+              className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+            >
+              {formatAuditAction(log.action)}
+            </span>,
+            <AuditInfoButton
+              key={`${log.id}-info`}
+              onClick={() => setSelectedActivity(log)}
+            />,
           ])}
-          emptyMessage="No provisioning jobs for this cafe."
+          emptyMessage="No activity recorded for this cafe yet."
         />
       </section>
+
+      <AuditDetailPanel
+        log={selectedActivity}
+        onClose={() => setSelectedActivity(null)}
+      />
     </div>
   )
 }

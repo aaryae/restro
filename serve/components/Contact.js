@@ -28,14 +28,16 @@ export default function Contact() {
     focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(232,135,58,0.12)]`
 
   return (
-    <section id="contact" ref={ref} className="py-28 px-[5vw] bg-cream relative overflow-hidden">
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none opacity-60"
+    <section id="contact" ref={ref} className="relative overflow-hidden bg-cream px-[5vw] py-28">
+      <div className="pointer-events-none absolute right-0 bottom-0 h-[500px] w-[500px] rounded-full opacity-60"
         style={{ background: 'radial-gradient(circle, rgba(232,135,58,0.07), transparent 70%)', transform: 'translate(30%, 30%)' }} />
 
+      <div className="site-wrap relative">
       <div data-reveal>
         <div className="section-label">Get In Touch</div>
         <h2 className="section-headline">Let's get your cafe<br />running on SERVE</h2>
         <p className="section-sub">Book a free demo or just reach out. No sales pressure — just a real conversation about your cafe.</p>
+        <div className="section-rule" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-20 mt-16">
@@ -119,6 +121,7 @@ export default function Contact() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </section>
   )

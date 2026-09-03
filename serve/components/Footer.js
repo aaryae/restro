@@ -12,10 +12,10 @@ const links = [
 
 export default function Footer() {
   return (
-    <footer className="bg-ink text-cream">
+    <footer id="site-footer" className="bg-ink text-cream px-[5vw]">
 
       {/* Main footer */}
-      <div className="px-[5vw] py-16 grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-white/5">
+      <div className="site-wrap py-16 grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-white/5">
 
         {/* Brand */}
         <div>
@@ -77,7 +77,7 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="px-[5vw] py-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="site-wrap py-5 flex flex-wrap items-center justify-between gap-4">
         <p className="text-[0.78rem] font-light" style={{ color: 'rgba(245,239,230,0.3)' }}>
           © 2026 - SERVE Cafe Management System. All rights reserved. Designed & Developed by{' '}
           <span className="text-caramel font-medium transition-colors duration-200 cursor-default hover:text-accent">

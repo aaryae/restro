@@ -7,6 +7,16 @@ import { useAuth } from '@/auth/AuthContext'
 import { cn } from '@/lib/utils'
 import { ChevronDown, X } from 'lucide-react'
 
+const SIDEBAR_STORAGE_KEY = 'serve_superadmin_sidebar_open'
+
+function readSidebarOpen() {
+  if (typeof window === 'undefined') return true
+  const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+  if (stored === '0') return false
+  if (stored === '1') return true
+  return true
+}
+
 function itemVisible(
   item: Pick<SideMenuItem, 'permission'>,
   can: (p: NonNullable<SideMenuItem['permission']>) => boolean,
@@ -21,11 +31,19 @@ function isPathActive(pathname: string, path: string, end = false) {
 }
 
 export function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const { can } = useAuth()
   const { pathname } = useLocation()
+
+  function toggleSidebar() {
+    setSidebarOpen((current) => {
+      const next = !current
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
 
   const mobileItems = sideMenuItems
     .filter((item) => itemVisible(item, can))
@@ -53,13 +71,10 @@ export function AppLayout() {
       <div
         className={cn(
           'fixed left-0 top-0 z-50 hidden h-screen border-r border-slate-200/80 transition-all duration-300 md:block',
-          sidebarOpen ? 'w-80' : 'w-20',
+          sidebarOpen ? 'w-80 overflow-hidden' : 'w-20 overflow-visible',
         )}
       >
-        <Sidebar
-          open={sidebarOpen}
-          onToggle={() => setSidebarOpen((v) => !v)}
-        />
+        <Sidebar open={sidebarOpen} onToggle={toggleSidebar} />
       </div>
 
       {mobileOpen ? (

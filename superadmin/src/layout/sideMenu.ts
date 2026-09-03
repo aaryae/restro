@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Building2,
+  FileText,
   LayoutDashboard,
   Mail,
   ScrollText,
@@ -68,6 +69,13 @@ export const sideMenuItems: SideMenuItem[] = [
         label: 'SMTP',
         path: '/settings/smtp',
         icon: Mail,
+        permission: 'users.manage',
+      },
+      {
+        key: 'email-templates',
+        label: 'Owner emails',
+        path: '/settings/email-templates',
+        icon: FileText,
         permission: 'users.manage',
       },
     ],

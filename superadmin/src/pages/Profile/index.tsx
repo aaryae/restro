@@ -226,10 +226,10 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => setTab(item.id)}
                 className={cn(
-                  'flex min-w-[14rem] flex-1 items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition lg:min-w-0 lg:flex-none',
+                  'flex min-w-[14rem] flex-1 items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left transition lg:min-w-0 lg:flex-none',
                   active
-                    ? 'border-primary/30 bg-primary/5 shadow-sm'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
+                    ? 'border-primary shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300',
                 )}
               >
                 <span
