@@ -83,6 +83,10 @@ const DailySummaryReport = lazy(() =>
 );
 const TableReport = lazy(() => import("@/pages/TableReport"));
 const RecentlyDeleted = lazy(() => import("@/pages/RecentlyDeleted"));
+const MeasuringUnit = lazy(() => import("@/pages/MeasuringUnit"));
+const StockGroup = lazy(() => import("@/pages/StockGroup"));
+const StockItem = lazy(() => import("@/pages/StockItem"));
+const StockHistory = lazy(() => import("@/pages/StockHistory"));
 
 export const adminLinks: { path: string; element: ReactNode }[] = [
   {
@@ -414,5 +418,37 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
   {
     path: "/table-report",
     element: <TableReport />,
+  },
+  {
+    path: "/measuring-unit/list",
+    element: <MeasuringUnit />,
+  },
+  {
+    path: "/measuring-unit/",
+    element: <Navigate to="/admin/measuring-unit/list" replace />,
+  },
+  {
+    path: "/measuring-unit/:id",
+    element: <Navigate to="/admin/measuring-unit/list" replace />,
+  },
+  {
+    path: "/stock-group/list",
+    element: <StockGroup />,
+  },
+  {
+    path: "/stock-group/",
+    element: <Navigate to="/admin/stock-group/list" replace />,
+  },
+  {
+    path: "/stock-group/:id",
+    element: <Navigate to="/admin/stock-group/list" replace />,
+  },
+  {
+    path: "/stock-item/list",
+    element: <StockItem />,
+  },
+  {
+    path: "/stock-history/list",
+    element: <StockHistory />,
   },
 ];

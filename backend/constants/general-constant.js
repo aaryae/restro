@@ -1866,5 +1866,137 @@ module.exports = {
         message: "Unused addons retrieved successfully",
       },
     },
+
+    MEASURING_UNIT: {
+      CREATE_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Measuring unit created successfully",
+      },
+      LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Measuring units retrieved successfully",
+      },
+      GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Measuring unit retrieved successfully",
+      },
+      UPDATE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Measuring unit updated successfully",
+      },
+      DELETE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Measuring unit deleted successfully",
+      },
+      NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Measuring unit not found",
+      },
+      IN_USE: {
+        status: 400,
+        success: false,
+        message: "Cannot delete measuring unit because it is linked to stock items",
+      },
+    },
+
+    STOCK_GROUP: {
+      CREATE_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Stock group created successfully",
+      },
+      LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock groups retrieved successfully",
+      },
+      GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock group retrieved successfully",
+      },
+      UPDATE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock group updated successfully",
+      },
+      DELETE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock group deleted successfully",
+      },
+      NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Stock group not found",
+      },
+      IN_USE: {
+        status: 400,
+        success: false,
+        message: "Cannot delete stock group because it is linked to stock items",
+      },
+    },
+
+    STOCK_ITEM: {
+      CREATE_SUCCESS: {
+        status: 201,
+        success: true,
+        message: "Stock item created successfully",
+      },
+      LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock items retrieved successfully",
+      },
+      GET_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock item retrieved successfully",
+      },
+      UPDATE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock item updated successfully",
+      },
+      DELETE_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock item deleted successfully",
+      },
+      ADJUST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock adjusted successfully",
+      },
+      SUMMARY_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock summary retrieved successfully",
+      },
+      NOT_FOUND: {
+        status: 404,
+        success: false,
+        message: "Stock item not found",
+      },
+      INSUFFICIENT_STOCK: {
+        status: 400,
+        success: false,
+        message: "Insufficient stock quantity for this adjustment",
+      },
+    },
+
+    STOCK_HISTORY: {
+      LIST_SUCCESS: {
+        status: 200,
+        success: true,
+        message: "Stock history retrieved successfully",
+      },
+    },
   },
 };

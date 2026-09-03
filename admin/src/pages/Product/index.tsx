@@ -9,7 +9,7 @@ import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { useNavigate } from "react-router-dom";
 import { PRODUCT_ADD_ROUTE } from "@/routes/routeNames";
-import { useDeleteProductByIdMutation } from "@/redux/services/product";
+import { useDeleteProductByIdMutation, useUpdateProductByIdMutation } from "@/redux/services/product";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { LIST_LIMIT } from "@/constants/listLimits";
 import usePagination from "@/hooks/usePagination";
@@ -19,6 +19,7 @@ import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
 import Select from "@/components/Select";
+import ToggleSwitch from "@/components/Switch";
 
 const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
 const BulkUploadModal = lazy(() => import("./BulkUploadModal"));
@@ -67,6 +68,22 @@ export default function Product() {
   } = useGetApiQuery({ url });
   const [deleteProduct] = useDeleteProductByIdMutation();
   const [updateOrder] = useUpdateApiMutation();
+  const [updateProductById] = useUpdateProductByIdMutation();
+
+  const handleToggleTopSelling = async (item: any, next: boolean) => {
+    try {
+      await updateProductById({
+        id: item.id,
+        body: {
+          isTopSelling: next,
+          topSellingOrder: next ? Number(item.topSellingOrder || 0) : 0,
+        },
+      }).unwrap();
+      refetch();
+    } catch (error) {
+      handleError({ error });
+    }
+  };
 
   const handleNewUser = (id: number | null) => {
     id === null
@@ -100,6 +117,7 @@ export default function Product() {
   const tableHeaders = [
     "Items",
     "Price",
+    "Top Selling",
     (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
   ].filter(Boolean) as string[];
 
@@ -126,6 +144,11 @@ export default function Product() {
           <span className="font-semibold text-slate-800">
             {CurrencySign} {item.price}
           </span>,
+          <ToggleSwitch
+            isActive={Boolean(item.isTopSelling)}
+            disabled={!accessList.includes("edit")}
+            onToggle={(next) => handleToggleTopSelling(item, next)}
+          />,
           <TableRowActions>
             {accessList.includes("edit") && (
               <button

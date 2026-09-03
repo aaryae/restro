@@ -103,6 +103,10 @@ export const api = createApi({
     "payment-integration",
     "trash",
     "profile",
+    "measuring-unit",
+    "stock-group",
+    "stock-item",
+    "stock-history",
   ],
   endpoints: () => ({}),
 });

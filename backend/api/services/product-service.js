@@ -215,7 +215,7 @@ const updateById = async (req) => {
       };
     }
 
-    // Handle media updates
+    // Handle media updates only when the client sent mediaArr
     if (Array.isArray(mediaArr)) {
       await productMediaModel.destroy({
         where: { productId: product.id },
@@ -230,31 +230,41 @@ const updateById = async (req) => {
       await productMediaModel.bulkCreate(bulkMedia, { transaction });
     }
 
-    // Handle variants
-    if (
-      productData.hasVariant &&
-      Array.isArray(variants) &&
-      variants.length > 0
-    ) {
-      await productVariantModel.destroy({
-        where: { productId: product.id },
-        transaction,
-      });
+    // Handle variants only when hasVariant / variants were explicitly sent
+    const touchingVariants =
+      Object.prototype.hasOwnProperty.call(req.body, "hasVariant") ||
+      Object.prototype.hasOwnProperty.call(req.body, "variants");
 
-      const bulkVariants = variants.map((variant) => ({
-        ...variant,
-        productId: product.id,
-      }));
+    if (touchingVariants) {
+      const enableVariants =
+        productData.hasVariant === undefined
+          ? product.hasVariant
+          : Boolean(productData.hasVariant);
 
-      await productVariantModel.bulkCreate(bulkVariants, { transaction });
-    } else {
-      await productVariantModel.destroy({
-        where: { productId: product.id },
-        transaction,
-      });
+      if (enableVariants && Array.isArray(variants) && variants.length > 0) {
+        await productVariantModel.destroy({
+          where: { productId: product.id },
+          transaction,
+        });
+
+        const bulkVariants = variants.map((variant) => ({
+          ...variant,
+          productId: product.id,
+        }));
+
+        await productVariantModel.bulkCreate(bulkVariants, { transaction });
+      } else if (
+        Object.prototype.hasOwnProperty.call(req.body, "hasVariant") &&
+        productData.hasVariant === false
+      ) {
+        await productVariantModel.destroy({
+          where: { productId: product.id },
+          transaction,
+        });
+      }
     }
 
-    // Handle addons association
+    // Handle addons association only when sent
     if (Array.isArray(addons)) {
       // First, remove all existing addon associations
       await product.removeAddons(await product.getAddons({ transaction }), {
@@ -550,8 +560,8 @@ const importFromExcel = async (file, options = {}) => {
 };
 
 /**
- * Top-selling products by total ordered quantity.
- * Always returns up to `limit` items; fills remaining slots with random products.
+ * Top-selling products for the POS create-order grid.
+ * Priority: staff-curated (`isTopSelling`) → sales volume → random fill.
  */
 const topSelling = async (req) => {
   try {
@@ -565,36 +575,55 @@ const topSelling = async (req) => {
       { model: addonModel, as: "addons" },
     ];
 
-    const salesRows = await orderItemModel.findAll({
-      attributes: [
-        "productId",
-        [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"],
+    const curated = await productModel.findAll({
+      where: { isTopSelling: true },
+      include: productInclude,
+      order: [
+        ["topSellingOrder", "ASC"],
+        ["order", "ASC"],
+        ["id", "ASC"],
       ],
-      where: {
-        productId: { [Op.ne]: null },
-        isAddon: false,
-        status: { [Op.ne]: "cancelled" },
-      },
-      group: ["productId"],
-      // Quoted: Postgres folds an unquoted identifier to lowercase, so the
-      // alias no longer matches the quoted one Sequelize emits for the SUM.
-      order: [[sequelize.literal('"totalSold"'), "DESC"]],
       limit,
-      raw: true,
     });
 
-    const topIds = salesRows
-      .map((row) => Number(row.productId))
-      .filter((id) => Number.isInteger(id) && id > 0);
+    let products = curated;
+    const remainingAfterCurated = limit - products.length;
 
-    let products = [];
-    if (topIds.length) {
-      const topProducts = await productModel.findAll({
-        where: { id: { [Op.in]: topIds } },
-        include: productInclude,
+    if (remainingAfterCurated > 0) {
+      const excludeIds = products.map((p) => p.id);
+      const salesRows = await orderItemModel.findAll({
+        attributes: [
+          "productId",
+          [sequelize.fn("SUM", sequelize.col("quantity")), "totalSold"],
+        ],
+        where: {
+          productId: {
+            [Op.ne]: null,
+            ...(excludeIds.length ? { [Op.notIn]: excludeIds } : {}),
+          },
+          isAddon: false,
+          status: { [Op.ne]: "cancelled" },
+        },
+        group: ["productId"],
+        order: [[sequelize.literal('"totalSold"'), "DESC"]],
+        limit: remainingAfterCurated,
+        raw: true,
       });
-      const byId = new Map(topProducts.map((p) => [p.id, p]));
-      products = topIds.map((id) => byId.get(id)).filter(Boolean);
+
+      const topIds = salesRows
+        .map((row) => Number(row.productId))
+        .filter((id) => Number.isInteger(id) && id > 0);
+
+      if (topIds.length) {
+        const topProducts = await productModel.findAll({
+          where: { id: { [Op.in]: topIds } },
+          include: productInclude,
+        });
+        const byId = new Map(topProducts.map((p) => [p.id, p]));
+        products = products.concat(
+          topIds.map((id) => byId.get(id)).filter(Boolean),
+        );
+      }
     }
 
     const remaining = limit - products.length;

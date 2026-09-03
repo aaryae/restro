@@ -7,9 +7,29 @@ import { Suspense, useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 import OnboardingHost from "@/components/Onboarding/OnboardingHost";
 
+const SIDEBAR_OPEN_KEY = "serve-sidebar-open";
+
+function readSidebarOpen(): boolean {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_OPEN_KEY);
+    if (raw === null) return true;
+    return raw === "1" || raw === "true";
+  } catch {
+    return true;
+  }
+}
+
 export default function Layout() {
-  const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(true);
+  const [sideMenuOpen, setSideMenuOpen] = useState<boolean>(readSidebarOpen);
   const { pathname } = useLocation();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_OPEN_KEY, sideMenuOpen ? "1" : "0");
+    } catch {
+      // ignore quota / private mode
+    }
+  }, [sideMenuOpen]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });

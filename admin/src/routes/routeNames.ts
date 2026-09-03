@@ -91,3 +91,10 @@ export const ADDONS_ADD_ROUTE = "/admin/addons/";
 export const ADDONS_EDIT_ROUTE = "/admin/addons/:id";
 
 export const DAILY_REPORT_ROUTE = "/admin/daily-report";
+
+export const MEASURING_UNIT_LIST_ROUTE = "/admin/measuring-unit/list";
+
+export const STOCK_GROUP_LIST_ROUTE = "/admin/stock-group/list";
+
+export const STOCK_ITEM_LIST_ROUTE = "/admin/stock-item/list";
+export const STOCK_HISTORY_LIST_ROUTE = "/admin/stock-history/list";

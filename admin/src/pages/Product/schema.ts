@@ -37,6 +37,8 @@ export const ProductSchema = z
       .default([]),
     addons: z.array(z.coerce.number()).optional().default([]),
     hasVariant: z.boolean().default(false),
+    isTopSelling: z.boolean().default(false),
+    topSellingOrder: z.coerce.number().int().min(0).optional().default(0),
     price: z.preprocess(
       (v) =>
         v === "" || v === null || v === undefined || Number.isNaN(v)

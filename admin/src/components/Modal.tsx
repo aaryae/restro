@@ -28,24 +28,21 @@ const Modal: React.FC<ModalProps> = ({
     full: "max-w-full mx-4",
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      onClick={handleBackdropClick}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 py-8">
-        <div className="serve-overlay fixed inset-0"></div>
+        <button
+          type="button"
+          aria-label="Close modal"
+          className="serve-overlay fixed inset-0 cursor-default"
+          onClick={onClose}
+        />
 
         <div
           role="dialog"
           aria-modal="true"
           className={`serve-modal relative w-full rounded-xl ${sizeClasses[size]} ${className}`}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {title && (

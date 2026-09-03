@@ -4,6 +4,9 @@ const Sequelize = require("sequelize");
 const { hashPassword } = require("../utils/bcrypt");
 const { setTenantSearchPath } = require("./run-tenant-migrations");
 const { seedDefaultMedia } = require("./seed-default-media");
+const {
+  ensureDefaultMeasuringUnits,
+} = require("./seed-default-measuring-units");
 
 const rolesSeeder = require("../seeders/20240516054600-demo-roles");
 
@@ -91,6 +94,9 @@ async function runTenantSeeders(sequelize, schemaName, owner) {
 
   // Packaged menu photos (momo, chowmein, coffee, …) for the Media library.
   await seedDefaultMedia(sequelize, schemaName, { createdBy: ownerUserId });
+
+  // Restaurant measuring units (kg, ltr, pcs, …) for inventory.
+  await ensureDefaultMeasuringUnits(sequelize, { schemaName });
 
   return { ownerUserId };
 }

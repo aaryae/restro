@@ -1,5 +1,3 @@
-import Beep from "@/assets/audio/beep.mp3";
-import DeleteBeep from "@/assets/audio/DeleteBeep.mp3";
 import Drawer from "@/components/Drawer";
 import Input from "@/components/Input";
 import Kot, { type KotData } from "@/components/Kot";
@@ -18,6 +16,11 @@ import {
 } from "@/redux/services/orders";
 import { ORDER_LIST_ROUTE } from "@/routes/routeNames";
 import { buildQueryString } from "@/utils/generalHelper";
+import {
+  playPosAddBeep,
+  playPosDeleteBeep,
+  unlockPosBeeps,
+} from "@/utils/posBeep";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { buildTableSelectOptions } from "@/utils/tableSelectOptions";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -120,7 +123,7 @@ export default function AddEditOrder({
 
   const url = useMemo(() => {
     if (!isSearching) {
-      return "product/top-selling?limit=8";
+      return "product/top-selling?limit=12";
     }
     return buildQueryString("product/list", {
       page: query.page,
@@ -171,63 +174,21 @@ export default function AddEditOrder({
     }
   }, [addonDrawerOpen, isCompactLayout]);
 
-  // Use refs for audio to avoid SSR/build-time issues and allow imperative control
-  const beepRef = useRef<HTMLAudioElement | null>(null);
-  const deleteBeepRef = useRef<HTMLAudioElement | null>(null);
-  const audioUnlockedRef = useRef(false);
-
-  // Create and warm up audio elements; unlock on first user gesture (required in production browsers)
+  // Unlock POS beeps on first user gesture (required by browser autoplay policy)
   useEffect(() => {
-    const beep = new Audio(Beep);
-    const del = new Audio(DeleteBeep);
-    beep.preload = "auto";
-    del.preload = "auto";
-    beep.volume = 1;
-    del.volume = 1;
-    beepRef.current = beep;
-    deleteBeepRef.current = del;
-
-    const unlockAudio = () => {
-      if (audioUnlockedRef.current) return;
-      audioUnlockedRef.current = true;
-      [beep, del].forEach((el) => {
-        try {
-          el.muted = true;
-          const p = el.play();
-          if (p && typeof p.then === "function") {
-            p.then(() => {
-              el.pause();
-              el.currentTime = 0;
-              el.muted = false;
-            }).catch(() => {
-              el.muted = false;
-            });
-          } else {
-            el.muted = false;
-          }
-        } catch {
-          el.muted = false;
-        }
-      });
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("keydown", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
-    };
-
-    window.addEventListener("pointerdown", unlockAudio, { once: true });
-    window.addEventListener("keydown", unlockAudio, { once: true });
-    window.addEventListener("touchstart", unlockAudio, { once: true });
-
+    const unlock = () => unlockPosBeeps();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    window.addEventListener("touchstart", unlock, { once: true });
     return () => {
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("keydown", unlockAudio);
-      window.removeEventListener("touchstart", unlockAudio);
-      beep.pause();
-      del.pause();
-      beepRef.current = null;
-      deleteBeepRef.current = null;
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
     };
   }, []);
+
+  const playAudio = () => playPosAddBeep();
+  const playDeleteAudio = () => playPosDeleteBeep();
 
   const watchedOrderType = watch("orderType");
   const watchedTableId = watch("tableId");
@@ -267,57 +228,6 @@ export default function AddEditOrder({
     watchedOrderNote,
     orderItems,
   ]);
-
-  const playSound = (src: string, fallbackEl: HTMLAudioElement | null) => {
-    // Prefer a fresh Audio instance created inside the click stack — most reliable
-    // under production browser autoplay policies (especially tablets / Safari).
-    const tryPlay = (url: string) => {
-      const fresh = new Audio(url);
-      fresh.volume = 1;
-      return fresh.play();
-    };
-
-    try {
-      const playPromise = tryPlay(src);
-      if (playPromise && typeof playPromise.then === "function") {
-        playPromise.catch(() => {
-          // Fallback to preloaded element, then public asset path
-          const retry = async () => {
-            if (fallbackEl) {
-              try {
-                fallbackEl.muted = false;
-                fallbackEl.currentTime = 0;
-                await fallbackEl.play();
-                return;
-              } catch {
-                // continue
-              }
-            }
-            const publicPath = src.includes("DeleteBeep")
-              ? "/audio/DeleteBeep.mp3"
-              : "/audio/beep.mp3";
-            try {
-              await tryPlay(publicPath);
-            } catch {
-              // ignore — browser/device blocked audio
-            }
-          };
-          void retry();
-        });
-      }
-    } catch {
-      if (!fallbackEl) return;
-      try {
-        fallbackEl.currentTime = 0;
-        void fallbackEl.play().catch(() => {});
-      } catch {
-        // ignore
-      }
-    }
-  };
-
-  const playAudio = () => playSound(Beep, beepRef.current);
-  const playDeleteAudio = () => playSound(DeleteBeep, deleteBeepRef.current);
 
   // React-to-print for KOT (80mm ticket style)
   const printKot = useReactToPrint({
@@ -662,12 +572,14 @@ export default function AddEditOrder({
       Toast("Please add at least one item to the order", "error");
       return;
     }
+    playAudio();
     setPendingData(data);
     setIsConfirmOpen(true);
   };
 
   const handleConfirmCreate = async () => {
     if (!pendingData) return;
+    playAudio();
     setIsConfirming(true);
     await submitOrder(pendingData);
     setIsConfirming(false);
@@ -677,6 +589,7 @@ export default function AddEditOrder({
   // Confirm and print KOT
   const handleConfirmCreateAndPrint = async () => {
     if (!pendingData) return;
+    playAudio();
     try {
       setIsConfirming(true);
       const orderType = getValues("orderType") || pendingData.orderType;
@@ -1008,12 +921,21 @@ export default function AddEditOrder({
                   menuView={menuView}
                   qtyForProduct={qtyForProduct}
                   onAdd={(product) => {
-                    addProductToOrder(product);
                     playAudio();
+                    addProductToOrder(product);
                   }}
                   onAdjustQty={(product, delta) => {
+                    const existing = orderItems.find(
+                      (item) =>
+                        String(item.productId) === String(product.id) &&
+                        item.status !== "cancelled",
+                    );
+                    const willRemove =
+                      delta < 0 &&
+                      (!existing || existing.quantity + delta <= 0);
+                    if (willRemove) playDeleteAudio();
+                    else playAudio();
                     adjustProductQty(product, delta);
-                    playAudio();
                   }}
                 />
               </div>
@@ -1170,11 +1092,10 @@ export default function AddEditOrder({
                             type="button"
                             disabled={item.status === "preparing"}
                             onClick={() => {
-                              updateOrderItemQuantity(
-                                item.id,
-                                item.quantity - 1,
-                              );
-                              playAudio();
+                              const nextQty = item.quantity - 1;
+                              updateOrderItemQuantity(item.id, nextQty);
+                              if (nextQty <= 0) playDeleteAudio();
+                              else playAudio();
                             }}
                             className={styles.qtyBtn}
                           >

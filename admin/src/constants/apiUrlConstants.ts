@@ -20,3 +20,7 @@ export const TRANSACTION_URL = "transaction/";
 export const DASHBOARD_URL = "dashboard/";
 export const LEDGER_URL = "ledger/";
 export const TRASH_URL = "trash/";
+export const MEASURING_UNIT_URL = "measuring-unit/";
+export const STOCK_GROUP_URL = "stock-group/";
+export const STOCK_ITEM_URL = "stock-item/";
+export const STOCK_HISTORY_URL = "stock-history/";

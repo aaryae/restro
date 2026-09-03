@@ -41,63 +41,101 @@ function tableInSchema(tableName, schemaName) {
 /**
  * Sequelize defaults to public unless schema is set on each call.
  * Pass { tableName, schema } so indexes/constraints land in the tenant schema.
+ *
+ * Important: queryInterface is a singleton on the Sequelize instance. Re-patching
+ * for each tenant must NOT nest wrappers (that would pin tables to the first
+ * schema). We keep the unbound originals and swap the active schema each call.
  */
 function patchQueryInterfaceForTenant(queryInterface, schemaName) {
-  const prefix = `${schemaName.replace(/-/g, "_")}_`;
+  if (!queryInterface._tenantUnpatched) {
+    queryInterface._tenantUnpatched = {
+      createTable: queryInterface.createTable.bind(queryInterface),
+      dropTable: queryInterface.dropTable.bind(queryInterface),
+      bulkInsert: queryInterface.bulkInsert.bind(queryInterface),
+      addIndex: queryInterface.addIndex.bind(queryInterface),
+      changeColumn: queryInterface.changeColumn.bind(queryInterface),
+      addConstraint: queryInterface.addConstraint.bind(queryInterface),
+      addColumn: queryInterface.addColumn.bind(queryInterface),
+      removeColumn: queryInterface.removeColumn.bind(queryInterface),
+      describeTable: queryInterface.describeTable.bind(queryInterface),
+    };
+  }
+
+  const original = queryInterface._tenantUnpatched;
   queryInterface._tenantSchema = schemaName;
 
-  const originalCreateTable = queryInterface.createTable.bind(queryInterface);
+  const activeSchema = () => queryInterface._tenantSchema;
+  const activePrefix = () => `${activeSchema().replace(/-/g, "_")}_`;
+
   queryInterface.createTable = (tableName, attributes, options) =>
-    originalCreateTable(
-      tableInSchema(tableName, schemaName),
+    original.createTable(
+      tableInSchema(tableName, activeSchema()),
       attributes,
-      withSchema(options, schemaName),
+      withSchema(options, activeSchema()),
     );
 
-  const originalDropTable = queryInterface.dropTable.bind(queryInterface);
   queryInterface.dropTable = (tableName, options) =>
-    originalDropTable(
-      tableInSchema(tableName, schemaName),
-      withSchema(options, schemaName),
+    original.dropTable(
+      tableInSchema(tableName, activeSchema()),
+      withSchema(options, activeSchema()),
     );
 
-  const originalBulkInsert = queryInterface.bulkInsert.bind(queryInterface);
   queryInterface.bulkInsert = (tableName, records, options) =>
-    originalBulkInsert(
-      tableInSchema(tableName, schemaName),
+    original.bulkInsert(
+      tableInSchema(tableName, activeSchema()),
       records,
-      withSchema(options, schemaName),
+      withSchema(options, activeSchema()),
     );
 
-  const originalAddIndex = queryInterface.addIndex.bind(queryInterface);
   queryInterface.addIndex = async (tableName, attributes, options = {}) => {
     if (!Array.isArray(attributes)) {
       options = attributes || {};
       attributes = options.fields;
     }
     const fields = [].concat(attributes || []);
-    const opts = withSchema(options, schemaName);
+    const opts = withSchema(options, activeSchema());
     const rawName = typeof tableName === "string" ? tableName : tableName.tableName;
     const baseName = opts.name || `${rawName}_${fields.join("_")}`;
-    opts.name = `${prefix}${baseName}`;
-    return originalAddIndex(tableInSchema(tableName, schemaName), fields, opts);
+    opts.name = `${activePrefix()}${baseName}`;
+    return original.addIndex(tableInSchema(tableName, activeSchema()), fields, opts);
   };
 
-  const originalChangeColumn = queryInterface.changeColumn.bind(queryInterface);
-  queryInterface.changeColumn = (tableName, attributeName, dataTypeOrOptions, options) =>
-    originalChangeColumn(
-      tableInSchema(tableName, schemaName),
+  queryInterface.changeColumn = (
+    tableName,
+    attributeName,
+    dataTypeOrOptions,
+    options,
+  ) =>
+    original.changeColumn(
+      tableInSchema(tableName, activeSchema()),
       attributeName,
       dataTypeOrOptions,
-      withSchema(options, schemaName),
+      withSchema(options, activeSchema()),
     );
 
-  const originalAddConstraint = queryInterface.addConstraint.bind(queryInterface);
   queryInterface.addConstraint = async (tableName, options = {}) => {
-    const opts = withSchema(options, schemaName);
-    if (opts.name) opts.name = `${prefix}${opts.name}`;
-    return originalAddConstraint(tableInSchema(tableName, schemaName), opts);
+    const opts = withSchema(options, activeSchema());
+    if (opts.name) opts.name = `${activePrefix()}${opts.name}`;
+    return original.addConstraint(tableInSchema(tableName, activeSchema()), opts);
   };
+
+  queryInterface.addColumn = (tableName, key, attribute, options) =>
+    original.addColumn(
+      tableInSchema(tableName, activeSchema()),
+      key,
+      attribute,
+      withSchema(options, activeSchema()),
+    );
+
+  queryInterface.removeColumn = (tableName, attribute, options) =>
+    original.removeColumn(
+      tableInSchema(tableName, activeSchema()),
+      attribute,
+      withSchema(options, activeSchema()),
+    );
+
+  queryInterface.describeTable = (tableName, options) =>
+    original.describeTable(tableName, withSchema(options, activeSchema()));
 
   return queryInterface;
 }

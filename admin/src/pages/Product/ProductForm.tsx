@@ -5,6 +5,7 @@ import Drawer from "@/components/Drawer";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
+import ToggleSwitch from "@/components/Switch";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { LIST_LIMIT } from "@/constants/listLimits";
 import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
@@ -57,6 +58,8 @@ export default function ProductForm() {
       departmentId: "",
       description: "",
       hasVariant: false,
+      isTopSelling: false,
+      topSellingOrder: 0,
       variants: [],
       price: undefined,
       mediaArr: [],
@@ -70,6 +73,7 @@ export default function ProductForm() {
   });
 
   const hasVariant = watch("hasVariant");
+  const isTopSelling = watch("isTopSelling");
   const variants = watch("variants");
 
   const {
@@ -161,6 +165,8 @@ export default function ProductForm() {
             }))
           : [],
         price,
+        isTopSelling: Boolean(product?.data?.isTopSelling),
+        topSellingOrder: Number(product?.data?.topSellingOrder || 0),
         mediaArr:
           product?.data?.mediaArr
             ?.map((each: { imageUrl?: string }) => each?.imageUrl)
@@ -175,6 +181,8 @@ export default function ProductForm() {
         productCategoryId: "",
         departmentId: "",
         hasVariant: false,
+        isTopSelling: false,
+        topSellingOrder: 0,
         variants: [],
         price: undefined,
         mediaArr: [],
@@ -237,6 +245,8 @@ export default function ProductForm() {
       // quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
       productCategoryId: Number(data.productCategoryId),
       departmentId: Number(data.departmentId),
+      isTopSelling: Boolean(data.isTopSelling),
+      topSellingOrder: Number(data.topSellingOrder || 0),
       variants: data.hasVariant ? data.variants : [],
     };
     try {
@@ -406,6 +416,35 @@ export default function ProductForm() {
         />
           </>
         )}
+
+        <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:max-w-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">
+                Show in Top Selling
+              </p>
+              <p className="mt-0.5 text-[12px] text-slate-500">
+                Pin this item on the Create Order menu grid.
+              </p>
+            </div>
+            <ToggleSwitch
+              isActive={Boolean(isTopSelling)}
+              onToggle={(next) =>
+                setValue("isTopSelling", next, { shouldDirty: true })
+              }
+            />
+          </div>
+          {isTopSelling ? (
+            <Input
+              label="Top Selling order"
+              type="number"
+              min={0}
+              placeholder="0"
+              {...register("topSellingOrder", { valueAsNumber: true })}
+              error={errors.topSellingOrder?.message as string | undefined}
+            />
+          ) : null}
+        </div>
 
         {/* Addons selector */}
         <div className="flex flex-col gap-2 w-full md:w-1/2">

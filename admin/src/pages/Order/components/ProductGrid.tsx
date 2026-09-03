@@ -24,14 +24,11 @@ type ProductGridProps = {
 };
 
 const LIST_ROW_HEIGHT = 92;
-const CARD_ROW_HEIGHT = 280;
-const CARD_COLUMNS = 4;
 const VIRTUALIZE_AFTER = 24;
 
 function ProductCard({
   product,
   inCartQty,
-  menuView,
   onAdd,
   onAdjustQty,
 }: {
@@ -116,32 +113,17 @@ export default function ProductGrid({
   onAdjustQty,
 }: ProductGridProps) {
   const isList = menuView === "list";
-  const useVirtual = products.length > VIRTUALIZE_AFTER;
-  const virtualCount = isList
-    ? products.length
-    : Math.ceil(products.length / CARD_COLUMNS);
-  const itemHeight = isList ? LIST_ROW_HEIGHT : CARD_ROW_HEIGHT;
+  // Card grid uses CSS auto-fill columns, so only virtualize list rows.
+  const useVirtual = isList && products.length > VIRTUALIZE_AFTER;
   const { containerRef, range, totalHeight, offsetY } = useVirtualWindow(
-    useVirtual ? virtualCount : 0,
-    { itemHeight },
+    useVirtual ? products.length : 0,
+    { itemHeight: LIST_ROW_HEIGHT },
   );
 
   const visibleProducts = useMemo(() => {
     if (!useVirtual) return products;
-    if (isList) {
-      return products.slice(range.start, range.end);
-    }
-
-    const items: ProductListItem[] = [];
-    for (let row = range.start; row < range.end; row++) {
-      for (let col = 0; col < CARD_COLUMNS; col++) {
-        const index = row * CARD_COLUMNS + col;
-        if (index >= products.length) break;
-        items.push(products[index]);
-      }
-    }
-    return items;
-  }, [isList, products, range.end, range.start, useVirtual]);
+    return products.slice(range.start, range.end);
+  }, [products, range.end, range.start, useVirtual]);
 
   const gridClassName = `${styles.productGrid} ${
     isList ? styles.productGridList : styles.productGridCards
