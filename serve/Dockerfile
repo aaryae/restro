@@ -13,17 +13,21 @@ ARG NEXT_PUBLIC_TENANT_BASE_DOMAIN=
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_POS_URL=$NEXT_PUBLIC_POS_URL
 ENV NEXT_PUBLIC_TENANT_BASE_DOMAIN=$NEXT_PUBLIC_TENANT_BASE_DOMAIN
+# Bake docker-network API proxy into rewrites at build time
+ENV API_PROXY_TARGET=http://api:8080
 RUN npm run build
 
 FROM node:20-alpine3.20 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 ENV API_PROXY_TARGET=http://api:8080
+
+# Standalone bundle already includes a minimal node_modules tree
 COPY --from=build /app/public ./public
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./
-COPY --from=build /app/next.config.mjs ./
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

@@ -2,6 +2,7 @@
 const apiProxy = process.env.API_PROXY_TARGET || 'http://api:8080'
 
 const nextConfig = {
+  output: 'standalone',
   reactCompiler: true,
   agentRules: false,
   async rewrites() {
