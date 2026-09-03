@@ -61,7 +61,8 @@ export default function config(mode: string) {
     plugins: [react()],
     server: {
       open: false,
-      port: env.VITE_PORT || 7001,
+      port: Number(env.VITE_PORT || 7001),
+      strictPort: true,
       host: "0.0.0.0",
     } as ServerConfig,
     resolve: {

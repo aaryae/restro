@@ -37,6 +37,9 @@ interface SelectProps {
   id?: string;
   isRequired?: boolean;
   required?: boolean;
+  /** Allow clearing the selection back to empty (shows a “None” row). */
+  clearable?: boolean;
+  clearLabel?: string;
   onBlur?: React.FocusEventHandler;
   onChange?: (event: { target: { value: string; name?: string } }) => void;
   onValueChange?: (value: string) => void;
@@ -62,6 +65,8 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
       id,
       isRequired,
       required,
+      clearable = false,
+      clearLabel = "None",
       onBlur,
       onChange,
       onValueChange,
@@ -164,6 +169,20 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
               contentClassName,
             )}
           >
+            {clearable ? (
+              <DropdownMenuItem
+                onSelect={() => commit("")}
+                className={cn(
+                  "justify-between text-slate-500",
+                  !stringValue && "bg-primaryColor/5 text-primaryColor",
+                )}
+              >
+                <span>{clearLabel}</span>
+                {!stringValue && (
+                  <Check className="h-4 w-4 text-primaryColor" />
+                )}
+              </DropdownMenuItem>
+            ) : null}
             {options.map((option, index) => {
               if (option.options?.length) {
                 return (

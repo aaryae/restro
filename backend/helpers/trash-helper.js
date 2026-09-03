@@ -13,6 +13,9 @@ const {
   expenseCategoryModel,
   purchaseCategoryModel,
   emailTemplateModel,
+  measuringUnitModel,
+  stockGroupModel,
+  stockItemModel,
   sequelize,
 } = require("../models");
 
@@ -31,6 +34,9 @@ const getResourceModels = () => ({
   expense_category: expenseCategoryModel,
   purchase_category: purchaseCategoryModel,
   email_template: emailTemplateModel,
+  measuring_unit: measuringUnitModel,
+  stock_group: stockGroupModel,
+  stock_item: stockItemModel,
 });
 
 const RESOURCE_LABELS = {
@@ -46,6 +52,9 @@ const RESOURCE_LABELS = {
   expense_category: "Expense Category",
   purchase_category: "Purchase Category",
   email_template: "Email Template",
+  measuring_unit: "Measuring Unit",
+  stock_group: "Stock Group",
+  stock_item: "Stock Item",
   user: "User",
 };
 

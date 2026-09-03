@@ -17,6 +17,9 @@ const getMutationInvalidationTags = (
   if (type === "revenue" || type === "report") {
     tags.push("revenue", "report");
   }
+  if (type === "stock-item") {
+    tags.push("stock-history");
+  }
   return tags;
 };
 

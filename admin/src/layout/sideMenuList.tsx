@@ -5,12 +5,14 @@ import {
   ClipboardList,
   ClipboardPlus,
   HandPlatter,
+  History,
   ImageIcon,
   LandmarkIcon,
   Layers,
   LogsIcon,
-  Mail,
+  Package,
   Receipt,
+  Ruler,
   Settings,
   ShoppingCart,
   Sofa,
@@ -59,6 +61,37 @@ export const SideMenuList: SideListMenuType[] = [
         name: "Addons",
         icon: <HandPlatter size={12} />,
         path: "/admin/addons/list",
+      },
+    ],
+  },
+  {
+    key: 11,
+    name: "Inventory",
+    icon: <Package />,
+    menu: [
+      {
+        key: 11.1,
+        name: "Stock Item",
+        path: "/admin/stock-item/list",
+        icon: <Package size={12} />,
+      },
+      {
+        key: 11.2,
+        name: "Measuring Unit",
+        path: "/admin/measuring-unit/list",
+        icon: <Ruler size={12} />,
+      },
+      {
+        key: 11.3,
+        name: "Stock Group",
+        path: "/admin/stock-group/list",
+        icon: <Layers size={12} />,
+      },
+      {
+        key: 11.4,
+        name: "Stock History",
+        path: "/admin/stock-history/list",
+        icon: <History size={12} />,
       },
     ],
   },
@@ -209,14 +242,6 @@ export const SideMenuList: SideListMenuType[] = [
     path: "/admin/media-category/list",
     icon: <ImageIcon />,
   },
-
-  // {
-  //   key: 7,
-  //   name: "Email",
-  //   icon: <Mail />,
-  //   menu: [],
-  // },
-
   {
     key: 9,
     name: "Settings",

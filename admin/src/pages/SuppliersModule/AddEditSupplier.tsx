@@ -27,7 +27,7 @@ type SupplierFormType = z.infer<typeof SupplierSchema>;
 
 interface Props {
   isComponent?: boolean;
-  closeModal?: () => void;
+  closeModal?: (created?: any) => void;
 }
 
 const controlKeys = new Set([
@@ -69,9 +69,9 @@ export default function AddEditSupplier({
     skip: !isEditMode,
   });
 
-  const handleSuccess = () => {
+  const handleSuccess = (created?: any) => {
     if (isComponent) {
-      closeModal();
+      closeModal(created);
     } else {
       navigate(SUPPLIER_LIST_ROUTE);
     }
@@ -101,7 +101,7 @@ export default function AddEditSupplier({
           success: true,
           msg: response?.message,
         },
-        onSuccess: handleSuccess,
+        onSuccess: () => handleSuccess(response?.data),
       });
     } catch (error: any) {
       handleError({ error, setError });

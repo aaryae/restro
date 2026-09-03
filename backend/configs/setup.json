@@ -1801,6 +1801,182 @@
           "list": "Dashboard"
         }
       ]
+    },
+    {
+      "title": "Measuring Unit",
+      "key": "measuring-unit",
+      "actions": [
+        {
+          "title": "Add Measuring Unit",
+          "key": "add",
+          "clientPath": "/measuring-unit",
+          "serverPath": "/measuring-unit",
+          "requestMethod": "POST",
+          "list": "Measuring Unit"
+        },
+        {
+          "title": "View Measuring Unit",
+          "key": "view",
+          "clientPath": "/measuring-unit/list",
+          "serverPath": "/measuring-unit/list",
+          "requestMethod": "GET",
+          "list": "Measuring Unit"
+        },
+        {
+          "title": "View One Measuring Unit",
+          "key": "view-one",
+          "clientPath": "/measuring-unit/:id",
+          "serverPath": "/measuring-unit/:id",
+          "requestMethod": "GET",
+          "list": "Measuring Unit"
+        },
+        {
+          "title": "Edit Measuring Unit",
+          "key": "edit",
+          "clientPath": "/measuring-unit/:id",
+          "serverPath": "/measuring-unit/:id",
+          "requestMethod": "PUT",
+          "list": "Measuring Unit"
+        },
+        {
+          "title": "Delete Measuring Unit",
+          "key": "delete",
+          "clientPath": "/measuring-unit/:id",
+          "serverPath": "/measuring-unit/:id",
+          "requestMethod": "DELETE",
+          "list": "Measuring Unit"
+        }
+      ]
+    },
+    {
+      "title": "Stock Group",
+      "key": "stock-group",
+      "actions": [
+        {
+          "title": "Add Stock Group",
+          "key": "add",
+          "clientPath": "/stock-group",
+          "serverPath": "/stock-group",
+          "requestMethod": "POST",
+          "list": "Stock Group"
+        },
+        {
+          "title": "View Stock Group",
+          "key": "view",
+          "clientPath": "/stock-group/list",
+          "serverPath": "/stock-group/list",
+          "requestMethod": "GET",
+          "list": "Stock Group"
+        },
+        {
+          "title": "View One Stock Group",
+          "key": "view-one",
+          "clientPath": "/stock-group/:id",
+          "serverPath": "/stock-group/:id",
+          "requestMethod": "GET",
+          "list": "Stock Group"
+        },
+        {
+          "title": "Edit Stock Group",
+          "key": "edit",
+          "clientPath": "/stock-group/:id",
+          "serverPath": "/stock-group/:id",
+          "requestMethod": "PUT",
+          "list": "Stock Group"
+        },
+        {
+          "title": "Delete Stock Group",
+          "key": "delete",
+          "clientPath": "/stock-group/:id",
+          "serverPath": "/stock-group/:id",
+          "requestMethod": "DELETE",
+          "list": "Stock Group"
+        }
+      ]
+    },
+    {
+      "title": "Stock Item",
+      "key": "stock-item",
+      "actions": [
+        {
+          "title": "Add Stock Item",
+          "key": "add",
+          "clientPath": "/stock-item",
+          "serverPath": "/stock-item",
+          "requestMethod": "POST",
+          "list": "Stock Item"
+        },
+        {
+          "title": "View Stock Item",
+          "key": "view",
+          "clientPath": "/stock-item/list",
+          "serverPath": "/stock-item/list",
+          "requestMethod": "GET",
+          "list": "Stock Item"
+        },
+        {
+          "title": "View Stock Item Summary",
+          "key": "view-summary",
+          "clientPath": "/stock-item/summary",
+          "serverPath": "/stock-item/summary",
+          "requestMethod": "GET",
+          "list": "Stock Item"
+        },
+        {
+          "title": "View One Stock Item",
+          "key": "view-one",
+          "clientPath": "/stock-item/:id",
+          "serverPath": "/stock-item/:id",
+          "requestMethod": "GET",
+          "list": "Stock Item"
+        },
+        {
+          "title": "Edit Stock Item",
+          "key": "edit",
+          "clientPath": "/stock-item/:id",
+          "serverPath": "/stock-item/:id",
+          "requestMethod": "PUT",
+          "list": "Stock Item"
+        },
+        {
+          "title": "Adjust Stock Item",
+          "key": "adjust",
+          "clientPath": "/stock-item/:id/adjust",
+          "serverPath": "/stock-item/:id/adjust",
+          "requestMethod": "POST",
+          "list": "Stock Item"
+        },
+        {
+          "title": "Import Stock Item",
+          "key": "import",
+          "clientPath": "/stock-item/import",
+          "serverPath": "/stock-item/import",
+          "requestMethod": "POST",
+          "list": "Stock Item"
+        },
+        {
+          "title": "Delete Stock Item",
+          "key": "delete",
+          "clientPath": "/stock-item/:id",
+          "serverPath": "/stock-item/:id",
+          "requestMethod": "DELETE",
+          "list": "Stock Item"
+        }
+      ]
+    },
+    {
+      "title": "Stock History",
+      "key": "stock-history",
+      "actions": [
+        {
+          "title": "View Stock History",
+          "key": "view",
+          "clientPath": "/stock-history/list",
+          "serverPath": "/stock-history/list",
+          "requestMethod": "GET",
+          "list": "Stock History"
+        }
+      ]
     }
   ]
 }

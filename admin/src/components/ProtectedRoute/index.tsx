@@ -63,6 +63,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
   const {
     data: sessionAccess,
     isSuccess: accessLoaded,
+    isError: accessFailed,
     error: accessError,
   } = useGetSessionAccessQuery("", {
     // Still request access when the trial gate is up so a persisted empty
@@ -151,7 +152,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
     return children;
   }
 
-  if (needsAccess && !accessLoaded) {
+  if (needsAccess && !accessLoaded && !accessFailed) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--serve-bg,#0c0c0e)] text-sm text-[var(--serve-muted,#a3a3ac)]">
         Loading your workspace…

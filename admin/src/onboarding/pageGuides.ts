@@ -266,6 +266,63 @@ export const PAGE_GUIDES: PageGuide[] = [
     highlights: ["Restore something removed by mistake"],
   },
   {
+    id: "stock-item",
+    match: ["/admin/stock-item"],
+    title: "Stock items — your inventory hub",
+    summary:
+      "Ingredients and supplies you buy and track in the store — flour, oil, bottles, packets. This is separate from the Menu: menu items are what you sell; stock items are what you keep in quantity.",
+    highlights: [
+      "Add a stock item with a measuring unit, optional group, opening quantity and rate",
+      "Use Adjust to record purchases or write-offs; every change is logged in Stock History",
+      "Bulk upload from Excel when you already have a supplier list",
+      "Watch the KPI cards for total value and low-stock alerts",
+    ],
+    tips: [
+      "Measuring units ship with restaurant defaults (kg, ltr, pcs, …). Open Measuring Units to see descriptions or add your own.",
+      "Stock groups are optional folders — Dairy, Dry Goods, Beverages — so the list stays tidy.",
+      "Recipe consumption and purchase→stock linking come in a later phase; for now you adjust quantities manually.",
+    ],
+  },
+  {
+    id: "measuring-unit",
+    match: ["/admin/measuring-unit"],
+    title: "Measuring units",
+    summary:
+      "How you count or weigh stock — kilograms, liters, pieces, bottles. Every stock item needs one unit so quantities stay consistent.",
+    highlights: [
+      "Restaurant defaults are seeded for you (kg, g, ltr, ml, pcs, pkt, dz, btl, can, box)",
+      "Each unit has a short description of when to use it",
+      "Add a custom unit if your supplier uses a different pack size",
+    ],
+    tips: [
+      "You cannot delete a unit that is already used by a stock item.",
+    ],
+  },
+  {
+    id: "stock-group",
+    match: ["/admin/stock-group"],
+    title: "Stock groups",
+    summary:
+      "Optional folders for stock items — Dairy, Dry Goods, Cleaning — so the inventory list is easier to scan.",
+    highlights: [
+      "Create groups that match how your store is organised",
+      "Assign a group when you create or edit a stock item",
+      "Bulk upload can create a group automatically from the Group column",
+    ],
+  },
+  {
+    id: "stock-history",
+    match: ["/admin/stock-history"],
+    title: "Stock history",
+    summary:
+      "An audit trail of every quantity change — opening stock, adjustments in or out, and the rate used at the time.",
+    highlights: [
+      "Filter with Today / Yesterday / Last 7 or 30 days, or pick a custom From–To range on the calendar",
+      "Trace quantity changes back to opening stock and adjustments",
+      "Use it alongside Finance purchases until automatic linking ships",
+    ],
+  },
+  {
     id: "product-variant",
     match: ["/admin/product-variant"],
     title: "Item variants",

@@ -233,8 +233,9 @@
 
 .productGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+  /* Fill the row evenly — no empty strip on the right. */
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
   overflow: visible;
 }
 
@@ -249,6 +250,7 @@
 .productGridList .productCard {
   flex-direction: row;
   align-items: center;
+  max-width: none;
 }
 
 .productGridList .productImageWrap {
@@ -278,18 +280,6 @@
   padding: 0.45rem 0.85rem;
 }
 
-@media (min-width: 900px) {
-  .productGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .productGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
 .productCard {
   display: flex;
   flex-direction: column;
@@ -299,6 +289,8 @@
   background: var(--serve-surface);
   cursor: pointer;
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  min-width: 0;
+  width: 100%;
 }
 
 .productCard:hover {
@@ -323,18 +315,23 @@
   position: absolute;
   top: 0.45rem;
   right: 0.45rem;
-  min-width: 1.35rem;
-  height: 1.35rem;
-  padding: 0 0.35rem;
+  z-index: 2;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  padding: 0 0.4rem;
   border-radius: 999px;
-  background: var(--secondary-color);
-  color: var(--serve-fg);
-  font-size: 0.7rem;
+  background: var(--primary-color);
+  color: var(--primary-fg, #fff);
+  border: 2px solid #fff;
+  font-size: 0.75rem;
   font-weight: 800;
+  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.28),
+    0 0 0 1px color-mix(in srgb, var(--primary-color) 35%, transparent);
 }
 
 .productImage {
@@ -1396,8 +1393,8 @@
 
   .productGrid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: repeat(auto-fill, minmax(9.25rem, 1fr));
+    gap: 0.55rem;
     padding: 0 1rem 0.75rem;
   }
 
@@ -1409,6 +1406,7 @@
     flex-direction: row;
     align-items: center;
     min-height: 0;
+    max-width: none;
   }
 
   .productGridList .productImageWrap {
@@ -1488,7 +1486,13 @@
   }
 
   .productQtyBadge {
-    display: none;
+    display: inline-flex;
+    top: 0.35rem;
+    right: 0.35rem;
+    min-width: 1.45rem;
+    height: 1.45rem;
+    font-size: 0.72rem;
+    border-width: 2px;
   }
 
   .productBody {
