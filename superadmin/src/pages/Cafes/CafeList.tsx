@@ -246,15 +246,13 @@ export default function CafeListPage() {
         <CreateCafeModal
           open={createOpen}
           onClose={() => setCreateOpen(false)}
-          onCreated={({ cafeName, slug, ownerUsername, ownerPassword }) => {
+          onCreated={({ cafeName, slug, ownerUsername }) => {
             invalidate()
             setPage(1)
             const who = ownerUsername ? ` · username: ${ownerUsername}` : ''
             const posLink = cafePosUrl(slug)
             showToast(
-              ownerPassword
-                ? `Created ${cafeName}. POS: ${posLink}${who} · temp password: ${ownerPassword}`
-                : `Created ${cafeName}. Sign in at ${posLink}${who} with the password you set.`,
+              `Created ${cafeName}. POS: ${posLink}${who}`,
             )
           }}
         />
@@ -343,7 +341,9 @@ export default function CafeListPage() {
               >
                 {cafe.name}
               </Link>
-              <p className="text-xs text-slate-400">{cafe.slug}.servecafe.app</p>
+              <p className="text-xs text-slate-400">
+                {cafePosUrl(cafe.slug).replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </p>
             </div>,
             <div key={`${cafe.id}-owner`}>
               <p>{cafe.ownerEmail || '—'}</p>

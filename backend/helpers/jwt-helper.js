@@ -62,6 +62,15 @@ module.exports.verifyToken = async function (token) {
 };
 
 // this is for customer user
+function resolveCustomerJwtSecret() {
+  const fromEnv = String(process.env.CUSTOMER_JWT_SECRET || "").trim();
+  if (fromEnv.length >= 32) return fromEnv;
+  // Derive from POS secret so deploys with only JWT_SECRET still get a strong key.
+  return `${JWT_SECRET}:customer`;
+}
+
+const CUSTOMER_JWT_SECRET = resolveCustomerJwtSecret();
+
 module.exports.generateCustomerJWT = (user) => {
   return jwt.sign(
     {
@@ -69,19 +78,19 @@ module.exports.generateCustomerJWT = (user) => {
       email: user.email,
       exp: parseInt(Date.now() / 1000 + expireAfter, 10),
     },
-    "customer",
+    CUSTOMER_JWT_SECRET,
   );
 };
 module.exports.toCustomerAuthJSON = function (user, role) {
   return {
     id: user.id,
     username: user.username,
-    token: generateCustomerJWT(user),
+    token: module.exports.generateCustomerJWT(user),
   };
 };
 module.exports.verifyCustomerToken = async function (token) {
   try {
-    return await jwt.verify(token, "customer");
+    return await jwt.verify(token, CUSTOMER_JWT_SECRET);
   } catch (error) {
     return false;
   }

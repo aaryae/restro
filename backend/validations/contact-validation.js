@@ -7,12 +7,17 @@ const isEmpty = require("../helpers/is-empty-helper");
 const { validateRequestBody } = require("../helpers/validator-helper");
 
 const contactPostValidation = async (req, res, next) => {
-  let joiModel = joi.object({
-    full_name: joi.string().required().label("Full Name"),
-    email: joi.string().email().required().label("Email"),
-    subject: joi.string().required().label("Subject"),
-    message: joi.string().required().label("Message"),
-  });
+  let joiModel = joi
+    .object({
+      full_name: joi.string().required().label("Full Name"),
+      email: joi.string().email().allow("", null).optional().label("Email"),
+      phone: joi.string().allow("", null).optional().label("Phone"),
+      cafe_name: joi.string().allow("", null).optional().label("Cafe Name"),
+      subject: joi.string().required().label("Subject"),
+      message: joi.string().required().label("Message"),
+    })
+    .or("email", "phone");
+
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(

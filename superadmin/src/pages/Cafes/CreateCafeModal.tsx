@@ -89,6 +89,13 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [touched, setTouched] = useState(false)
+  const [createdCreds, setCreatedCreds] = useState<{
+    cafeName: string
+    slug: string
+    ownerUsername?: string
+    ownerPassword?: string
+  } | null>(null)
+  const [copied, setCopied] = useState<'user' | 'pass' | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -97,6 +104,8 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
     setError('')
     setSubmitting(false)
     setTouched(false)
+    setCreatedCreds(null)
+    setCopied(null)
   }, [open])
 
   useBodyScrollLock(open)
@@ -124,6 +133,16 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
     })
     setFieldErrors((prev) => ({ ...prev, password: '' }))
     if (error) setError('')
+  }
+
+  async function copyText(value: string, which: 'user' | 'pass') {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(which)
+      window.setTimeout(() => setCopied(null), 1500)
+    } catch {
+      // ignore clipboard failures
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -158,13 +177,19 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
 
     try {
       const result = await createCafe(payload)
-      onCreated({
+      const created = {
         cafeName: result.cafe.name,
         slug: result.cafe.slug,
         ownerUsername: result.ownerUsername,
         ownerPassword: result.ownerPassword,
-      })
-      onClose()
+      }
+      onCreated(created)
+      // Prefer in-modal reveal over toasting secrets.
+      if (created.ownerPassword) {
+        setCreatedCreds(created)
+      } else {
+        onClose()
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to create cafe')
     } finally {
@@ -178,16 +203,18 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
       <div
         className="absolute inset-0"
-        onClick={() => !submitting && onClose()}
+        onClick={() => !submitting && !createdCreds && onClose()}
       />
       <div className="relative flex max-h-[min(100dvh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[min(90dvh,880px)] sm:rounded-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4">
           <div>
             <h2 className="text-base font-semibold text-slate-900">
-              Create cafe
+              {createdCreds ? 'Cafe created' : 'Create cafe'}
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              Provisions schema, migrations, and owner login.
+              {createdCreds
+                ? 'Copy the owner credentials now — they will not be shown again.'
+                : 'Provisions schema, migrations, and owner login.'}
             </p>
           </div>
           <button
@@ -200,6 +227,62 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
           </button>
         </div>
 
+        {createdCreds ? (
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {createdCreds.cafeName} is ready.
+            </div>
+            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {createdCreds.ownerUsername ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      Username
+                    </p>
+                    <p className="truncate font-mono text-sm text-slate-900">
+                      {createdCreds.ownerUsername}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      copyText(createdCreds.ownerUsername || '', 'user')
+                    }
+                  >
+                    {copied === 'user' ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+              ) : null}
+              {createdCreds.ownerPassword ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      Temp password
+                    </p>
+                    <p className="truncate font-mono text-sm text-slate-900">
+                      {createdCreds.ownerPassword}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      copyText(createdCreds.ownerPassword || '', 'pass')
+                    }
+                  >
+                    {copied === 'pass' ? 'Copied' : 'Copy'}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex justify-end border-t border-slate-100 pt-4">
+              <Button type="button" onClick={onClose}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -289,7 +372,11 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
                 placeholder="auto from name if empty"
               />
               <p className="mt-1 text-[11px] text-slate-400">
-                {slugHint}.servecafe.app
+                {slugHint}.
+                {String(import.meta.env.VITE_TENANT_BASE_DOMAIN || 'localhost').replace(
+                  /^\.+|\.+$/g,
+                  '',
+                ) || 'localhost'}
               </p>
               <FieldError message={fieldErrors.slug} />
             </label>
@@ -409,6 +496,7 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
             </Button>
           </div>
         </form>
+        )}
       </div>
     </div>
   )

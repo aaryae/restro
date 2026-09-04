@@ -13,6 +13,14 @@ import {
 import { rememberCafeSlug } from '@/lib/cafe-slug'
 import OnboardBackdrop from '@/components/OnboardBackdrop'
 
+
+function tenantHostLabel() {
+  return String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || 'servecafe.app')
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')
+}
+
 const restaurantSchema = yup.object({
   name: yup.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long').required('Restaurant name is required'),
   phone: yup.string().matches(/^\d{7,10}$/, 'Enter a valid phone number (7-10 digits)').required('Phone number is required'),
@@ -86,7 +94,7 @@ export default function CreateRestaurantPage() {
         const next = res.data?.slug || ''
         setSlug(next)
         setIsSlugAvailable(true)
-        setSlugMessage(next ? `${next}.servecafe.app is available.` : '')
+        setSlugMessage(next ? `${next}.${tenantHostLabel()} is available.` : '')
       } catch (err) {
         setIsSlugAvailable(false)
         setSlugMessage(err.message || 'Could not suggest a URL.')
@@ -120,7 +128,7 @@ export default function CreateRestaurantPage() {
         setIsSlugAvailable(Boolean(payload.available))
         setSlugMessage(
           payload.available
-            ? `${value}.servecafe.app is available.`
+            ? `${value}.${tenantHostLabel()} is available.`
             : formatSlugTakenMessage(value, payload.reason),
         )
         if (!payload.available) {
@@ -161,7 +169,7 @@ export default function CreateRestaurantPage() {
       const available = Boolean(payload.available)
       setIsSlugAvailable(available)
       const message = available
-        ? `${value}.servecafe.app is available.`
+        ? `${value}.${tenantHostLabel()} is available.`
         : formatSlugTakenMessage(value, payload.reason)
       setSlugMessage(message)
       setFieldErrors((prev) => ({ ...prev, slug: undefined }))
@@ -189,7 +197,7 @@ export default function CreateRestaurantPage() {
       setSlug(next)
       setSlugTouched(true)
       setIsSlugAvailable(true)
-      setSlugMessage(`${next}.servecafe.app is available.`)
+      setSlugMessage(`${next}.${tenantHostLabel()} is available.`)
       setFieldErrors((prev) => ({ ...prev, slug: undefined }))
     } catch (err) {
       setIsSlugAvailable(false)
@@ -242,16 +250,24 @@ export default function CreateRestaurantPage() {
     }
     setLoading(true)
     try {
-      const pendingPassword = sessionStorage.getItem('serve_pending_password')
       const res = await trialFetch('/trial/restaurants', {
         method: 'POST',
         auth: true,
-        body: { name, phone, businessType, address, slug, password: pendingPassword || undefined },
+        body: { name, phone, businessType, address, slug },
       })
       const merged = { ...res.data, token: res.data.token }
       setTrialSession(merged)
       rememberCafeSlug(slug || res.data.tenant?.slug || res.data.slug)
-      if (res.data.pos) sessionStorage.setItem('serve_pos_bootstrap', JSON.stringify(res.data.pos))
+      if (res.data.pos?.url) {
+        sessionStorage.setItem(
+          'serve_pos_bootstrap',
+          JSON.stringify({
+            url: res.data.pos.url,
+            tenantSlug: res.data.pos.tenantSlug,
+            username: res.data.pos.username,
+          }),
+        )
+      }
       sessionStorage.removeItem('serve_pending_password')
       markWelcomePending()
       sessionStorage.removeItem('serve_resume_setup')
@@ -401,7 +417,7 @@ export default function CreateRestaurantPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-muted">
-                  {slug ? `${slug}.servecafe.app` : 'your-cafe.servecafe.app'}
+                  {slug ? `${slug}.${tenantHostLabel()}` : `your-cafe.${tenantHostLabel()}`}
                 </p>
                 {slugBusy && !slugMessage ? (
                   <p className="mt-2 text-xs text-muted">Checking availability…</p>
@@ -453,7 +469,7 @@ export default function CreateRestaurantPage() {
 
 function formatSlugTakenMessage(slug, reason) {
   const value = String(slug || '').trim().toLowerCase()
-  const base = value ? `${value}.servecafe.app` : 'This cafe URL'
+  const base = value ? `${value}.${tenantHostLabel()}` : 'This cafe URL'
   if (!reason) {
     return `${base} is already taken. Try another or click Suggest.`
   }

@@ -411,6 +411,55 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const posExchange = async (req, res, next) => {
+  try {
+    const { consumePosHandoff } = require("../../lib/pos-handoff");
+    const code = String(req.body?.code || "").trim();
+    if (!code) {
+      return responseHelper.sendResponse(
+        res,
+        httpStatus.BAD_REQUEST,
+        false,
+        null,
+        null,
+        "Missing handoff code",
+        null,
+      );
+    }
+
+    const expectedSlug = req.tenant?.slug || req.body?.tenantSlug || null;
+    const handoff = consumePosHandoff(code, expectedSlug);
+    if (!handoff) {
+      return responseHelper.sendResponse(
+        res,
+        httpStatus.UNAUTHORIZED,
+        false,
+        null,
+        null,
+        "Invalid or expired handoff code",
+        null,
+      );
+    }
+
+    return responseHelper.sendResponse(
+      res,
+      httpStatus.OK,
+      true,
+      {
+        token: handoff.token,
+        tenantSlug: handoff.tenantSlug,
+        authHeader: `Admin ${handoff.token}`,
+      },
+      null,
+      "POS session ready",
+      null,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   authLogin,
   authListUser,
@@ -426,4 +475,5 @@ module.exports = {
   authGetUser,
   updateProfile,
   getTotalOfManyModel,
+  posExchange,
 };

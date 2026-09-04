@@ -1,8 +1,44 @@
 const { WebSocketServer } = require("ws");
 const { verifyToken } = require("./helpers/jwt-helper");
-const { findSingleUserLog } = require("./api/services/session-logs");
-// Import clients from notification.js instead of defining a new one
+const { findActiveSession } = require("./api/services/session-logs");
 const { clients } = require("./helpers/send-notification");
+const { tenantModel } = require("./models");
+const {
+  runWithTenantContext,
+} = require("./lib/tenant-context");
+const { resolveTenantSlug } = require("./lib/resolve-tenant-from-host");
+
+async function resolveWebsocketTenant(req, jwtSlug) {
+  // Prefer JWT-bound cafe; fall back to Host / query for local ?tenant=.
+  let slug = jwtSlug || null;
+  if (!slug) {
+    try {
+      const fakeReq = {
+        headers: req.headers,
+        query: Object.fromEntries(new URL(req.url, "http://localhost").searchParams),
+        get(name) {
+          return req.headers[String(name).toLowerCase()];
+        },
+      };
+      slug = resolveTenantSlug(fakeReq);
+    } catch {
+      slug = null;
+    }
+  }
+  if (!slug) return null;
+  const tenant = await tenantModel.findOne({
+    where: { slug: String(slug).toLowerCase() },
+    raw: true,
+  });
+  if (!tenant) return null;
+  return {
+    id: tenant.id,
+    slug: tenant.slug,
+    name: tenant.name,
+    schemaName: tenant.schemaName,
+    status: tenant.status,
+  };
+}
 
 const initWebSocket = (server) => {
   const wss = new WebSocketServer({ server });
@@ -11,65 +47,64 @@ const initWebSocket = (server) => {
     try {
       const protocolHeader = req.headers["sec-websocket-protocol"];
       if (!protocolHeader) {
-        console.log("No token provided, closing connection.");
         ws.terminate();
         return;
       }
 
       const authHeader = String(protocolHeader || "").trim();
       if (!authHeader.startsWith("Admin")) {
-        console.log("Malformed websocket auth header.");
         ws.terminate();
         return;
       }
 
-      const token = authHeader.replace("Admin", " ").trim();
+      const token = authHeader.replace(/^Admin\s+/i, "").trim();
       if (!token) {
-        console.log("Token is empty, closing connection.");
         ws.terminate();
         return;
       }
 
       const userData = await verifyToken(token);
-      if (!userData || !userData.id) {
-        console.log("Invalid token, closing connection.");
+      if (!userData || !userData.id || !userData.sessionId) {
         ws.terminate();
         return;
       }
 
-      const isSession = await findSingleUserLog(userData.id);
+      const tenant = await resolveWebsocketTenant(req, userData.slug);
+      if (!tenant) {
+        ws.terminate();
+        return;
+      }
+
+      if (userData.slug && userData.slug !== tenant.slug) {
+        ws.terminate();
+        return;
+      }
+
+      const isSession = await runWithTenantContext({ tenant }, () =>
+        findActiveSession(userData.id, userData.sessionId),
+      );
       if (!isSession) {
-        console.log("Unauthorized user, closing connection.");
         ws.terminate();
         return;
       }
 
       clients.set(userData.id, ws);
       ws.user = userData;
-      console.log(`User connected: ${userData.id}`);
+      ws.tenant = tenant;
       ws.send("Connected to WebSocket server");
 
-      // Ping/Pong mechanism
-      const pingInterval = 30000; // 30 seconds for ping
-      const pingTimeout = 10000; // 10 seconds for waiting pong response
-
+      const pingInterval = 30000;
       const pingPongInterval = setInterval(() => {
         if (ws.readyState === ws.OPEN) {
-          console.log(`Sending ping to user: ${userData.id}`);
-          ws.ping(); // Send ping to the client
+          ws.ping();
         }
       }, pingInterval);
 
-      // Handle pong response from client
-      ws.on("pong", () => {
-        console.log(`Pong received from user: ${userData.id}`);
-      });
+      ws.on("pong", () => {});
 
-      // Clean up when the connection is closed or if pong is not received within timeout
       ws.on("close", () => {
-        clearInterval(pingPongInterval); // Clear ping interval on close
+        clearInterval(pingPongInterval);
         clients.delete(userData.id);
-        console.log(`User disconnected: ${userData.id}`);
       });
     } catch (err) {
       console.log("Error in WebSocket connection:", err.message);

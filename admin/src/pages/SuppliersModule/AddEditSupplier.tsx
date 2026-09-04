@@ -28,6 +28,8 @@ type SupplierFormType = z.infer<typeof SupplierSchema>;
 interface Props {
   isComponent?: boolean;
   closeModal?: (created?: any) => void;
+  /** Prefill name when opening create form from another flow (e.g. bulk import). */
+  defaultName?: string;
 }
 
 const controlKeys = new Set([
@@ -43,10 +45,14 @@ const controlKeys = new Set([
 export default function AddEditSupplier({
   isComponent = false,
   closeModal = () => {},
+  defaultName = "",
 }: Props) {
   const translate = useTranslation();
-  const { id } = useParams();
+  const { id: routeId } = useParams();
   const navigate = useNavigate();
+  // Embedded create flows sit on other routes (purchase/:id, expense/:id, etc.).
+  // Never treat the parent route param as a supplier id.
+  const id = isComponent ? undefined : routeId;
   const isEditMode = !!id;
 
   const {
@@ -57,6 +63,9 @@ export default function AddEditSupplier({
     formState: { errors, isSubmitting },
   } = useForm<SupplierFormType>({
     resolver: zodResolver(SupplierSchema),
+    defaultValues: {
+      name: defaultName || "",
+    },
   });
 
   const [createSupplier, { isLoading: creatingSupplier }] =
@@ -119,8 +128,12 @@ export default function AddEditSupplier({
         pan_vat_number: supplierData?.data.pan_vat_number || null,
         contact_person: supplierData?.data.contact_person || null,
       });
+      return;
     }
-  }, [supplierData, isEditMode, reset]);
+    if (!isEditMode && defaultName) {
+      reset({ name: defaultName });
+    }
+  }, [supplierData, isEditMode, reset, defaultName]);
 
   const phoneRegister = register("contact_number", {
     setValueAs: (value) =>
@@ -134,7 +147,7 @@ export default function AddEditSupplier({
     ...phoneRegister,
     type: "tel" as const,
     inputMode: "numeric" as const,
-    maxLength: 10,
+    maxLength: 20,
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (controlKeys.has(e.key) || e.ctrlKey || e.metaKey) return;
       if (!/^\d$/.test(e.key)) e.preventDefault();
@@ -207,7 +220,7 @@ export default function AddEditSupplier({
         <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
-            onClick={closeModal}
+            onClick={() => closeModal()}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
             Cancel

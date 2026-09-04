@@ -1,7 +1,7 @@
 'use client'
-'use client'
 import { useState } from 'react'
 import { useReveal } from './useReveal'
+import { getApiBase } from '@/lib/public-url'
 
 const WaIcon = () => (
   <svg className="w-5 h-5 fill-white flex-shrink-0" viewBox="0 0 24 24">
@@ -11,16 +11,50 @@ const WaIcon = () => (
 
 export default function Contact() {
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const ref = useReveal()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false); setSent(true); e.target.reset()
+    setError('')
+    setSent(false)
+
+    const form = e.currentTarget
+    const data = new FormData(form)
+    const full_name = String(data.get('full_name') || '').trim()
+    const cafe_name = String(data.get('cafe_name') || '').trim()
+    const phone = String(data.get('phone') || '').trim()
+    const email = String(data.get('email') || '').trim()
+    const interest = String(data.get('interest') || '').trim()
+    const message = String(data.get('message') || '').trim()
+
+    try {
+      const res = await fetch(`${getApiBase(process.env.NEXT_PUBLIC_API_BASE_URL)}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name,
+          cafe_name,
+          phone,
+          email: email || undefined,
+          subject: interest || 'SERVE inquiry',
+          message: message || 'No additional details provided.',
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.success === false) {
+        throw new Error(json.msg || json.message || 'Could not send message.')
+      }
+      setSent(true)
+      form.reset()
       setTimeout(() => setSent(false), 5000)
-    }, 1200)
+    } catch (err) {
+      setError(err.message || 'Could not send message.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const input = `w-full bg-milk border border-caramel/15 rounded-xl px-4 py-3
@@ -45,27 +79,27 @@ export default function Contact() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Your Name</label>
-              <input type="text" placeholder="Suman Rai" required className={input} />
+              <input name="full_name" type="text" placeholder="Suman Rai" required className={input} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Cafe Name</label>
-              <input type="text" placeholder="The Coffee Nest" required className={input} />
+              <input name="cafe_name" type="text" placeholder="The Coffee Nest" required className={input} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Phone / WhatsApp</label>
-              <input type="tel" placeholder="+977 98XXXXXXXX" required className={input} />
+              <input name="phone" type="tel" placeholder="+977 98XXXXXXXX" required className={input} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Email (optional)</label>
-              <input type="email" placeholder="you@cafe.com" className={input} />
+              <input name="email" type="email" placeholder="you@cafe.com" className={input} />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.82rem] font-medium text-coffee">What are you interested in?</label>
-            <select className={input}>
-              <option value="">Select an option</option>
+            <select name="interest" className={input} required defaultValue="">
+              <option value="" disabled>Select an option</option>
               <option>Full SERVE setup</option>
               <option>Just a demo first</option>
               <option>QR ordering add-on</option>
@@ -75,7 +109,7 @@ export default function Contact() {
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.82rem] font-medium text-coffee">Tell us about your cafe</label>
-            <textarea rows={4} placeholder="How many tables? Current system? Biggest challenge?"
+            <textarea name="message" rows={4} placeholder="How many tables? Current system? Biggest challenge?"
               className={`${input} resize-y min-h-[120px]`} />
           </div>
           <button type="submit" disabled={loading}
@@ -87,9 +121,14 @@ export default function Contact() {
           </button>
           {sent && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center text-[0.9rem] text-green-800 font-medium">
-              ✓ Message sent! We'll reach out within 24 hours.
+              Message sent! We&apos;ll reach out within 24 hours.
             </div>
           )}
+          {error ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-[0.9rem] text-red-800 font-medium">
+              {error}
+            </div>
+          ) : null}
         </form>
 
         <div className="flex flex-col gap-8" data-reveal="right" data-delay="2">
@@ -110,6 +149,7 @@ export default function Contact() {
           ))}
           <a href="https://wa.me/9779869028924?text=Hi%2C%20I'd%20like%20to%20book%20a%20demo%20for%20SERVE"
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-[0.88em] rounded-full bg-[#25D366] text-white
               text-base font-medium no-underline transition-all duration-300
               hover:bg-[#1fba59] hover:-translate-y-[2px] hover:shadow-[0_10px_32px_rgba(37,211,102,0.4)]">
@@ -117,7 +157,7 @@ export default function Contact() {
           </a>
           <div className="bg-steam rounded-[20px] p-6 border border-caramel/10">
             <p className="text-[0.82rem] text-muted leading-relaxed font-light">
-              <strong className="text-espresso font-medium">Free demo:</strong> We'll walk through SERVE with your actual cafe layout in mind — no generic slides, no pressure.
+              <strong className="text-espresso font-medium">Free demo:</strong> We&apos;ll walk through SERVE with your actual cafe layout in mind — no generic slides, no pressure.
             </p>
           </div>
         </div>

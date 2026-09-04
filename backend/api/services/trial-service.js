@@ -86,13 +86,18 @@ async function issuePosSession(user, tenant, req) {
     sessionLog?.id,
   );
 
+  const { createPosHandoff } = require("../../lib/pos-handoff");
+  const handoffCode = createPosHandoff({
+    token,
+    tenantSlug: tenant.slug,
+  });
+
   return {
     username: owner.username,
     email: owner.email,
-    token,
-    authHeader: `Admin ${token}`,
     tenantSlug: tenant.slug,
-    url: buildPosBootstrapUrl(tenant.slug, token, req),
+    // JWT is exchanged via one-time pos_code in the URL — not embedded in the hash.
+    url: buildPosBootstrapUrl(tenant.slug, handoffCode, req),
   };
 }
 

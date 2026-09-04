@@ -82,8 +82,8 @@ function cafePosOrigin(slug) {
   return `${protocol}://${String(slug).toLowerCase()}.${base}`;
 }
 
-function buildPosBootstrapUrl(slug, token, req) {
-  const hash = `#pos_token=${encodeURIComponent(token)}`;
+function buildPosBootstrapUrl(slug, handoffCode, req) {
+  const hash = `#pos_code=${encodeURIComponent(handoffCode)}`;
   if (useSubdomainPosUrls(req)) {
     return `${cafePosOrigin(slug)}/${hash}`;
   }

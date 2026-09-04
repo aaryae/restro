@@ -5,12 +5,16 @@ import {
   Download,
   FileSpreadsheet,
   Loader2,
+  Plus,
   UploadCloud,
   X,
 } from "lucide-react";
 import Modal from "@/components/Modal";
+import CustomDialog from "@/components/Dialog";
 import Toast from "@/components/Toast";
+import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import { exportToExcel } from "@/utils/singleExport";
+import { checkAccess } from "@/utils/accessHelper";
 import {
   useImportStockItemsMutation,
   type ImportRowResult,
@@ -20,6 +24,7 @@ import {
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
 const MAX_FILE_MB = 10;
+const MAX_IMPORT_ROWS = 2000;
 
 const TEMPLATE_HEADERS = [
   "Name",
@@ -68,6 +73,14 @@ function errorMessage(error: unknown, fallback: string) {
   return data?.msg || data?.message || fallback;
 }
 
+/** Pull missing supplier name from dry-run messages like: Supplier "Acme" does not exist */
+function extractMissingSupplier(message: string | undefined): string | null {
+  if (!message) return null;
+  const match = message.match(/Supplier "([^"]+)" does not exist/i);
+  const name = match?.[1]?.trim();
+  return name || null;
+}
+
 interface BulkUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -88,6 +101,10 @@ export default function BulkUploadModal({
   const [pendingAction, setPendingAction] = useState<"validate" | "import" | null>(
     null,
   );
+  const [addSupplierOpen, setAddSupplierOpen] = useState(false);
+  const [supplierNameToAdd, setSupplierNameToAdd] = useState("");
+  const validateGenerationRef = useRef(0);
+  const canAddSupplier = checkAccess("Supplier").includes("add");
 
   const reset = useCallback(() => {
     setFile(null);
@@ -95,6 +112,9 @@ export default function BulkUploadModal({
     setResult(null);
     setDragging(false);
     setPendingAction(null);
+    setAddSupplierOpen(false);
+    setSupplierNameToAdd("");
+    validateGenerationRef.current += 1;
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
@@ -105,12 +125,15 @@ export default function BulkUploadModal({
 
   const validateFile = useCallback(
     async (nextFile: File) => {
+      const generation = ++validateGenerationRef.current;
       setPendingAction("validate");
       try {
         const response = await importStockItems({
           file: nextFile,
           dryRun: true,
         }).unwrap();
+
+        if (generation !== validateGenerationRef.current) return;
 
         if (!response?.data) {
           Toast(response?.msg || "Could not read that file.", "error");
@@ -119,10 +142,13 @@ export default function BulkUploadModal({
         }
         setPreview(response.data);
       } catch (error) {
+        if (generation !== validateGenerationRef.current) return;
         Toast(errorMessage(error, "Could not read that file."), "error");
         setFile(null);
       } finally {
-        setPendingAction(null);
+        if (generation === validateGenerationRef.current) {
+          setPendingAction(null);
+        }
       }
     },
     [importStockItems],
@@ -130,7 +156,7 @@ export default function BulkUploadModal({
 
   const acceptFile = useCallback(
     (nextFile: File | undefined | null) => {
-      if (!nextFile) return;
+      if (!nextFile || isLoading || pendingAction !== null) return;
 
       if (!hasAcceptedExtension(nextFile.name)) {
         Toast("Upload an .xlsx, .xls or .csv file.", "error");
@@ -146,7 +172,7 @@ export default function BulkUploadModal({
       setFile(nextFile);
       void validateFile(nextFile);
     },
-    [validateFile],
+    [importStockItems, isLoading, pendingAction, validateFile],
   );
 
   const runImport = useCallback(async () => {
@@ -185,6 +211,19 @@ export default function BulkUploadModal({
   const rows = useMemo<ImportRowResult[]>(() => summary?.rows ?? [], [summary]);
   const busy = isLoading || pendingAction !== null;
   const importable = (preview?.created ?? 0) > 0;
+
+  const openAddSupplier = useCallback((name: string) => {
+    setSupplierNameToAdd(name);
+    setAddSupplierOpen(true);
+  }, []);
+
+  const handleSupplierCreated = useCallback(async () => {
+    setAddSupplierOpen(false);
+    setSupplierNameToAdd("");
+    if (file) {
+      await validateFile(file);
+    }
+  }, [file, validateFile]);
 
   return (
     <Modal
@@ -266,7 +305,8 @@ export default function BulkUploadModal({
                   Drag your stock file here
                 </p>
                 <p className="text-xs text-[var(--serve-muted)]">
-                  .xlsx, .xls or .csv · up to {MAX_FILE_MB}MB
+                  .xlsx, .xls or .csv · up to {MAX_FILE_MB}MB · max{" "}
+                  {MAX_IMPORT_ROWS} rows
                 </p>
                 <button
                   type="button"
@@ -349,7 +389,28 @@ export default function BulkUploadModal({
                             </span>
                           </td>
                           <td className="px-3 py-2 text-[var(--serve-muted)]">
-                            {row.message}
+                            <div className="flex flex-col items-start gap-1.5">
+                              <span>{row.message}</span>
+                              {!result &&
+                              row.status === "failed" &&
+                              canAddSupplier &&
+                              extractMissingSupplier(row.message) ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    const name = extractMissingSupplier(
+                                      row.message,
+                                    );
+                                    if (name) openAddSupplier(name);
+                                  }}
+                                  className="inline-flex h-7 items-center gap-1 rounded-md border border-[color-mix(in_srgb,var(--serve-accent)_35%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-accent)_10%,transparent)] px-2 text-[11px] font-semibold text-[var(--serve-accent)] transition hover:bg-[color-mix(in_srgb,var(--serve-accent)_16%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <Plus size={12} strokeWidth={2.5} />
+                                  Add supplier
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -367,7 +428,8 @@ export default function BulkUploadModal({
               size={15}
               className="mt-0.5 shrink-0 text-[var(--serve-warning)]"
             />
-            Nothing can be imported yet. Fix the rows above and upload again.
+            Nothing can be imported yet. Fix the rows above — add missing
+            suppliers here, then we&apos;ll re-check your file automatically.
           </p>
         ) : null}
 
@@ -413,6 +475,34 @@ export default function BulkUploadModal({
           )}
         </div>
       </div>
+
+      <CustomDialog
+        dialogOpen={addSupplierOpen}
+        setDialogOpen={(open) => {
+          setAddSupplierOpen(open);
+          if (!open) setSupplierNameToAdd("");
+        }}
+        title="Add New Supplier"
+        contentClassName="max-h-[85vh] max-w-lg gap-3 overflow-y-auto p-5 sm:p-5"
+      >
+        <AddEditSupplier
+          key={supplierNameToAdd || "new-supplier"}
+          isComponent={true}
+          defaultName={supplierNameToAdd}
+          closeModal={async (created?: unknown) => {
+            const createdSupplier =
+              created &&
+              typeof created === "object" &&
+              "id" in (created as Record<string, unknown>);
+            if (createdSupplier) {
+              await handleSupplierCreated();
+            } else {
+              setAddSupplierOpen(false);
+              setSupplierNameToAdd("");
+            }
+          }}
+        />
+      </CustomDialog>
     </Modal>
   );
 }

@@ -19,25 +19,31 @@ import {
   startSessionExpiryWatcher,
 } from "./utils/serveAuth";
 
-applyPlatformPosBootstrap();
-if (redirectToTenantSubdomainIfNeeded()) {
-  // Full navigation in progress — do not mount the app on the shared pos host.
-} else if (hasValidPosSession()) {
-  startSessionExpiryWatcher();
+async function boot() {
+  await applyPlatformPosBootstrap();
+  if (redirectToTenantSubdomainIfNeeded()) {
+    // Full navigation in progress — do not mount the app on the shared pos host.
+    return;
+  }
+  if (hasValidPosSession()) {
+    startSessionExpiryWatcher();
+  }
+
+  const router = createBrowserRouter([...Routes]);
+
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <Provider store={store}>
+        <PersistGate persistor={persistor}>
+          <BrandingWrapper>
+            <RouterProvider router={router} />
+            <TrialLifecycleGate />
+            <AppToaster />
+          </BrandingWrapper>
+        </PersistGate>
+      </Provider>
+    </StrictMode>,
+  );
 }
 
-const router = createBrowserRouter([...Routes]);
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <Provider store={store}>
-      <PersistGate persistor={persistor}>
-        <BrandingWrapper>
-          <RouterProvider router={router} />
-          <TrialLifecycleGate />
-          <AppToaster />
-        </BrandingWrapper>
-      </PersistGate>
-    </Provider>
-  </StrictMode>,
-);
+void boot();

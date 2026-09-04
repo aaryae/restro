@@ -1100,8 +1100,13 @@ const impersonateCafe = async (req) => {
     meta: { ownerUserId: owner.id, username: owner.username },
   });
 
+  const { createPosHandoff } = require("../../lib/pos-handoff");
   const { buildPosBootstrapUrl } = require("../../lib/pos-public-url");
-  const bootstrapUrl = buildPosBootstrapUrl(tenant.slug, token, req);
+  const handoffCode = createPosHandoff({
+    token,
+    tenantSlug: tenant.slug,
+  });
+  const bootstrapUrl = buildPosBootstrapUrl(tenant.slug, handoffCode, req);
 
   return {
     status: 200,
@@ -1111,8 +1116,6 @@ const impersonateCafe = async (req) => {
       cafe: serializeCafe(tenant),
       pos: {
         username: owner.username,
-        token,
-        authHeader: `Admin ${token}`,
         tenantSlug: tenant.slug,
         url: bootstrapUrl,
       },

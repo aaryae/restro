@@ -24,19 +24,20 @@ const {
   checkAccountPermission,
 } = require("../../middlewares/accountPermission");
 
-router.post("/", authentication, accountPostValidation, create);
+router.post("/", authentication, authorization, accountPostValidation, create);
 router.get("/list", authentication, authorization, paginationValidation, list);
 router.get(
   "/total-and-balances",
   authentication,
+  authorization,
   paginationValidation,
   totalAndBalances,
 );
 router.get(
   "/:accountId",
   authentication,
-  // checkAccountPermission("view"),
-  // idValidation,
+  authorization,
+  idValidation,
   getAccountByID,
 );
 router.put(

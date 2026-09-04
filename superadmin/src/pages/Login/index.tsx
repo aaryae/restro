@@ -10,14 +10,21 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, isAuthenticated } = useAuth()
-  const [username, setUsername] = useState('technirvana')
-  const [password, setPassword] = useState('SuperAdmin@123')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const from =
+  const rawFrom =
     (location.state as { from?: { pathname?: string } } | null)?.from
       ?.pathname || '/'
+  // Only allow same-app relative paths (block protocol-relative //evil).
+  const from =
+    typeof rawFrom === 'string' &&
+    rawFrom.startsWith('/') &&
+    !rawFrom.startsWith('//')
+      ? rawFrom
+      : '/'
 
   if (isAuthenticated) {
     return <Navigate to={from} replace />
