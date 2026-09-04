@@ -7,8 +7,8 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json first to take advantage of Docker cache
 COPY package.json  pnpm-lock.yaml ./
 
-# Install dependencies
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+# Pin pnpm 9 — pnpm 10+ blocks esbuild/core-js install scripts unless approved.
+RUN npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile
 
 
 
