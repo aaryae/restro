@@ -331,27 +331,32 @@ export default function SettingsPage() {
                 Inactive
               </span>
             ),
-            <div className="flex items-center gap-1.5">
+            <div
+              key={`${account.id}-actions`}
+              className="inline-flex items-center justify-center gap-1"
+            >
               <Button
                 variant="outline"
                 size="sm"
+                title="Edit"
+                className="h-8 w-8 px-0"
                 onClick={() => {
                   setEditing(account)
                   setModalOpen(true)
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
               </Button>
               {canDeleteOperator(account) ? (
                 <Button
                   variant="danger"
                   size="sm"
+                  title="Delete"
+                  className="h-8 w-8 px-0"
                   disabled={deleteBusy}
                   onClick={() => setDeleting(account)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Delete
                 </Button>
               ) : null}
             </div>,
