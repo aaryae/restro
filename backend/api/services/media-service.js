@@ -30,12 +30,19 @@ const uploadMedia = async (req) => {
         };
       }
     }
-    const { path, size, mimetype } = req.file;
+    const { path: uploadedPath, size, mimetype } = req.file;
+    // Multer may return an absolute disk path; store the public /resources/… form.
+    const storedPath = String(uploadedPath || "")
+      .replace(/\\/g, "/")
+      .replace(/^.*\/(resources\/)/, "$1")
+      .replace(/^\.?\/+/, "");
 
     // Create a new media entry in the database
     const newMedia = await mediaModel.create({
       name: req.body?.name || generateFileName(req),
-      path: path,
+      path: storedPath.startsWith("resources/")
+        ? storedPath
+        : `resources/${storedPath.split("/").pop()}`,
       caption: req?.body?.caption,
       description: req?.body?.description,
       sizeInBytes: size,
