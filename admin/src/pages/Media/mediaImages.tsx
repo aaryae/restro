@@ -17,7 +17,7 @@ import {
   useUploadMediaMutation,
 } from "@/redux/services/media";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { IMAGE_BASE_URL } from "@/constants";
+import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import useTranslation from "@/locale/useTranslation";
 import DeleteModal from "@/components/DeleteModal";
 import getFormData from "@/utils/fileUpload";
@@ -230,7 +230,10 @@ export default function MediaImages() {
                 <div className="relative aspect-square w-full overflow-hidden bg-[var(--serve-surface-2)]">
                   {each.path ? (
                     <img
-                      src={`${IMAGE_BASE_URL}${each.path}`}
+                      src={buildAssetUrl(
+                        each.path,
+                        each.updatedAt || each.id || 1,
+                      )}
                       alt={each.name || "Gallery"}
                       loading="lazy"
                       decoding="async"

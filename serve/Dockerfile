@@ -1,7 +1,8 @@
 FROM node:20-alpine3.20 AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+# Pin pnpm 9 — pnpm 10+ blocks install scripts unless interactively approved.
+RUN npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile
 
 FROM node:20-alpine3.20 AS build
 WORKDIR /app
@@ -15,7 +16,7 @@ ENV NEXT_PUBLIC_POS_URL=$NEXT_PUBLIC_POS_URL
 ENV NEXT_PUBLIC_TENANT_BASE_DOMAIN=$NEXT_PUBLIC_TENANT_BASE_DOMAIN
 # Bake docker-network API proxy into rewrites at build time
 ENV API_PROXY_TARGET=http://api:8080
-RUN npm run build
+RUN npm install -g pnpm@9.15.9 && pnpm run build
 
 FROM node:20-alpine3.20 AS runner
 WORKDIR /app

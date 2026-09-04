@@ -39,21 +39,6 @@ const baseUrl = "";
 
 const app = express();
 const server = require("http").createServer(app);
-app.use(
-  "/resources",
-  cors({
-    origin: function (origin, callback) {
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: false,
-    methods: ["GET", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  }),
-  express.static(path.join(__dirname, "resources")),
-);
 
 const { isTenantBaseOrigin } = require("./lib/pos-public-url");
 
@@ -100,6 +85,34 @@ function isAllowedOrigin(origin) {
   }
 }
 
+// Media files: allow missing Origin (CDN revalidation, <img>, curl) and never
+// throw from CORS — a thrown error becomes 500 and Cloudflare caches failures.
+app.use(
+  "/resources",
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+    credentials: false,
+    methods: ["GET", "HEAD", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  }),
+  express.static(path.join(__dirname, "resources"), {
+    setHeaders(res) {
+      // POS loads images cross-origin from serveapi.* — allow embedding.
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      // Prefer short TTL so a bad edge cache (e.g. old 404) expires quickly.
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60",
+      );
+    },
+  }),
+);
+
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -114,7 +127,11 @@ app.use(
 // Legacy wide-open CORS (disabled):
 // app.use(cors({ origin: "*" }));
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 app.use(
   morgan(morganFormat, {
     stream: {

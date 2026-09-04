@@ -2,8 +2,12 @@ import { IMAGE_BASE_URL } from "@/constants";
 
 /**
  * Build a full URL for files stored under backend /resources (e.g. resources/foo.png).
+ * Optional `version` busts CDN/browser caches after uploads or recovered 404s.
  */
-export function buildAssetUrl(path?: string | null): string {
+export function buildAssetUrl(
+  path?: string | null,
+  version?: string | number | Date | null,
+): string {
   if (!path || path === "null" || path === "undefined") return "";
 
   const trimmed = String(path).trim();
@@ -20,5 +24,17 @@ export function buildAssetUrl(path?: string | null): string {
   if (trimmed.startsWith(base)) return trimmed;
 
   const normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `${base}${normalized}`;
+  let url = `${base}${normalized}`;
+
+  if (version != null && version !== "") {
+    const v =
+      version instanceof Date
+        ? version.getTime()
+        : typeof version === "number"
+          ? version
+          : Date.parse(String(version)) || String(version);
+    url += `${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(String(v))}`;
+  }
+
+  return url;
 }
