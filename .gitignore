@@ -11,8 +11,6 @@ thingstodo.md
 
 todo.md
 
-pnnpm-lock.yaml
-
 todo.md
 
 restaurant-management
@@ -25,11 +23,7 @@ node_modules
 #Environment
 .env
 
-# pnpm 
-pnpm-lock.yaml
-
-# npm 
-package-lock.json
+# Lockfiles are tracked — Docker builds use --frozen-lockfile / npm ci
 
 # backup
 backup/*
