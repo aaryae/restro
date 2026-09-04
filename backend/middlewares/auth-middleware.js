@@ -182,18 +182,32 @@ authMiddleware.authorization = async (req, res, next) => {
       );
     }
 
+    const roleId = Number(req.user.roleId);
+
+    // Super Admin always has full API access (role grants can lag behind routes).
+    if (roleId === 1) {
+      return next();
+    }
+
     let serverPath = req.baseUrl + req.route.path;
     if (serverPath.substr(serverPath.length - 1) === "/") {
       serverPath = serverPath.slice(0, serverPath.length - 1);
     }
     serverPath = serverPath.replace(/^\/api\/v\d+\//, "/");
     const requestMethod = req.method;
-    const roleId = Number(req.user.roleId);
 
     let access = await roleMenuActionModel?.findOne({
       where: { isDeleted: false, requestMethod, serverPath },
       raw: true,
     });
+
+    // Legacy seed used POST /order while the route is POST /order/create.
+    if (!access && requestMethod === "POST" && serverPath === "/order/create") {
+      access = await roleMenuActionModel?.findOne({
+        where: { isDeleted: false, requestMethod: "POST", serverPath: "/order" },
+        raw: true,
+      });
+    }
 
     if (access && access.id) {
       let serverAccess = await roleActionModel?.findOne({
@@ -204,11 +218,6 @@ authMiddleware.authorization = async (req, res, next) => {
         },
         raw: true,
       });
-
-      // Super Admin always has full API access (role grants can lag behind setup.json).
-      if (roleId === 1) {
-        return next();
-      }
 
       // role_actions.requiredApproval is BOOLEAN; older checks used 0/1.
       const requiresApproval =
@@ -289,7 +298,7 @@ authMiddleware.authorization = async (req, res, next) => {
 
       return responseHelper.sendResponse(
         res,
-        HttpStatus.UNAUTHORIZED,
+        HttpStatus.FORBIDDEN,
         false,
         null,
         null,
@@ -301,7 +310,7 @@ authMiddleware.authorization = async (req, res, next) => {
     // Fail closed: unregistered path/method must not grant access by default.
     return responseHelper.sendResponse(
       res,
-      HttpStatus.UNAUTHORIZED,
+      HttpStatus.FORBIDDEN,
       false,
       null,
       null,
