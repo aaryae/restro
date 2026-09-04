@@ -60,6 +60,20 @@ const baseQuery: BaseQueryFn<
       );
       return result;
     }
+
+    // Permission denials must not wipe the session / bounce to Serve login.
+    const payload = result.error.data as
+      | { msg?: string; message?: string }
+      | undefined;
+    const msg = String(payload?.msg || payload?.message || "").toLowerCase();
+    if (
+      msg.includes("access denied") ||
+      msg.includes("not authorized for this action") ||
+      msg.includes("you're non authorized")
+    ) {
+      return result;
+    }
+
     redirectToServeLogin();
   }
 

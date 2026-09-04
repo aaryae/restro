@@ -843,8 +843,8 @@
         {
           "title": "Add Order",
           "key": "add",
-          "clientPath": "/order",
-          "serverPath": "/order",
+          "clientPath": "/order/create",
+          "serverPath": "/order/create",
           "requestMethod": "POST",
           "list": "Order"
         },
