@@ -29,7 +29,7 @@ export default function Pricing() {
   const ref = useReveal()
 
   return (
-    <section id="pricing" ref={ref} className="relative overflow-hidden bg-milk px-[5vw] py-28">
+    <section id="pricing" ref={ref} className="relative overflow-hidden bg-milk py-28">
 
       <div className="pointer-events-none absolute top-0 right-0 h-[600px] w-[600px] rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(232,135,58,0.05) 0%, transparent 65%)', transform: 'translate(30%,-30%)' }} />

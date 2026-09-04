@@ -26,7 +26,7 @@ export default function Stories() {
   const ref = useReveal()
 
   return (
-    <section id="stories" ref={ref} className="relative overflow-hidden bg-cream px-[5vw] py-28">
+    <section id="stories" ref={ref} className="relative overflow-hidden bg-cream py-28">
 
       <div className="pointer-events-none absolute top-0 left-0 h-[400px] w-[400px] rounded-full opacity-60"
         style={{ background: 'radial-gradient(circle, rgba(196,118,58,0.07), transparent 70%)', transform: 'translate(-30%,-30%)' }} />

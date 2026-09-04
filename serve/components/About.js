@@ -14,10 +14,10 @@ export default function About() {
   const ref = useReveal()
 
   return (
-    <section id="about" ref={ref} className="py-28 px-[5vw] bg-espresso text-cream relative overflow-hidden">
+    <section id="about" ref={ref} className="py-28 bg-espresso text-cream relative overflow-hidden">
 
       {/* Watermark logo */}
-      <div className="absolute inset-0 flex items-center justify-end pointer-events-none opacity-[0.04] pr-[5vw]">
+      <div className="absolute inset-0 flex items-center justify-end pointer-events-none opacity-[0.04] pr-[clamp(1.25rem,5vw,3.5rem)]">
         <Image src="/logo.png" alt="" width={600} height={260} className="object-contain" />
       </div>
 

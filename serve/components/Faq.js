@@ -18,7 +18,7 @@ export default function Faq() {
   const ref = useReveal()
 
   return (
-    <section id="faq" ref={ref} className="bg-milk px-[5vw] py-28">
+    <section id="faq" ref={ref} className="bg-milk py-28">
       <div className="site-wrap">
       <div data-reveal>
         <div className="section-label">FAQ</div>

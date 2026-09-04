@@ -1,164 +1,114 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import HeroDiagram from './HeroDiagram'
 
-const ORBS = [
-  { label: 'Billing', x: '50%', y: '0%' },
-  { label: 'Orders', x: '100%', y: '50%' },
-  { label: 'Staff', x: '50%', y: '100%' },
-  { label: 'Reports', x: '0%', y: '50%' },
-]
+const ease = [0.22, 1, 0.36, 1]
 
-function HeroOrbs() {
-  return (
-    <aside aria-label="SERVE covers billing, orders, staff and reports" className="hero-orbs hero-orbs-in mx-auto">
-      <div className="hero-orbs-ring" />
-      <div className="hero-orbs-core">
-        <span className="font-dmono text-[0.58rem] uppercase tracking-[0.16em] text-cream/80">Serve</span>
-        <span className="mt-0.5 font-syne text-[0.82rem] font-bold leading-tight text-cream">One system</span>
-      </div>
-      {ORBS.map((orb) => (
-        <div
-          key={orb.label}
-          className="hero-orbs-node"
-          style={{ left: orb.x, top: orb.y }}
-        >
-          <span className="font-dm text-[0.72rem] font-medium text-espresso">{orb.label}</span>
-        </div>
-      ))}
-    </aside>
-  )
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
 }
 
-function useCountUp(target, suffix = '', duration = 2000, start = false) {
-  const [val, setVal] = useState('0')
-  useEffect(() => {
-    if (!start) return
-    const isNum = !Number.isNaN(parseInt(target, 10))
-    if (!isNum) { setVal(target); return }
-    const end = parseInt(target, 10)
-    let startTime = null
-    const step = (timestamp) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-      const eased = 1 - (1 - progress) ** 3
-      setVal(Math.floor(eased * end) + suffix)
-      if (progress < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [start, target, suffix, duration])
-  return val
-}
-
-const stats = [
-  { raw: '30', suffix: '+', label: 'Features built-in', display: null },
-  { raw: '5', suffix: 'K', label: 'Setup cost', display: 'NPR' },
-  { raw: '1', suffix: ' Day', label: 'Setup & onboarding', display: null },
-  { raw: '7 ', suffix: '/ 7', label: 'Days support available', display: null },
-]
-
-function StatItem({ raw, suffix, label, display, started }) {
-  const val = useCountUp(raw, suffix, 1800, started)
-  return (
-    <div>
-      <div className="font-syne text-[clamp(1.75rem,2.5vw,2rem)] font-bold leading-none tracking-tight text-espresso">
-        {display ? `${display} ${val}` : val}
-      </div>
-      <div className="mt-1.5 text-[0.82rem] font-light text-muted">{label}</div>
-    </div>
-  )
-}
-
-function WaIcon() {
-  return (
-    <svg className="h-5 w-5 shrink-0 fill-white" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-    </svg>
-  )
-}
-
-function HeroPanel() {
-  return <HeroOrbs />
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease } },
 }
 
 export default function Hero() {
-  const statsRef = useRef(null)
-  const [countersStarted, setCountersStarted] = useState(false)
-  const [parallaxY, setParallaxY] = useState(0)
+  const reduce = useReducedMotion()
+  const [desktop, setDesktop] = useState(false)
+  const { scrollY } = useScroll()
 
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setCountersStarted(true); obs.disconnect() }
-    }, { threshold: 0.5 })
-    if (statsRef.current) obs.observe(statsRef.current)
-
-    const onScroll = () => setParallaxY(window.scrollY * 0.3)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { obs.disconnect(); window.removeEventListener('scroll', onScroll) }
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const sync = () => setDesktop(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
   }, [])
+
+  // Desktop: snappier move. Below 1024: longer scroll range so it doesn't finish early.
+  const watermarkX = useTransform(
+    scrollY,
+    desktop ? [0, 520] : [0, 1200],
+    [0, reduce ? 0 : desktop ? -420 : -220],
+  )
+  const watermarkY = useTransform(
+    scrollY,
+    desktop ? [0, 520] : [0, 1200],
+    [0, reduce ? 0 : desktop ? 56 : 40],
+  )
 
   return (
     <section
       id="hero"
-      className="relative flex min-h-screen flex-col justify-center overflow-hidden px-[5vw] pt-[calc(80px+5vh)] pb-[8vh]"
+      className="relative flex min-h-[100svh] flex-col overflow-hidden pt-[76px] md:pt-[80px]"
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="hero-canvas absolute inset-0" />
+        <div className="hero-grain absolute inset-0 opacity-[0.28]" />
+        <div className="absolute -top-[18%] right-[-6%] h-[65vmin] w-[65vmin] rounded-full bg-accent/[0.09] blur-[90px]" />
+        <div className="absolute bottom-[-8%] left-[-10%] h-[45vmin] w-[45vmin] rounded-full bg-espresso/[0.04] blur-[70px]" />
 
-        <div className="absolute inset-0" style={{ transform: `translateY(${parallaxY * 0.35}px)` }}>
-          {[560, 820, 1080].map((size, i) => (
-            <div
-              key={size}
-              className="hero-ring-pulse absolute rounded-full border border-caramel/10"
-              style={{
-                width: size,
-                height: size,
-                top: -size / 3.2,
-                right: -size / 3.5,
-                opacity: 1 - i * 0.22,
-                animationDelay: `${i * 2}s`,
-              }}
-            />
-          ))}
-        </div>
-
-        <div
-          className="hero-dot-field absolute right-0 bottom-0 h-[min(55vh,560px)] w-[min(55vw,560px)]"
-          style={{ transform: `translateY(${-parallaxY * 0.12}px)` }}
-        />
+        <motion.div
+          className="absolute right-[-6%] -bottom-[4%] select-none will-change-transform font-syne text-[clamp(6rem,28vw,18rem)] font-extrabold leading-none tracking-[-0.06em] text-espresso/[0.04] lg:right-[-2%] lg:bottom-[4%] lg:text-[clamp(8rem,22vw,18rem)]"
+          style={reduce ? undefined : { x: watermarkX, y: watermarkY }}
+        >
+          SERVE
+        </motion.div>
       </div>
 
-      <div className="site-wrap relative z-10 w-full">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.85fr)] lg:gap-12 xl:gap-16">
-          <div className="max-w-[720px]">
-            <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-caramel/25 bg-white/60 px-4 py-1.5 text-[0.82rem] font-medium tracking-wide text-caramel backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent animate-hero-blink" />
-              Software Built by Cafe Owners
-            </div>
+      <motion.div
+        className="site-wrap relative z-10 flex flex-1 flex-col justify-center py-8 md:py-10 lg:py-12"
+        variants={container}
+        initial={reduce ? false : 'hidden'}
+        animate="show"
+      >
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:gap-10 xl:gap-14">
+          <div>
+            <motion.p
+              variants={fadeUp}
+              className="inline-flex items-center gap-2.5 font-dmono text-[0.72rem] uppercase tracking-[0.2em] text-caramel"
+            >
+              <span className="hero-dot h-1.5 w-1.5 rounded-full bg-accent" />
+              Cafe operating system
+            </motion.p>
 
-            <h1 className="hero-h1 mt-8 font-syne text-[clamp(2.6rem,5vw,4.6rem)] font-extrabold leading-[1.04] tracking-[-0.03em] text-ink">
-              Stop running your
-              <br />
-              cafe on{' '}
-              <span className="relative inline-block text-accent">
-                paper &amp; chaos
-                <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 300 6" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M0,5 Q75,0 150,5 Q225,10 300,5" stroke="#e8873a" strokeWidth="2.5" fill="none" strokeOpacity="0.4" />
-                </svg>
+            <motion.h1
+              variants={fadeUp}
+              className="mt-6 max-w-[11ch] font-syne text-[clamp(3rem,7vw,5.75rem)] font-extrabold leading-[0.92] tracking-[-0.04em] text-ink"
+            >
+              <span className="block">Paper out.</span>
+              <span className="relative mt-1 inline-block text-accent">
+                Order in.
+                <span className="hero-underline absolute -bottom-1 left-0 h-[3px] rounded-full bg-accent/50" />
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="hero-desc mt-6 max-w-[540px] text-[1.08rem] leading-relaxed font-light text-muted">
-              SERVE gives small and mid-scale cafes everything they need — billing, orders, staff, reports — all in one system that actually fits your workflow.
-            </p>
+            <motion.p
+              variants={fadeUp}
+              className="mt-7 max-w-[28rem] text-[1.1rem] leading-[1.7] font-light text-muted md:text-[1.15rem]"
+            >
+              SERVE replaces scribbled KOTs, scattered sheets, and WhatsApp chaos with one clear
+              system for billing, orders, staff, and reports.
+            </motion.p>
 
-            <div className="hero-ctas mt-10 flex flex-wrap gap-4">
+            <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-3">
               <a
                 href="#contact"
-                className="inline-flex items-center gap-2 rounded-full bg-espresso px-8 py-3.5 text-base font-medium text-cream no-underline transition-all duration-200 hover:-translate-y-0.5 hover:bg-coffee hover:shadow-[0_10px_32px_rgba(26,15,10,0.3)] active:scale-[0.97]"
+                className="inline-flex items-center gap-2.5 rounded-full bg-espresso px-8 py-3.5 text-[0.95rem] font-medium text-cream no-underline transition-transform duration-200 hover:-translate-y-0.5 hover:bg-coffee active:scale-[0.98]"
               >
                 Book a Demo
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <svg
+                  className="hero-arrow h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </a>
@@ -166,28 +116,40 @@ export default function Hero() {
                 href="https://wa.me/9779869028924?text=Hi%2C%20I%20want%20to%20know%20more%20about%20SERVE"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-8 py-3.5 text-base font-medium text-white no-underline transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1fba59] hover:shadow-[0_10px_32px_rgba(37,211,102,0.4)] active:scale-[0.97]"
+                className="inline-flex items-center gap-2.5 rounded-full px-5 py-3.5 text-[0.95rem] font-medium text-roast no-underline transition-colors duration-200 hover:text-espresso"
               >
-                <WaIcon />
-                Chat on WhatsApp
+                <svg className="h-[18px] w-[18px] fill-[#25D366]" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                </svg>
+                WhatsApp us
               </a>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="hidden lg:flex lg:items-center lg:justify-center">
-            <HeroPanel />
-          </div>
+          <motion.div
+            variants={fadeUp}
+            className="flex w-full items-center justify-center lg:justify-end"
+          >
+            <HeroDiagram />
+          </motion.div>
         </div>
 
-        <div
-          ref={statsRef}
-          className="hero-stats mt-14 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-caramel/15 pt-8 sm:grid-cols-4 lg:mt-16 lg:gap-x-12"
+        <motion.div
+          variants={fadeUp}
+          className="mt-12 flex flex-wrap items-center border-t border-caramel/12 pt-6 md:mt-16 md:pt-7"
         >
-          {stats.map((s) => (
-            <StatItem key={s.label} {...s} started={countersStarted} />
+          {['NPR 5K setup', 'Live in 1 day', 'Human support 7/7'].map((label, i) => (
+            <div key={label} className="flex items-center py-1">
+              {i > 0 && (
+                <span className="mx-5 hidden h-3 w-px bg-caramel/20 sm:mx-7 sm:block" aria-hidden />
+              )}
+              <span className="font-dmono text-[0.65rem] uppercase tracking-[0.16em] text-caramel/80">
+                {label}
+              </span>
+            </div>
           ))}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   )
 }

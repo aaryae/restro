@@ -13,7 +13,7 @@ export default function HowItWorks() {
   const ref = useReveal()
 
   return (
-    <section id="how" ref={ref} className="relative overflow-hidden bg-cream px-[5vw] py-28">
+    <section id="how" ref={ref} className="relative overflow-hidden bg-cream py-28">
 
       <div className="pointer-events-none absolute -bottom-32 -left-32 h-[500px] w-[500px] rounded-full border border-caramel/8" />
       <div className="pointer-events-none absolute -bottom-48 -left-48 h-[700px] w-[700px] rounded-full border border-caramel/5" />
