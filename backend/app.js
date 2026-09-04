@@ -62,9 +62,10 @@ function isPrivateLanHost(hostname) {
 }
 
 function isAllowedOrigin(origin) {
-  // Credentialed CORS must not reflect a missing/null Origin in production.
+  // No Origin = same-origin browser nav, curl, or Next.js rewrite proxy.
+  // That is not a cross-origin browser request — allow it (JWT still required).
   if (!origin) {
-    return process.env.NODE_ENV === "development";
+    return true;
   }
   if (allowedOrigins.includes(origin)) return true;
   if (process.env.NODE_ENV === "development") return true;
@@ -119,7 +120,8 @@ app.use(
       if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-      return callback(new Error("Not allowed by CORS"));
+      // Never throw — a thrown Error becomes HTTP 500 and breaks Serve login.
+      return callback(null, false);
     },
     credentials: true,
   }),
