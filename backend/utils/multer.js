@@ -1,5 +1,6 @@
 require("dotenv").config();
 const multer = require("multer");
+const { runWithTenantContext } = require("../lib/tenant-context");
 let maxFileSize = 45;
 const uploaderHelper = {};
 
@@ -22,13 +23,35 @@ let xlsxMimeType = {
   "application/octet-stream": "csv",
 };
 
+/**
+ * Multer finishes on stream callbacks that leave AsyncLocalStorage, so the
+ * following handlers would query public schema instead of the tenant. Re-bind
+ * from req.tenant (set by tenant middleware) before calling next().
+ */
+function continueAfterUpload(req, res, next, error, maxMb) {
+  if (error) {
+    if (error.code == "LIMIT_FILE_SIZE") {
+      return res
+        .status(413)
+        .json({ message: `File size must not exceed ${maxMb}MB` });
+    }
+    return res.status(400).json({ message: error.message });
+  }
+
+  const proceed = () => next();
+  if (req.tenant?.schemaName) {
+    return runWithTenantContext({ tenant: req.tenant }, proceed);
+  }
+  return proceed();
+}
+
 function createStorage(destinationPath) {
   var storage = multer.diskStorage({
     destination: destinationPath,
     filename: async (req, file, cb) => {
       const randomString = Math.random().toString(36).substring(2, 10);
       const parseName = file.originalname
-        .replace(/[\\/&?$%]/g, "")
+        .replace(/[\\/&?$%']/g, "")
         .replace(/\s+/g, "_");
       const uniqueFileName = `${Date.now()}-${randomString}-${parseName}`;
       cb(null, uniqueFileName);
@@ -98,18 +121,8 @@ uploaderHelper.uploadXlsxDoc = (
   const upload = configureUpload(uploader, uploadType, fieldData);
 
   return (fileUpload = (req, res, next) => {
-    upload(req, res, async function (error) {
-      if (error) {
-        if (error.code == "LIMIT_FILE_SIZE") {
-          return res
-            .status(413)
-            .json({ message: `File size must not exceed ${maxFileSize}MB` });
-        } else {
-          return res.status(400).json({ message: error.message });
-        }
-      }
-
-      next();
+    upload(req, res, function (error) {
+      continueAfterUpload(req, res, next, error, maxFileSize);
     });
   });
 };
@@ -135,18 +148,8 @@ uploaderHelper.uploadFiles = (
   const upload = configureUpload(uploader, uploadType, fieldData);
 
   return (fileUpload = (req, res, next) => {
-    upload(req, res, async function (error) {
-      if (error) {
-        if (error.code == "LIMIT_FILE_SIZE") {
-          return res
-            .status(413)
-            .json({ message: `File size must not exceed ${maxFileSize}MB` });
-        } else {
-          return res.status(400).json({ message: error.message });
-        }
-      }
-
-      next();
+    upload(req, res, function (error) {
+      continueAfterUpload(req, res, next, error, maxFileSize);
     });
   });
 };
