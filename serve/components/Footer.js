@@ -12,7 +12,7 @@ const links = [
 
 export default function Footer() {
   return (
-    <footer id="site-footer" className="bg-ink text-cream px-[5vw]">
+    <footer id="site-footer" className="bg-ink text-cream">
 
       {/* Main footer */}
       <div className="site-wrap py-16 grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-white/5">

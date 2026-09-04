@@ -19,7 +19,7 @@ export default function Features() {
   const ref = useReveal(0.08)
 
   return (
-    <section id="features" ref={ref} className="bg-milk py-28 px-[5vw]">
+    <section id="features" ref={ref} className="bg-milk py-28">
       <div className="site-wrap">
       <div data-reveal>
         <div className="section-label">Features</div>

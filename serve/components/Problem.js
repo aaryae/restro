@@ -14,7 +14,7 @@ export default function Problem() {
   const ref = useReveal()
 
   return (
-    <section id="problem" ref={ref} className="relative overflow-hidden bg-espresso px-[5vw] py-28 text-cream">
+    <section id="problem" ref={ref} className="relative overflow-hidden bg-espresso py-28 text-cream">
 
       <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{

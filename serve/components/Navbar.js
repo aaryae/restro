@@ -70,7 +70,7 @@ export default function Navbar() {
             : 'border-transparent bg-transparent'
         }`}
       >
-        <div className="site-wrap flex h-[76px] items-center justify-between px-[5vw] md:h-[80px]">
+        <div className="site-wrap flex h-[76px] items-center justify-between md:h-[80px]">
           <a href="#hero" className="flex items-center py-1" onClick={() => setMenuOpen(false)}>
             <Image
               src="/logo-tight.png"
@@ -143,7 +143,6 @@ export default function Navbar() {
           menuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
-        <Image src="/logo-tight.png" alt="SERVE" width={916} height={444} className="mb-4 h-12 w-auto" />
         {links.map((l, i) => (
           <a
             key={l.href}

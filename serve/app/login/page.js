@@ -577,9 +577,9 @@ function LoginForm() {
             <Image
               src="/logo.png"
               alt="SERVE"
-              width={110}
-              height={44}
-              className="logo-blend h-9 w-auto"
+              width={180}
+              height={72}
+              className="logo-blend h-12 w-auto sm:h-14"
               priority
             />
           </Link>
