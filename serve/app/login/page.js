@@ -208,13 +208,8 @@ function LoginForm() {
       data.tenant?.id ||
       data.restaurant?.id
     )
-    // Only for first-time cafe setup: POS owner password is copied at provision.
-    // Never stash a password if the cafe already exists (XSS can read sessionStorage).
-    if (!hasTenant && pendingPassword) {
-      sessionStorage.setItem('serve_pending_password', pendingPassword)
-    } else {
-      sessionStorage.removeItem('serve_pending_password')
-    }
+    // Never stash plaintext passwords client-side.
+    sessionStorage.removeItem('serve_pending_password')
 
     const enteredSlug = normalizeCafeSlug(cafeSlug)
 

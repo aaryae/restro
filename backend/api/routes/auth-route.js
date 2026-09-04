@@ -14,6 +14,7 @@ const {
   authIsActiveUser,
   updateProfile,
   getTotalOfManyModel,
+  posExchange,
 } = require("../controllers/auth-controller");
 const {
   loginValidation,
@@ -32,7 +33,10 @@ const {
   paginationValidation,
 } = require("../../validations/common-validation");
 const { isValidCaptcha } = require("../../middlewares/captcha-middleware");
-const { loginRateLimiter } = require("../../utils/loginRateLimit");
+const {
+  loginRateLimiter,
+  provisionRateLimiter,
+} = require("../../utils/loginRateLimit");
 
 router.post(
   "/create",
@@ -41,6 +45,9 @@ router.post(
   createUserValidation,
   authCreateUser,
 );
+
+// One-time POS handoff (trial / platform impersonation). No Admin JWT yet.
+router.post("/pos-exchange", provisionRateLimiter, posExchange);
 
 // this route is for getting the profile of the logged in user
 router.get("/profile", authentication, authGetProfile);

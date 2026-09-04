@@ -29,7 +29,7 @@ const formatMoney = (amount: number | string) =>
 
 const StockItem: React.FC = () => {
   const accessList = checkAccess("Stock Item");
-  const canImport = accessList.includes("add") || accessList.includes("import");
+  const canImport = accessList.includes("import");
   const [deleteModelOpen, setDeleteModelOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");

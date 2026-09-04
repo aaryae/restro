@@ -21,7 +21,7 @@ const {
   checkAccountPermission,
 } = require("../../middlewares/accountPermission");
 
-router.post("/", authentication, transactionPostValidation, create);
+router.post("/", authentication, authorization, transactionPostValidation, create);
 router.get("/list", authentication, authorization, paginationValidation, list);
 router.get(
   "/total",
@@ -32,6 +32,7 @@ router.get(
 router.get(
   "/:transactionId",
   authentication,
+  authorization,
   idValidation,
   getTransactionByID,
 );

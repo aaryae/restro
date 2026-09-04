@@ -19,11 +19,8 @@ const authMiddleware = {};
 authMiddleware.authentication = async (req, res, next) => {
   try {
     let token =
-      req.body.token ||
-      req.query.token ||
-      req.headers["x-access-token"] ||
       req.headers.authorization ||
-      req.headers.token;
+      req.headers["x-access-token"];
     if (token && token.length) {
       if (!token.startsWith("Admin")) {
         return responseHelper.sendResponse(
@@ -301,7 +298,16 @@ authMiddleware.authorization = async (req, res, next) => {
       );
     }
 
-    return next();
+    // Fail closed: unregistered path/method must not grant access by default.
+    return responseHelper.sendResponse(
+      res,
+      HttpStatus.UNAUTHORIZED,
+      false,
+      null,
+      null,
+      messageConstant.EN.ACCESS_DENIED,
+      null,
+    );
   } catch (err) {
     return next(err);
   }
@@ -309,12 +315,7 @@ authMiddleware.authorization = async (req, res, next) => {
 
 authMiddleware.authorizationByPass = async (req, res, next) => {
   try {
-    let token =
-      req.body.token ||
-      req.query.token ||
-      req.headers["x-access-token"] ||
-      req.headers.authorization ||
-      req.headers.token;
+    let token = req.headers.authorization || req.headers["x-access-token"];
     if (token && token.length) {
       token = token.replace("Admin ", "");
       const decodedData = await verifyToken(token);

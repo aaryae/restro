@@ -9,7 +9,21 @@ module.exports.EMAIL = {
   SECURE: process.env.EMAIL_SECURE,
 };
 
-module.exports.JWT_SECRET = process.env.JWT_SECRET || "secret";
+function resolveJwtSecret() {
+  const fromEnv = String(process.env.JWT_SECRET || "").trim();
+  const isProd =
+    process.env.NODE_ENV === "production" || process.env.ENV === "production";
+  const hint =
+    "Set JWT_SECRET in backend/.env (min 32 chars). Example: openssl rand -hex 32";
+
+  if (fromEnv.length >= 32) return fromEnv;
+  if (isProd || !fromEnv) {
+    throw new Error(`JWT_SECRET is missing or too short. ${hint}`);
+  }
+  return fromEnv;
+}
+
+module.exports.JWT_SECRET = resolveJwtSecret();
 
 module.exports.HTTP_SECURE = process.env.HTTP_SECURE === "true";
 

@@ -7,7 +7,6 @@ import {
   clearTrialSession,
   setTrialSession,
   trialFetch,
-  buildPosEntryUrl,
   shouldShowWelcome,
   openPosFromTrial,
 } from '@/lib/trial-api'
@@ -17,6 +16,14 @@ import {
   rememberCafeSlug,
 } from '@/lib/cafe-slug'
 import OnboardBackdrop from '@/components/OnboardBackdrop'
+
+
+function tenantHostLabel() {
+  return String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || 'servecafe.app')
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')
+}
 
 export default function WelcomePage() {
   const router = useRouter()
@@ -96,18 +103,16 @@ export default function WelcomePage() {
     try {
       let url = pos?.url
       if (!url) {
-        const token = pos?.token
-        if (token) {
-          url = buildPosEntryUrl(cafeSlug, token)
-        }
-      }
-      if (!url) {
         const res = await trialFetch('/trial/pos-bootstrap', { auth: true })
         url = res.data?.pos?.url
-        if (res.data?.pos) {
+        if (res.data?.pos?.url) {
           sessionStorage.setItem(
             'serve_pos_bootstrap',
-            JSON.stringify(res.data.pos),
+            JSON.stringify({
+              url: res.data.pos.url,
+              tenantSlug: res.data.pos.tenantSlug,
+              username: res.data.pos.username,
+            }),
           )
         }
       }
@@ -147,7 +152,7 @@ export default function WelcomePage() {
             <p className="mt-4 text-xs text-muted">
               Trial cafe URL:{' '}
               <span className="font-medium text-espresso">
-                {cafeSlug}.servecafe.app
+                {cafeSlug}.{tenantHostLabel()}
               </span>
             </p>
           ) : null}

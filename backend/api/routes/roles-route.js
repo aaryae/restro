@@ -25,9 +25,15 @@ router.post(
   createRoles,
 );
 
-router.get("/list", paginationValidation, authentication, getRoles);
+router.get("/list", paginationValidation, authentication, authorization, getRoles);
 
-router.get("/:id", authentication, rolesDetailViewValidation, getRoleSingle);
+router.get(
+  "/:id",
+  authentication,
+  authorization,
+  rolesDetailViewValidation,
+  getRoleSingle,
+);
 
 router.put(
   "/:id",

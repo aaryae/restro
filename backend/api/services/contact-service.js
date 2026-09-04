@@ -5,7 +5,30 @@ const paginate = require("../../utils/paginate");
 
 const create = async (req) => {
   try {
-    const result = await contactModel.create(req.body);
+    const phone = String(req.body.phone || "").trim();
+    const cafeName = String(req.body.cafe_name || "").trim();
+    const emailRaw = String(req.body.email || "").trim();
+    const email =
+      emailRaw ||
+      (phone
+        ? `phone+${phone.replace(/\D/g, "").slice(-12)}@lead.local`
+        : "");
+
+    const extras = [];
+    if (cafeName) extras.push(`Cafe: ${cafeName}`);
+    if (phone) extras.push(`Phone: ${phone}`);
+    const messageBody = [String(req.body.message || "").trim(), ...extras]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const payload = {
+      full_name: req.body.full_name,
+      email,
+      subject: req.body.subject,
+      message: messageBody,
+    };
+
+    const result = await contactModel.create(payload);
 
     if (!result) {
       return {
@@ -14,12 +37,15 @@ const create = async (req) => {
       };
     }
 
-    const placeholders = {
-      name: `${req.body.full_name}`,
-      email: `${req.body.email}`,
-    };
-
-    await sendMail("contactEnquiry", placeholders, req.body.email);
+    if (emailRaw) {
+      const placeholders = {
+        name: `${req.body.full_name}`,
+        email: emailRaw,
+      };
+      await sendMail("contactEnquiry", placeholders, emailRaw).catch((err) => {
+        console.error("Contact mail error:", err.message);
+      });
+    }
 
     return {
       ...generalConstant.EN.CONTACT.CREATE_CONTACT_SUCCESS,

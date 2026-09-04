@@ -40,8 +40,10 @@ const supplierApi = api.injectEndpoints({
       },
     }),
     deleteSupplierById: builder.mutation({
-      query: (id) => ({
-        url: `/${id}`,
+      // Call sites pass paths like "supplier/5" (relative to /api/v1/).
+      // A leading "/" would resolve against the host root and drop /api/v1.
+      query: (id: string | number) => ({
+        url: String(id).replace(/^\//, ""),
         method: "DELETE",
       }),
       invalidatesTags: ["supplier", "trash"],

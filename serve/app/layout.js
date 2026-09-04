@@ -36,7 +36,7 @@ export const metadata = {
   publisher: 'SERVE Cafe Management System',
 
   // ── Canonical & Robots ───────────────────────────────
-  metadataBase: new URL('https://servecafe.app'), // ← replace with your real domain
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SERVE_URL || 'https://serve.technirvana.com.np'),
   alternates: {
     canonical: '/',
   },
@@ -56,14 +56,14 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_NP',
-    url: 'https://servecafe.app',
+    url: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SERVE_URL || 'https://serve.technirvana.com.np',
     siteName: 'SERVE Cafe Management System',
     title: 'SERVE – Cafe Management System | Software Built by Cafe Owners',
     description:
       'Stop running your cafe on paper and chaos. SERVE gives small cafes everything they need — billing, KOT, staff, reports — starting at NPR 5,000.',
     images: [
       {
-        url: 'public/og-image.png',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'SERVE Cafe Management System – Software Built by Cafe Owners',
@@ -85,19 +85,19 @@ export const metadata = {
   // ── Favicons ─────────────────────────────────────────
   icons: {
     icon: [
-      { url: 'public/favicon.ico', sizes: 'any' },
-      { url: 'public/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: 'public/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
     apple: [
-      { url: 'public/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
-    shortcut: 'public/favicon.ico',
+    shortcut: '/favicon.ico',
   },
 
   // ── Verification (add when you have these) ───────────
   verification: {
-    google: 'REPLACE_WITH_GOOGLE_SEARCH_CONSOLE_TOKEN', // ← from Google Search Console
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
     // yandex: 'xxx',
     // bing: 'xxx',
   },
@@ -133,9 +133,9 @@ export default function RootLayout({ children }) {
             operatingSystem: 'Web',
             description:
               'SERVE is a cafe management software for small to mid-scale cafes. Includes POS billing, KOT order system, staff management, table management, and business analytics.',
-            url: 'https://servecafe.app',
-            logo: 'https://servecafe.app/logo.png',
-            screenshot: 'https://servecafe.app/og-image.png',
+            url: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_SERVE_URL || 'https://serve.technirvana.com.np',
+            logo: '/logo.png',
+            screenshot: '/og-image.png',
             offers: {
               '@type': 'Offer',
               price: '5000',

@@ -1,4 +1,4 @@
-import { ChevronLeft, Folder, Images, Plus, SquarePen, Trash2 } from "lucide-react";
+import { ChevronLeft, Folder, Images, Plus, SquarePen } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import Button from "../Button";
 import { useForm } from "react-hook-form";
 import { checkAccess } from "@/utils/accessHelper";
 import Pagination from "../Pagination";
+import DeleteModal from "../DeleteModal";
 
 type MediaComponentProps = {
   title: string | React.ReactElement;
@@ -60,6 +61,8 @@ export default function MediaComponent({
   const { register, handleSubmit } = useForm();
 
   const [openModel, setOpenModel] = useState<boolean>(false);
+  const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
 
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null); // Track which input is being edited
@@ -348,13 +351,29 @@ export default function MediaComponent({
                         style={{ userSelect: "none" }}
                       >
                         {accessListFolder.includes("delete") && (
-                          <Trash2
-                            className="absolute top-2 left-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 text-red-500 z-10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteFolder(each.id);
-                            }}
-                          />
+                          <div
+                            className="absolute left-2 top-2 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DeleteModal
+                              open={deleteFolderOpen}
+                              setOpen={setDeleteFolderOpen}
+                              itemId={each.id}
+                              activeId={deleteFolderId}
+                              handleDeleteTrigger={() => {
+                                setDeleteFolderId(each.id);
+                                setDeleteFolderOpen(true);
+                              }}
+                              handleConfirmDelete={async () => {
+                                if (deleteFolderId == null) return;
+                                await handleDeleteFolder(deleteFolderId);
+                                setDeleteFolderId(null);
+                                setDeleteFolderOpen(false);
+                              }}
+                              title="Delete folder?"
+                              description="This will permanently remove the folder and its media."
+                            />
+                          </div>
                         )}
                         {accessListFolder.includes("edit") && (
                           <SquarePen

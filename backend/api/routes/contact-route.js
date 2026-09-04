@@ -16,8 +16,9 @@ const {
 const {
   contactPostValidation,
 } = require("../../validations/contact-validation");
+const { provisionRateLimiter } = require("../../utils/loginRateLimit");
 
-router.post("/", contactPostValidation, create);
+router.post("/", provisionRateLimiter, contactPostValidation, create);
 router.get("/list", authentication, authorization, paginationValidation, list);
 router.get("/:id", authentication, authorization, getById);
 

@@ -1,7 +1,11 @@
 const CAFE_SLUG_KEY = 'serve_cafe_slug'
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
-const CAFE_HOST_SUFFIX = 'servecafe.app'
-
+function cafeHostSuffix() {
+  return String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || 'servecafe.app')
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')
+}
 /**
  * Live typing: keep hyphens, including a trailing one, so "royal-" can become
  * "royal-lasta". Do not collapse the slug to a finished value here.
@@ -14,8 +18,8 @@ export function sanitizeCafeSlugInput(raw) {
   value = value.split('/')[0]
   value = value.split(':')[0]
 
-  if (value.endsWith(`.${CAFE_HOST_SUFFIX}`)) {
-    value = value.slice(0, -(`.${CAFE_HOST_SUFFIX}`).length)
+  if (value.endsWith(`.${cafeHostSuffix()}`)) {
+    value = value.slice(0, -(`.${cafeHostSuffix()}`).length)
   }
 
   if (value.includes('.')) {
@@ -61,4 +65,4 @@ export function rememberCafeSlug(slug) {
 }
 
 export const CAFE_SLUG_STORAGE_KEY = CAFE_SLUG_KEY
-export const CAFE_HOST_LABEL = CAFE_HOST_SUFFIX
+export const CAFE_HOST_LABEL = cafeHostSuffix()

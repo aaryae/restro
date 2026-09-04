@@ -50,8 +50,16 @@ export function clearWelcomePending() {
 export async function openPosFromTrial() {
   const res = await trialFetch('/trial/pos-bootstrap', { auth: true })
   const url = res.data?.pos?.url
-  if (res.data?.pos) {
-    sessionStorage.setItem('serve_pos_bootstrap', JSON.stringify(res.data.pos))
+  if (res.data?.pos?.url) {
+    // Never persist the long-lived JWT in the browser — only the handoff URL.
+    sessionStorage.setItem(
+      'serve_pos_bootstrap',
+      JSON.stringify({
+        url: res.data.pos.url,
+        tenantSlug: res.data.pos.tenantSlug,
+        username: res.data.pos.username,
+      }),
+    )
   }
   if (!url) {
     throw new Error('Could not open your cafe. Try again.')
@@ -64,7 +72,14 @@ export async function trialFetch(path, { method = 'GET', body, auth = false } = 
   const headers = { 'Content-Type': 'application/json' }
   if (auth) {
     const token = getTrialToken()
-    if (token) headers.Authorization = `Trial ${token}`
+    if (!token) {
+      clearTrialSession()
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'
+      }
+      throw new Error('Please sign in again.')
+    }
+    headers.Authorization = `Trial ${token}`
   }
 
   const res = await fetch(`${getApiBase(process.env.NEXT_PUBLIC_API_BASE_URL)}${path}`, {
@@ -87,17 +102,21 @@ export const POS_URL = lanAwareUrl(
   process.env.NEXT_PUBLIC_POS_URL || 'http://localhost:7001',
 )
 
-/** Production: https://{slug}.{TENANT_BASE_DOMAIN}/#pos_token=… */
-export function buildPosEntryUrl(slug, token) {
-  const hash = token ? `#pos_token=${encodeURIComponent(token)}` : ''
+function tenantHostSuffix() {
+  return String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || 'servecafe.app')
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')
+}
+
+/** Production: https://{slug}.{TENANT_BASE_DOMAIN}/#pos_code=… */
+export function buildPosEntryUrl(slug, handoffCode) {
+  const hash = handoffCode ? `#pos_code=${encodeURIComponent(handoffCode)}` : ''
   if (typeof window !== 'undefined' && isLocalBrowser()) {
     const pos = localPosOrigin()
     return `${pos.origin}/?tenant=${encodeURIComponent(slug)}${hash}`
   }
-  const base = String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || '')
-    .trim()
-    .toLowerCase()
-    .replace(/^\.+|\.+$/g, '')
+  const base = tenantHostSuffix()
   if (process.env.NODE_ENV === 'production' && base) {
     return `https://${slug}.${base}/${hash}`
   }

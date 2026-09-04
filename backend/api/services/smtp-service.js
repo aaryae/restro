@@ -1,6 +1,22 @@
 const { smtpModel } = require("../../models");
 const generalConstant = require("../../constants/general-constant");
 
+function sanitize(row) {
+  if (!row) {
+    return { configured: false };
+  }
+  const j = typeof row.toJSON === "function" ? row.toJSON() : row;
+  return {
+    configured: true,
+    id: j.id,
+    username: j.username,
+    host: j.host,
+    port: Number(j.port),
+    secure: Boolean(j.secure),
+    hasPasskey: Boolean(j.passkey),
+  };
+}
+
 const create = async (req) => {
   try {
     const check = await smtpModel.findOne();
@@ -19,7 +35,7 @@ const create = async (req) => {
     }
     return {
       ...generalConstant.EN.SMTP.CREATE_SMTP_SUCCESS,
-      data: result,
+      data: sanitize(result),
     };
   } catch (error) {
     throw error;
@@ -33,7 +49,7 @@ const getById = async (req) => {
     if (result) {
       return {
         ...generalConstant.EN.SMTP.SMTP_GET_SUCCESS,
-        data: result,
+        data: sanitize(result),
       };
     } else {
       return {
@@ -65,7 +81,7 @@ const updateById = async (req) => {
     }
     return {
       ...generalConstant.EN.SMTP.UPDATE_SMTP_SUCCESS,
-      data: updated,
+      data: sanitize(updated),
     };
   } catch (error) {
     throw error;
@@ -74,7 +90,6 @@ const updateById = async (req) => {
 
 module.exports = {
   create,
-  getById,
   getById,
   updateById,
 };

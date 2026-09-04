@@ -36,6 +36,38 @@ const {
 const { syncPrivilegedRoleAccess } = require("../../helpers/role-access-sync");
 const internal = {};
 
+const USER_PUBLIC_EXCLUDE = ["password"];
+
+function toPublicUser(user) {
+  if (!user) return null;
+  const json = typeof user.toJSON === "function" ? user.toJSON() : { ...user };
+  delete json.password;
+  if (json.supervisor) {
+    const supervisor =
+      typeof json.supervisor.toJSON === "function"
+        ? json.supervisor.toJSON()
+        : { ...json.supervisor };
+    delete supervisor.password;
+    json.supervisor = supervisor;
+  }
+  return json;
+}
+
+function assertAssignableRole(req, roleId) {
+  const targetRoleId = Number(roleId);
+  if (!targetRoleId) return null;
+  // Only an existing Super Admin may assign Super Admin (roleId 1).
+  if (targetRoleId === 1 && Number(req.user?.roleId) !== 1) {
+    return {
+      status: 403,
+      success: false,
+      message: "You cannot assign the Super Admin role",
+      data: null,
+    };
+  }
+  return null;
+}
+
 internal.userLoginPassport = (req, res, next) => {
   return new Promise((resolve, reject) => {
     passport.authenticate("user-login", (err, user, info) => {
@@ -238,6 +270,9 @@ const createUser = async (req, res, next) => {
 
     //checking roleId
     if (req.body.roleId) {
+      const roleDenied = assertAssignableRole(req, req.body.roleId);
+      if (roleDenied) return roleDenied;
+
       const role = await roleModel.findOne({
         where: { id: +req.body.roleId, isDeleted: false },
         attributes: { exclude: ["updatedAt", "createdAt"] },
@@ -272,7 +307,7 @@ const createUser = async (req, res, next) => {
     if (user) {
       returnData = {
         ...generalConstant.EN.USERS.CREATE_USER_SUCCESS,
-        data: user,
+        data: toPublicUser(user),
       };
     } else {
       returnData = {
@@ -303,6 +338,9 @@ const updateUser = async (req, res, next) => {
 
     //checking roleId
     if (req.body.roleId) {
+      const roleDenied = assertAssignableRole(req, req.body.roleId);
+      if (roleDenied) return roleDenied;
+
       const role = await roleModel.findOne({
         where: { id: +req.body.roleId, isDeleted: false },
         attributes: { exclude: ["updatedAt", "createdAt"] },
@@ -336,7 +374,7 @@ const updateUser = async (req, res, next) => {
     if (user) {
       returnData = {
         ...generalConstant.EN.USERS.UPDATE_USER_SUCCESS,
-        data: user,
+        data: toPublicUser(user),
       };
     } else {
       returnData = {
@@ -371,11 +409,11 @@ const subDelete = async (req, res, next) => {
       user?.isDeleted === true
         ? (returnData = {
             ...generalConstant.EN.USERS.DELETE_USER_SUCCESS,
-            data: user,
+            data: toPublicUser(user),
           })
         : (returnData = {
             ...generalConstant.EN.USERS.UN_DELETE_USER_SUCCESS,
-            data: user,
+            data: toPublicUser(user),
           });
     } else {
       returnData = {
@@ -407,11 +445,11 @@ const toggleIsActive = async (req, res, next) => {
       user?.isActive === true
         ? (returnData = {
             ...generalConstant.EN.USERS.ACTIVE_USER_SUCCESS,
-            data: user,
+            data: toPublicUser(user),
           })
         : (returnData = {
             ...generalConstant.EN.USERS.UN_ACTIVE_USER_SUCCESS,
-            data: user,
+            data: toPublicUser(user),
           });
     } else {
       returnData = {
@@ -429,9 +467,11 @@ const getOneUser = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
     const result = await userModel.findByPk(+req.params.id, {
+      attributes: { exclude: USER_PUBLIC_EXCLUDE },
       include: {
         model: userModel,
         as: "supervisor",
+        attributes: { exclude: USER_PUBLIC_EXCLUDE },
       },
     });
     if (result) {
@@ -627,7 +667,12 @@ const getAllUsers = async (req, res, next) => {
     if (result) {
       returnData = {
         ...generalConstant.EN.USERS.USER_LIST_SUCCESS,
-        data: result,
+        data: {
+          ...result,
+          data: Array.isArray(result.data)
+            ? result.data.map((row) => toPublicUser(row))
+            : result.data,
+        },
       };
     } else {
       returnData = {
@@ -669,7 +714,7 @@ const changePassword = async (req, res, next) => {
     if (result) {
       returnData = {
         ...generalConstant.EN.USERS.PASSWORD_CHANGE_SUCCESS,
-        data: result,
+        data: toPublicUser(result),
       };
     } else {
       returnData = {
@@ -703,7 +748,7 @@ const resetPassword = async (req, res, next) => {
     if (result) {
       returnData = {
         ...generalConstant.EN.USERS.PASSWORD_RESET_SUCCESS,
-        data: result,
+        data: toPublicUser(result),
       };
     } else {
       returnData = {

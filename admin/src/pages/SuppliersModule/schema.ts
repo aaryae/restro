@@ -8,15 +8,18 @@ export const SupplierFilterSchema = z.object({
 export type SupplierFilterInput = z.infer<typeof SupplierFilterSchema>;
 
 export const SupplierSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").optional(),
+  name: z
+    .string({ required_error: "Name is required" })
+    .trim()
+    .min(2, "Name must be at least 2 characters"),
   supplier_code: z
-    .string()
+    .string({ required_error: "Supplier code is required" })
+    .trim()
     .min(2, "Supplier code must be at least 2 characters")
     .regex(
       /^[A-Za-z][A-Za-z0-9]*$/,
       "Supplier code must start with a letter and contain only alphanumeric characters",
-    )
-    .optional(),
+    ),
   address: z.string().optional().nullable(),
   contact_number: z.preprocess((val) => {
     if (val === "" || val === undefined) return null;
@@ -25,7 +28,7 @@ export const SupplierSchema = z.object({
     .string()
     .regex(/^\d+$/, "Contact number must contain only digits")
     .min(10, "Contact number must be at least 10 digits")
-    .max(10, "Contact number cannot exceed 10 digits")
+    .max(20, "Contact number cannot exceed 20 digits")
     .nullable()
     .optional()),
   email: z.preprocess((val) => {

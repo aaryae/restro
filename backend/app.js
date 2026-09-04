@@ -77,7 +77,10 @@ function isPrivateLanHost(hostname) {
 }
 
 function isAllowedOrigin(origin) {
-  if (!origin) return true;
+  // Credentialed CORS must not reflect a missing/null Origin in production.
+  if (!origin) {
+    return process.env.NODE_ENV === "development";
+  }
   if (allowedOrigins.includes(origin)) return true;
   if (process.env.NODE_ENV === "development") return true;
   if (isTenantBaseOrigin(origin)) return true;
@@ -87,7 +90,11 @@ function isAllowedOrigin(origin) {
     .filter(Boolean);
   if (extra.includes(origin)) return true;
   try {
-    return isPrivateLanHost(new URL(origin).hostname);
+    // LAN hosts only in development — never in production.
+    if (process.env.NODE_ENV === "development") {
+      return isPrivateLanHost(new URL(origin).hostname);
+    }
+    return false;
   } catch {
     return false;
   }
@@ -126,20 +133,17 @@ app.use(
 
 app.set("trust proxy", 1);
 app.use((req, res, next) => {
-  // Get the relevant headers
   const userAgent = req.headers["user-agent"] || "";
   const acceptLanguage = req.headers["accept-language"] || "";
   const connection = req.headers["connection"] || "";
-  const ip =
-    req.headers["x-forwarded-for"] || req.connection.remoteAddress || "";
+  // Prefer Express trust-proxy IP — never trust raw XFF alone for rate limits.
+  const clientIp = req.ip || req.socket?.remoteAddress || "";
 
-  // Generate a fingerprint using SHA-256 (you can use other hash functions)
   const fingerprint = crypto
     .createHash("sha256")
-    .update(userAgent + acceptLanguage + connection + ip)
+    .update(userAgent + acceptLanguage + connection + clientIp)
     .digest("hex");
 
-  // Attach the fingerprint to the request object
   req.deviceFingerprint = fingerprint;
 
   next();
@@ -162,20 +166,40 @@ app.use(
   require("./deploy"),
 );
 
-app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.json({ limit: "2mb" }));
 app.use(
   bodyParser.urlencoded({
-    limit: "50mb",
+    limit: "2mb",
     extended: false,
   }),
 );
 
-// Session storage (in-memory; suitable for single-instance admin)
+function resolveSessionSecret() {
+  const fromEnv = String(process.env.SESSION_SECRET || "").trim();
+  const isProd =
+    process.env.NODE_ENV === "production" || process.env.ENV === "production";
+  if (fromEnv.length >= 32) return fromEnv;
+  if (isProd) {
+    throw new Error(
+      "SESSION_SECRET is missing or too short (min 32 chars). Set it in backend/.env",
+    );
+  }
+  // Local-only fallback so Passport sessions work without extra setup.
+  return fromEnv || "nirvana-dev-only-session-secret-change-me!!";
+}
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "nirvana", // Use env for security
+    secret: resolveSessionSecret(),
     resave: false,
-    saveUninitialized: false, // Only save authenticated sessions
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure:
+        process.env.HTTP_SECURE === "true" ||
+        process.env.NODE_ENV === "production",
+    },
   }),
 );
 
@@ -238,6 +262,8 @@ app.use((req, res, next) => {
 
 //error handler
 app.use((err, req, res, next) => {
+  const isProd =
+    process.env.NODE_ENV === "production" || process.env.ENV === "production";
   const { message, title } =
     err instanceof Sequelize.ValidationError
       ? {
@@ -245,10 +271,12 @@ app.use((err, req, res, next) => {
           title: "Validation Error",
         }
       : {
-          message: err.message || "An unknown error occurred.",
+          message: isProd
+            ? "An unexpected error occurred."
+            : err.message || "An unknown error occurred.",
           title: err.title || messageConstants.EN.INTERNAL_SERVER_ERROR,
         };
-  logger.error(message);
+  logger.error(err.message || message);
 
   res.status(err.status || 500).json({
     title,

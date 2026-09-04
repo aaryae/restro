@@ -175,7 +175,9 @@ export default function CafeDetailPage() {
     <div>
       <PageHeader
         title={cafe.name}
-        subtitle={`${cafe.slug}.servecafe.app`}
+        subtitle={cafePosUrl(cafe.slug)
+          .replace(/^https?:\/\//, '')
+          .replace(/\/$/, '')}
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             <Link to="/cafes">

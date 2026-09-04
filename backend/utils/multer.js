@@ -7,9 +7,7 @@ let imageMimeType = {
   "image/png": "png",
   "image/jpeg": "jpeg",
   "image/jpg": "jpg",
-  "image/svg": "svg",
   "image/ico": "ico",
-  "image/svg+xml": "svg+xml",
   "image/gif": "gif",
   "image/webp": "webp",
 };

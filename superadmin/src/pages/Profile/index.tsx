@@ -111,7 +111,7 @@ export default function ProfilePage() {
 
   async function onPickPhoto(file: File | undefined) {
     if (!file) return
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
       toast('Please choose an image file (JPG, PNG, GIF, or WebP)', 'error')
       return
     }

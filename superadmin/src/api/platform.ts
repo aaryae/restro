@@ -199,8 +199,6 @@ export async function impersonateCafe(id: number) {
     cafe: Cafe
     pos: {
       username: string
-      token: string
-      authHeader: string
       tenantSlug: string
       url: string
     }

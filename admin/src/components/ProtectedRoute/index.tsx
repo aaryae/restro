@@ -160,5 +160,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteType> = ({ children }) => {
     );
   }
 
+  // Fail closed: do not mount admin UI with an empty ACL after a load error.
+  if (needsAccess && accessFailed && !isTrialLifecycleError(accessError)) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--serve-bg,#0c0c0e)] px-6 text-center text-sm text-[var(--serve-muted,#a3a3ac)]">
+        <p>Could not load your workspace permissions.</p>
+        <button
+          type="button"
+          className="rounded-lg bg-[var(--primary-color,#c4763a)] px-4 py-2 text-white"
+          onClick={() => redirectToServeLogin()}
+        >
+          Sign in again
+        </button>
+      </main>
+    );
+  }
+
   return children;
 };

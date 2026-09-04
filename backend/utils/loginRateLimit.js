@@ -13,12 +13,12 @@ const apiRateLimiter = rateLimit({
 });
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_ATTEMPT_MAX = 50;
+const LOGIN_ATTEMPT_MAX = 10;
 
 const loginAttempts = new Map();
 
 function clientKey(req) {
-  return req.deviceFingerprint || req.ip || "unknown";
+  return req.ip || req.deviceFingerprint || "unknown";
 }
 
 const skipHardcoreQa = (req) =>

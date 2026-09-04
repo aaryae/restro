@@ -1,5 +1,6 @@
 import { lazy, type ReactNode } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import { ModuleGuard } from "@/components/ModuleGuard";
 
 function LegacyProductToItemRedirect() {
   const { id } = useParams();
@@ -88,7 +89,7 @@ const StockGroup = lazy(() => import("@/pages/StockGroup"));
 const StockItem = lazy(() => import("@/pages/StockItem"));
 const StockHistory = lazy(() => import("@/pages/StockHistory"));
 
-export const adminLinks: { path: string; element: ReactNode }[] = [
+const rawAdminLinks: { path: string; element: ReactNode; module?: string; action?: string }[] = [
   {
     path: "/dashboard",
     element: <Dashboard />,
@@ -451,4 +452,75 @@ export const adminLinks: { path: string; element: ReactNode }[] = [
     path: "/stock-history/list",
     element: <StockHistory />,
   },
+
 ];
+
+const MODULE_RULES: { prefix: string; module: string; action?: string }[] = [
+  { prefix: "/order/checkout", module: "Order", action: "order-checkout" },
+  { prefix: "/order", module: "Order" },
+  { prefix: "/auth", module: "Users" },
+  { prefix: "/approve-request", module: "Action Request" },
+  { prefix: "/roles", module: "Roles" },
+  { prefix: "/access", module: "Access Module" },
+  { prefix: "/media-category", module: "Media Category" },
+  { prefix: "/media", module: "Media" },
+  { prefix: "/settings", module: "Company Settings" },
+  { prefix: "/ledger", module: "Ledger" },
+  { prefix: "/recently-deleted", module: "Recently Deleted" },
+  { prefix: "/email-template", module: "Email Template" },
+  { prefix: "/smtp", module: "Email SMTP" },
+  { prefix: "/active-email-template", module: "Active Email Template" },
+  { prefix: "/product-category", module: "Product Category" },
+  { prefix: "/item", module: "Product" },
+  { prefix: "/product", module: "Product" },
+  { prefix: "/open-item", module: "Open Item" },
+  { prefix: "/product-variant", module: "Product" },
+  { prefix: "/revenue", module: "Revenue" },
+  { prefix: "/purchase-category", module: "Purchase Category" },
+  { prefix: "/purchase", module: "Purchase" },
+  { prefix: "/expense-category", module: "Expense Category" },
+  { prefix: "/expense", module: "Expense" },
+  { prefix: "/customer", module: "Customer" },
+  { prefix: "/supplier", module: "Supplier" },
+  { prefix: "/department", module: "Department" },
+  { prefix: "/floor", module: "Floor" },
+  { prefix: "/table-report", module: "Table Report" },
+  { prefix: "/table", module: "Table" },
+  { prefix: "/account-permission", module: "Account Permission" },
+  { prefix: "/account", module: "Account" },
+  { prefix: "/transaction", module: "Transaction" },
+  { prefix: "/addons", module: "Addons" },
+  { prefix: "/daily-report", module: "Daily Reports" },
+  { prefix: "/daily-reports", module: "Daily Reports" },
+  { prefix: "/measuring-unit", module: "Measuring Unit" },
+  { prefix: "/stock-group", module: "Stock Group" },
+  { prefix: "/stock-item", module: "Stock Item" },
+  { prefix: "/stock-history", module: "Stock History" },
+  { prefix: "/dashboard", module: "Dashboard" },
+];
+
+function resolveModule(path: string) {
+  const hit = MODULE_RULES.find(
+    (r) => path === r.prefix || path.startsWith(r.prefix + "/") || path.startsWith(r.prefix),
+  );
+  // Prefer longest prefix match
+  const matches = MODULE_RULES.filter(
+    (r) => path === r.prefix || path.startsWith(r.prefix + "/") || (r.prefix !== "/" && path.startsWith(r.prefix)),
+  ).sort((a, b) => b.prefix.length - a.prefix.length);
+  return matches[0] || hit || null;
+}
+
+export const adminLinks: { path: string; element: ReactNode }[] = rawAdminLinks.map(
+  (link) => {
+    const rule = resolveModule(link.path);
+    if (!rule) return { path: link.path, element: link.element };
+    return {
+      path: link.path,
+      element: (
+        <ModuleGuard module={rule.module} action={rule.action || "view"}>
+          {link.element}
+        </ModuleGuard>
+      ),
+    };
+  },
+);
