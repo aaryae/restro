@@ -273,15 +273,15 @@ export const PAGE_GUIDES: PageGuide[] = [
     summary:
       "Ingredients and supplies you buy and track in the store — flour, oil, bottles, packets. This is separate from the Menu: menu items are what you sell; stock items are what you keep in quantity.",
     highlights: [
-      "Add a stock item with a measuring unit, optional group, opening quantity and default price",
-      "Use Adjust → Purchase / Restock to buy stock: pick account and supplier; money goes out and quantity goes up together",
-      "Bulk upload from Excel when you already have a supplier list",
+      "Add a stock item with a measuring unit, optional group, quantity, price and pay-from account",
+      "Creating with quantity > 0 records a Finance purchase and deducts cash/bank in one step",
+      "Use Adjust → Purchase / Restock for later buys of an existing item",
       "Watch the KPI cards for total value and low-stock alerts",
     ],
     tips: [
       "Measuring units ship with restaurant defaults (kg, ltr, pcs, …). Open Measuring Units to see descriptions or add your own.",
       "Stock groups are optional folders — Dairy, Dry Goods, Beverages — so the list stays tidy.",
-      "Opening quantity on create is starting stock only (no payment). Later restocks use Purchase / Restock to hit Finance.",
+      "When creating an item with quantity > 0, pick Pay From Account and supplier — stock and payment happen together. Leave quantity at 0 to register the item only.",
     ],
   },
   {

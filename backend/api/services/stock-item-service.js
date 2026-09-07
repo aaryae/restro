@@ -66,6 +66,8 @@ const create = async (req) => {
       openingQuantity = 0,
       openingRate,
       lowStockThreshold,
+      accountId,
+      paymentTerms,
     } = req.body;
 
     const unit = await measuringUnitModel.findByPk(measuringUnitId, {
@@ -86,8 +88,32 @@ const create = async (req) => {
     );
     const openingQty = toNumber(openingQuantity);
     const price = toNumber(defaultPrice);
+    const paidOpening = openingQty > 0 && Boolean(accountId);
+
+    if (paidOpening) {
+      if (!supplierId) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Supplier is required when recording a paid opening stock",
+          data: null,
+        };
+      }
+      if (!req.user?.id) {
+        await transaction.rollback();
+        return {
+          status: 401,
+          success: false,
+          message: "Authentication required to record purchase",
+          data: null,
+        };
+      }
+    }
+
     const slug = await uniqueSlug(name, null, transaction);
 
+    // Paid opening starts at 0; purchase apply sets the live quantity.
     const item = await stockItemModel.create(
       {
         name,
@@ -97,7 +123,7 @@ const create = async (req) => {
         supplierId: supplierId || null,
         defaultPrice: price,
         openingQuantity: openingQty,
-        quantity: openingQty,
+        quantity: paidOpening ? 0 : openingQty,
         lowStockThreshold:
           lowStockThreshold === undefined || lowStockThreshold === null
             ? null
@@ -106,20 +132,37 @@ const create = async (req) => {
       { transaction },
     );
 
-    const createdBy = historyCreatedBy();
-
-    await stockHistoryModel.create(
-      {
-        stockItemId: item.id,
-        type: "opening",
+    if (paidOpening) {
+      const purchase = await createCompletedPurchaseForStockAdjust({
+        stockItem: item,
         quantity: openingQty,
         rate,
-        value: openingQty * rate,
-        note: "Opening stock",
-        createdBy,
-      },
-      { transaction },
-    );
+        accountId,
+        supplierId,
+        paymentTerms: paymentTerms || "cash",
+        enteredByUserId: req.user.id,
+        note: "Opening stock purchase",
+        transaction,
+      });
+      await applyPurchaseToStock(purchase.id, {
+        transaction,
+        userId: null,
+      });
+    } else {
+      const createdBy = historyCreatedBy();
+      await stockHistoryModel.create(
+        {
+          stockItemId: item.id,
+          type: "opening",
+          quantity: openingQty,
+          rate,
+          value: openingQty * rate,
+          note: "Opening stock",
+          createdBy,
+        },
+        { transaction },
+      );
+    }
 
     await transaction.commit();
 
@@ -133,6 +176,9 @@ const create = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };

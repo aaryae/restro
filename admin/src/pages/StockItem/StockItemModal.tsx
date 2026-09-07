@@ -26,15 +26,36 @@ const optionalAmount = z.preprocess(
   z.coerce.number().min(0).optional(),
 );
 
-const StockItemSchema = z.object({
-  name: z.string().min(1, "Item name is required"),
-  measuringUnitId: z.string().min(1, "Measuring unit is required"),
-  stockGroupId: z.string().optional(),
-  supplierId: z.string().optional(),
-  defaultPrice: optionalAmount,
-  openingQuantity: optionalAmount,
-  lowStockThreshold: optionalAmount,
-});
+const StockItemSchema = z
+  .object({
+    name: z.string().min(1, "Item name is required"),
+    measuringUnitId: z.string().min(1, "Measuring unit is required"),
+    stockGroupId: z.string().optional(),
+    supplierId: z.string().optional(),
+    defaultPrice: optionalAmount,
+    openingQuantity: optionalAmount,
+    lowStockThreshold: optionalAmount,
+    accountId: z.string().optional(),
+    paymentTerms: z.enum(["cash", "cheque", "credit"]).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const qty = Number(data.openingQuantity || 0);
+    if (qty <= 0) return;
+    if (!data.accountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select the cash or bank account used for this purchase",
+        path: ["accountId"],
+      });
+    }
+    if (!data.supplierId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Supplier is required when quantity is greater than 0",
+        path: ["supplierId"],
+      });
+    }
+  });
 
 type StockItemFormType = z.infer<typeof StockItemSchema>;
 
@@ -53,7 +74,15 @@ const blankCreateValues = {
   defaultPrice: "" as unknown as number | undefined,
   openingQuantity: "" as unknown as number | undefined,
   lowStockThreshold: "" as unknown as number | undefined,
+  accountId: "",
+  paymentTerms: "cash" as const,
 };
+
+const paymentTermOptions = [
+  { label: "Cash", value: "cash" },
+  { label: "Cheque", value: "cheque" },
+  { label: "Credit", value: "credit" },
+];
 
 const StockItemModal: React.FC<Props> = ({
   isOpen,
@@ -80,6 +109,7 @@ const StockItemModal: React.FC<Props> = ({
   const defaultPrice = useWatch({ control, name: "defaultPrice" });
   const openingValue =
     Number(openingQuantity || 0) * Number(defaultPrice || 0);
+  const needsPayment = !isEdit && Number(openingQuantity || 0) > 0;
 
   const unitsUrl = buildQueryString("measuring-unit/list", {
     page: 1,
@@ -93,6 +123,10 @@ const StockItemModal: React.FC<Props> = ({
     page: 1,
     limit: 200,
   });
+  const accountsUrl = buildQueryString("account/list", {
+    page: 1,
+    limit: 50,
+  });
 
   const { data: unitsResp } = useGetApiQuery(
     { url: unitsUrl },
@@ -105,6 +139,10 @@ const StockItemModal: React.FC<Props> = ({
   const { data: suppliersResp, refetch: refetchSuppliers } = useGetApiQuery(
     { url: suppliersUrl },
     { skip: !isOpen },
+  );
+  const { data: accountsResp } = useGetApiQuery(
+    { url: accountsUrl },
+    { skip: !isOpen || isEdit },
   );
   const { data: itemResp } = useGetApiQuery(
     { url: `${STOCK_ITEM_URL}${editId}` },
@@ -138,6 +176,15 @@ const StockItemModal: React.FC<Props> = ({
       })),
     [suppliersResp],
   );
+  const accountOptions = useMemo(() => {
+    const rows = accountsResp?.data?.data ?? accountsResp?.data ?? [];
+    return (Array.isArray(rows) ? rows : [])
+      .filter((a: any) => a?.status === "active" || a?.status == null)
+      .map((a: any) => ({
+        label: `${a.name}${a.accountType ? ` (${a.accountType})` : ""}`,
+        value: String(a.id),
+      }));
+  }, [accountsResp]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -164,6 +211,8 @@ const StockItemModal: React.FC<Props> = ({
         row.lowStockThreshold == null || row.lowStockThreshold === ""
           ? ("" as any)
           : Number(row.lowStockThreshold),
+      accountId: "",
+      paymentTerms: "cash",
     });
   }, [isOpen, isEdit, itemResp, reset]);
 
@@ -188,8 +237,13 @@ const StockItemModal: React.FC<Props> = ({
 
     if (!isEdit) {
       const price = Number(data.defaultPrice || 0);
-      body.openingQuantity = Number(data.openingQuantity || 0);
+      const qty = Number(data.openingQuantity || 0);
+      body.openingQuantity = qty;
       body.openingRate = price;
+      if (qty > 0) {
+        body.accountId = Number(data.accountId);
+        body.paymentTerms = data.paymentTerms || "cash";
+      }
     }
 
     try {
@@ -279,7 +333,12 @@ const StockItemModal: React.FC<Props> = ({
           />
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
-              <label className="input-label text-left">Supplier</label>
+              <label className="input-label text-left">
+                Supplier
+                {needsPayment ? (
+                  <span className="text-red-500"> *</span>
+                ) : null}
+              </label>
               <CustomDialog
                 buttonTitle={
                   <button
@@ -322,9 +381,14 @@ const StockItemModal: React.FC<Props> = ({
                   options={supplierOptions}
                   value={field.value || ""}
                   onValueChange={field.onChange}
-                  placeholder="Select supplier (optional)"
-                  clearable
+                  placeholder={
+                    needsPayment
+                      ? "Select supplier"
+                      : "Select supplier (optional)"
+                  }
+                  clearable={!needsPayment}
                   clearLabel="No supplier"
+                  isRequired={needsPayment}
                   error={errors.supplierId?.message}
                 />
               )}
@@ -370,8 +434,47 @@ const StockItemModal: React.FC<Props> = ({
               />
             </div>
             <p className="mt-2 text-[11px] leading-snug text-slate-500">
-              Value is Quantity × Default Price.
+              Value is Quantity × Default Price. Leave quantity at 0 if you are
+              only registering the item name for now.
             </p>
+
+            {needsPayment ? (
+              <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
+                <p className="text-[12px] leading-snug text-slate-600">
+                  This stock is treated as a purchase: money is deducted from
+                  the account you choose, and a Finance purchase is created.
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Controller
+                    name="accountId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Pay From Account"
+                        options={accountOptions}
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                        placeholder="Select account"
+                        isRequired
+                        error={errors.accountId?.message}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="paymentTerms"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Payment Terms"
+                        options={paymentTermOptions}
+                        value={field.value || "cash"}
+                        onValueChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
 
