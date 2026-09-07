@@ -4,6 +4,7 @@ const {
   accountModel,
   supplierModel,
   purchaseCategoryModel,
+  stockItemModel,
   sequelize,
 } = require("../../models");
 const generalConstant = require("../../constants/general-constant");
@@ -12,6 +13,33 @@ const { Sequelize } = require("sequelize");
 const { Op } = Sequelize;
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { getLocalDateRange } = require("../../utils/timezone");
+const {
+  PurchaseStockSyncError,
+  applyPurchaseToStock,
+  reversePurchaseFromStock,
+} = require("../../lib/purchase-stock-sync");
+
+const purchaseItemInclude = [
+  { model: purchaseCategoryModel, as: "category" },
+  {
+    model: stockItemModel,
+    as: "stockItem",
+    attributes: ["id", "name", "defaultPrice", "quantity"],
+  },
+];
+
+const resolveStockItemId = async (rawId, transaction) => {
+  if (rawId === undefined || rawId === null || rawId === "") return null;
+  const id = Number(rawId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new PurchaseStockSyncError("Invalid stock item on purchase line");
+  }
+  const stockItem = await stockItemModel.findByPk(id, { transaction });
+  if (!stockItem) {
+    throw new PurchaseStockSyncError(`Stock item #${id} not found`);
+  }
+  return stockItem.id;
+};
 
 /**
  * Ensure invoice numbers stay unique among active purchases.
@@ -121,7 +149,8 @@ const create = async (req) => {
       await purchaseItemModel.create(
         {
           purchaseId: purchase.id,
-          categoryId: item.categoryId,
+          categoryId: item.categoryId || null,
+          stockItemId: await resolveStockItemId(item.stockItemId, transaction),
           hsCode: item.hsCode,
           particulars: item.particulars,
           quantity: item.quantity,
@@ -145,7 +174,7 @@ const create = async (req) => {
         {
           model: purchaseItemModel,
           as: "purchaseItems",
-          include: [{ model: purchaseCategoryModel, as: "category" }],
+          include: purchaseItemInclude,
         },
       ],
       transaction,
@@ -158,6 +187,9 @@ const create = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };
@@ -347,7 +379,7 @@ const getById = async (req) => {
         {
           model: purchaseItemModel,
           as: "purchaseItems",
-          include: [{ model: purchaseCategoryModel, as: "category" }],
+          include: purchaseItemInclude,
         },
       ],
     });
@@ -478,6 +510,10 @@ const updateById = async (req) => {
 
     // Update items if provided
     if (items && Array.isArray(items)) {
+      if (prior.status === "completed") {
+        await reversePurchaseFromStock(purchase.id, { transaction });
+      }
+
       await purchaseItemModel.destroy({
         where: { purchaseId: purchase.id },
         transaction,
@@ -494,7 +530,11 @@ const updateById = async (req) => {
         await purchaseItemModel.create(
           {
             purchaseId: purchase.id,
-            categoryId: item.categoryId,
+            categoryId: item.categoryId || null,
+            stockItemId: await resolveStockItemId(
+              item.stockItemId,
+              transaction,
+            ),
             hsCode: item.hsCode,
             particulars: item.particulars,
             quantity: item.quantity,
@@ -569,6 +609,10 @@ const updateById = async (req) => {
           transaction,
         });
       }
+
+      if (items && Array.isArray(items)) {
+        await applyPurchaseToStock(purchase.id, { transaction });
+      }
     }
 
     const updatedPurchase = await purchaseModel.findByPk(purchase.id, {
@@ -577,7 +621,7 @@ const updateById = async (req) => {
         {
           model: purchaseItemModel,
           as: "purchaseItems",
-          include: [{ model: purchaseCategoryModel, as: "category" }],
+          include: purchaseItemInclude,
         },
       ],
       transaction,
@@ -590,6 +634,9 @@ const updateById = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };
@@ -655,13 +702,15 @@ const completePurchase = async (req) => {
       { transaction },
     );
 
+    await applyPurchaseToStock(purchase.id, { transaction });
+
     const result = await purchaseModel.findByPk(purchase.id, {
       include: [
         { model: supplierModel, as: "supplier" },
         {
           model: purchaseItemModel,
           as: "purchaseItems",
-          include: [{ model: purchaseCategoryModel, as: "category" }],
+          include: purchaseItemInclude,
         },
       ],
       transaction,
@@ -674,6 +723,9 @@ const completePurchase = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };
@@ -938,6 +990,10 @@ const deleteById = async (req) => {
       }
     }
 
+    if (purchase.status === "completed") {
+      await reversePurchaseFromStock(purchase.id, { transaction });
+    }
+
     // Delete children first due to FK, then the purchase
     await purchaseItemModel.destroy({
       where: { purchaseId: purchase.id },
@@ -954,6 +1010,9 @@ const deleteById = async (req) => {
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };

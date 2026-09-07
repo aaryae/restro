@@ -305,6 +305,9 @@ const StockItem: React.FC = () => {
         itemId={adjustItem?.id ?? null}
         itemName={adjustItem?.name}
         defaultRate={Number(adjustItem?.defaultPrice || 0)}
+        defaultSupplierId={
+          adjustItem?.supplierId != null ? Number(adjustItem.supplierId) : null
+        }
       />
     </div>
   );

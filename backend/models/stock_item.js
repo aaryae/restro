@@ -19,6 +19,10 @@ module.exports = (sequelize) => {
         foreignKey: "stockItemId",
         as: "histories",
       });
+      StockItem.hasMany(models.purchaseItemModel, {
+        foreignKey: "stockItemId",
+        as: "purchaseItems",
+      });
     }
   }
 

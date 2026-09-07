@@ -3,6 +3,7 @@ import { z } from "zod";
 export const PurchaseItemSchema = z.object({
   particulars: z.string().min(1, "Particulars is required"),
   categoryId: z.number().optional().or(z.literal("")),
+  stockItemId: z.number().optional().or(z.literal("")),
   qty: z.coerce
     .number({ message: "Qty must be a number" })
     .int()
@@ -38,8 +39,13 @@ export function isBlankPurchaseItem(
     item.categoryId !== undefined &&
     item.categoryId !== null &&
     Number(item.categoryId) > 0;
+  const hasStockItem =
+    item.stockItemId !== "" &&
+    item.stockItemId !== undefined &&
+    item.stockItemId !== null &&
+    Number(item.stockItemId) > 0;
 
-  return !particulars && !hasQty && !hasRate && !hasCategory;
+  return !particulars && !hasQty && !hasRate && !hasCategory && !hasStockItem;
 }
 
 export function filterFilledPurchaseItems(items: unknown) {

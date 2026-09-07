@@ -63,6 +63,24 @@ const adjustValidation = async (req, res, next) => {
     quantity: Joi.number().positive().required(),
     rate: Joi.number().min(0).optional(),
     note: Joi.string().max(500).optional().allow(null, ""),
+    accountId: Joi.when("type", {
+      is: "purchase",
+      then: Joi.number().integer().positive().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    supplierId: Joi.when("type", {
+      is: "purchase",
+      then: Joi.number().integer().positive().optional().allow(null),
+      otherwise: Joi.forbidden(),
+    }),
+    paymentTerms: Joi.when("type", {
+      is: "purchase",
+      then: Joi.string()
+        .valid("cash", "cheque", "credit")
+        .optional()
+        .default("cash"),
+      otherwise: Joi.forbidden(),
+    }),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {

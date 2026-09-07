@@ -20,6 +20,7 @@ import {
   ACCOUNT_URL,
   PURCHASE_URL,
   PURCHASE_CATEGORY_URL,
+  STOCK_ITEM_URL,
 } from "@/constants/apiUrlConstants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -118,6 +119,7 @@ const AddEditPurchase: React.FC = () => {
         {
           particulars: "",
           categoryId: "",
+          stockItemId: "",
           qty: undefined as any,
           rate: undefined as any,
           discountPercent: 0,
@@ -256,6 +258,26 @@ const AddEditPurchase: React.FC = () => {
     }
   }, [PurchaseCategoriesData]);
 
+  const [stockItems, setStockItems] = useState<
+    { value: string; label: string; defaultPrice: number; name: string }[]
+  >([]);
+  const { data: StockItemsData } = useGetApiQuery({
+    url: `${STOCK_ITEM_URL}list?page=1&limit=200`,
+  });
+
+  useEffect(() => {
+    const rows = StockItemsData?.data?.data;
+    if (!Array.isArray(rows)) return;
+    setStockItems(
+      rows.map((item: any) => ({
+        value: String(item.id),
+        label: item.name,
+        name: item.name,
+        defaultPrice: Number(item.defaultPrice || 0),
+      })),
+    );
+  }, [StockItemsData]);
+
   const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
   const { data: usersData } = useGetAllUserQuery({ page: 1, limit: 50 });
 
@@ -343,6 +365,7 @@ const AddEditPurchase: React.FC = () => {
       items: (p.purchaseItems || []).map((it: any) => ({
         particulars: it.particulars || "",
         categoryId: it.categoryId ? it.categoryId : "",
+        stockItemId: it.stockItemId ? it.stockItemId : "",
         qty: it.quantity || 0,
         rate: it.rate || 0,
         isTaxable: it.isTaxable !== undefined ? Boolean(it.isTaxable) : true,
@@ -369,6 +392,7 @@ const AddEditPurchase: React.FC = () => {
           : Number(data.accountId),
       items: data.items.map((r) => ({
         categoryId: r.categoryId ? Number(r.categoryId) : undefined,
+        stockItemId: r.stockItemId ? Number(r.stockItemId) : null,
         particulars: r.particulars,
         quantity: Number(r.qty) || 0,
         rate: Number(r.rate) || 0,
@@ -778,6 +802,7 @@ const AddEditPurchase: React.FC = () => {
                     particulars: "",
                     hsCode: "",
                     categoryId: "",
+                    stockItemId: "",
                     qty: undefined as any,
                     rate: undefined as any,
                     discountPercent: 0,
@@ -800,6 +825,7 @@ const AddEditPurchase: React.FC = () => {
                 <thead>
                   <tr>
                     <th className="pur-cell-center w-14">S.N</th>
+                    <th>Stock Item</th>
                     <th>Category</th>
                     <th>Particulars</th>
                     <th className="w-24">Qty</th>
@@ -824,6 +850,64 @@ const AddEditPurchase: React.FC = () => {
                     return (
                       <tr key={field.id}>
                         <td className="pur-cell-sn">{idx + 1}</td>
+                        <td>
+                          <Controller
+                            name={`items.${idx}.stockItemId`}
+                            control={control}
+                            render={({ field: stockField }) => (
+                              <Select
+                                value={
+                                  stockField.value !== undefined &&
+                                  stockField.value !== null
+                                    ? String(stockField.value)
+                                    : ""
+                                }
+                                onBlur={stockField.onBlur}
+                                name={stockField.name}
+                                placeholder="Optional"
+                                clearable
+                                clearLabel="No stock link"
+                                options={stockItems.map((option) => ({
+                                  value: option.value,
+                                  label: option.label,
+                                }))}
+                                onValueChange={(next) => {
+                                  const value = next ? Number(next) : "";
+                                  stockField.onChange(value);
+                                  if (!next) return;
+                                  const matched = stockItems.find(
+                                    (s) => s.value === String(next),
+                                  );
+                                  if (!matched) return;
+                                  const currentParticulars = String(
+                                    watch(`items.${idx}.particulars`) || "",
+                                  ).trim();
+                                  if (!currentParticulars) {
+                                    setValue(
+                                      `items.${idx}.particulars`,
+                                      matched.name,
+                                      { shouldValidate: true },
+                                    );
+                                  }
+                                  const currentRate = Number(
+                                    watch(`items.${idx}.rate`),
+                                  );
+                                  if (
+                                    !Number.isFinite(currentRate) ||
+                                    currentRate <= 0
+                                  ) {
+                                    setValue(
+                                      `items.${idx}.rate`,
+                                      matched.defaultPrice || 0,
+                                      { shouldValidate: true },
+                                    );
+                                  }
+                                }}
+                                triggerClassName="h-9 min-w-[140px]"
+                              />
+                            )}
+                          />
+                        </td>
                         <td>
                           <Controller
                             name={`items.${idx}.categoryId`}

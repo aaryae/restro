@@ -175,7 +175,7 @@ export const TOUR_STEPS: TourStep[] = [
     module: "Stock Item",
     icon: Package,
     title: "Stock items at a glance",
-    body: "These cards show how many items you track, total stock value, recent restocks, and low-stock alerts. Use Add New for one item, or Adjust on a row when stock comes in or goes out.",
+    body: "These cards show how many items you track, total stock value, recent restocks, and low-stock alerts. Use Adjust → Purchase / Restock to buy stock from a cash or bank account.",
     placement: "bottom",
   },
   {

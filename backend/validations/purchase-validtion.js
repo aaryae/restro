@@ -6,7 +6,8 @@ const messageConstant = require("../constants/message-constant");
 const { validateRequestBody } = require("../helpers/validator-helper");
 
 const purchaseItemSchema = Joi.object({
-  categoryId: Joi.number().integer().positive().optional(),
+  categoryId: Joi.number().integer().positive().optional().allow(null),
+  stockItemId: Joi.number().integer().positive().optional().allow(null),
   particulars: Joi.string().trim().min(1).required().messages({
     "string.base": "Particulars must be a string",
     "string.min": "Particulars must be at least 1 character",
