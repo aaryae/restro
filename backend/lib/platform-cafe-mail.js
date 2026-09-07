@@ -73,55 +73,56 @@ const EDITABLE_SOURCES = {
         p("Hi {ownerName},") +
         p("Welcome to <strong style=\"color:#0f172a\">Serve</strong>. <strong>{cafeName}</strong> is set up and ready to use.") +
         p("Sign in with username <strong>{ownerUsername}</strong> and temporary password <strong>{ownerPassword}</strong>.") +
+        p("Account status: <strong>{status}</strong>.") +
         p("Trial ends on <strong>{trialEndsAt}</strong>."),
       ctaUrl: "{posUrl}",
       ctaLabel: "Open your POS",
     }),
     bodyText:
-      "Hi {ownerName},\n\nWelcome to Serve. {cafeName} is ready.\n\nUsername: {ownerUsername}\nTemporary password: {ownerPassword}\nTrial ends: {trialEndsAt}\n\nOpen POS: {posUrl}",
+      "Hi {ownerName},\n\nWelcome to Serve. {cafeName} is ready.\n\nUsername: {ownerUsername}\nTemporary password: {ownerPassword}\nStatus: {status}\nTrial ends: {trialEndsAt}\n\nOpen POS: {posUrl}",
   },
   cafe_activated: {
-    subject: "{cafeName} is now active",
+    subject: "Your cafe has been activated — {cafeName}",
     bodyHtml: wrapHtml({
-      title: "Cafe activated",
+      title: "Your cafe has been activated",
       bodyHtml:
         p("Hi {ownerName},") +
-        p("<strong>{cafeName}</strong> is now <strong style=\"color:#166534\">active</strong>. You have full access to all POS features."),
+        p("Good news — <strong>{cafeName}</strong> has been <strong style=\"color:#166534\">activated</strong>. You now have full access to all POS features."),
       ctaUrl: "{posUrl}",
       ctaLabel: "Open your POS",
     }),
     bodyText:
-      "Hi {ownerName},\n\n{cafeName} is now active. Full POS access is enabled.\n\nOpen POS: {posUrl}",
+      "Hi {ownerName},\n\nYour cafe has been activated. {cafeName} is now active with full POS access.\n\nOpen POS: {posUrl}",
   },
   cafe_unsuspended: {
-    subject: "{cafeName} has been restored",
+    subject: "Your cafe has been restored — {cafeName}",
     bodyHtml: wrapHtml({
-      title: "Account restored",
+      title: "Your cafe has been restored",
       bodyHtml:
         p("Hi {ownerName},") +
-        p("<strong>{cafeName}</strong> is active again. Your status is now <strong>{restoredStatus}</strong>."),
+        p("<strong>{cafeName}</strong> is available again. Your status is now <strong>{restoredStatus}</strong>."),
       ctaUrl: "{posUrl}",
       ctaLabel: "Open your POS",
     }),
     bodyText:
-      "Hi {ownerName},\n\n{cafeName} has been restored. Status: {restoredStatus}.\n\nOpen POS: {posUrl}",
+      "Hi {ownerName},\n\nYour cafe has been restored. {cafeName} status is now {restoredStatus}.\n\nOpen POS: {posUrl}",
   },
   cafe_suspended: {
-    subject: "{cafeName} has been suspended",
+    subject: "Your cafe has been suspended — {cafeName}",
     bodyHtml: wrapHtml({
-      title: "Cafe suspended",
+      title: "Your cafe has been suspended",
       bodyHtml:
         p("Hi {ownerName},") +
         p("<strong>{cafeName}</strong> has been suspended. POS access is paused until your account is restored.") +
         `<div style="margin:16px 0 0;padding:14px 16px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca"><p style="margin:0;font-size:14px;line-height:1.5;color:#991b1b"><strong>Reason:</strong> {reason}</p></div>`,
     }),
     bodyText:
-      "Hi {ownerName},\n\n{cafeName} has been suspended.\nReason: {reason}\n\nContact support if you need help.",
+      "Hi {ownerName},\n\nYour cafe has been suspended ({cafeName}).\nReason: {reason}\n\nContact support if you need help.",
   },
   cafe_trial_extended: {
-    subject: "Trial extended — {cafeName}",
+    subject: "Your trial has been extended — {cafeName}",
     bodyHtml: wrapHtml({
-      title: "Trial extended",
+      title: "Your trial has been extended",
       bodyHtml:
         p("Hi {ownerName},") +
         p("Your trial for <strong>{cafeName}</strong> was extended by <strong>{days} days</strong>.") +
@@ -130,7 +131,7 @@ const EDITABLE_SOURCES = {
       ctaLabel: "Open your POS",
     }),
     bodyText:
-      "Hi {ownerName},\n\nTrial extended by {days} days for {cafeName}.\nNew end date: {trialEndsAt}.\n\nOpen POS: {posUrl}",
+      "Hi {ownerName},\n\nYour trial has been extended by {days} days for {cafeName}.\nNew end date: {trialEndsAt}.\n\nOpen POS: {posUrl}",
   },
 };
 
@@ -187,10 +188,10 @@ function flattenMailContext(ctx) {
         ? String(ctx.ownerPassword)
         : "",
     posUrl: String(ctx.posUrl || ""),
-    trialEndsAt: ctx.trialEndsAt ? formatMailDate(ctx.trialEndsAt) : "",
+    trialEndsAt: ctx.trialEndsAt ? formatMailDate(ctx.trialEndsAt) : "—",
     status: humanizeStatus(ctx.status),
     restoredStatus: humanizeStatus(ctx.restoredStatus),
-    reason: String(ctx.reason || ""),
+    reason: String(ctx.reason || "—"),
     days: String(ctx.days ?? ""),
   };
 }
@@ -246,31 +247,69 @@ function buildMailContext(tenant, extras = {}, req) {
   };
 }
 
+function toPlainTenant(tenant) {
+  if (!tenant) return null;
+  if (typeof tenant.toJSON === "function") return tenant.toJSON();
+  return { ...tenant };
+}
+
+function omitEmptyTrialCopy(source, trialEndsAt) {
+  if (trialEndsAt && trialEndsAt !== "—") return source;
+  const strip = (text) =>
+    String(text || "")
+      .replace(/<p[^>]*>[^<]*\{trialEndsAt\}[^<]*<\/p>/gi, "")
+      .replace(/<p[^>]*>[^<]*Trial ends[^<]*<\/p>/gi, "")
+      .replace(/\n?Trial ends:[^\n]*/gi, "")
+      .replace(/\n{3,}/g, "\n\n");
+  return {
+    ...source,
+    bodyHtml: strip(source.bodyHtml),
+    bodyText: strip(source.bodyText),
+  };
+}
+
 async function notifyCafeOwner(templateKey, tenant, extras = {}, req) {
   if (!EDITABLE_SOURCES[templateKey]) {
     logger.warn(`[platform-cafe-mail] Unknown template: ${templateKey}`);
     return { delivered: false };
   }
 
-  const to = String(tenant?.ownerEmail || "").trim();
+  const plain = toPlainTenant(tenant);
+  const to = String(plain?.ownerEmail || extras.ownerEmail || "").trim();
   if (!to) {
     logger.warn(
-      `[platform-cafe-mail] Skipped ${templateKey} — no owner email for tenant ${tenant?.id}`,
+      `[platform-cafe-mail] Skipped ${templateKey} — no owner email for tenant ${plain?.id}`,
     );
     return { delivered: false };
   }
 
-  const ctx = buildMailContext(tenant, extras, req);
+  const ctx = buildMailContext(plain, extras, req);
   const flat = flattenMailContext(ctx);
-  const source = await resolveTemplateSource(templateKey);
+  const resolved = await resolveTemplateSource(templateKey);
+  const source =
+    templateKey === "cafe_created"
+      ? omitEmptyTrialCopy(resolved, flat.trialEndsAt)
+      : resolved;
   const { subject, html, text } = renderMailFromSource(source, flat);
-  return sendPlatformMail({ to, subject, text, html });
+  const result = await sendPlatformMail({ to, subject, text, html });
+  if (result?.delivered) {
+    logger.info(
+      `[platform-cafe-mail] Sent ${templateKey} to ${to} (tenant ${plain?.id})`,
+    );
+  } else {
+    logger.warn(
+      `[platform-cafe-mail] ${templateKey} not delivered to ${to} (tenant ${plain?.id}) — check platform SMTP`,
+    );
+  }
+  return result;
 }
 
 function queueCafeOwnerMail(templateKey, tenant, extras = {}, req) {
-  notifyCafeOwner(templateKey, tenant, extras, req).catch((err) => {
+  const snapshot = toPlainTenant(tenant);
+  const extrasSnapshot = { ...extras };
+  notifyCafeOwner(templateKey, snapshot, extrasSnapshot, req).catch((err) => {
     logger.warn(
-      `[platform-cafe-mail] ${templateKey} failed for tenant ${tenant?.id}: ${err.message}`,
+      `[platform-cafe-mail] ${templateKey} failed for tenant ${snapshot?.id}: ${err.message}`,
     );
   });
 }

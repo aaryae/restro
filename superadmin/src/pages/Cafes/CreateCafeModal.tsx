@@ -348,10 +348,40 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
                 Owner phone
               </span>
               <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                maxLength={10}
                 value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
+                onChange={(e) =>
+                  update('phone', e.target.value.replace(/\D/g, '').slice(0, 10))
+                }
+                onKeyDown={(e) => {
+                  if (
+                    e.ctrlKey ||
+                    e.metaKey ||
+                    e.key === 'Backspace' ||
+                    e.key === 'Delete' ||
+                    e.key === 'Tab' ||
+                    e.key === 'ArrowLeft' ||
+                    e.key === 'ArrowRight' ||
+                    e.key === 'Home' ||
+                    e.key === 'End'
+                  ) {
+                    return
+                  }
+                  if (!/^\d$/.test(e.key)) e.preventDefault()
+                }}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  const digits = e.clipboardData
+                    .getData('text')
+                    .replace(/\D/g, '')
+                    .slice(0, 10)
+                  update('phone', digits)
+                }}
                 className={fieldInputClass(Boolean(fieldErrors.phone))}
-                placeholder="Optional"
+                placeholder="9800000000"
               />
               <FieldError message={fieldErrors.phone} />
             </label>
@@ -436,6 +466,7 @@ export function CreateCafeModal({ open, onClose, onCreated }: Props) {
                   max={90}
                   value={form.trialDays}
                   onChange={(e) => update('trialDays', e.target.value)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className={fieldInputClass(Boolean(fieldErrors.trialDays))}
                 />
                 <FieldError message={fieldErrors.trialDays} />

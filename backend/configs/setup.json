@@ -873,11 +873,19 @@
           "list": "Order"
         },
         {
-          "title": "Delete Order",
-          "key": "delete",
+          "title": "View One Order",
+          "key": "view-one",
           "clientPath": "/order/:id",
           "serverPath": "/order/:id",
-          "requestMethod": "DELETE",
+          "requestMethod": "GET",
+          "list": "Order"
+        },
+        {
+          "title": "View Active Orders",
+          "key": "view-active-orders",
+          "clientPath": "/order/active-orders/:tableId",
+          "serverPath": "/order/active-orders/:tableId",
+          "requestMethod": "GET",
           "list": "Order"
         },
         {
@@ -889,11 +897,35 @@
           "list": "Order"
         },
         {
+          "title": "Edit Order Status",
+          "key": "edit-order-status",
+          "clientPath": "/order/status/:id",
+          "serverPath": "/order/status/:id",
+          "requestMethod": "PATCH",
+          "list": "Order"
+        },
+        {
           "title": "Edit Order Item Status",
           "key": "edit-order-item-status",
           "clientPath": "/order/items/status",
           "serverPath": "/order/items/status",
           "requestMethod": "PATCH",
+          "list": "Order"
+        },
+        {
+          "title": "Bulk Serve Order Items",
+          "key": "bulk-serve-order-items",
+          "clientPath": "/order/items/bulk-serve",
+          "serverPath": "/order/items/bulk-serve",
+          "requestMethod": "PATCH",
+          "list": "Order"
+        },
+        {
+          "title": "Move Order Items",
+          "key": "move-order-items",
+          "clientPath": "/order/move-order-items",
+          "serverPath": "/order/move-order-items",
+          "requestMethod": "POST",
           "list": "Order"
         },
         {
@@ -1035,6 +1067,14 @@
           "serverPath": "/table/:id",
           "requestMethod": "DELETE",
           "list": "Table"
+        },
+        {
+          "title": "Move Table Orders",
+          "key": "move-orders",
+          "clientPath": "/table/move-orders",
+          "serverPath": "/table/move-orders",
+          "requestMethod": "POST",
+          "list": "Table"
         }
       ]
     },
@@ -1097,6 +1137,22 @@
           "serverPath": "/revenue/total-revenue",
           "requestMethod": "GET",
           "list": "Revenue"
+        },
+        {
+          "title": "View Revenue Today",
+          "key": "view-today",
+          "clientPath": "/revenue/revenue-today",
+          "serverPath": "/revenue/revenue-today",
+          "requestMethod": "GET",
+          "list": "Revenue"
+        },
+        {
+          "title": "View Revenue By Account",
+          "key": "view-by-account",
+          "clientPath": "/revenue/by-account",
+          "serverPath": "/revenue/by-account",
+          "requestMethod": "GET",
+          "list": "Revenue"
         }
       ]
     },
@@ -1133,6 +1189,22 @@
           "key": "view",
           "clientPath": "/account/list",
           "serverPath": "/account/list",
+          "requestMethod": "GET",
+          "list": "Account"
+        },
+        {
+          "title": "View One Account",
+          "key": "view-one",
+          "clientPath": "/account/:accountId",
+          "serverPath": "/account/:accountId",
+          "requestMethod": "GET",
+          "list": "Account"
+        },
+        {
+          "title": "View Account Totals",
+          "key": "view-totals",
+          "clientPath": "/account/total-and-balances",
+          "serverPath": "/account/total-and-balances",
           "requestMethod": "GET",
           "list": "Account"
         },
@@ -1281,6 +1353,30 @@
           "serverPath": "/purchase/:id",
           "requestMethod": "DELETE",
           "list": "Purchase"
+        },
+        {
+          "title": "Pay Purchase",
+          "key": "pay",
+          "clientPath": "/purchase/:id/pay",
+          "serverPath": "/purchase/:id/pay",
+          "requestMethod": "PUT",
+          "list": "Purchase"
+        },
+        {
+          "title": "Complete Purchase",
+          "key": "complete",
+          "clientPath": "/purchase/:id/complete",
+          "serverPath": "/purchase/:id/complete",
+          "requestMethod": "PUT",
+          "list": "Purchase"
+        },
+        {
+          "title": "Cancel Purchase",
+          "key": "cancel",
+          "clientPath": "/purchase/:id/cancel",
+          "serverPath": "/purchase/:id/cancel",
+          "requestMethod": "PUT",
+          "list": "Purchase"
         }
       ]
     },
@@ -1388,6 +1484,14 @@
           "clientPath": "/expense/:id",
           "serverPath": "/expense/:id",
           "requestMethod": "DELETE",
+          "list": "Expense"
+        },
+        {
+          "title": "Pay Expense",
+          "key": "pay",
+          "clientPath": "/expense/:id/pay",
+          "serverPath": "/expense/:id/pay",
+          "requestMethod": "PUT",
           "list": "Expense"
         }
       ]
@@ -1677,8 +1781,8 @@
         {
           "title": "View One Transaction",
           "key": "view-one",
-          "clientPath": "/transaction/:id",
-          "serverPath": "/transaction/:id",
+          "clientPath": "/transaction/:transactionId",
+          "serverPath": "/transaction/:transactionId",
           "requestMethod": "GET",
           "list": "Transaction"
         }
@@ -1691,40 +1795,40 @@
         {
           "title": "Add Addons",
           "key": "add",
-          "clientPath": "/addons",
-          "serverPath": "/addons",
+          "clientPath": "/addon",
+          "serverPath": "/addon",
           "requestMethod": "POST",
           "list": "Addons"
         },
         {
           "title": "View Addons",
           "key": "view",
-          "clientPath": "/addons/list",
-          "serverPath": "/addons/list",
+          "clientPath": "/addon/list",
+          "serverPath": "/addon/list",
           "requestMethod": "GET",
           "list": "Addons"
         },
         {
           "title": "View One Addons",
           "key": "view-one",
-          "clientPath": "/addons/:id",
-          "serverPath": "/addons/:id",
+          "clientPath": "/addon/:id",
+          "serverPath": "/addon/:id",
           "requestMethod": "GET",
           "list": "Addons"
         },
         {
           "title": "Edit Addons",
           "key": "edit",
-          "clientPath": "/addons/:id",
-          "serverPath": "/addons/:id",
+          "clientPath": "/addon/:id",
+          "serverPath": "/addon/:id",
           "requestMethod": "PUT",
           "list": "Addons"
         },
         {
           "title": "Delete Addons",
           "key": "delete",
-          "clientPath": "/addons/:id",
-          "serverPath": "/addons/:id",
+          "clientPath": "/addon/:id",
+          "serverPath": "/addon/:id",
           "requestMethod": "DELETE",
           "list": "Addons"
         }
@@ -1758,7 +1862,7 @@
         },
         {
           "title": "Daily Revenue Report",
-          "key": "view",
+          "key": "view-daily-revenue",
           "clientPath": "/report/daily-revenue-report",
           "serverPath": "/report/daily-revenue-report",
           "requestMethod": "GET",
@@ -1766,9 +1870,17 @@
         },
         {
           "title": "Daily Table Sessions",
-          "key": "view",
+          "key": "view-daily-table-sessions",
           "clientPath": "/report/daily-table-sessions/:id",
           "serverPath": "/report/daily-table-sessions/:id",
+          "requestMethod": "GET",
+          "list": "Reports"
+        },
+        {
+          "title": "Counter Cash",
+          "key": "view-counter-cash",
+          "clientPath": "/report/counter-cash",
+          "serverPath": "/report/counter-cash",
           "requestMethod": "GET",
           "list": "Reports"
         }

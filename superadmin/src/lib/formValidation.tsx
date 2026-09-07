@@ -75,11 +75,15 @@ export function slugText(value: string) {
   return ''
 }
 
+/** Digits only; optional when empty. Aligns with serve cafe onboard (7–10). */
 export function phoneText(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return ''
-  if (!/^[+]?[\d\s()-]{7,20}$/.test(trimmed)) {
-    return 'Enter a valid phone number'
+  const digits = value.replace(/\D/g, '')
+  if (!digits) {
+    // Non-empty junk with no digits (e.g. "abc") is invalid
+    return value.trim() ? 'Enter a valid phone number (7–10 digits)' : ''
+  }
+  if (digits.length < 7 || digits.length > 10) {
+    return 'Enter a valid phone number (7–10 digits)'
   }
   return ''
 }

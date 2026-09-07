@@ -744,7 +744,9 @@ const createCafe = async (req) => {
   const email = String(body.email || body.ownerEmail || "")
     .trim()
     .toLowerCase();
-  const phone = String(body.phone || body.ownerPhone || "").trim() || null;
+  const phoneRaw = String(body.phone || body.ownerPhone || "").trim();
+  const phoneDigits = phoneRaw.replace(/\D/g, "");
+  const phone = phoneDigits || null;
   const businessType = String(body.businessType || "").trim() || null;
   const address = String(body.address || "").trim() || null;
   const ownerName = String(body.ownerName || "").trim() || name;
@@ -765,6 +767,13 @@ const createCafe = async (req) => {
       status: 400,
       success: false,
       message: "Owner email is required",
+    };
+  }
+  if (phoneRaw && (phoneDigits.length < 7 || phoneDigits.length > 10)) {
+    return {
+      status: 400,
+      success: false,
+      message: "Owner phone must be 7–10 digits",
     };
   }
 

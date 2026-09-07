@@ -26,22 +26,22 @@ const COPY: Record<
 > = {
   activate: {
     title: 'Activate cafe?',
-    body: 'This will set the cafe to active and restore normal access.',
+    body: 'This will set the cafe to active and restore normal access. The owner will receive an email that their cafe has been activated.',
     confirm: 'Activate',
   },
   unsuspend: {
     title: 'Unsuspend cafe?',
-    body: 'This will lift the suspension and restore access (set status to active).',
+    body: 'This will lift the suspension and restore access. The owner will receive an email that their cafe has been restored.',
     confirm: 'Unsuspend',
   },
   extend: {
     title: 'Extend trial?',
-    body: 'This will extend the trial by 7 days.',
+    body: 'This will extend the trial by 7 days. The owner will receive an email with the new trial end date.',
     confirm: 'Extend trial',
   },
   suspend: {
     title: 'Suspend cafe?',
-    body: 'This will block access for the cafe. Add a note explaining why.',
+    body: 'This will block access for the cafe and email the owner. Add a note explaining why.',
     confirm: 'Suspend',
     danger: true,
   },
