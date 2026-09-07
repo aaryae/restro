@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { cn } from '@/lib/utils'
 
@@ -83,11 +84,11 @@ export function PageToolbarSearch({
 
   return (
     <div className={cn('flex w-full max-w-xs items-center gap-2', className)}>
-      <input
+      <Input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={placeholder}
-        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary"
+        className="min-w-0 flex-1"
       />
       {onReset ? (
         <PageFilterResetButton

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Pencil, RotateCcw } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -10,14 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { DataTable } from '@/components/Table/DataTable'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
-import {
-  fetchCafeEmailTemplates,
-  fetchPlatformSmtp,
-  resetCafeEmailTemplate,
-} from '@/api/platform'
+import { resetCafeEmailTemplate } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
+import { useCafeEmailTemplates } from '@/hooks/useCafeEmailTemplates'
+import { usePlatformSmtp } from '@/hooks/usePlatformSmtp'
 import { cn } from '@/lib/utils'
 import type { CafeEmailTemplate } from '@/types'
 
@@ -31,17 +29,8 @@ export default function EmailTemplatesPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
 
-  const templatesQuery = useQuery({
-    queryKey: queryKeys.emailTemplates,
-    queryFn: fetchCafeEmailTemplates,
-    enabled: canManage,
-  })
-
-  const smtpQuery = useQuery({
-    queryKey: queryKeys.smtp,
-    queryFn: fetchPlatformSmtp,
-    enabled: canManage,
-  })
+  const templatesQuery = useCafeEmailTemplates(canManage)
+  const smtpQuery = usePlatformSmtp(canManage)
 
   const items = templatesQuery.data?.items || []
 
@@ -208,16 +197,18 @@ export default function EmailTemplatesPage() {
             key={`${item.key}-actions`}
             className="flex items-center justify-center gap-1.5"
           >
-            <button
+            <Button
               type="button"
+              size="icon"
               title="Edit template"
               onClick={() => navigate(`/settings/email-templates/${item.key}`)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white transition hover:bg-slate-800"
             >
               <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               title="Reset to default"
               disabled={!item.isCustom || resetMut.isPending}
               onClick={() => {
@@ -229,10 +220,9 @@ export default function EmailTemplatesPage() {
                   resetMut.mutate(item.key)
                 }
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>,
         ])}
       />

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from '@/layout/Sidebar'
 import { Topbar } from '@/layout/Topbar'
 import { sideMenuItems, type SideMenuItem } from '@/layout/sideMenu'
 import { useAuth } from '@/auth/AuthContext'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { cn } from '@/lib/utils'
 import { ChevronDown, X } from 'lucide-react'
 
@@ -210,7 +211,9 @@ export function AppLayout() {
       >
         <Topbar onOpenMobile={() => setMobileOpen(true)} />
         <main className="relative min-h-[calc(100vh-4rem)] min-w-0 overflow-x-auto p-4 md:px-6 md:py-5">
-          <Outlet />
+          <Suspense fallback={<LoadingScreen />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

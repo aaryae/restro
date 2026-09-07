@@ -17,13 +17,12 @@ import {
   AuditInfoButton,
 } from '@/pages/Audit/AuditDetailPanel'
 
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const DEFAULT_PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 300
-
-const filterInputClass =
-  'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary'
 
 export default function AuditPage() {
   const { can } = useAuth()
@@ -103,25 +102,16 @@ export default function AuditPage() {
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">
-            Actor
-          </span>
-          <input
+          <Input
+            label="Actor"
             value={actorInput}
             onChange={(e) => setActorInput(e.target.value)}
             placeholder="Search username or name…"
-            className={filterInputClass}
           />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-slate-500">
-            Action
-          </span>
-          <select
+          <Select
+            label="Action"
             value={action}
             onChange={(e) => setAction(e.target.value)}
-            className={filterInputClass}
           >
             <option value="">All actions</option>
             {AUDIT_ACTION_FILTER_OPTIONS.map((opt) => (
@@ -129,19 +119,14 @@ export default function AuditPage() {
                 {opt.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="block sm:col-span-2 lg:col-span-1">
-          <span className="mb-1 block text-xs font-medium text-slate-500">
-            Cafe
-          </span>
-          <input
+          </Select>
+          <Input
+            className="sm:col-span-2 lg:col-span-1"
+            label="Cafe"
             value={cafeInput}
             onChange={(e) => setCafeInput(e.target.value)}
             placeholder="Search cafe name or slug…"
-            className={filterInputClass}
           />
-        </label>
         </div>
       </div>
 

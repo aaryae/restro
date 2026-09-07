@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ChevronDown, Loader2, RotateCcw } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, ChevronDown, RotateCcw } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
 import {
-  fetchCafeEmailTemplates,
-  fetchPlatformSmtp,
   resetCafeEmailTemplate,
   saveCafeEmailTemplate,
 } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
-import { fieldInputClass } from '@/lib/formValidation'
+import { useCafeEmailTemplates } from '@/hooks/useCafeEmailTemplates'
+import { usePlatformSmtp } from '@/hooks/usePlatformSmtp'
 import { cn } from '@/lib/utils'
 import { GmailPreview } from '@/pages/Settings/GmailPreview'
 import {
@@ -66,17 +67,8 @@ export default function EditEmailTemplatePage() {
   const [showPlain, setShowPlain] = useState(false)
   const [insertTarget, setInsertTarget] = useState<'subject' | 'body'>('body')
 
-  const templatesQuery = useQuery({
-    queryKey: queryKeys.emailTemplates,
-    queryFn: fetchCafeEmailTemplates,
-    enabled: canManage,
-  })
-
-  const smtpQuery = useQuery({
-    queryKey: queryKeys.smtp,
-    queryFn: fetchPlatformSmtp,
-    enabled: canManage,
-  })
+  const templatesQuery = useCafeEmailTemplates(canManage)
+  const smtpQuery = usePlatformSmtp(canManage)
 
   const selected = useMemo(
     () =>
@@ -218,15 +210,12 @@ export default function EditEmailTemplatePage() {
             </Button>
             <Button
               type="button"
+              loading={saveMut.isPending}
               disabled={busy || !dirty || !subject.trim() || !bodyHtml.trim()}
               onClick={() => saveMut.mutate()}
               className="min-w-[7.5rem]"
             >
-              {saveMut.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Submit'
-              )}
+              {saveMut.isPending ? 'Saving…' : 'Submit'}
             </Button>
           </div>
         }
@@ -235,49 +224,37 @@ export default function EditEmailTemplatePage() {
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <section className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block sm:col-span-2">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Template name
-              </span>
-              <input
-                value={selected.label}
-                readOnly
-                className={fieldInputClass(false, 'h-11 bg-slate-50 text-slate-700')}
-              />
-            </label>
+            <Input
+              className="sm:col-span-2"
+              label="Template name"
+              value={selected.label}
+              readOnly
+              inputClassName="h-11"
+            />
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Template key
-              </span>
-              <input
-                value={selected.key}
-                readOnly
-                className={fieldInputClass(
-                  false,
-                  'h-11 bg-slate-50 font-mono text-xs text-slate-700',
-                )}
-              />
-            </label>
+            <Input
+              label="Template key"
+              value={selected.key}
+              readOnly
+              inputClassName="h-11 font-mono text-xs"
+            />
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                From
-              </span>
-              <input
-                value={fromAddress}
-                readOnly
-                className={fieldInputClass(false, 'h-11 bg-slate-50 text-slate-700')}
-              />
-              {!smtpQuery.data?.configured ? (
-                <p className="mt-1 text-xs text-amber-700">
-                  <Link to="/settings/smtp" className="underline">
-                    Set up SMTP
-                  </Link>{' '}
-                  so owner emails can send.
-                </p>
-              ) : null}
-            </label>
+            <Input
+              label="From"
+              value={fromAddress}
+              readOnly
+              inputClassName="h-11"
+              hint={
+                !smtpQuery.data?.configured ? (
+                  <>
+                    <Link to="/settings/smtp" className="underline">
+                      Set up SMTP
+                    </Link>{' '}
+                    so owner emails can send.
+                  </>
+                ) : undefined
+              }
+            />
           </div>
 
           <div>
@@ -333,18 +310,15 @@ export default function EditEmailTemplatePage() {
             </div>
           </div>
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-slate-700">
-              Subject <span className="text-red-500">*</span>
-            </span>
-            <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              onFocus={() => setInsertTarget('subject')}
-              className={fieldInputClass(false, 'h-11 text-base')}
-              placeholder="Inbox subject line"
-            />
-          </label>
+          <Input
+            label="Subject"
+            required
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            onFocus={() => setInsertTarget('subject')}
+            inputClassName="h-11 text-base"
+            placeholder="Inbox subject line"
+          />
 
           <div>
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -360,14 +334,11 @@ export default function EditEmailTemplatePage() {
               </button>
             </div>
             {showSource ? (
-              <textarea
+              <Textarea
                 value={bodyHtml}
                 onChange={(e) => setBodyHtml(e.target.value)}
                 onFocus={() => setInsertTarget('body')}
-                className={cn(
-                  fieldInputClass(false, 'min-h-[320px] resize-y py-3'),
-                  'font-mono text-xs leading-relaxed',
-                )}
+                textareaClassName="min-h-[320px] font-mono text-xs leading-relaxed"
                 spellCheck={false}
               />
             ) : (
@@ -393,17 +364,11 @@ export default function EditEmailTemplatePage() {
             </button>
             {showPlain ? (
               <div className="border-t border-slate-200/80 px-4 pb-4 pt-3">
-                <p className="mb-2 text-xs text-slate-500">
-                  Used by clients that don’t show HTML. Leave blank to generate
-                  from the body on save.
-                </p>
-                <textarea
+                <Textarea
                   value={bodyText}
                   onChange={(e) => setBodyText(e.target.value)}
-                  className={cn(
-                    fieldInputClass(false, 'min-h-[160px] resize-y py-3'),
-                    'text-sm leading-6',
-                  )}
+                  hint="Used by clients that don’t show HTML. Leave blank to generate from the body on save."
+                  textareaClassName="min-h-[160px] text-sm leading-6"
                   placeholder="Auto-generated from body if empty"
                 />
               </div>
