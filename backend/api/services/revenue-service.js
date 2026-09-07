@@ -1190,14 +1190,13 @@ const todayRevenue = async (req) => {
       },
     ];
 
+    // sum/count must not JOIN accounts — Postgres rejects non-aggregated columns.
     const total = await revenueModel.sum("amount", {
       where: filters,
-      include: includes,
     });
 
     const count = await revenueModel.count({
       where: filters,
-      include: includes,
     });
 
     const revenuesByAccount = await revenueModel.findAll({
