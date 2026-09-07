@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 import type { ButtonHTMLAttributes, PropsWithChildren } from 'react'
 
 type Variant =
@@ -44,7 +45,8 @@ const variants: Record<Variant, string> = {
 type Props = PropsWithChildren<
   ButtonHTMLAttributes<HTMLButtonElement> & {
     variant?: Variant
-    size?: 'sm' | 'md'
+    size?: 'sm' | 'md' | 'icon'
+    loading?: boolean
   }
 >
 
@@ -53,19 +55,26 @@ export function Button({
   className,
   variant = 'primary',
   size = 'md',
+  loading = false,
+  disabled,
+  type = 'button',
   ...props
 }: Props) {
   return (
     <button
-      type="button"
+      type={type}
+      disabled={disabled || loading}
       className={cn(
         base,
-        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm',
+        size === 'sm' && 'px-2.5 py-1.5 text-xs',
+        size === 'md' && 'px-4 py-2 text-sm',
+        size === 'icon' && 'h-8 w-8 shrink-0 p-0',
         variants[variant],
         className,
       )}
       {...props}
     >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
       {children}
     </button>
   )

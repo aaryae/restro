@@ -40,79 +40,79 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: withSuspense(
+            element: (
               <RequirePermission permission="dashboard.view">
                 <DashboardPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'cafes',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="cafes.section">
                 <CafeListPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'cafes/:id',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="cafes.view">
                 <CafeDetailPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'audit',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="audit.read">
                 <AuditPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'settings',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="users.manage">
                 <Navigate to="/settings/operators" replace />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'settings/operators',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="users.manage">
                 <SettingsPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'settings/smtp',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="users.manage">
                 <SmtpSettingsPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'settings/email-templates',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="users.manage">
                 <EmailTemplatesPage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'settings/email-templates/:key',
-            element: withSuspense(
+            element: (
               <RequirePermission permission="users.manage">
                 <EditEmailTemplatePage />
-              </RequirePermission>,
+              </RequirePermission>
             ),
           },
           {
             path: 'profile',
-            element: withSuspense(<ProfilePage />),
+            element: <ProfilePage />,
           },
           { path: '*', element: <Navigate to="/" replace /> },
         ],

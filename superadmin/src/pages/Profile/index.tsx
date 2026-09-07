@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Camera, KeyRound, Loader2, UserRound } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/auth/AuthContext'
 import {
@@ -12,8 +13,6 @@ import {
 import { ApiError, buildAssetUrl } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
 import {
-  FieldError,
-  fieldInputClass,
   hasErrors,
   passwordText,
   requiredText,
@@ -340,43 +339,28 @@ export default function ProfilePage() {
                 </div>
 
                 <form className="space-y-4" onSubmit={onSaveProfile}>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                      Username
-                    </label>
-                    <input
-                      value={user?.username || ''}
-                      disabled
-                      className={cn(fieldInputClass(), 'bg-slate-50 text-slate-500')}
-                    />
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Username cannot be changed
-                    </p>
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                      Display name
-                    </label>
-                    <input
-                      value={name}
-                      onChange={(e) => {
-                        const next = e.target.value
-                        setName(next)
-                        if (profileTouched) {
-                          setProfileErrors(validateProfile(next))
-                        }
-                      }}
-                      className={fieldInputClass(Boolean(profileErrors.name))}
-                      placeholder="Your name"
-                    />
-                    <FieldError message={profileErrors.name} />
-                  </div>
+                  <Input
+                    label="Username"
+                    value={user?.username || ''}
+                    disabled
+                    hint="Username cannot be changed"
+                  />
+                  <Input
+                    label="Display name"
+                    value={name}
+                    onChange={(e) => {
+                      const next = e.target.value
+                      setName(next)
+                      if (profileTouched) {
+                        setProfileErrors(validateProfile(next))
+                      }
+                    }}
+                    error={profileErrors.name}
+                    placeholder="Your name"
+                  />
 
                   <div className="flex justify-end border-t border-slate-100 pt-4">
-                    <Button type="submit" disabled={savingProfile}>
-                      {savingProfile ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : null}
+                    <Button type="submit" loading={savingProfile}>
                       {savingProfile ? 'Saving…' : 'Save changes'}
                     </Button>
                   </div>
@@ -399,79 +383,64 @@ export default function ProfilePage() {
                 onSubmit={onChangePassword}
               >
                 <div className="max-w-md space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                      Current password
-                    </label>
-                    <PasswordInput
-                      value={currentPassword}
-                      onChange={(e) => {
-                        setCurrentPassword(e.target.value)
-                        if (passwordTouched) {
-                          setPasswordErrors(
-                            validatePassword({
-                              currentPassword: e.target.value,
-                              newPassword,
-                              confirmPassword,
-                            }),
-                          )
-                        }
-                      }}
-                      autoComplete="current-password"
-                    />
-                    <FieldError message={passwordErrors.currentPassword} />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                      New password
-                    </label>
-                    <PasswordInput
-                      value={newPassword}
-                      onChange={(e) => {
-                        setNewPassword(e.target.value)
-                        if (passwordTouched) {
-                          setPasswordErrors(
-                            validatePassword({
-                              currentPassword,
-                              newPassword: e.target.value,
-                              confirmPassword,
-                            }),
-                          )
-                        }
-                      }}
-                      autoComplete="new-password"
-                    />
-                    <FieldError message={passwordErrors.newPassword} />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-slate-600">
-                      Confirm new password
-                    </label>
-                    <PasswordInput
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value)
-                        if (passwordTouched) {
-                          setPasswordErrors(
-                            validatePassword({
-                              currentPassword,
-                              newPassword,
-                              confirmPassword: e.target.value,
-                            }),
-                          )
-                        }
-                      }}
-                      autoComplete="new-password"
-                    />
-                    <FieldError message={passwordErrors.confirmPassword} />
-                  </div>
+                  <PasswordInput
+                    label="Current password"
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value)
+                      if (passwordTouched) {
+                        setPasswordErrors(
+                          validatePassword({
+                            currentPassword: e.target.value,
+                            newPassword,
+                            confirmPassword,
+                          }),
+                        )
+                      }
+                    }}
+                    autoComplete="current-password"
+                    error={passwordErrors.currentPassword}
+                  />
+                  <PasswordInput
+                    label="New password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value)
+                      if (passwordTouched) {
+                        setPasswordErrors(
+                          validatePassword({
+                            currentPassword,
+                            newPassword: e.target.value,
+                            confirmPassword,
+                          }),
+                        )
+                      }
+                    }}
+                    autoComplete="new-password"
+                    error={passwordErrors.newPassword}
+                  />
+                  <PasswordInput
+                    label="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (passwordTouched) {
+                        setPasswordErrors(
+                          validatePassword({
+                            currentPassword,
+                            newPassword,
+                            confirmPassword: e.target.value,
+                          }),
+                        )
+                      }
+                    }}
+                    autoComplete="new-password"
+                    error={passwordErrors.confirmPassword}
+                  />
                 </div>
 
                 <div className="flex justify-end border-t border-slate-100 pt-4">
-                  <Button type="submit" disabled={savingPassword}>
-                    {savingPassword ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : null}
+                  <Button type="submit" loading={savingPassword}>
                     {savingPassword ? 'Updating…' : 'Change password'}
                   </Button>
                 </div>

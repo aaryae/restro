@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useBodyScrollLock } from '@/lib/useBodyScrollLock'
-import { FieldError, requiredText } from '@/lib/formValidation'
+import { FormAlert } from '@/components/ui/FormAlert'
+import { Modal, ModalActions } from '@/components/ui/Modal'
+import { Textarea } from '@/components/ui/Textarea'
+import { requiredText } from '@/lib/formValidation'
 
 export type CafeActionKind =
   | 'activate'
@@ -71,22 +72,6 @@ export function CafeActionConfirmModal({
     setError('')
   }, [open, action])
 
-  useBodyScrollLock(open)
-
-  useEffect(() => {
-    if (!open) return
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !busy) {
-        e.preventDefault()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, busy, onClose])
-
   if (!open || !action) return null
 
   const copy = COPY[action]
@@ -107,84 +92,62 @@ export function CafeActionConfirmModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
-      <div
-        className="absolute inset-0"
-        onClick={() => !busy && onClose()}
-      />
-      <div className="relative max-h-[min(100dvh,100%)] w-full max-w-md overflow-y-auto rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:rounded-2xl">
-        <div className="border-b border-slate-100 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4">
-          <h2 className="text-base font-semibold text-slate-900">{copy.title}</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            <span className="font-medium text-slate-700">{cafeName}</span>
-            {' — '}
-            {copy.body}
-          </p>
-        </div>
-
-        <div className="space-y-3 px-5 py-4">
-          {action === 'suspend' ? (
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-600">
-                Notes *
-              </span>
-              <textarea
-                value={notes}
-                onChange={(e) => {
-                  setNotes(e.target.value)
-                  if (notesError) {
-                    setNotesError(requiredText(e.target.value, 'Notes', 5))
-                  }
-                  if (error) setError('')
-                }}
-                rows={4}
-                placeholder="Why is this cafe being suspended?"
-                className={`w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary ${
-                  notesError
-                    ? 'border-red-400 focus:border-red-500'
-                    : 'border-slate-200'
-                }`}
-                autoFocus
-              />
-              <FieldError message={notesError} />
-            </label>
-          ) : null}
-
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="flex gap-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:justify-end sm:pb-0">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1 sm:flex-none"
-              disabled={busy}
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="flex-1 sm:flex-none"
-              variant={copy.danger ? 'danger' : 'primary'}
-              disabled={busy}
-              onClick={handleConfirm}
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Working…
-                </>
-              ) : (
-                copy.confirm
-              )}
-            </Button>
-          </div>
-        </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={copy.title}
+      description={
+        <>
+          <span className="font-medium text-slate-700">{cafeName}</span>
+          {' — '}
+          {copy.body}
+        </>
+      }
+      size="sm"
+      busy={busy}
+      showClose={false}
+      footer={
+        <ModalActions className="w-full sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant={copy.danger ? 'danger' : 'primary'}
+            loading={busy}
+            onClick={handleConfirm}
+          >
+            {busy ? 'Working…' : copy.confirm}
+          </Button>
+        </ModalActions>
+      }
+    >
+      <div className="space-y-3">
+        {action === 'suspend' ? (
+          <Textarea
+            label="Notes"
+            required
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value)
+              if (notesError) {
+                setNotesError(requiredText(e.target.value, 'Notes', 5))
+              }
+              if (error) setError('')
+            }}
+            rows={4}
+            placeholder="Why is this cafe being suspended?"
+            error={notesError}
+            autoFocus
+          />
+        ) : null}
+        <FormAlert>{error}</FormAlert>
       </div>
-    </div>
+    </Modal>
   )
 }

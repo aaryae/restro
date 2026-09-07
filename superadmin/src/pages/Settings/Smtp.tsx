@@ -1,18 +1,18 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { FormAlert } from '@/components/ui/FormAlert'
+import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
-import { fetchPlatformSmtp, upsertPlatformSmtp } from '@/api/platform'
+import { upsertPlatformSmtp } from '@/api/platform'
 import { queryKeys } from '@/lib/queryClient'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
+import { usePlatformSmtp } from '@/hooks/usePlatformSmtp'
 import {
-  FieldError,
-  fieldInputClass,
   hasErrors,
   requiredText,
   type FieldErrors,
@@ -64,11 +64,7 @@ export default function SmtpSettingsPage() {
   const [formError, setFormError] = useState('')
   const [touched, setTouched] = useState(false)
 
-  const smtpQuery = useQuery({
-    queryKey: queryKeys.smtp,
-    queryFn: fetchPlatformSmtp,
-    enabled: canManage,
-  })
+  const smtpQuery = usePlatformSmtp(canManage)
 
   const configured = Boolean(
     smtpQuery.data && smtpQuery.data.configured === true,
@@ -181,70 +177,54 @@ export default function SmtpSettingsPage() {
             noValidate
             className="max-w-xl space-y-3"
           >
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-600">
-                Username *
-              </span>
-              <input
-                type="email"
-                autoComplete="username"
-                value={form.username}
-                onChange={(e) => setFormValue('username', e.target.value)}
-                placeholder="you@gmail.com"
-                className={fieldInputClass(Boolean(fieldErrors.username))}
-              />
-              <FieldError message={fieldErrors.username} />
-            </label>
+            <Input
+              label="Username"
+              required
+              type="email"
+              autoComplete="username"
+              value={form.username}
+              onChange={(e) => setFormValue('username', e.target.value)}
+              placeholder="you@gmail.com"
+              error={fieldErrors.username}
+            />
 
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-600">
-                Pass key {configured ? '(leave blank to keep current)' : '*'}
-              </span>
-              <PasswordInput
-                autoComplete="new-password"
-                value={form.passkey}
-                onChange={(e) => setFormValue('passkey', e.target.value)}
-                placeholder={
-                  configured
-                    ? '••••••••••••••••'
-                    : 'App password / SMTP password'
-                }
-                inputClassName={
-                  fieldErrors.passkey
-                    ? 'border-red-300 focus:border-red-400'
-                    : undefined
-                }
-              />
-              <FieldError message={fieldErrors.passkey} />
-            </label>
+            <PasswordInput
+              label={
+                configured
+                  ? 'Pass key (leave blank to keep current)'
+                  : 'Pass key'
+              }
+              required={!configured}
+              autoComplete="new-password"
+              value={form.passkey}
+              onChange={(e) => setFormValue('passkey', e.target.value)}
+              placeholder={
+                configured
+                  ? '••••••••••••••••'
+                  : 'App password / SMTP password'
+              }
+              error={fieldErrors.passkey}
+            />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-600">
-                  Host *
-                </span>
-                <input
-                  value={form.host}
-                  onChange={(e) => setFormValue('host', e.target.value)}
-                  placeholder="smtp.gmail.com"
-                  className={fieldInputClass(Boolean(fieldErrors.host))}
-                />
-                <FieldError message={fieldErrors.host} />
-              </label>
+              <Input
+                label="Host"
+                required
+                value={form.host}
+                onChange={(e) => setFormValue('host', e.target.value)}
+                placeholder="smtp.gmail.com"
+                error={fieldErrors.host}
+              />
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-600">
-                  Port *
-                </span>
-                <input
-                  inputMode="numeric"
-                  value={form.port}
-                  onChange={(e) => setFormValue('port', e.target.value)}
-                  placeholder="465"
-                  className={fieldInputClass(Boolean(fieldErrors.port))}
-                />
-                <FieldError message={fieldErrors.port} />
-              </label>
+              <Input
+                label="Port"
+                required
+                inputMode="numeric"
+                value={form.port}
+                onChange={(e) => setFormValue('port', e.target.value)}
+                placeholder="465"
+                error={fieldErrors.port}
+              />
             </div>
 
             <label className="flex items-center gap-2 pt-1">
@@ -259,18 +239,11 @@ export default function SmtpSettingsPage() {
               </span>
             </label>
 
-            {formError ? (
-              <p className="text-sm text-red-600" role="alert">
-                {formError}
-              </p>
-            ) : null}
+            {formError ? <FormAlert>{formError}</FormAlert> : null}
 
             <div className="flex justify-end pt-1">
-              <Button type="submit" disabled={saveMut.isPending}>
-                {saveMut.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                Save SMTP
+              <Button type="submit" loading={saveMut.isPending}>
+                {saveMut.isPending ? 'Saving…' : 'Save SMTP'}
               </Button>
             </div>
           </form>

@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { DataTable } from '@/components/Table/DataTable'
 import { Button } from '@/components/ui/Button'
+import { FormAlert } from '@/components/ui/FormAlert'
+import { Input } from '@/components/ui/Input'
+import { Modal, ModalActions } from '@/components/ui/Modal'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { LoadingScreen, PageError } from '@/components/LoadingScreen'
 import { useAuth } from '@/auth/AuthContext'
@@ -16,10 +19,8 @@ import {
 import { queryKeys } from '@/lib/queryClient'
 import { ApiError } from '@/api/client'
 import { useToast } from '@/components/ui/Toast'
-import { useBodyScrollLock } from '@/lib/useBodyScrollLock'
 import {
   FieldError,
-  fieldInputClass,
   hasErrors,
   passwordText,
   requiredText,
@@ -253,7 +254,6 @@ export default function SettingsPage() {
   }
 
   const items = usersQuery.data?.items || []
-  useBodyScrollLock(modalOpen || Boolean(deleting))
 
   function canDeleteOperator(account: PlatformAccount) {
     return (
@@ -337,9 +337,8 @@ export default function SettingsPage() {
             >
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 title="Edit"
-                className="h-8 w-8 px-0"
                 onClick={() => {
                   setEditing(account)
                   setModalOpen(true)
@@ -350,9 +349,8 @@ export default function SettingsPage() {
               {canDeleteOperator(account) ? (
                 <Button
                   variant="danger"
-                  size="sm"
+                  size="icon"
                   title="Delete"
-                  className="h-8 w-8 px-0"
                   disabled={deleteBusy}
                   onClick={() => setDeleting(account)}
                 >
@@ -365,202 +363,151 @@ export default function SettingsPage() {
         />
       )}
 
-      {modalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
-          <div
-            className="absolute inset-0"
-            onClick={() => !busy && setModalOpen(false)}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? 'Edit operator' : 'Add operator'}
+        size="md"
+        busy={busy}
+        scrollBody={false}
+      >
+        <form onSubmit={handleSubmit} noValidate className="space-y-3">
+          <Input
+            label="Name"
+            required
+            value={form.name}
+            onChange={(e) => setFormValue('name', e.target.value)}
+            error={fieldErrors.name}
           />
-          <div className="relative flex max-h-[min(100dvh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:max-h-[min(90dvh,880px)] sm:rounded-2xl">
-            <div className="shrink-0 border-b border-slate-100 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4">
-              <h2 className="text-base font-semibold text-slate-900">
-                {editing ? 'Edit operator' : 'Add operator'}
-              </h2>
-            </div>
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
-            >
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-600">
-                  Name *
-                </span>
-                <input
-                  value={form.name}
-                  onChange={(e) => setFormValue('name', e.target.value)}
-                  className={fieldInputClass(Boolean(fieldErrors.name))}
-                />
-                <FieldError message={fieldErrors.name} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-600">
-                  Username *
-                </span>
-                <input
-                  disabled={Boolean(editing)}
-                  value={form.username}
-                  onChange={(e) =>
-                    setFormValue(
-                      'username',
-                      e.target.value
-                        .toLowerCase()
-                        .replace(/[^a-z0-9._-]/g, ''),
-                    )
-                  }
-                  className={fieldInputClass(
-                    Boolean(fieldErrors.username),
-                    'disabled:bg-slate-50',
-                  )}
-                  placeholder="operator1"
-                />
-                <FieldError message={fieldErrors.username} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-600">
-                  {editing ? 'New password (optional)' : 'Password *'}
-                </span>
-                <PasswordInput
-                  value={form.password}
-                  onChange={(e) => setFormValue('password', e.target.value)}
-                  placeholder={editing ? 'Leave blank to keep current' : ''}
-                  className={
-                    fieldErrors.password
-                      ? '[&_input]:border-red-400 [&_input]:focus:border-red-500'
-                      : undefined
-                  }
-                />
-                <FieldError message={fieldErrors.password} />
-              </label>
-
-              {editingOwner ? (
-                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                  Owner always has full access. Permissions are not limited by
-                  checkboxes.
-                </p>
-              ) : (
-                <fieldset
-                  className={`rounded-xl border p-3 ${
-                    fieldErrors.permissions
-                      ? 'border-red-300'
-                      : 'border-slate-200'
-                  }`}
-                >
-                  <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Permissions *
-                  </legend>
-                  <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                    {permissionOptions.map((opt) => (
-                      <label
-                        key={opt.key}
-                        className="flex items-start gap-2 text-sm text-slate-700"
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-0.5"
-                          checked={form.permissions.includes(opt.key)}
-                          onChange={() => togglePermission(opt.key)}
-                        />
-                        <span>{opt.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <FieldError message={fieldErrors.permissions} />
-                </fieldset>
-              )}
-
-              {editing ? (
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    disabled={editing.id === me?.id}
-                    onChange={(e) =>
-                      setFormValue('isActive', e.target.checked)
-                    }
-                  />
-                  Active
-                </label>
-              ) : null}
-
-              {formError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {formError}
-                </div>
-              ) : null}
-
-              <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={busy}>
-                  {busy ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving…
-                    </>
-                  ) : editing ? (
-                    'Save changes'
-                  ) : (
-                    'Create operator'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      {deleting ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4">
-          <div
-            className="absolute inset-0"
-            onClick={() => !deleteBusy && setDeleting(null)}
+          <Input
+            label="Username"
+            required
+            disabled={Boolean(editing)}
+            value={form.username}
+            onChange={(e) =>
+              setFormValue(
+                'username',
+                e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''),
+              )
+            }
+            error={fieldErrors.username}
+            placeholder="operator1"
           />
-          <div className="relative w-full max-w-md rounded-t-2xl border border-slate-200 bg-white p-5 shadow-xl sm:rounded-2xl">
-            <h2 className="text-base font-semibold text-slate-900">
-              Delete operator?
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              This permanently removes{' '}
-              <span className="font-medium text-slate-900">
-                {deleting.name}
-              </span>{' '}
-              (@{deleting.username}). This cannot be undone.
+          <PasswordInput
+            label={editing ? 'New password (optional)' : 'Password'}
+            required={!editing}
+            value={form.password}
+            onChange={(e) => setFormValue('password', e.target.value)}
+            placeholder={editing ? 'Leave blank to keep current' : ''}
+            error={fieldErrors.password}
+          />
+
+          {editingOwner ? (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              Owner always has full access. Permissions are not limited by
+              checkboxes.
             </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={deleteBusy}
-                onClick={() => setDeleting(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                disabled={deleteBusy}
-                onClick={() => deleteMut.mutate(deleting.id)}
-              >
-                {deleteBusy ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting…
-                  </>
-                ) : (
-                  'Delete operator'
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          ) : (
+            <fieldset
+              className={`rounded-xl border p-3 ${
+                fieldErrors.permissions
+                  ? 'border-red-300'
+                  : 'border-slate-200'
+              }`}
+            >
+              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Permissions *
+              </legend>
+              <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                {permissionOptions.map((opt) => (
+                  <label
+                    key={opt.key}
+                    className="flex items-start gap-2 text-sm text-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={form.permissions.includes(opt.key)}
+                      onChange={() => togglePermission(opt.key)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+              <FieldError message={fieldErrors.permissions} />
+            </fieldset>
+          )}
+
+          {editing ? (
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                disabled={editing.id === me?.id}
+                onChange={(e) => setFormValue('isActive', e.target.checked)}
+              />
+              Active
+            </label>
+          ) : null}
+
+          <FormAlert>{formError}</FormAlert>
+
+          <ModalActions className="border-t border-slate-100 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={busy}>
+              {busy
+                ? 'Saving…'
+                : editing
+                  ? 'Save changes'
+                  : 'Create operator'}
+            </Button>
+          </ModalActions>
+        </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(deleting)}
+        onClose={() => setDeleting(null)}
+        title="Delete operator?"
+        size="sm"
+        busy={deleteBusy}
+        showClose={false}
+        footer={
+          <ModalActions>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleteBusy}
+              onClick={() => setDeleting(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={deleteBusy}
+              onClick={() => deleting && deleteMut.mutate(deleting.id)}
+            >
+              {deleteBusy ? 'Deleting…' : 'Delete operator'}
+            </Button>
+          </ModalActions>
+        }
+      >
+        {deleting ? (
+          <p className="text-sm text-slate-600">
+            This permanently removes{' '}
+            <span className="font-medium text-slate-900">{deleting.name}</span>{' '}
+            (@{deleting.username}). This cannot be undone.
+          </p>
+        ) : null}
+      </Modal>
     </div>
   )
 }
