@@ -44,7 +44,7 @@ export default function Faq() {
           <div className="section-rule" />
         </div>
 
-        <div className="mt-14 max-w-[780px] flex flex-col gap-3" data-reveal data-delay="2">
+        <div className="mt-14 flex w-full flex-col gap-3" data-reveal data-delay="2">
           {faqs.map((f, i) => {
             const isOpen = open === i
             return (
@@ -59,8 +59,7 @@ export default function Faq() {
                   type="button"
                   aria-expanded={isOpen}
                   onClick={() => setOpen(isOpen ? null : i)}
-                  className="w-full bg-transparent px-5 py-5 sm:px-6 text-left flex items-start gap-4
-                    cursor-pointer border-none"
+                  className="flex w-full cursor-pointer items-start gap-4 border-none bg-transparent px-5 py-5 text-left sm:px-6"
                 >
                   <span
                     className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
@@ -72,7 +71,7 @@ export default function Faq() {
                     {String(i + 1).padStart(2, '0')}
                   </span>
 
-                  <span className="flex-1 min-w-0 pt-0.5">
+                  <span className="min-w-0 flex-1 pt-0.5">
                     <span
                       className={`block font-syne text-[0.98rem] font-semibold leading-snug transition-colors duration-300
                         ${isOpen ? 'text-espresso' : 'text-ink group-hover:text-espresso'}`}
@@ -96,13 +95,13 @@ export default function Faq() {
                   className="grid transition-[grid-template-rows] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
                 >
-                  <div className="overflow-hidden min-h-0">
+                  <div className="min-h-0 overflow-hidden">
                     <div
-                      className={`px-5 sm:px-6 pb-5 sm:pb-6 pl-[3.75rem] sm:pl-[4.25rem] transition-all duration-400
-                        ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}
+                      className={`px-5 pb-5 pl-[3.75rem] transition-all duration-400 sm:px-6 sm:pb-6 sm:pl-[4.25rem]
+                        ${isOpen ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'}`}
                     >
                       <div className="mb-3 h-px w-10 rounded-full bg-gradient-to-r from-accent to-transparent" />
-                      <p className="text-[0.92rem] text-muted leading-relaxed font-light">
+                      <p className="max-w-4xl text-[0.92rem] font-light leading-relaxed text-muted">
                         {f.a}
                       </p>
                     </div>
