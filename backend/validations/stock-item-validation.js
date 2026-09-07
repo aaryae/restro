@@ -15,6 +15,26 @@ const postValidation = async (req, res, next) => {
     openingQuantity: Joi.number().min(0).optional().default(0),
     openingRate: Joi.number().min(0).optional(),
     lowStockThreshold: Joi.number().min(0).optional().allow(null),
+    accountId: Joi.number().integer().positive().optional().allow(null),
+    paymentTerms: Joi.string()
+      .valid("cash", "cheque", "credit")
+      .optional()
+      .default("cash"),
+  }).custom((value, helpers) => {
+    const qty = Number(value.openingQuantity || 0);
+    if (qty > 0) {
+      if (!value.accountId) {
+        return helpers.message(
+          "Pay From Account is required when opening quantity is greater than 0",
+        );
+      }
+      if (!value.supplierId) {
+        return helpers.message(
+          "Supplier is required when opening quantity is greater than 0",
+        );
+      }
+    }
+    return value;
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
