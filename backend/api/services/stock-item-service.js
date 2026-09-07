@@ -15,6 +15,11 @@ const {
   normalizeRows,
   missingRequiredColumns,
 } = require("../../lib/stock-item-import");
+const {
+  PurchaseStockSyncError,
+  applyPurchaseToStock,
+  createCompletedPurchaseForStockAdjust,
+} = require("../../lib/purchase-stock-sync");
 
 const MAX_IMPORT_ROWS = 2000;
 
@@ -249,7 +254,15 @@ const adjust = async (req) => {
       };
     }
 
-    const { type, quantity, rate, note } = req.body;
+    const {
+      type,
+      quantity,
+      rate,
+      note,
+      accountId,
+      supplierId,
+      paymentTerms,
+    } = req.body;
     const qty = toNumber(quantity);
     const applyRate =
       rate !== undefined && rate !== null
@@ -271,22 +284,74 @@ const adjust = async (req) => {
       nextQty = currentQty - qty;
     }
 
-    await item.update({ quantity: nextQty }, { transaction });
+    let purchaseId = null;
 
-    const createdBy = historyCreatedBy();
+    if (type === "purchase") {
+      const resolvedSupplierId = supplierId || item.supplierId;
+      if (!resolvedSupplierId) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Supplier is required for Purchase / Restock",
+          data: null,
+        };
+      }
+      if (!accountId) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: "Account is required for Purchase / Restock",
+          data: null,
+        };
+      }
+      if (!req.user?.id) {
+        await transaction.rollback();
+        return {
+          status: 401,
+          success: false,
+          message: "Authentication required to record purchase",
+          data: null,
+        };
+      }
 
-    const history = await stockHistoryModel.create(
-      {
-        stockItemId: item.id,
-        type,
+      const purchase = await createCompletedPurchaseForStockAdjust({
+        stockItem: item,
         quantity: qty,
         rate: applyRate,
-        value: qty * applyRate,
+        accountId,
+        supplierId: resolvedSupplierId,
+        paymentTerms: paymentTerms || "cash",
+        enteredByUserId: req.user.id,
         note: note || null,
-        createdBy,
-      },
-      { transaction },
-    );
+        transaction,
+      });
+      purchaseId = purchase.id;
+
+      // Stock qty + history (linked to finance purchase)
+      await applyPurchaseToStock(purchase.id, {
+        transaction,
+        userId: null,
+      });
+    } else {
+      await item.update({ quantity: nextQty }, { transaction });
+
+      const createdBy = historyCreatedBy();
+
+      await stockHistoryModel.create(
+        {
+          stockItemId: item.id,
+          type,
+          quantity: qty,
+          rate: applyRate,
+          value: qty * applyRate,
+          note: note || null,
+          createdBy,
+        },
+        { transaction },
+      );
+    }
 
     await transaction.commit();
 
@@ -296,10 +361,13 @@ const adjust = async (req) => {
 
     return {
       ...generalConstant.EN.STOCK_ITEM.ADJUST_SUCCESS,
-      data: { item: full, history },
+      data: { item: full, purchaseId },
     };
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PurchaseStockSyncError) {
+      return error.toResponse();
+    }
     throw error;
   }
 };

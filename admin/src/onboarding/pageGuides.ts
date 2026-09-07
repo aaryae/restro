@@ -131,6 +131,7 @@ export const PAGE_GUIDES: PageGuide[] = [
     highlights: [
       "Record purchases against a supplier and category",
       "Pay from a cash, bank or wallet account",
+      "Optionally link each line to a stock item so completing the purchase updates inventory",
     ],
   },
   {
@@ -272,15 +273,15 @@ export const PAGE_GUIDES: PageGuide[] = [
     summary:
       "Ingredients and supplies you buy and track in the store — flour, oil, bottles, packets. This is separate from the Menu: menu items are what you sell; stock items are what you keep in quantity.",
     highlights: [
-      "Add a stock item with a measuring unit, optional group, opening quantity and rate",
-      "Use Adjust to record purchases or write-offs; every change is logged in Stock History",
+      "Add a stock item with a measuring unit, optional group, opening quantity and default price",
+      "Use Adjust → Purchase / Restock to buy stock: pick account and supplier; money goes out and quantity goes up together",
       "Bulk upload from Excel when you already have a supplier list",
       "Watch the KPI cards for total value and low-stock alerts",
     ],
     tips: [
       "Measuring units ship with restaurant defaults (kg, ltr, pcs, …). Open Measuring Units to see descriptions or add your own.",
       "Stock groups are optional folders — Dairy, Dry Goods, Beverages — so the list stays tidy.",
-      "Recipe consumption and purchase→stock linking come in a later phase; for now you adjust quantities manually.",
+      "Opening quantity on create is starting stock only (no payment). Later restocks use Purchase / Restock to hit Finance.",
     ],
   },
   {
@@ -318,8 +319,8 @@ export const PAGE_GUIDES: PageGuide[] = [
       "An audit trail of every quantity change — opening stock, adjustments in or out, and the rate used at the time.",
     highlights: [
       "Filter with Today / Yesterday / Last 7 or 30 days, or pick a custom From–To range on the calendar",
-      "Trace quantity changes back to opening stock and adjustments",
-      "Use it alongside Finance purchases until automatic linking ships",
+      "Trace quantity changes back to opening stock, purchases and adjustments",
+      "Purchase / Restock rows link to the Finance purchase that paid for them",
     ],
   },
   {

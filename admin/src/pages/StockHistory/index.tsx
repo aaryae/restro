@@ -146,7 +146,14 @@ const StockHistory: React.FC = () => {
       </span>,
       <span className="text-slate-700">{formatMoney(r.rate)}</span>,
       <span className="text-slate-700">{formatMoney(r.value)}</span>,
-      <span className="text-slate-600">{r.note || "—"}</span>,
+      <span className="text-slate-600">
+        {r.note || "—"}
+        {r.referenceType === "purchase" && r.referenceId ? (
+          <span className="mt-0.5 block text-[11px] text-slate-400">
+            Linked to Purchase #{r.referenceId}
+          </span>
+        ) : null}
+      </span>,
       <span className="text-slate-600">{creator}</span>,
     ];
   });

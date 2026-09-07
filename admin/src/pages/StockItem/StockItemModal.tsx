@@ -33,7 +33,6 @@ const StockItemSchema = z.object({
   supplierId: z.string().optional(),
   defaultPrice: optionalAmount,
   openingQuantity: optionalAmount,
-  openingRate: optionalAmount,
   lowStockThreshold: optionalAmount,
 });
 
@@ -53,7 +52,6 @@ const blankCreateValues = {
   supplierId: "",
   defaultPrice: "" as unknown as number | undefined,
   openingQuantity: "" as unknown as number | undefined,
-  openingRate: "" as unknown as number | undefined,
   lowStockThreshold: "" as unknown as number | undefined,
 };
 
@@ -79,9 +77,9 @@ const StockItemModal: React.FC<Props> = ({
   });
 
   const openingQuantity = useWatch({ control, name: "openingQuantity" });
-  const openingRate = useWatch({ control, name: "openingRate" });
   const defaultPrice = useWatch({ control, name: "defaultPrice" });
-  const openingValue = Number(openingQuantity || 0) * Number(openingRate || 0);
+  const openingValue =
+    Number(openingQuantity || 0) * Number(defaultPrice || 0);
 
   const unitsUrl = buildQueryString("measuring-unit/list", {
     page: 1,
@@ -162,10 +160,6 @@ const StockItemModal: React.FC<Props> = ({
         row.openingQuantity == null || row.openingQuantity === ""
           ? ("" as any)
           : Number(row.openingQuantity),
-      openingRate:
-        row.defaultPrice == null || row.defaultPrice === ""
-          ? ("" as any)
-          : Number(row.defaultPrice),
       lowStockThreshold:
         row.lowStockThreshold == null || row.lowStockThreshold === ""
           ? ("" as any)
@@ -193,11 +187,9 @@ const StockItemModal: React.FC<Props> = ({
     };
 
     if (!isEdit) {
+      const price = Number(data.defaultPrice || 0);
       body.openingQuantity = Number(data.openingQuantity || 0);
-      body.openingRate = Number(data.openingRate || 0);
-      if (!body.defaultPrice && body.openingRate) {
-        body.defaultPrice = body.openingRate;
-      }
+      body.openingRate = price;
     }
 
     try {
@@ -360,7 +352,7 @@ const StockItemModal: React.FC<Props> = ({
             <h4 className="mb-3 text-sm font-semibold text-slate-800">
               Opening Stock
             </h4>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="Quantity"
                 type="number"
@@ -371,38 +363,15 @@ const StockItemModal: React.FC<Props> = ({
                 error={errors.openingQuantity?.message as string | undefined}
               />
               <Input
-                label="Rate (Rs)"
-                type="number"
-                step="0.01"
-                min={0}
-                placeholder="0"
-                {...register("openingRate", {
-                  onChange: (e) => {
-                    const raw = e.target.value;
-                    const rate = raw === "" ? undefined : Number(raw);
-                    setValue("openingRate", (raw === "" ? "" : rate) as any);
-                    if (
-                      rate != null &&
-                      !Number.isNaN(rate) &&
-                      rate > 0 &&
-                      (defaultPrice === undefined ||
-                        defaultPrice === null ||
-                        defaultPrice === ("" as any) ||
-                        Number(defaultPrice) === 0)
-                    ) {
-                      setValue("defaultPrice", rate);
-                    }
-                  },
-                })}
-                error={errors.openingRate?.message as string | undefined}
-              />
-              <Input
                 label="Value (Rs)"
                 type="number"
                 value={openingValue.toFixed(2)}
                 disabled
               />
             </div>
+            <p className="mt-2 text-[11px] leading-snug text-slate-500">
+              Value is Quantity × Default Price.
+            </p>
           </div>
         )}
 

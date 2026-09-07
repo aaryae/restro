@@ -11,6 +11,10 @@ module.exports = (sequelize) => {
         foreignKey: "categoryId",
         as: "category",
       });
+      PurchaseItem.belongsTo(models.stockItemModel, {
+        foreignKey: "stockItemId",
+        as: "stockItem",
+      });
     }
   }
 
@@ -31,6 +35,11 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true, // Optional for flexibility
         references: { model: "purchase_categories", key: "id" },
+      },
+      stockItemId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "stock_items", key: "id" },
       },
       particulars: {
         type: DataTypes.STRING,
