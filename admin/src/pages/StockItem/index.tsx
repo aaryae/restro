@@ -4,7 +4,7 @@ import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import usePagination from "@/hooks/usePagination";
 import { PaginationType } from "@/types/commonTypes";
-import { PackageMinus, PackagePlus, SquarePen, Upload } from "lucide-react";
+import { PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
@@ -27,12 +27,23 @@ const formatMoney = (amount: number | string) =>
     maximumFractionDigits: 2,
   })}`;
 
+const isLowStockItem = (row: {
+  quantity?: number | string | null;
+  lowStockThreshold?: number | string | null;
+}) => {
+  if (row.lowStockThreshold == null || row.lowStockThreshold === "") {
+    return false;
+  }
+  return Number(row.quantity || 0) <= Number(row.lowStockThreshold);
+};
+
 const StockItem: React.FC = () => {
   const accessList = checkAccess("Stock Item");
   const canImport = accessList.includes("import");
   const [deleteModelOpen, setDeleteModelOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -69,7 +80,10 @@ const StockItem: React.FC = () => {
   const url = buildQueryString("stock-item/list", {
     page: query.page,
     limit: query.limit,
-    search: { name: searchTerm },
+    search: {
+      name: searchTerm,
+      ...(lowStockOnly ? { lowStock: true } : {}),
+    },
   });
   const {
     data: apiData,
@@ -132,12 +146,28 @@ const StockItem: React.FC = () => {
     refetchSummary();
   };
 
+  const toggleLowStockFilter = () => {
+    setLowStockOnly((prev) => !prev);
+    handlePagination({ page: 1, limit: query.limit });
+  };
+
   const data = rows.map((r: any) => {
     const symbol = r.measuringUnit?.symbol;
     const rate = Number(r.defaultPrice || 0);
     const closing = Number(r.quantity || 0);
+    const lowStock = isLowStockItem(r);
     const cells = [
-      <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-slate-800">{r.name}</span>
+        {lowStock ? (
+          <span
+            className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
+            title={`At or below threshold (${formatQty(r.lowStockThreshold, symbol)})`}
+          >
+            Low stock
+          </span>
+        ) : null}
+      </span>,
       r.stockGroup?.name ? (
         <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
           {r.stockGroup.name}
@@ -149,7 +179,13 @@ const StockItem: React.FC = () => {
       <span className="text-slate-600">
         {formatQty(r.openingQuantity, symbol)}
       </span>,
-      <span className="text-slate-800 font-medium">
+      <span
+        className={
+          lowStock
+            ? "font-semibold text-amber-700"
+            : "font-medium text-slate-800"
+        }
+      >
         {formatQty(closing, symbol)}
       </span>,
       <span className="text-slate-700">{formatMoney(closing * rate)}</span>,
@@ -199,24 +235,34 @@ const StockItem: React.FC = () => {
 
   const kpiCards = [
     {
+      id: "total",
       label: "Total Stock Items",
       value: String(summary.totalItems ?? 0),
       icon: <PackagePlus className="h-4 w-4 text-sky-600" />,
+      clickable: false,
     },
     {
+      id: "value",
       label: "Total Stock Value",
       value: formatMoney(summary.totalStockValue ?? 0),
       icon: <PackageMinus className="h-4 w-4 text-violet-600" />,
+      clickable: false,
     },
     {
+      id: "restocked",
       label: "Restocked this week",
       value: `${summary.restockedThisWeek ?? 0} item`,
       icon: <PackagePlus className="h-4 w-4 text-emerald-600" />,
+      clickable: false,
     },
     {
+      id: "low-stock",
       label: "Low Stock items",
       value: `${summary.lowStockItems ?? 0} item`,
       icon: <PackageMinus className="h-4 w-4 text-amber-600" />,
+      clickable: true,
+      active: lowStockOnly,
+      onClick: toggleLowStockFilter,
     },
   ];
 
@@ -250,23 +296,67 @@ const StockItem: React.FC = () => {
         className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
         data-tour="stock-kpis"
       >
-        {kpiCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {card.label}
-              </p>
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50">
-                {card.icon}
-              </span>
-            </div>
-            <p className="text-xl font-semibold text-slate-900">{card.value}</p>
-          </div>
-        ))}
+        {kpiCards.map((card) => {
+          const interactive = Boolean(card.clickable);
+          const Comp = interactive ? "button" : "div";
+          return (
+            <Comp
+              key={card.id}
+              type={interactive ? "button" : undefined}
+              onClick={interactive ? card.onClick : undefined}
+              className={`rounded-xl border bg-white p-4 text-left shadow-sm transition ${
+                card.active
+                  ? "border-amber-300 ring-2 ring-amber-100"
+                  : "border-slate-200"
+              } ${
+                interactive
+                  ? "cursor-pointer hover:border-amber-300 hover:bg-amber-50/40"
+                  : ""
+              }`}
+              title={
+                interactive
+                  ? lowStockOnly
+                    ? "Click to show all stock items"
+                    : "Click to show only low stock items"
+                  : undefined
+              }
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {card.label}
+                </p>
+                <span
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
+                    card.active ? "bg-amber-100" : "bg-slate-50"
+                  }`}
+                >
+                  {card.icon}
+                </span>
+              </div>
+              <p className="text-xl font-semibold text-slate-900">{card.value}</p>
+              {interactive ? (
+                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                  {lowStockOnly ? "Showing low stock · click to clear" : "Click to view"}
+                </p>
+              ) : null}
+            </Comp>
+          );
+        })}
       </div>
+
+      {lowStockOnly ? (
+        <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+          Filtered to low stock items
+          <button
+            type="button"
+            onClick={toggleLowStockFilter}
+            className="inline-flex h-5 w-5 items-center justify-center rounded-md text-amber-700 hover:bg-amber-100"
+            title="Clear filter"
+          >
+            <X size={12} strokeWidth={2.5} />
+          </button>
+        </div>
+      ) : null}
 
       {accessList.includes("view") ? (
         <Table

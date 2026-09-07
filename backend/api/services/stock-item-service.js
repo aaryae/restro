@@ -185,11 +185,22 @@ const create = async (req) => {
 
 const list = async (req) => {
   try {
-    const { limit, page, name, stockGroupId, supplierId } = req.query;
+    const { limit, page, name, stockGroupId, supplierId, lowStock } =
+      req.query;
     const filters = {};
     if (name) filters.name = { [Op.iLike]: `%${name}%` };
     if (stockGroupId) filters.stockGroupId = +stockGroupId;
     if (supplierId) filters.supplierId = +supplierId;
+    if (String(lowStock) === "true" || String(lowStock) === "1") {
+      filters[Op.and] = [
+        { lowStockThreshold: { [Op.ne]: null } },
+        sequelize.where(
+          sequelize.col("StockItem.quantity"),
+          Op.lte,
+          sequelize.col("StockItem.lowStockThreshold"),
+        ),
+      ];
+    }
 
     const result = await paginate(stockItemModel, {
       limit,

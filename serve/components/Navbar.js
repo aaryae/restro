@@ -90,7 +90,7 @@ export default function Navbar() {
                 <li key={l.href}>
                   <a
                     href={l.href}
-                    className={`relative font-dm text-[0.9rem] tracking-[0.01em] no-underline transition-colors duration-200 after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:rounded-full after:bg-accent after:transition-all after:duration-300 ${
+                    className={`relative font-syne text-[0.9rem] font-medium tracking-[0.01em] no-underline transition-colors duration-200 after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:rounded-full after:bg-accent after:transition-all after:duration-300 ${
                       active
                         ? `${onDark ? 'text-cream' : 'text-espresso'} after:w-full`
                         : `${onDark ? 'text-cream/55 hover:text-cream' : 'text-roast hover:text-espresso'} after:w-0 hover:after:w-full`
@@ -106,7 +106,7 @@ export default function Navbar() {
           <div className="hidden items-center gap-4 md:flex">
             <a
               href="/login?mode=login"
-              className={`font-dm text-sm no-underline transition-colors ${
+              className={`font-syne text-sm font-medium no-underline transition-colors ${
                 onDark ? 'text-cream/60 hover:text-cream' : 'text-roast hover:text-espresso'
               }`}
             >
@@ -114,7 +114,7 @@ export default function Navbar() {
             </a>
             <a
               href="/login?mode=register"
-              className={`rounded-full px-5 py-2.5 font-dm text-sm font-medium no-underline transition-all duration-200 hover:-translate-y-px ${
+              className={`rounded-full px-5 py-2.5 font-syne text-sm font-medium no-underline transition-all duration-200 hover:-translate-y-px ${
                 onDark
                   ? 'bg-cream text-espresso hover:bg-white'
                   : 'bg-espresso text-cream hover:bg-coffee hover:shadow-[0_6px_20px_rgba(26,15,10,0.2)]'
@@ -161,7 +161,7 @@ export default function Navbar() {
         <a
           href="#contact"
           onClick={() => setMenuOpen(false)}
-          className="mt-4 rounded-full bg-espresso px-10 py-3 text-base font-medium text-cream no-underline"
+          className="mt-4 rounded-full bg-espresso px-10 py-3 font-syne text-base font-medium text-cream no-underline"
         >
           Book a Demo
         </a>
