@@ -141,6 +141,13 @@ const paginationValidation = async (req, res, next) => {
         "email_template",
       )
       .label("resourceType"),
+    stockGroupId: joi.number().optional().label("stockGroupId"),
+    supplierId: joi.number().optional().label("supplierId"),
+    lowStock: joi
+      .alternatives()
+      .try(joi.boolean(), joi.string().valid("true", "false", "1", "0"))
+      .optional()
+      .label("lowStock"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

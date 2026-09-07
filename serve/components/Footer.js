@@ -7,8 +7,19 @@ const links = [
   { label: 'Pricing',      href: '#pricing' },
   { label: 'Stories',      href: '#stories' },
   { label: 'FAQ',          href: '#faq' },
-  { label: 'Contact',      href: '#contact' },
 ]
+
+function FooterHeading({ children }) {
+  return (
+    <h4 className="font-syne text-[0.82rem] font-bold tracking-[0.1em] uppercase mb-5 text-white">
+      {children}
+      <span
+        aria-hidden
+        className="mt-2.5 block h-[2px] w-[20%] rounded-full bg-gradient-to-r from-caramel to-transparent"
+      />
+    </h4>
+  )
+}
 
 export default function Footer() {
   return (
@@ -26,24 +37,19 @@ export default function Footer() {
             height={52}
             className="logo-invert object-contain mb-4"
           />
-          <p className="text-[0.88rem] font-light leading-relaxed max-w-[260px]"
-            style={{ color: 'rgba(245,239,230,0.45)' }}>
+          <p className="text-[0.88rem] font-light leading-relaxed max-w-[260px] text-white">
             The cafe management system built by people who actually ran cafes. Simple, powerful, and built to scale with you.
           </p>
         </div>
 
         {/* Links */}
         <div>
-          <h4 className="font-syne text-[0.82rem] font-bold tracking-[0.1em] uppercase mb-5"
-            style={{ color: 'rgba(245,239,230,0.35)' }}>Navigation</h4>
+          <FooterHeading>Navigation</FooterHeading>
           <ul className="list-none flex flex-col gap-3">
             {links.map(l => (
               <li key={l.href}>
                 <a href={l.href}
-                  className="text-[0.88rem] font-light no-underline transition-colors duration-200"
-                  style={{ color: 'rgba(245,239,230,0.5)' }}
-                  onMouseEnter={e => e.target.style.color = '#e8873a'}
-                  onMouseLeave={e => e.target.style.color = 'rgba(245,239,230,0.5)'}>
+                  className="text-[0.88rem] font-light text-white no-underline transition-colors duration-200 hover:text-caramel">
                   {l.label}
                 </a>
               </li>
@@ -53,16 +59,14 @@ export default function Footer() {
 
         {/* Contact */}
         <div>
-          <h4 className="font-syne text-[0.82rem] font-bold tracking-[0.1em] uppercase mb-5"
-            style={{ color: 'rgba(245,239,230,0.35)' }}>Get In Touch</h4>
+          <FooterHeading>Get In Touch</FooterHeading>
           <div className="flex flex-col gap-3">
             {[
               { icon: '📱', val: '+977 9869028924' },
               { icon: '✉️', val: 'serve@technirvana.com.np' },
               { icon: '🕘', val: '9 AM – 6 PM · 7 days' },
             ].map(d => (
-              <div key={d.val} className="flex items-center gap-3 text-[0.88rem] font-light"
-                style={{ color: 'rgba(245,239,230,0.5)' }}>
+              <div key={d.val} className="flex items-center gap-3 text-[0.88rem] font-light text-white">
                 <span>{d.icon}</span> {d.val}
               </div>
             ))}
@@ -78,14 +82,11 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="site-wrap py-5 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-[0.78rem] font-light" style={{ color: 'rgba(245,239,230,0.3)' }}>
+        <p className="text-[0.78rem] font-light text-white">
           © 2026 - SERVE Cafe Management System. All rights reserved. Designed & Developed by{' '}
           <span className="text-caramel font-medium transition-colors duration-200 cursor-default hover:text-accent">
             <a href="https://www.technirvana.com.np"> Tech Nirvana </a>
           </span>
-        </p>
-        <p className="text-[0.78rem] font-light" style={{ color: 'rgba(245,239,230,0.3)' }}>
-          
         </p>
       </div>
     </footer>

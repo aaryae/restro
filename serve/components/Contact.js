@@ -1,7 +1,60 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useReveal } from './useReveal'
 import { getApiBase } from '@/lib/public-url'
+
+const INTEREST_OPTIONS = [
+  'Full SERVE setup',
+  'Just a demo first',
+  'QR ordering add-on',
+  'Inventory management',
+  'Staff & roles setup',
+  'General inquiry',
+]
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function normalizePhoneDigits(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function isValidNepalPhone(value) {
+  const digits = normalizePhoneDigits(value)
+  if (digits.startsWith('977') && digits.length === 13) {
+    return /^9779[6-8]\d{8}$/.test(digits)
+  }
+  if (digits.length === 10) {
+    return /^9[6-8]\d{8}$/.test(digits)
+  }
+  return false
+}
+
+function validateForm({ full_name, cafe_name, phone, email, interest, message }) {
+  const errors = {}
+
+  if (!full_name) errors.full_name = 'Your name is required.'
+  else if (full_name.length < 2) errors.full_name = 'Enter at least 2 characters.'
+
+  if (!cafe_name) errors.cafe_name = 'Cafe name is required.'
+  else if (cafe_name.length < 2) errors.cafe_name = 'Enter at least 2 characters.'
+
+  if (!phone) errors.phone = 'Phone number is required.'
+  else if (!isValidNepalPhone(phone)) {
+    errors.phone = 'Enter a valid Nepal mobile number (e.g. 98XXXXXXXX or +977 98XXXXXXXX).'
+  }
+
+  if (email && !EMAIL_RE.test(email)) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  if (!interest) errors.interest = 'Please select what you are interested in.'
+
+  if (message && message.length < 10) {
+    errors.message = 'Please share a bit more (at least 10 characters).'
+  }
+
+  return errors
+}
 
 const WaIcon = () => (
   <svg className="w-5 h-5 fill-white flex-shrink-0" viewBox="0 0 24 24">
@@ -9,46 +62,215 @@ const WaIcon = () => (
   </svg>
 )
 
+const Chevron = ({ open }) => (
+  <svg
+    className={`h-4 w-4 shrink-0 text-caramel transition-transform duration-300 ease-out ${open ? 'rotate-180' : ''}`}
+    viewBox="0 0 20 20"
+    fill="none"
+    aria-hidden
+  >
+    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+function FieldError({ id, message }) {
+  if (!message) return null
+  return (
+    <p id={id} className="text-[0.78rem] text-red-600 font-medium">
+      {message}
+    </p>
+  )
+}
+
+function InterestSelect({ name, className, value, onChange, error, onBlur }) {
+  const [open, setOpen] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const rootRef = useRef(null)
+  const listId = useId()
+
+  useEffect(() => {
+    if (open) {
+      const id = requestAnimationFrame(() => setVisible(true))
+      return () => cancelAnimationFrame(id)
+    }
+    setVisible(false)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onPointer = (e) => {
+      if (!rootRef.current?.contains(e.target)) {
+        setOpen(false)
+        onBlur?.()
+      }
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open, onBlur])
+
+  const selectOption = (option) => {
+    onChange(option)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <input type="hidden" name={name} value={value} />
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-invalid={Boolean(error)}
+        onClick={() => setOpen((v) => !v)}
+        className={`${className} flex items-center justify-between gap-3 text-left cursor-pointer
+          ${open ? 'border-accent bg-white shadow-[0_0_0_3px_rgba(232,135,58,0.12)]' : ''}
+          ${error ? 'border-red-400' : ''}
+          ${value ? 'text-ink' : 'text-muted'}`}
+      >
+        <span className="truncate">{value || 'Select an option'}</span>
+        <Chevron open={open} />
+      </button>
+
+      <div
+        className={`absolute left-0 right-0 top-[calc(100%+0.4rem)] z-30 origin-top
+          transition-all ease-[cubic-bezier(0.22,1,0.36,1)]
+          ${open ? 'pointer-events-auto' : 'pointer-events-none'}
+          ${visible ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-1.5 scale-[0.97] opacity-0'}`}
+        style={{ transitionDuration: '220ms' }}
+      >
+        <ul
+          id={listId}
+          role="listbox"
+          className="overflow-hidden rounded-xl border border-caramel/20 bg-white
+            shadow-[0_12px_40px_rgba(26,15,10,0.12)] py-1.5"
+        >
+          {INTEREST_OPTIONS.map((option) => {
+            const selected = value === option
+            return (
+              <li key={option} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => selectOption(option)}
+                  className={`flex w-full items-center px-4 py-2.5 text-left font-dm text-[0.92rem]
+                    transition-colors duration-150 cursor-pointer
+                    ${selected
+                      ? 'bg-accent/10 text-espresso font-medium'
+                      : 'text-ink hover:bg-cream hover:text-espresso'}`}
+                >
+                  {option}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+const emptyForm = {
+  full_name: '',
+  cafe_name: '',
+  phone: '',
+  email: '',
+  message: '',
+}
+
 export default function Contact() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [interest, setInterest] = useState('')
+  const [form, setForm] = useState(emptyForm)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [touched, setTouched] = useState({})
   const ref = useReveal()
+
+  const setField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    if (touched[key] || fieldErrors[key]) {
+      const next = validateForm({ ...form, [key]: value, interest })
+      setFieldErrors((prev) => ({ ...prev, [key]: next[key] || '' }))
+    }
+  }
+
+  const markTouched = (key) => {
+    setTouched((prev) => ({ ...prev, [key]: true }))
+    const next = validateForm({ ...form, interest })
+    setFieldErrors((prev) => ({ ...prev, [key]: next[key] || '' }))
+  }
+
+  const handleInterestChange = (value) => {
+    setInterest(value)
+    setTouched((prev) => ({ ...prev, interest: true }))
+    const next = validateForm({ ...form, interest: value })
+    setFieldErrors((prev) => ({ ...prev, interest: next.interest || '' }))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const payload = {
+      full_name: form.full_name.trim(),
+      cafe_name: form.cafe_name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      interest,
+      message: form.message.trim(),
+    }
+    const errors = validateForm(payload)
+    setTouched({
+      full_name: true,
+      cafe_name: true,
+      phone: true,
+      email: true,
+      interest: true,
+      message: true,
+    })
+    setFieldErrors(errors)
+    if (Object.keys(errors).length) {
+      setError('')
+      return
+    }
+
     setLoading(true)
     setError('')
     setSent(false)
-
-    const form = e.currentTarget
-    const data = new FormData(form)
-    const full_name = String(data.get('full_name') || '').trim()
-    const cafe_name = String(data.get('cafe_name') || '').trim()
-    const phone = String(data.get('phone') || '').trim()
-    const email = String(data.get('email') || '').trim()
-    const interest = String(data.get('interest') || '').trim()
-    const message = String(data.get('message') || '').trim()
 
     try {
       const res = await fetch(`${getApiBase(process.env.NEXT_PUBLIC_API_BASE_URL)}/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name,
-          cafe_name,
-          phone,
-          email: email || undefined,
-          subject: interest || 'SERVE inquiry',
-          message: message || 'No additional details provided.',
+          full_name: payload.full_name,
+          cafe_name: payload.cafe_name,
+          phone: payload.phone,
+          email: payload.email || undefined,
+          subject: payload.interest,
+          message: payload.message || 'No additional details provided.',
         }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || json.success === false) {
-        throw new Error(json.msg || json.message || 'Could not send message.')
+        const apiMsg =
+          (typeof json.data === 'object' && json.data && Object.values(json.data)[0]) ||
+          json.msg ||
+          json.message ||
+          'Could not send message.'
+        throw new Error(typeof apiMsg === 'string' ? apiMsg : 'Could not send message.')
       }
       setSent(true)
-      form.reset()
+      setForm(emptyForm)
+      setInterest('')
+      setFieldErrors({})
+      setTouched({})
       setTimeout(() => setSent(false), 5000)
     } catch (err) {
       setError(err.message || 'Could not send message.')
@@ -60,6 +282,7 @@ export default function Contact() {
   const input = `w-full bg-milk border border-caramel/15 rounded-xl px-4 py-3
     font-dm text-[0.92rem] text-ink outline-none transition-all duration-200
     focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(232,135,58,0.12)]`
+  const errBorder = 'border-red-400 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(248,113,113,0.18)]'
 
   return (
     <section id="contact" ref={ref} className="relative overflow-hidden bg-cream py-28">
@@ -69,48 +292,102 @@ export default function Contact() {
       <div className="site-wrap relative">
       <div data-reveal>
         <div className="section-label">Get In Touch</div>
-        <h2 className="section-headline">Let's get your cafe<br />running on SERVE</h2>
+        <h2 className="section-headline">Let&apos;s get your cafe<br />running on SERVE</h2>
         <p className="section-sub">Book a free demo or just reach out. No sales pressure — just a real conversation about your cafe.</p>
         <div className="section-rule" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-20 mt-16">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-reveal="left">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4" data-reveal="left">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Your Name</label>
-              <input name="full_name" type="text" placeholder="Suman Rai" required className={input} />
+              <input
+                name="full_name"
+                type="text"
+                placeholder="Suman Rai"
+                autoComplete="name"
+                value={form.full_name}
+                onChange={(e) => setField('full_name', e.target.value)}
+                onBlur={() => markTouched('full_name')}
+                aria-invalid={Boolean(fieldErrors.full_name)}
+                className={`${input} ${fieldErrors.full_name ? errBorder : ''}`}
+              />
+              <FieldError id="err-full_name" message={fieldErrors.full_name} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Cafe Name</label>
-              <input name="cafe_name" type="text" placeholder="The Coffee Nest" required className={input} />
+              <input
+                name="cafe_name"
+                type="text"
+                placeholder="The Coffee Nest"
+                value={form.cafe_name}
+                onChange={(e) => setField('cafe_name', e.target.value)}
+                onBlur={() => markTouched('cafe_name')}
+                aria-invalid={Boolean(fieldErrors.cafe_name)}
+                className={`${input} ${fieldErrors.cafe_name ? errBorder : ''}`}
+              />
+              <FieldError id="err-cafe_name" message={fieldErrors.cafe_name} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Phone / WhatsApp</label>
-              <input name="phone" type="tel" placeholder="+977 98XXXXXXXX" required className={input} />
+              <input
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+977 98XXXXXXXX"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value.replace(/[^\d+\s()-]/g, ''))}
+                onBlur={() => markTouched('phone')}
+                aria-invalid={Boolean(fieldErrors.phone)}
+                className={`${input} ${fieldErrors.phone ? errBorder : ''}`}
+              />
+              <FieldError id="err-phone" message={fieldErrors.phone} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.82rem] font-medium text-coffee">Email (optional)</label>
-              <input name="email" type="email" placeholder="you@cafe.com" className={input} />
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@cafe.com"
+                value={form.email}
+                onChange={(e) => setField('email', e.target.value)}
+                onBlur={() => markTouched('email')}
+                aria-invalid={Boolean(fieldErrors.email)}
+                className={`${input} ${fieldErrors.email ? errBorder : ''}`}
+              />
+              <FieldError id="err-email" message={fieldErrors.email} />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.82rem] font-medium text-coffee">What are you interested in?</label>
-            <select name="interest" className={input} required defaultValue="">
-              <option value="" disabled>Select an option</option>
-              <option>Full SERVE setup</option>
-              <option>Just a demo first</option>
-              <option>QR ordering add-on</option>
-              <option>Inventory management</option>
-              <option>General inquiry</option>
-            </select>
+            <InterestSelect
+              name="interest"
+              className={input}
+              value={interest}
+              onChange={handleInterestChange}
+              onBlur={() => markTouched('interest')}
+              error={fieldErrors.interest}
+            />
+            <FieldError id="err-interest" message={fieldErrors.interest} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.82rem] font-medium text-coffee">Tell us about your cafe</label>
-            <textarea name="message" rows={4} placeholder="How many tables? Current system? Biggest challenge?"
-              className={`${input} resize-y min-h-[120px]`} />
+            <textarea
+              name="message"
+              rows={4}
+              placeholder="How many tables? Current system? Biggest challenge?"
+              value={form.message}
+              onChange={(e) => setField('message', e.target.value)}
+              onBlur={() => markTouched('message')}
+              aria-invalid={Boolean(fieldErrors.message)}
+              className={`${input} resize-y min-h-[120px] ${fieldErrors.message ? errBorder : ''}`}
+            />
+            <FieldError id="err-message" message={fieldErrors.message} />
           </div>
           <button type="submit" disabled={loading}
             className="w-full py-[0.88em] rounded-full bg-espresso text-cream text-base font-medium

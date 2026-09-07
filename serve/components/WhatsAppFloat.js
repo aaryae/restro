@@ -10,13 +10,15 @@ export default function WhatsAppFloat() {
     <a href="https://wa.me/9779869028924?text=Hi%2C%20I%20want%20to%20know%20more%20about%20SERVE"
       target="_blank"
       title="Chat on WhatsApp"
-      className="wa-pop fixed bottom-8 right-8 z-[200] flex items-center gap-2 bg-[#25D366] text-white
-        px-5 py-3 rounded-full text-[0.9rem] font-medium no-underline
+      aria-label="Chat on WhatsApp"
+      className="wa-pop fixed bottom-6 right-5 z-[200] flex items-center justify-center gap-2 bg-[#25D366] text-white
+        size-14 rounded-full text-[0.9rem] font-medium no-underline
         shadow-[0_4px_24px_rgba(37,211,102,0.45)] transition-all duration-300
         hover:-translate-y-[3px] hover:scale-[1.04] hover:shadow-[0_10px_36px_rgba(37,211,102,0.55)]
-        active:scale-[0.97]">
+        active:scale-[0.97]
+        sm:bottom-8 sm:right-8 sm:size-auto sm:px-5 sm:py-3">
       <WaIcon />
-      Chat on WhatsApp
+      <span className="hidden sm:inline">Chat on WhatsApp</span>
     </a>
   )
 }

@@ -1,5 +1,4 @@
 'use client'
-'use client'
 import { useReveal } from './useReveal'
 
 const problems = [
@@ -7,6 +6,7 @@ const problems = [
   { icon: '😵', title: 'Staff confusion',          desc: "No clear roles, no accountability. Staff don't know what's been ordered, served, or who's responsible." },
   { icon: '📊', title: 'Zero sales visibility',    desc: "End of day, you're guessing. No real-time reports, no top-seller data, no clear picture of your business." },
   { icon: '📁', title: 'Unstructured reporting',   desc: "Expenses in notebooks, income in Excel, records in WhatsApp. Chaos at tax time every single month." },
+  { icon: '📦', title: 'Inventory blind spots',    desc: "Stock runs out mid-service or sits unused until it spoils. No clear view of what you have, what you need, or what's wasting money." },
   { icon: '📈', title: 'Scaling feels impossible', desc: "You want to grow — but you can't get a handle on the one cafe you have right now." },
 ]
 
@@ -40,7 +40,7 @@ export default function Problem() {
         </div>
       </div>
 
-      <div className="relative z-10 mt-14 grid grid-cols-1 overflow-hidden rounded-3xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      <div className="relative z-10 mt-14 grid grid-cols-1 overflow-hidden rounded-3xl sm:grid-cols-2 lg:grid-cols-3"
         style={{ gap: '1.5px', background: 'rgba(245,239,230,0.06)' }}>
         {problems.map((p, i) => (
           <div key={p.title}
