@@ -28,6 +28,7 @@ const {
 } = require("../../lib/global-username");
 const { generateOTPForUser, verifyOTPForUser, OTP_TTL_MS } = require("../../utils/otp");
 const { sendOtpMail } = require("../../utils/mailer");
+const { queueCafeOwnerMail } = require("../../lib/platform-cafe-mail");
 const { buildPosBootstrapUrl } = require("../../lib/pos-public-url");
 const logger = require("../../configs/logger");
 
@@ -1034,6 +1035,19 @@ const createRestaurant = async (req) => {
       message: "Restaurant created but POS session could not be issued",
     };
   }
+
+  queueCafeOwnerMail(
+    "cafe_created",
+    tenant,
+    {
+      ownerName: user.name || tenant.name,
+      ownerUsername: user.username,
+      ownerPassword: usedClientPassword ? undefined : ownerPassword,
+      passwordGenerated: !usedClientPassword,
+      status: tenant.status,
+    },
+    req,
+  );
 
   return {
     status: 201,

@@ -11,7 +11,7 @@ const PRIVILEGED_ROLE_TITLES = ["Super Admin", "Admin"];
 
 /**
  * Ensure every menu/action from setup.json exists in the DB.
- * Only inserts missing rows — never deletes or updates existing ones.
+ * Inserts missing rows and repairs drifted serverPath / requestMethod / clientPath.
  */
 const ensureRoleMenusFromSetup = async () => {
   const roleMenus = setupData.roleMenus || [];
@@ -32,19 +32,38 @@ const ensureRoleMenusFromSetup = async () => {
     for (const action of roleMenu.actions || []) {
       const existing = await roleMenuActionModel.findOne({
         where: { roleMenuId: menu.id, key: action.key },
-        raw: true,
       });
-      if (existing) continue;
 
-      await roleMenuActionModel.create({
-        roleMenuId: menu.id,
-        title: action.title,
-        key: action.key,
-        clientPath: action.clientPath,
-        list: action.list,
-        serverPath: action.serverPath,
-        requestMethod: action.requestMethod,
-      });
+      if (!existing) {
+        await roleMenuActionModel.create({
+          roleMenuId: menu.id,
+          title: action.title,
+          key: action.key,
+          clientPath: action.clientPath,
+          list: action.list,
+          serverPath: action.serverPath,
+          requestMethod: action.requestMethod,
+        });
+        continue;
+      }
+
+      const needsUpdate =
+        existing.serverPath !== action.serverPath ||
+        existing.requestMethod !== action.requestMethod ||
+        existing.clientPath !== action.clientPath ||
+        existing.title !== action.title ||
+        existing.list !== action.list;
+
+      if (needsUpdate) {
+        await existing.update({
+          title: action.title,
+          clientPath: action.clientPath,
+          list: action.list,
+          serverPath: action.serverPath,
+          requestMethod: action.requestMethod,
+          isDeleted: false,
+        });
+      }
     }
   }
 };

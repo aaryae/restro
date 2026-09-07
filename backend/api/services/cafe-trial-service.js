@@ -7,6 +7,7 @@ const {
   buildUnavailablePayload,
   hasUsedSelfServeExtend,
 } = require("../../lib/trial-lifecycle");
+const { queueCafeOwnerMail } = require("../../lib/platform-cafe-mail");
 
 function serializeTrialStatus(tenant) {
   const now = Date.now();
@@ -145,6 +146,17 @@ const selfExtendTrial = async (req) => {
     selfServeTrialExtendedAt: extendedAt,
   });
   await tenant.reload();
+
+  queueCafeOwnerMail(
+    "cafe_trial_extended",
+    tenant,
+    {
+      days: SELF_SERVE_EXTEND_DAYS,
+      trialEndsAt: tenant.trialEndsAt,
+      ownerName: tenant.name,
+    },
+    req,
+  );
 
   return {
     status: 200,

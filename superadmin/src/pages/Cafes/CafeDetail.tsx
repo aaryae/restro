@@ -77,8 +77,8 @@ export default function CafeDetailPage() {
     onSuccess: (cafe, vars) => {
       showToast(
         vars.kind === 'unsuspend'
-          ? `Unsuspended ${cafe.name}`
-          : `Activated ${cafe.name}`,
+          ? `Unsuspended ${cafe.name}. Owner emailed.`
+          : `Activated ${cafe.name}. Owner emailed.`,
       )
       setConfirmAction(null)
       invalidate()
@@ -92,7 +92,7 @@ export default function CafeDetailPage() {
   const suspendMut = useMutation({
     mutationFn: (reason: string) => suspendCafe(Number(id), reason),
     onSuccess: (cafe) => {
-      showToast(`Suspended ${cafe.name}`)
+      showToast(`Suspended ${cafe.name}. Owner emailed.`)
       setConfirmAction(null)
       invalidate()
     },
@@ -105,7 +105,7 @@ export default function CafeDetailPage() {
   const extendMut = useMutation({
     mutationFn: () => extendCafeTrial(Number(id), 7),
     onSuccess: (cafe) => {
-      showToast(`Extended trial for ${cafe.name}`)
+      showToast(`Extended trial for ${cafe.name}. Owner emailed.`)
       setConfirmAction(null)
       invalidate()
     },
