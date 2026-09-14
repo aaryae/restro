@@ -1,11 +1,8 @@
-import { Controller, useForm } from "react-hook-form";
+import { UseFormReturn } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { UserSchema } from "./schema";
-import { z } from "zod";
 import {
   useCreateUserMutation,
-  useGetUserByIdQuery,
   useUpdateUserMutation,
 } from "../../redux/services/authentication";
 import Input from "../../components/Input";
@@ -22,8 +19,7 @@ import useTranslation from "@/locale/useTranslation";
 import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
 import { ImagePlus, RotateCcw } from "lucide-react";
-
-type UserFormType = z.infer<typeof UserSchema>;
+import { EMPTY_USER_FORM, UserFormType } from "./schema";
 
 type UserFormProps = {
   isOpen: boolean;
@@ -32,6 +28,9 @@ type UserFormProps = {
   onMediaOpenChange?: (open: boolean) => void;
   createPassword?: string;
   onNeedPassword?: () => void;
+  form: UseFormReturn<UserFormType>;
+  image: string;
+  setImage: React.Dispatch<React.SetStateAction<string>>;
 };
 
 const GenderOptions = [
@@ -47,6 +46,9 @@ export default function UserForm({
   onMediaOpenChange,
   createPassword = "",
   onNeedPassword,
+  form,
+  image,
+  setImage,
 }: Readonly<UserFormProps>) {
   const translate = useTranslation();
   const dispatch = useDispatch();
@@ -58,58 +60,21 @@ export default function UserForm({
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<UserFormType>({
-    resolver: zodResolver(UserSchema),
-  });
+  } = form;
 
   const [openMedia, setOpenMedia] = useState<boolean>(false);
   const [roleOptions, setRoleOptions] = useState<
     { label: string; value: string }[]
   >([]);
-  const [image, setImage] = useState<string>("");
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
 
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
 
-  const {
-    data: getUser,
-    isSuccess: success,
-    refetch,
-  } = useGetUserByIdQuery(editId, {
-    skip: editId === null,
-  });
   const { data: roles, isSuccess: roleSuccess } = useGetRoleQuery({
     page: 1,
     limit: 25,
   });
-
-  // Reset empty form only when switching to create mode — not on unrelated query updates.
-  useEffect(() => {
-    if (editId !== null) return;
-    reset({
-      username: "",
-      firstName: "",
-      lastName: "",
-      mobileNo: "",
-      mobilePrefix: "+977",
-      roleId: "",
-      gender: "",
-      password: "",
-    });
-    setImage("");
-  }, [editId, reset]);
-
-  useEffect(() => {
-    if (editId === null) return;
-    refetch();
-  }, [editId, refetch]);
-
-  useEffect(() => {
-    if (editId === null || !getUser?.data || !success) return;
-    reset({ ...getUser.data, roleId: String(getUser.data.roleId) });
-    setImage(getUser.data.imageUrl || "");
-  }, [editId, getUser, reset, success]);
 
   useEffect(() => {
     if (roleSuccess && roles?.data?.data) {
@@ -133,7 +98,7 @@ export default function UserForm({
     onMediaOpenChange?.(open);
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: UserFormType) => {
     const trimmedData = trimFormData(data);
     if (editId === null) {
       const password = String(createPassword || "").trim();
@@ -155,16 +120,7 @@ export default function UserForm({
         handleResponse({
           res: response,
           onSuccess: () => {
-            reset({
-              username: "",
-              firstName: "",
-              lastName: "",
-              mobileNo: "",
-              mobilePrefix: "+977",
-              roleId: "",
-              gender: "",
-              password: "",
-            });
+            reset(EMPTY_USER_FORM);
             setImage("");
             handleCloseDrawer();
           },
@@ -230,6 +186,7 @@ export default function UserForm({
                   handleConfirmImage={handleConfirmImage}
                   open={openMedia}
                   setOpen={handleMediaOpenChange}
+                  isMultiSelect={false}
                 />
               </div>
               <button
@@ -243,11 +200,6 @@ export default function UserForm({
             </div>
           </div>
         </div>
-        {errors.imageUrl && (
-          <p className="mt-3 text-center text-sm text-red-500 sm:text-left">
-            {errors.imageUrl.message}
-          </p>
-        )}
       </div>
 
       <div className="rounded-2xl border border-[var(--serve-border)] bg-[var(--serve-surface)] p-5">
