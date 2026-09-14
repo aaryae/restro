@@ -1,7 +1,10 @@
 import { User, UserPlus, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import UserForm from "./UserForm";
 import Security from "./Security";
+import { EMPTY_USER_FORM, UserFormType, UserSchema } from "./schema";
 import useTranslation from "@/locale/useTranslation";
 import { useGetUserByIdQuery } from "@/redux/services/authentication";
 import { cn } from "@/lib/utils";
@@ -19,24 +22,59 @@ export default function AddUserForm({
   const [tabSection, setTabSection] = useState<string>("profile");
   /** Password collected on Security tab when creating a new user. */
   const [createPassword, setCreatePassword] = useState("");
+  const [image, setImage] = useState("");
 
-  const { data: userData } = useGetUserByIdQuery(editId, {
-    skip: editId === null,
+  // Own the profile form here so tab switches / child remounts cannot wipe values.
+  const profileForm = useForm<UserFormType>({
+    resolver: zodResolver(UserSchema),
+    defaultValues: EMPTY_USER_FORM,
   });
+  const { reset: resetProfileForm } = profileForm;
+
+  const { data: userData, isSuccess: userSuccess } = useGetUserByIdQuery(
+    editId,
+    {
+      skip: editId === null,
+    },
+  );
 
   useEffect(() => {
     if (!isOpen) {
       setTabSection("profile");
-      setCreatePassword("");
     }
   }, [isOpen]);
 
   useEffect(() => {
     setTabSection("profile");
     setCreatePassword("");
+    setImage("");
+    resetProfileForm(EMPTY_USER_FORM);
+    // Only reset when switching create/edit target — not when RHF helpers change identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- editId is the intentional trigger
   }, [editId]);
 
+  useEffect(() => {
+    if (editId === null || !userSuccess || !userData?.data) return;
+    resetProfileForm({
+      ...EMPTY_USER_FORM,
+      username: userData.data.username ?? "",
+      firstName: userData.data.firstName ?? "",
+      lastName: userData.data.lastName ?? "",
+      mobileNo: userData.data.mobileNo ?? "",
+      mobilePrefix: userData.data.mobilePrefix ?? "+977",
+      roleId: String(userData.data.roleId ?? ""),
+      gender: userData.data.gender ?? "",
+      password: "",
+    });
+    setImage(userData.data.imageUrl || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per edit target / fetch success
+  }, [editId, userData?.data, userSuccess]);
+
   const handleCloseDrawer = () => {
+    setCreatePassword("");
+    setImage("");
+    profileForm.reset(EMPTY_USER_FORM);
+    setTabSection("profile");
     setIsOpen(false);
   };
 
@@ -125,7 +163,7 @@ export default function AddUserForm({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-        {/* Keep both tabs mounted so Profile/Security field values survive tab switches. */}
+        {/* Keep both tabs mounted; profile form state lives in this parent. */}
         <div className={cn(tabSection !== "profile" && "hidden")}>
           <UserForm
             editId={editId}
@@ -134,6 +172,9 @@ export default function AddUserForm({
             onMediaOpenChange={handleMediaOpenChange}
             createPassword={createPassword}
             onNeedPassword={() => setTabSection("security")}
+            form={profileForm}
+            image={image}
+            setImage={setImage}
           />
         </div>
         <div className={cn(tabSection !== "security" && "hidden")}>

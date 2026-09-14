@@ -27,6 +27,19 @@ export const UserSchema = z.object({
   password: z.string().trim().optional().default(""),
 });
 
+export type UserFormType = z.input<typeof UserSchema>;
+
+export const EMPTY_USER_FORM: UserFormType = {
+  username: "",
+  firstName: "",
+  lastName: "",
+  mobileNo: "",
+  mobilePrefix: "+977",
+  roleId: "",
+  gender: "",
+  password: "",
+};
+
 export const SecuritySchema = z
   .object({
     newPassword: z
