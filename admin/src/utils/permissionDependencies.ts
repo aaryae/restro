@@ -11,7 +11,189 @@ export type PermissionModule = {
   children: PermissionAction[];
 };
 
+export type PermissionSection = {
+  key: string;
+  title: string;
+  description: string;
+  modules: PermissionModule[];
+};
+
 const LIST_VIEW_KEY = "view";
+
+/** Friendly module names (match what staff see in the sidebar). */
+export const MODULE_DISPLAY_NAMES: Record<string, string> = {
+  Dashboard: "Dashboard",
+  Order: "Orders",
+  Kot: "Kitchen tickets (KOT)",
+  Product: "Menu items",
+  "Product Category": "Menu categories",
+  "Open Item": "Open items",
+  Addons: "Add-ons",
+  "Stock Item": "Stock items",
+  "Measuring Unit": "Measuring units",
+  "Stock Group": "Stock groups",
+  "Stock History": "Stock history",
+  Revenue: "Revenue",
+  Purchase: "Purchases",
+  "Purchase Category": "Purchase categories",
+  Expense: "Expenses",
+  "Expense Category": "Expense categories",
+  Supplier: "Suppliers",
+  "Daily Reports": "Daily reports",
+  "Table Report": "Table reports",
+  Reports: "Reports",
+  Customer: "Customers",
+  Floor: "Floors",
+  Table: "Tables",
+  Department: "Departments",
+  Account: "Cash & bank accounts",
+  Transaction: "Transactions",
+  "Account Permission": "Account permissions",
+  Transfer: "Transfers",
+  Users: "Staff users",
+  Roles: "Roles & permissions",
+  Media: "Media files",
+  "Media Category": "Media folders",
+  "Company Settings": "Company settings",
+  Ledger: "Ledger",
+  "Email Template": "Email templates",
+  "Active Email Template": "Active email templates",
+  "Email SMTP": "Email (SMTP) settings",
+  "Access Module": "System access modules",
+  "Action Request": "Action requests",
+  Layout: "POS layout",
+};
+
+/** Group modules like the left sidebar for easier scanning. */
+export const PERMISSION_SECTIONS: Array<{
+  key: string;
+  title: string;
+  description: string;
+  modules: string[];
+}> = [
+  {
+    key: "dashboard",
+    title: "Dashboard",
+    description: "Home screen overview",
+    modules: ["Dashboard"],
+  },
+  {
+    key: "orders",
+    title: "Orders",
+    description: "Taking and managing orders",
+    modules: ["Order", "Kot"],
+  },
+  {
+    key: "menu",
+    title: "Menu",
+    description: "Items, categories, and add-ons",
+    modules: ["Product", "Product Category", "Open Item", "Addons"],
+  },
+  {
+    key: "inventory",
+    title: "Inventory",
+    description: "Stock and measuring units",
+    modules: ["Stock Item", "Measuring Unit", "Stock Group", "Stock History"],
+  },
+  {
+    key: "finance",
+    title: "Finance",
+    description: "Money in and money out",
+    modules: [
+      "Revenue",
+      "Purchase",
+      "Purchase Category",
+      "Expense",
+      "Expense Category",
+      "Supplier",
+    ],
+  },
+  {
+    key: "reports",
+    title: "Reports",
+    description: "Business reports",
+    modules: ["Daily Reports", "Table Report", "Reports"],
+  },
+  {
+    key: "customers",
+    title: "Customers",
+    description: "Customer records",
+    modules: ["Customer"],
+  },
+  {
+    key: "floors",
+    title: "Floors & tables",
+    description: "Floor plan and seating",
+    modules: ["Floor", "Table", "Department"],
+  },
+  {
+    key: "cash",
+    title: "Cash & banks",
+    description: "Accounts and money movement",
+    modules: ["Account", "Transaction", "Account Permission", "Transfer"],
+  },
+  {
+    key: "users",
+    title: "Users & roles",
+    description: "Staff accounts and access",
+    modules: ["Users", "Roles"],
+  },
+  {
+    key: "media",
+    title: "Media",
+    description: "Photos and files",
+    modules: ["Media", "Media Category"],
+  },
+  {
+    key: "settings",
+    title: "Settings",
+    description: "Cafe and system settings",
+    modules: [
+      "Company Settings",
+      "Ledger",
+      "Email Template",
+      "Active Email Template",
+      "Email SMTP",
+      "Layout",
+    ],
+  },
+  {
+    key: "system",
+    title: "Advanced / system",
+    description: "Usually only for managers",
+    modules: ["Access Module", "Action Request"],
+  },
+];
+
+/** Plain-language labels for common action keys. */
+const ACTION_KEY_LABELS: Record<string, string> = {
+  view: "Can open and see this section",
+  "view-one": "Can open a single record",
+  "view-single": "Can open a single record",
+  "view-by-id": "Can open a single record",
+  "view-grouped": "Can see grouped totals",
+  "view-total": "Can see totals",
+  "view-order-item": "Can see items on an order",
+  add: "Can add new records",
+  edit: "Can edit records",
+  delete: "Can delete records",
+  block: "Can block / unblock",
+  "toggle-isActive": "Can turn active on or off",
+  "reset-password": "Can reset staff passwords",
+  "change-password": "Can change password",
+  "change-name": "Can rename",
+  "edit-status": "Can change status",
+  "edit-default": "Can set as default",
+  "edit-order": "Can edit an order",
+  "order-checkout": "Can take payment / checkout",
+  "edit-order-item-status": "Can update item status on an order",
+  adjust: "Can adjust stock counts",
+  import: "Can import data",
+  "payment-qr-initiate": "Can start QR payment",
+  "payment-qr-status": "Can check QR payment status",
+  "payment-qr-cancel": "Can cancel QR payment",
+  "get-by-user-id": "Can look up by staff member",
+};
 
 const DETAIL_VIEW_KEYS = new Set([
   "view-single",
@@ -39,6 +221,10 @@ const DETAIL_REQUIRED_KEYS = new Set([
   "edit-order-item-status",
   "order-checkout",
 ]);
+
+export function getModuleDisplayName(listKey: string): string {
+  return MODULE_DISPLAY_NAMES[listKey] || listKey;
+}
 
 export function isListViewKey(key: string): boolean {
   return key === LIST_VIEW_KEY;
@@ -80,13 +266,13 @@ export function getPrerequisiteLabels(
   const listView = getListViewAction(moduleActions);
 
   if (requiresListView(action.key) && listView) {
-    labels.push(listView.title);
+    labels.push(getDisplayTitle(listView, moduleActions));
   }
 
   if (requiresDetailView(action.key)) {
     const detailViews = getDetailViewActions(moduleActions);
     if (detailViews.length > 0) {
-      labels.push(detailViews[0].title);
+      labels.push(getDisplayTitle(detailViews[0], moduleActions));
     }
   }
 
@@ -235,13 +421,70 @@ export function getDisplayTitle(
   action: PermissionAction,
   moduleActions: PermissionAction[],
 ): string {
-  const duplicates = moduleActions.filter((item) => item.title === action.title);
-  if (duplicates.length <= 1) return action.title;
+  const mapped = ACTION_KEY_LABELS[action.key];
+  if (mapped) return mapped;
+
+  const cleaned = String(action.title || "")
+    .replace(/\b(API|Endpoint|Route)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned && !/^[a-z0-9-]+$/i.test(cleaned)) {
+    const duplicates = moduleActions.filter((item) => item.title === action.title);
+    if (duplicates.length <= 1) return cleaned;
+  }
 
   const keyLabel = action.key
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-  return `${action.title} (${keyLabel})`;
+  return cleaned || keyLabel;
+}
+
+export function groupModulesIntoSections(
+  modules: PermissionModule[],
+): PermissionSection[] {
+  const byKey = new Map(modules.map((module) => [module.key, module]));
+  const used = new Set<string>();
+
+  const sections: PermissionSection[] = PERMISSION_SECTIONS.map((section) => {
+    const sectionModules = section.modules
+      .map((name) => {
+        const module = byKey.get(name);
+        if (!module) return null;
+        used.add(name);
+        return {
+          ...module,
+          title: getModuleDisplayName(module.key),
+        };
+      })
+      .filter(Boolean) as PermissionModule[];
+
+    return {
+      key: section.key,
+      title: section.title,
+      description: section.description,
+      modules: sectionModules,
+    };
+  }).filter((section) => section.modules.length > 0);
+
+  const leftover = modules
+    .filter((module) => !used.has(module.key))
+    .map((module) => ({
+      ...module,
+      title: getModuleDisplayName(module.key),
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  if (leftover.length > 0) {
+    sections.push({
+      key: "other",
+      title: "Other",
+      description: "Additional permissions",
+      modules: leftover,
+    });
+  }
+
+  return sections;
 }

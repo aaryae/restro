@@ -11,11 +11,12 @@ import { ChevronDown, ChevronRight, Search, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getDisplayTitle,
+  getModuleDisplayName,
   getPrerequisiteLabels,
+  groupModulesIntoSections,
   groupPermissionsByCategory,
   isPermissionEnabled,
   normalizeSelectedPermissions,
-  PermissionAction,
   PermissionModule,
   toggleAllInModule,
   togglePermission,
@@ -37,7 +38,7 @@ function groupRoleMenuActions(response: ResponseItem[]): PermissionModule[] {
       if (!acc[each.list]) {
         acc[each.list] = {
           key: each.list,
-          title: each.list,
+          title: getModuleDisplayName(each.list),
           children: [],
         };
       }
@@ -52,14 +53,14 @@ function groupRoleMenuActions(response: ResponseItem[]): PermissionModule[] {
     {},
   );
 
-  return Object.values(grouped).sort((a, b) => a.title.localeCompare(b.title));
+  return Object.values(grouped);
 }
 
 const CATEGORY_LABELS = {
-  view: "View access",
-  create: "Create",
-  modify: "Modify & delete",
-  other: "Advanced",
+  view: "See / open",
+  create: "Add new",
+  modify: "Change or delete",
+  other: "Other actions",
 } as const;
 
 export default function EditRoles({
@@ -83,6 +84,9 @@ export default function EditRoles({
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(
     {},
   );
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const modules: PermissionModule[] = useMemo(() => {
     if (success && roleMenuAction?.data?.data) {
@@ -91,21 +95,26 @@ export default function EditRoles({
     return [];
   }, [success, roleMenuAction]);
 
-  const filteredModules = useMemo(() => {
+  const sections = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return modules;
+    const filteredModules = !query
+      ? modules
+      : modules
+          .map((module) => ({
+            ...module,
+            children: module.children.filter(
+              (action) =>
+                getDisplayTitle(action, module.children)
+                  .toLowerCase()
+                  .includes(query) ||
+                action.key.toLowerCase().includes(query) ||
+                module.title.toLowerCase().includes(query) ||
+                module.key.toLowerCase().includes(query),
+            ),
+          }))
+          .filter((module) => module.children.length > 0);
 
-    return modules
-      .map((module) => ({
-        ...module,
-        children: module.children.filter(
-          (action) =>
-            action.title.toLowerCase().includes(query) ||
-            action.key.toLowerCase().includes(query) ||
-            module.title.toLowerCase().includes(query),
-        ),
-      }))
-      .filter((module) => module.children.length > 0);
+    return groupModulesIntoSections(filteredModules);
   }, [modules, search]);
 
   useEffect(() => {
@@ -125,6 +134,19 @@ export default function EditRoles({
       );
     }
   }, [id, allowableRoles, allowableRolesSuccess, modules]);
+
+  useEffect(() => {
+    // Expand first couple of sections by default for discoverability.
+    if (sections.length === 0) return;
+    setExpandedSections((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const next: Record<string, boolean> = {};
+      sections.slice(0, 2).forEach((section) => {
+        next[section.key] = true;
+      });
+      return next;
+    });
+  }, [sections]);
 
   const totalPermissions = modules.reduce(
     (count, module) => count + module.children.length,
@@ -149,16 +171,31 @@ export default function EditRoles({
     }));
   };
 
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey],
+    }));
+  };
+
+  const flatModules = sections.flatMap((section) => section.modules);
+
   const allExpanded =
-    filteredModules.length > 0 &&
-    filteredModules.every((module) => expandedModules[module.key]);
+    flatModules.length > 0 &&
+    flatModules.every((module) => expandedModules[module.key]) &&
+    sections.every((section) => expandedSections[section.key]);
 
   const handleExpandAll = () => {
-    const next: Record<string, boolean> = {};
-    filteredModules.forEach((module) => {
-      next[module.key] = !allExpanded;
+    const nextModules: Record<string, boolean> = {};
+    const nextSections: Record<string, boolean> = {};
+    sections.forEach((section) => {
+      nextSections[section.key] = !allExpanded;
+      section.modules.forEach((module) => {
+        nextModules[module.key] = !allExpanded;
+      });
     });
-    setExpandedModules(next);
+    setExpandedModules(nextModules);
+    setExpandedSections(nextSections);
   };
 
   const handleCloseDrawer = () => {
@@ -206,6 +243,11 @@ export default function EditRoles({
               {roleTitle} · {accessRoles.length} of {totalPermissions}{" "}
               {translate("permissions selected")}
             </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {translate(
+                "Turn on what this role can see and do — grouped like the left menu.",
+              )}
+            </p>
           </div>
         </div>
 
@@ -216,14 +258,14 @@ export default function EditRoles({
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search modules or permissions..."
+              placeholder="Search e.g. orders, dashboard, stock..."
               className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-primaryColor/40 focus:ring-2 focus:ring-primaryColor/15"
             />
           </div>
           <button
             type="button"
             onClick={handleExpandAll}
-            disabled={filteredModules.length === 0}
+            disabled={flatModules.length === 0}
             className="text-sm font-medium text-primaryColor transition hover:text-primaryColor/80 disabled:opacity-50"
           >
             {allExpanded ? translate("Collapse All") : translate("Expand All")}
@@ -232,138 +274,202 @@ export default function EditRoles({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
-        <div className="space-y-3">
-          {filteredModules.map((module) => {
-            const selectedCount = module.children.filter((action) =>
-              accessRoles.includes(action.id),
-            ).length;
-            const allSelected =
-              module.children.length > 0 &&
-              selectedCount === module.children.length;
-            const isExpanded = expandedModules[module.key] ?? false;
-            const groups = groupPermissionsByCategory(module.children);
+        <div className="space-y-5">
+          {sections.map((section) => {
+            const sectionSelected = section.modules.reduce(
+              (count, module) =>
+                count +
+                module.children.filter((action) =>
+                  accessRoles.includes(action.id),
+                ).length,
+              0,
+            );
+            const sectionTotal = section.modules.reduce(
+              (count, module) => count + module.children.length,
+              0,
+            );
+            const sectionOpen = expandedSections[section.key] ?? false;
 
             return (
-              <div
-                key={module.key}
-                className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
-              >
+              <section key={section.key} className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => toggleModule(module.key)}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80"
+                  onClick={() => toggleSection(section.key)}
+                  className="flex w-full items-center gap-2 rounded-xl px-1 py-1 text-left"
                 >
-                  {isExpanded ? (
+                  {sectionOpen ? (
                     <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
                   ) : (
                     <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{module.title}</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {section.title}
+                    </p>
                     <p className="text-xs text-slate-500">
-                      {selectedCount} / {module.children.length} selected
+                      {section.description} · {sectionSelected}/{sectionTotal}{" "}
+                      selected
                     </p>
                   </div>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                      selectedCount > 0
-                        ? "bg-primaryColor/10 text-primaryColor"
-                        : "bg-slate-100 text-slate-500",
-                    )}
-                  >
-                    {selectedCount > 0 ? "Granted" : "None"}
-                  </span>
                 </button>
 
-                {isExpanded && (
-                  <div className="border-t border-slate-100 px-4 py-4">
-                    <label className="mb-4 flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={(event) =>
-                          handleSelectAll(module, event.target.checked)
-                        }
-                        className="h-4 w-4 rounded border-slate-300 text-primaryColor focus:ring-primaryColor/30"
-                      />
-                      <span className="text-sm font-medium text-slate-700">
-                        {translate("Select all in this module")}
-                      </span>
-                    </label>
+                {sectionOpen && (
+                  <div className="space-y-3 pl-1">
+                    {section.modules.map((module) => {
+                      const selectedCount = module.children.filter((action) =>
+                        accessRoles.includes(action.id),
+                      ).length;
+                      const allSelected =
+                        module.children.length > 0 &&
+                        selectedCount === module.children.length;
+                      const isExpanded = expandedModules[module.key] ?? false;
+                      const groups = groupPermissionsByCategory(module.children);
 
-                    <div className="space-y-4">
-                      {(
-                        Object.keys(CATEGORY_LABELS) as Array<
-                          keyof typeof CATEGORY_LABELS
+                      return (
+                        <div
+                          key={module.key}
+                          className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
                         >
-                      ).map((category) => {
-                        const items = groups[category];
-                        if (items.length === 0) return null;
-
-                        return (
-                          <div key={category}>
-                            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              {CATEGORY_LABELS[category]}
-                            </p>
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                              {items.map((action) => {
-                                const checked = accessRoles.includes(action.id);
-                                const enabled = isPermissionEnabled(
-                                  action,
-                                  module.children,
-                                  accessRoles,
-                                );
-                                const prerequisites = getPrerequisiteLabels(
-                                  action,
-                                  module.children,
-                                );
-
-                                return (
-                                  <label
-                                    key={action.id}
-                                    className={cn(
-                                      "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition",
-                                      checked
-                                        ? "border-primaryColor/25 bg-primaryColor/[0.04]"
-                                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50",
-                                      !enabled && !checked && "opacity-60",
-                                    )}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      disabled={!enabled && !checked}
-                                      onChange={() =>
-                                        handleCheckboxChange(module, action.id)
-                                      }
-                                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primaryColor focus:ring-primaryColor/30 disabled:cursor-not-allowed"
-                                    />
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-medium text-slate-800">
-                                        {getDisplayTitle(action, module.children)}
-                                      </p>
-                                      {!enabled && !checked && prerequisites.length > 0 && (
-                                        <p className="mt-0.5 text-xs text-amber-700">
-                                          Requires: {prerequisites.join(", ")}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </label>
-                                );
-                              })}
+                          <button
+                            type="button"
+                            onClick={() => toggleModule(module.key)}
+                            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-slate-900">
+                                {module.title}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {selectedCount} / {module.children.length}{" "}
+                                selected
+                              </p>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            <span
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                                selectedCount > 0
+                                  ? "bg-primaryColor/10 text-primaryColor"
+                                  : "bg-slate-100 text-slate-500",
+                              )}
+                            >
+                              {selectedCount > 0
+                                ? translate("Allowed")
+                                : translate("No access")}
+                            </span>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="border-t border-slate-100 px-4 py-4">
+                              <label className="mb-4 flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={allSelected}
+                                  onChange={(event) =>
+                                    handleSelectAll(module, event.target.checked)
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-primaryColor focus:ring-primaryColor/30"
+                                />
+                                <span className="text-sm font-medium text-slate-700">
+                                  {translate("Allow everything in this area")}
+                                </span>
+                              </label>
+
+                              <div className="space-y-4">
+                                {(
+                                  Object.keys(CATEGORY_LABELS) as Array<
+                                    keyof typeof CATEGORY_LABELS
+                                  >
+                                ).map((category) => {
+                                  const items = groups[category];
+                                  if (items.length === 0) return null;
+
+                                  return (
+                                    <div key={category}>
+                                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                        {CATEGORY_LABELS[category]}
+                                      </p>
+                                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                        {items.map((action) => {
+                                          const checked = accessRoles.includes(
+                                            action.id,
+                                          );
+                                          const enabled = isPermissionEnabled(
+                                            action,
+                                            module.children,
+                                            accessRoles,
+                                          );
+                                          const prerequisites =
+                                            getPrerequisiteLabels(
+                                              action,
+                                              module.children,
+                                            );
+
+                                          return (
+                                            <label
+                                              key={action.id}
+                                              className={cn(
+                                                "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition",
+                                                checked
+                                                  ? "border-primaryColor/25 bg-primaryColor/[0.04]"
+                                                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/50",
+                                                !enabled &&
+                                                  !checked &&
+                                                  "opacity-60",
+                                              )}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                disabled={!enabled && !checked}
+                                                onChange={() =>
+                                                  handleCheckboxChange(
+                                                    module,
+                                                    action.id,
+                                                  )
+                                                }
+                                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primaryColor focus:ring-primaryColor/30 disabled:cursor-not-allowed"
+                                              />
+                                              <div className="min-w-0">
+                                                <p className="text-sm font-medium text-slate-800">
+                                                  {getDisplayTitle(
+                                                    action,
+                                                    module.children,
+                                                  )}
+                                                </p>
+                                                {!enabled &&
+                                                  !checked &&
+                                                  prerequisites.length > 0 && (
+                                                    <p className="mt-0.5 text-xs text-amber-700">
+                                                      Needs:{" "}
+                                                      {prerequisites.join(", ")}
+                                                    </p>
+                                                  )}
+                                              </div>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
+              </section>
             );
           })}
 
-          {filteredModules.length === 0 && (
+          {sections.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-sm text-slate-500">
               {translate("No permissions match your search.")}
             </div>
