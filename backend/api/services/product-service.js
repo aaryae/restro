@@ -368,8 +368,9 @@ const updateByOrder = async (req) => {
  *
  * Categories and departments are referenced by name (not id) because that is
  * what a cafe actually has in their existing menu sheet. Missing categories can
- * be created on the fly; departments must already exist since they drive KOT
- * routing. `dryRun` validates and reports without persisting anything.
+ * be created on the fly. Department is optional; if a name is provided it must
+ * already exist (or be added from the bulk-upload UI) so KOT routing stays
+ * intentional. `dryRun` validates and reports without persisting anything.
  */
 const importFromExcel = async (file, options = {}) => {
   const { dryRun = false, createMissingCategories = true } = options;
@@ -436,7 +437,6 @@ const importFromExcel = async (file, options = {}) => {
     const existingNames = new Set(
       existingProducts.map((p) => p.name.trim().toLowerCase()),
     );
-    const defaultDepartment = departments[0] || null;
 
     const minOrder = await productModel.min("order", { transaction });
     let nextOrder =
@@ -444,12 +444,14 @@ const importFromExcel = async (file, options = {}) => {
 
     const results = [];
     const createdCategories = [];
+    const missingDepartments = new Map();
     let created = 0;
     let skipped = 0;
     let failed = 0;
 
     for (const candidate of candidates) {
       const errors = [...candidate.errors];
+      let missingDepartment = null;
 
       if (!errors.length && existingNames.has(candidate.name.toLowerCase())) {
         skipped += 1;
@@ -469,15 +471,21 @@ const importFromExcel = async (file, options = {}) => {
         errors.push(`Category "${candidate.category}" does not exist`);
       }
 
-      const department = candidate.department
-        ? departmentByName.get(candidate.department.toLowerCase())
-        : defaultDepartment;
-      if (!department) {
-        errors.push(
-          candidate.department
-            ? `Department "${candidate.department}" does not exist`
-            : "No department found — create one before importing",
-        );
+      // Department is optional. A blank cell imports without a department.
+      // A named department must already exist (create it from the import UI).
+      let department = null;
+      if (candidate.department) {
+        department = departmentByName.get(candidate.department.toLowerCase());
+        if (!department) {
+          missingDepartment = candidate.department;
+          const key = candidate.department.trim().toLowerCase();
+          if (!missingDepartments.has(key)) {
+            missingDepartments.set(key, candidate.department.trim());
+          }
+          errors.push(
+            `Department "${candidate.department}" was not found. Add it below, then re-check this file.`,
+          );
+        }
       }
 
       if (errors.length) {
@@ -487,6 +495,7 @@ const importFromExcel = async (file, options = {}) => {
           name: candidate.name,
           status: "failed",
           message: errors.join("; "),
+          missingDepartment,
         });
         continue;
       }
@@ -513,7 +522,7 @@ const importFromExcel = async (file, options = {}) => {
           quantity: candidate.quantity,
           stockStatus: candidate.stockStatus,
           productCategoryId: category.id,
-          departmentId: department.id,
+          departmentId: department?.id ?? null,
           hasVariant: false,
           order: nextOrder,
         },
@@ -550,6 +559,7 @@ const importFromExcel = async (file, options = {}) => {
         skipped,
         failed,
         createdCategories: dryRun ? [] : createdCategories,
+        missingDepartments: [...missingDepartments.values()],
         rows: results,
       },
     };

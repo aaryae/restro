@@ -29,10 +29,17 @@ export const ProductSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     description: z.string().nullish(),
-    departmentId: z.coerce.number().min(1, "Department is required"),
+    departmentId: z.preprocess(
+      (v) =>
+        v === "" || v === null || v === undefined || Number.isNaN(Number(v))
+          ? undefined
+          : v,
+      z.coerce.number().int().positive().optional(),
+    ),
     productCategoryId: z.coerce.number().min(1, "Item Category is required"),
     mediaArr: z
       .array(z.string().min(1, "Each Image URL must be valid"))
+      .max(1, "Only one image is allowed")
       .optional()
       .default([]),
     addons: z.array(z.coerce.number()).optional().default([]),

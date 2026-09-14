@@ -60,6 +60,16 @@ export default function Customer() {
     refetch();
   };
 
+  const setCustomerFormDrawerOpen = (
+    value: boolean | ((prev: boolean) => boolean),
+  ) => {
+    const next = typeof value === "function" ? value(customerFormOpen) : value;
+    setCustomerFormOpen(next);
+    if (!next) {
+      setEditCustomerId(null);
+    }
+  };
+
   const handleDeleteTrigger = (id: number) => {
     setDeletedId(id);
     setDeleteModelOpen(true);
@@ -254,7 +264,7 @@ export default function Customer() {
       )}
       <Drawer
         isOpen={customerFormOpen}
-        setIsOpen={setCustomerFormOpen}
+        setIsOpen={setCustomerFormDrawerOpen}
         width="w-full max-w-xl"
       >
         <div className="mb-4">
@@ -267,11 +277,14 @@ export default function Customer() {
               : "Create a new guest profile for checkout and membership."}
           </p>
         </div>
-        <AddEditCustomer
-          isComponent
-          editId={editCustomerId}
-          closeModal={closeCustomerForm}
-        />
+        {customerFormOpen ? (
+          <AddEditCustomer
+            key={editCustomerId ?? "new"}
+            isComponent
+            editId={editCustomerId}
+            closeModal={closeCustomerForm}
+          />
+        ) : null}
       </Drawer>
       <Drawer isOpen={isOpen} setIsOpen={setIsOpen} width="w-full lg:w-[70%]">
         <ViewCustomer id={customerId} isOpen={isOpen} setIsOpen={setIsOpen} />

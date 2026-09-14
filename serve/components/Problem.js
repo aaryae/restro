@@ -33,7 +33,7 @@ export default function Problem() {
           <div className="section-rule" />
         </div>
         <div data-reveal="right" data-delay="2">
-          <p className="mt-6 max-w-[480px] text-[1.05rem] leading-relaxed font-light"
+          <p className="mt-6 max-w-120 text-[1.05rem] leading-relaxed font-light"
             style={{ color: 'rgba(245,239,230,0.6)' }}>
             Most cafe owners are expert at coffee — not spreadsheets, manual KOTs, WhatsApp orders, and guessing month-end numbers. SERVE was built because we lived this chaos.
           </p>

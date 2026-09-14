@@ -1125,12 +1125,13 @@ const todayPurchase = async (req) => {
       where: purchaseFilters,
     });
 
+    // LEFT JOIN categories so inventory / uncategorized lines still appear.
     const purchasesByCategory = await purchaseItemModel.findAll({
       attributes: [
         "categoryId",
         [sequelize.col("category.id"), "id"],
         [sequelize.col("category.name"), "categoryName"],
-        [sequelize.fn("SUM", sequelize.col("amount")), "totalPurchase"],
+        [sequelize.fn("SUM", sequelize.col("PurchaseItem.amount")), "totalPurchase"],
         [sequelize.fn("COUNT", sequelize.col("PurchaseItem.id")), "itemCount"],
       ],
       where: {},
@@ -1139,7 +1140,7 @@ const todayPurchase = async (req) => {
           model: purchaseCategoryModel,
           as: "category",
           attributes: ["id", "name"],
-          required: true,
+          required: false,
         },
         {
           model: purchaseModel,
@@ -1149,8 +1150,12 @@ const todayPurchase = async (req) => {
           required: true,
         },
       ],
-      group: ["categoryId", "category.id", "category.name"],
-      order: [[sequelize.fn("SUM", sequelize.col("amount")), "DESC"]],
+      group: [
+        "PurchaseItem.categoryId",
+        "category.id",
+        "category.name",
+      ],
+      order: [[sequelize.fn("SUM", sequelize.col("PurchaseItem.amount")), "DESC"]],
       raw: true,
     });
 
@@ -1162,7 +1167,7 @@ const todayPurchase = async (req) => {
         date: targetDate,
         totalPurchase: parseFloat(total || 0),
         categories: purchasesByCategory.map((p) => ({
-          id: p.id,
+          id: p.id ?? p.categoryId ?? null,
           categoryName: p.categoryName || "Uncategorized",
           totalPurchase: parseFloat(p.totalPurchase || 0),
         })),

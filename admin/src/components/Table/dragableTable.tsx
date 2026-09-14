@@ -21,6 +21,7 @@ import { PaginationType } from "@/types/commonTypes";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./index.module.css";
 import Select from "@/components/Select";
+import useTranslation from "@/locale/useTranslation";
 
 type DraggableTableProps = {
   headers: string[];
@@ -58,8 +59,11 @@ export default function DraggableTable({
   pagination,
   handlePagination,
 }: DraggableTableProps) {
+  const translate = useTranslation();
   const [products, setProducts] = useState(data);
   const mergedActionsLayout = useMergedActionsLayout(headers);
+  const hasRows = Array.isArray(products) && products.length > 0;
+  const emptyColSpan = 1 + headers.length;
 
   useEffect(() => {
     if (success && !fetching && !loading) {
@@ -161,20 +165,30 @@ export default function DraggableTable({
                 )}
               </tr>
             </thead>
-            <SortableContext
-              items={products.map((product) => product[0])}
-              strategy={verticalListSortingStrategy}
-            >
+            {hasRows ? (
+              <SortableContext
+                items={products.map((product) => product[0])}
+                strategy={verticalListSortingStrategy}
+              >
+                <tbody className={styles.body}>
+                  {products.map((product) => (
+                    <SortableRow
+                      key={product[0]}
+                      product={product}
+                      mergedActionsLayout={mergedActionsLayout}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            ) : (
               <tbody className={styles.body}>
-                {products.map((product) => (
-                  <SortableRow
-                    key={product[0]}
-                    product={product}
-                    mergedActionsLayout={mergedActionsLayout}
-                  />
-                ))}
+                <tr>
+                  <td colSpan={emptyColSpan} className={styles.empty}>
+                    {translate("No data available")}
+                  </td>
+                </tr>
               </tbody>
-            </SortableContext>
+            )}
           </table>
         </DndContext>
       </div>

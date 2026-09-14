@@ -2,14 +2,14 @@ import DishPlaceHolder from "@/assets/product_placeholder.jpg";
 import Button from "@/components/Button";
 import CustomDialog from "@/components/Dialog";
 import Drawer from "@/components/Drawer";
-import { MultipleImageInputUI } from "@/components/ImageComponent";
+import { ImageInputUI } from "@/components/ImageComponent";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
 import ToggleSwitch from "@/components/Switch";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { LIST_LIMIT } from "@/constants/listLimits";
 import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
-import useImageHandler from "@/hooks/useImageHandler";
+import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
 import useTranslation from "@/locale/useTranslation";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import {
@@ -18,11 +18,13 @@ import {
   useUpdateProductByIdMutation,
 } from "@/redux/services/product";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
+import { useAppSelector } from "@/redux/store/hooks";
 import { PRODUCT_LIST_ROUTE } from "@/routes/routeNames";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { useDispatch } from "react-redux";
 import { Eye, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -47,7 +49,6 @@ export default function ProductForm() {
     handleSubmit,
     watch,
     setValue,
-    getValues,
     setError,
     reset,
     formState: { errors },
@@ -75,16 +76,23 @@ export default function ProductForm() {
   const hasVariant = watch("hasVariant");
   const isTopSelling = watch("isTopSelling");
   const variants = watch("variants");
+  const mediaArr = watch("mediaArr") || [];
+  const productImage =
+    Array.isArray(mediaArr) && mediaArr.length > 0 ? mediaArr[0] : "";
 
-  const {
-    media,
-    currentImageIndex,
-    isImageModelOpen,
-    setIsImageModalOpen,
-    handleConfirmImage,
-    handleNextButton,
-    handlePrevButton,
-  } = useImageHandler(setValue, getValues, "mediaArr");
+  const dispatch = useDispatch();
+  const selectedImage = useAppSelector((state) => state.media.selectedImage);
+  const [isImageModelOpen, setIsImageModalOpen] = useState(false);
+
+  const handleConfirmImage = () => {
+    setValue("mediaArr", selectedImage ? [selectedImage] : [], {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    dispatch(clearSelectedMedia());
+    setIsImageModalOpen(false);
+  };
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
@@ -149,7 +157,10 @@ export default function ProductForm() {
       reset({
         ...product?.data,
         productCategoryId: String(product?.data?.productCategoryId),
-        departmentId: String(product?.data?.departmentId),
+        departmentId:
+          product?.data?.departmentId != null
+            ? String(product.data.departmentId)
+            : "",
         variants: Array.isArray(product?.data?.variants)
           ? product.data.variants.map((v: any) => ({
               name: v.name ?? "",
@@ -167,10 +178,14 @@ export default function ProductForm() {
         price,
         isTopSelling: Boolean(product?.data?.isTopSelling),
         topSellingOrder: Number(product?.data?.topSellingOrder || 0),
-        mediaArr:
-          product?.data?.mediaArr
-            ?.map((each: { imageUrl?: string }) => each?.imageUrl)
-            .filter(Boolean) || [],
+        mediaArr: (() => {
+          const urls =
+            product?.data?.mediaArr
+              ?.map((each: { imageUrl?: string }) => each?.imageUrl)
+              .filter(Boolean) || [];
+          // Items support a single image only.
+          return urls.slice(0, 1);
+        })(),
         addons: Array.isArray((product?.data as any)?.addons)
           ? (product?.data as any).addons.map((a: any) => a.id)
           : [],
@@ -244,7 +259,10 @@ export default function ProductForm() {
       price: data.hasVariant ? 0 : Number(data.price || 0),
       // quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
       productCategoryId: Number(data.productCategoryId),
-      departmentId: Number(data.departmentId),
+      departmentId:
+        data.departmentId != null && Number(data.departmentId) > 0
+          ? Number(data.departmentId)
+          : null,
       isTopSelling: Boolean(data.isTopSelling),
       topSellingOrder: Number(data.topSellingOrder || 0),
       variants: data.hasVariant ? data.variants : [],
@@ -331,8 +349,9 @@ export default function ProductForm() {
               options={departmentOptions}
               className="w-full md:w-1/2"
               error={errors.departmentId?.message}
-          isRequired
-        />
+              clearable
+              clearLabel="None"
+            />
           )}
         />
 
@@ -341,13 +360,13 @@ export default function ProductForm() {
           <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
             <MediaComponent
               title={
-                <MultipleImageInputUI
-                  images={media}
-                  imageIndex={currentImageIndex}
+                <ImageInputUI
+                  image={productImage}
+                  imageMessage="Upload one image. Allowed JPG, GIF or PNG."
                 />
               }
-              isMultiSelect={true}
-              handleConfirmImage={() => handleConfirmImage("mediaArr")}
+              isMultiSelect={false}
+              handleConfirmImage={handleConfirmImage}
               open={isImageModelOpen}
               setOpen={setIsImageModalOpen}
             />

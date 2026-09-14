@@ -92,7 +92,7 @@ const Table: React.FC<TableProps> = ({
                   key={index}
                   style={
                     isActionsHeader(header, index, headers.length)
-                      ? { width: "8rem" }
+                      ? { minWidth: "14rem", width: "auto" }
                       : undefined
                   }
                 />
@@ -109,7 +109,7 @@ const Table: React.FC<TableProps> = ({
               </tr>
             </thead>
             <tbody className={styles.body}>
-              {data.length > 0 ? (
+              {Array.isArray(data) && data.length > 0 ? (
                 data.map((row, index) => (
                   <tr key={index}>
                     {isSN && (
@@ -137,9 +137,12 @@ const Table: React.FC<TableProps> = ({
                   </tr>
                 ))
               ) : (
-                <tr>
+                <tr className={styles.emptyRow}>
                   <td
-                    colSpan={isSN ? headers.length + 1 : headers.length}
+                    colSpan={Math.max(
+                      isSN ? headers.length + 1 : headers.length,
+                      1,
+                    )}
                     className={styles.empty}
                   >
                     {translate("No data available")}

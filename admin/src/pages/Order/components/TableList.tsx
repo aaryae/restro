@@ -186,14 +186,12 @@ export default function TableList() {
             }}
           />
 
-          {allTables?.data?.data && (
-            <Tables
-              tables={allTables?.data?.data}
-              chooseTable={handleTableClick}
-              selectedStatus={selectedStatus}
-              selectedFloor={selectedFloor}
-            />
-          )}
+          <Tables
+            tables={allTables?.data?.data ?? []}
+            chooseTable={handleTableClick}
+            selectedStatus={selectedStatus}
+            selectedFloor={selectedFloor}
+          />
           <div className="mt-10">
             <TakeAwayOrders />
           </div>
@@ -267,8 +265,8 @@ function Tables({
   return (
     <div className="mt-5 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 min-[390px]:gap-3.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {!filteredTables || filteredTables.length === 0 ? (
-        <div className="col-span-full text-center text-gray-500 py-8">
-          No table found
+        <div className="col-span-full py-12 text-center text-sm font-medium text-[var(--serve-muted,theme(colors.slate.500))]">
+          No data available
         </div>
       ) : (
         filteredTables.map((table: any) => (

@@ -42,7 +42,13 @@ export const OrderSchema = z
         openItemId: z.coerce.number().optional(),
         productPrice: z.coerce.number(),
         quantity: z.number().min(1),
-        departmentId: z.coerce.number(),
+        departmentId: z.preprocess(
+          (v) =>
+            v === "" || v === null || v === undefined || Number.isNaN(Number(v))
+              ? undefined
+              : v,
+          z.coerce.number().optional(),
+        ),
         specialInstructions: optionalString,
         addons: z
           .array(

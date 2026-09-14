@@ -44,7 +44,7 @@ const createOrderValidation = async (req, res, next) => {
           .object({
             quantity: joi.number().integer().min(1).required(),
             specialInstructions: joi.string().allow("").max(500).optional(),
-            departmentId: joi.number().integer().required(),
+            departmentId: joi.number().integer().positive().optional().allow(null),
             discount: joi.number().min(0).optional(),
             discountPercentage: joi.number().min(0).max(100).optional(),
             addons: joi
@@ -114,7 +114,7 @@ const addItemsToOrderValidation = async (req, res, next) => {
           productId: joi.number().integer().required(),
           quantity: joi.number().integer().min(1).required(),
           specialInstructions: joi.string().max(500).optional(),
-          departmentId: joi.number().integer().optional(),
+          departmentId: joi.number().integer().positive().optional().allow(null),
         }),
       )
       .min(1)
@@ -207,7 +207,7 @@ const updateOrderItemsValidation = async (req, res, next) => {
             id: joi.number().positive(),
             quantity: joi.number().integer().min(1).required(),
             specialInstructions: joi.string().allow("").max(500).optional(),
-            departmentId: joi.number().integer().required(),
+            departmentId: joi.number().integer().positive().optional().allow(null),
             discount: joi.number().min(0).optional(),
             discountPercentage: joi.number().min(0).max(100).optional(),
             addons: joi

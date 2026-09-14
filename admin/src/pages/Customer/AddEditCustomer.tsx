@@ -20,6 +20,13 @@ import { useEffect, type ClipboardEvent, type KeyboardEvent } from "react";
 
 type CustomerFormType = z.infer<typeof CustomerSchema>;
 
+const EMPTY_CUSTOMER_FORM: CustomerFormType = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  mobileNo: "",
+};
+
 export type CreatedCustomer = {
   id: number | string;
   firstName?: string;
@@ -55,6 +62,7 @@ export default function AddEditCustomer({
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormType>({
     resolver: zodResolver(CustomerSchema),
+    defaultValues: EMPTY_CUSTOMER_FORM,
   });
 
   const [createUser, { isLoading: creatingUser }] = useCreateApiMutation();
@@ -95,6 +103,9 @@ export default function AddEditCustomer({
         res: response,
         onSuccess: () => {
           const created = response?.data as CreatedCustomer | undefined;
+          if (!isEditMode) {
+            reset(EMPTY_CUSTOMER_FORM);
+          }
           handleSuccess(
             created?.id != null
               ? {
@@ -114,15 +125,19 @@ export default function AddEditCustomer({
   };
 
   useEffect(() => {
-    if (isEditMode && customerData && customerData?.data) {
+    if (isEditMode && customerData?.data) {
       reset({
-        firstName: customerData?.data.firstName,
-        lastName: customerData?.data.lastName,
-        email: customerData?.data.email,
-        mobileNo: customerData?.data.mobileNo,
+        firstName: customerData.data.firstName ?? "",
+        lastName: customerData.data.lastName ?? "",
+        email: customerData.data.email ?? "",
+        mobileNo: customerData.data.mobileNo ?? "",
       });
+      return;
     }
-  }, [customerData, isEditMode, reset]);
+    if (!isEditMode) {
+      reset(EMPTY_CUSTOMER_FORM);
+    }
+  }, [customerData, isEditMode, resolvedId, reset]);
 
   const mobileRegister = register("mobileNo", {
     setValueAs: (value) =>

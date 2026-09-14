@@ -256,7 +256,7 @@ const Account: React.FC = () => {
                 {accessList.includes("edit-status") && (
                   <button
                     type="button"
-                    className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                    className={`inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-medium transition ${
                       row?.isDefault
                         ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
                         : row?.status === "active"

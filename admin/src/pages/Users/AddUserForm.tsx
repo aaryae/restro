@@ -125,7 +125,8 @@ export default function AddUserForm({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-        {tabSection === "profile" && (
+        {/* Keep both tabs mounted so Profile/Security field values survive tab switches. */}
+        <div className={cn(tabSection !== "profile" && "hidden")}>
           <UserForm
             editId={editId}
             handleCloseDrawer={handleCloseDrawer}
@@ -134,8 +135,8 @@ export default function AddUserForm({
             createPassword={createPassword}
             onNeedPassword={() => setTabSection("security")}
           />
-        )}
-        {tabSection === "security" && (
+        </div>
+        <div className={cn(tabSection !== "security" && "hidden")}>
           <Security
             isOpen={isOpen}
             editId={editId}
@@ -144,7 +145,7 @@ export default function AddUserForm({
             onCreatePasswordChange={setCreatePassword}
             onContinueToProfile={() => setTabSection("profile")}
           />
-        )}
+        </div>
       </div>
     </div>
   );

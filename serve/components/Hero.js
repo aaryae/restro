@@ -43,7 +43,6 @@ export default function Hero() {
 
   return (
     <section
-      id="hero"
       className="relative flex min-h-[100svh] flex-col overflow-hidden pt-[76px] md:pt-[80px]"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
