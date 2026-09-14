@@ -5,6 +5,7 @@ import {
   Download,
   FileSpreadsheet,
   Loader2,
+  Plus,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -17,6 +18,8 @@ import {
   type ImportRowResult,
   type ImportRowStatus,
 } from "@/redux/services/product";
+import { useCreateDepartmentMutation } from "@/redux/services/department";
+import { handleError, handleResponse } from "@/utils/responseHandler";
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
 const MAX_FILE_MB = 10;
@@ -84,9 +87,14 @@ export default function BulkUploadModal({
   const [preview, setPreview] = useState<ImportSummary | null>(null);
   const [result, setResult] = useState<ImportSummary | null>(null);
   const [importProducts, { isLoading }] = useImportProductsMutation();
+  const [createDepartment, { isLoading: creatingDepartment }] =
+    useCreateDepartmentMutation();
   const [pendingAction, setPendingAction] = useState<"validate" | "import" | null>(
     null,
   );
+  const [addingDepartment, setAddingDepartment] = useState<string | null>(null);
+  const [deptPrepTime, setDeptPrepTime] = useState("15");
+  const [deptDescription, setDeptDescription] = useState("");
 
   const reset = useCallback(() => {
     setFile(null);
@@ -94,6 +102,9 @@ export default function BulkUploadModal({
     setResult(null);
     setDragging(false);
     setPendingAction(null);
+    setAddingDepartment(null);
+    setDeptPrepTime("15");
+    setDeptDescription("");
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
@@ -142,6 +153,7 @@ export default function BulkUploadModal({
 
       setResult(null);
       setPreview(null);
+      setAddingDepartment(null);
       setFile(nextFile);
       void validateFile(nextFile);
     },
@@ -180,10 +192,75 @@ export default function BulkUploadModal({
     }
   }, []);
 
+  const openAddDepartment = useCallback((name: string) => {
+    setAddingDepartment(name);
+    setDeptPrepTime("15");
+    setDeptDescription("");
+  }, []);
+
+  const cancelAddDepartment = useCallback(() => {
+    setAddingDepartment(null);
+    setDeptPrepTime("15");
+    setDeptDescription("");
+  }, []);
+
+  const submitAddDepartment = useCallback(async () => {
+    if (!addingDepartment) return;
+    const name = addingDepartment.trim();
+    if (name.length < 2) {
+      Toast("Department name must be at least 2 characters.", "error");
+      return;
+    }
+
+    const prep = Number(deptPrepTime);
+    try {
+      const response = await createDepartment({
+        name,
+        description: deptDescription.trim() || null,
+        AvgPreparationTime:
+          Number.isFinite(prep) && prep >= 0 ? Math.trunc(prep) : 15,
+      }).unwrap();
+
+      handleResponse({
+        res: response,
+        successMessage: `Department "${name}" added.`,
+        onSuccess: () => {
+          cancelAddDepartment();
+          if (file) void validateFile(file);
+        },
+      });
+    } catch (error) {
+      handleError({ error });
+    }
+  }, [
+    addingDepartment,
+    cancelAddDepartment,
+    createDepartment,
+    deptDescription,
+    deptPrepTime,
+    file,
+    validateFile,
+  ]);
+
   const summary = result ?? preview;
   const rows = useMemo<ImportRowResult[]>(() => summary?.rows ?? [], [summary]);
-  const busy = isLoading || pendingAction !== null;
+  const busy =
+    isLoading || pendingAction !== null || creatingDepartment;
   const importable = (preview?.created ?? 0) > 0;
+
+  const missingDepartments = useMemo(() => {
+    if (preview?.missingDepartments?.length) {
+      return preview.missingDepartments;
+    }
+    const names = new Map<string, string>();
+    for (const row of preview?.rows ?? []) {
+      if (row.missingDepartment) {
+        const key = row.missingDepartment.trim().toLowerCase();
+        if (!names.has(key)) names.set(key, row.missingDepartment.trim());
+      }
+    }
+    return [...names.values()];
+  }, [preview]);
 
   return (
     <Modal
@@ -199,8 +276,9 @@ export default function BulkUploadModal({
               Start from our template
             </p>
             <p className="mt-0.5 text-[13px] text-[var(--serve-muted)]">
-              Name, Category and Price are required. Categories are created
-              automatically; departments must already exist.
+              Name, Category and Price are required. Department is optional.
+              Categories are created automatically; if you name a department
+              that does not exist yet, add it below before importing.
             </p>
           </div>
           <button
@@ -316,6 +394,104 @@ export default function BulkUploadModal({
               </p>
             ) : null}
 
+            {!result && missingDepartments.length > 0 ? (
+              <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--serve-warning)_35%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-warning)_8%,transparent)] p-4">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--serve-fg)]">
+                    Missing departments
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-[var(--serve-muted)]">
+                    These department names appear in your file but are not set
+                    up yet. Add them here, then we will re-check the file.
+                  </p>
+                </div>
+
+                <ul className="space-y-2">
+                  {missingDepartments.map((name) => (
+                    <li
+                      key={name}
+                      className="flex flex-col gap-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--serve-fg)]">
+                          {name}
+                        </p>
+                        <p className="text-xs text-[var(--serve-muted)]">
+                          Not found in your departments list
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => openAddDepartment(name)}
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[var(--primary-color)] px-3 text-[13px] font-semibold text-[var(--primary-fg,#fff)] transition hover:opacity-95 disabled:opacity-50"
+                      >
+                        <Plus size={14} />
+                        Add department
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {addingDepartment ? (
+                  <div className="space-y-3 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] p-3">
+                    <p className="text-sm font-medium text-[var(--serve-fg)]">
+                      Add “{addingDepartment}”
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-[13px]">
+                        <span className="font-medium text-[var(--serve-fg)]">
+                          Avg prep time (minutes)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={deptPrepTime}
+                          onChange={(e) => setDeptPrepTime(e.target.value)}
+                          className="h-10 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-bg)] px-3 text-sm text-[var(--serve-fg)] outline-none focus:border-[color-mix(in_srgb,var(--serve-accent)_40%,var(--serve-border))]"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-[13px] sm:col-span-2">
+                        <span className="font-medium text-[var(--serve-fg)]">
+                          Description (optional)
+                        </span>
+                        <input
+                          type="text"
+                          value={deptDescription}
+                          onChange={(e) => setDeptDescription(e.target.value)}
+                          placeholder="Kitchen station, bar, etc."
+                          className="h-10 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-bg)] px-3 text-sm text-[var(--serve-fg)] outline-none focus:border-[color-mix(in_srgb,var(--serve-accent)_40%,var(--serve-border))]"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelAddDepartment}
+                        disabled={creatingDepartment}
+                        className="h-9 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 text-[13px] font-medium text-[var(--serve-fg)] disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={submitAddDepartment}
+                        disabled={creatingDepartment}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--primary-color)] px-3 text-[13px] font-semibold text-[var(--primary-fg,#fff)] disabled:opacity-50"
+                      >
+                        {creatingDepartment ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Plus size={14} />
+                        )}
+                        Save department
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {rows.length ? (
               <div className="overflow-hidden rounded-xl border border-[var(--serve-border)]">
                 <div className="max-h-64 overflow-y-auto">
@@ -348,7 +524,22 @@ export default function BulkUploadModal({
                             </span>
                           </td>
                           <td className="px-3 py-2 text-[var(--serve-muted)]">
-                            {row.message}
+                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                              <span>{row.message}</span>
+                              {row.missingDepartment && !result ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    openAddDepartment(row.missingDepartment!)
+                                  }
+                                  className="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-[var(--serve-accent)] hover:underline disabled:opacity-50"
+                                >
+                                  <Plus size={12} />
+                                  Add “{row.missingDepartment}”
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -363,7 +554,9 @@ export default function BulkUploadModal({
         {preview && !importable ? (
           <p className="flex items-start gap-2 rounded-lg border border-[color-mix(in_srgb,var(--serve-warning)_30%,var(--serve-border))] bg-[color-mix(in_srgb,var(--serve-warning)_10%,transparent)] px-3 py-2 text-[13px] text-[var(--serve-fg)]">
             <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[var(--serve-warning)]" />
-            Nothing can be imported yet. Fix the rows above and upload again.
+            {missingDepartments.length > 0
+              ? "Add the missing department(s) above, or fix other row errors, then re-check will run automatically."
+              : "Nothing can be imported yet. Fix the rows above and upload again."}
           </p>
         ) : null}
 

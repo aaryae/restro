@@ -54,6 +54,23 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
+  useEffect(() => {
+    if (window.location.hash === '#hero') {
+      history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+    }
+  }, [])
+
+  const goHome = (e) => {
+    setMenuOpen(false)
+    if (window.location.pathname === '/') {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      if (window.location.hash) {
+        history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+      }
+    }
+  }
+
   return (
     <>
       <div
@@ -71,7 +88,7 @@ export default function Navbar() {
         }`}
       >
         <div className="site-wrap flex h-[76px] items-center justify-between md:h-[80px]">
-          <a href="#hero" className="flex items-center py-1" onClick={() => setMenuOpen(false)}>
+          <a href="/" className="flex items-center py-1" onClick={goHome}>
             <Image
               src="/logo-tight.png"
               alt="SERVE Cafe Management System"

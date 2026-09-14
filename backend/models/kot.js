@@ -38,7 +38,7 @@ module.exports = (sequelize) => {
       },
       departmentId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
       kotNumber: {
         type: DataTypes.INTEGER,

@@ -184,7 +184,12 @@ export default function Product() {
       <MenuPageToolbar
         searchPlaceholder="Search items..."
         searchValue={productSearchTerm}
-        onSearchChange={setProductSearchTerm}
+        onSearchChange={(value) => {
+          setProductSearchTerm(value);
+          if (query.page !== 1) {
+            handlePagination({ page: 1, limit: query.limit });
+          }
+        }}
         filters={
           <Select
             value={selectedCategory}

@@ -84,27 +84,32 @@ export default function UserForm({
     limit: 25,
   });
 
+  // Reset empty form only when switching to create mode — not on unrelated query updates.
   useEffect(() => {
-    if (editId !== null) {
-      refetch();
-      if (getUser?.data) {
-        reset({ ...getUser.data, roleId: String(getUser.data.roleId) });
-        setImage(getUser.data.imageUrl || "");
-      }
-    } else {
-      reset({
-        username: "",
-        firstName: "",
-        lastName: "",
-        mobileNo: "",
-        mobilePrefix: "+977",
-        roleId: "",
-        gender: "",
-        password: "",
-      });
-      setImage("");
-    }
-  }, [editId, getUser, refetch, reset, success]);
+    if (editId !== null) return;
+    reset({
+      username: "",
+      firstName: "",
+      lastName: "",
+      mobileNo: "",
+      mobilePrefix: "+977",
+      roleId: "",
+      gender: "",
+      password: "",
+    });
+    setImage("");
+  }, [editId, reset]);
+
+  useEffect(() => {
+    if (editId === null) return;
+    refetch();
+  }, [editId, refetch]);
+
+  useEffect(() => {
+    if (editId === null || !getUser?.data || !success) return;
+    reset({ ...getUser.data, roleId: String(getUser.data.roleId) });
+    setImage(getUser.data.imageUrl || "");
+  }, [editId, getUser, reset, success]);
 
   useEffect(() => {
     if (roleSuccess && roles?.data?.data) {

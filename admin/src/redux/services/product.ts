@@ -7,6 +7,7 @@ export interface ImportRowResult {
   name: string;
   status: ImportRowStatus;
   message: string;
+  missingDepartment?: string | null;
 }
 
 export interface ImportProductsResponse {
@@ -20,6 +21,7 @@ export interface ImportProductsResponse {
     skipped: number;
     failed: number;
     createdCategories: string[];
+    missingDepartments?: string[];
     rows: ImportRowResult[];
   } | null;
 }

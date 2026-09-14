@@ -5,7 +5,7 @@ export const CREATE_ORDER_RESTORE_FLAG = "nirvana-create-order-restore-draft";
 
 export type OrderItemDraft = {
   id: string;
-  departmentId: number;
+  departmentId?: number | null;
   productId: string;
   productName: string;
   productPrice: number;

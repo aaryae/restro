@@ -41,32 +41,41 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKeyForDate(dateKey)) ?? "";
-    setValue(saved);
     setSavedValue(saved);
+    setValue("");
   }, [dateKey]);
 
-  const hasChanges = value.trim() !== savedValue.trim();
-
-  const handleUpdate = () => {
-    if (!hasChanges) return;
-
-    const next = value.trim();
-    localStorage.setItem(storageKeyForDate(dateKey), next);
-    setValue(next);
-    setSavedValue(next);
-    appToast.success("Opening balance updated");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleUpdate();
-  };
-
-  const openingBalance = parseFloat(value) || 0;
+  const openingBalance = parseFloat(savedValue) || 0;
+  const draftValue = value.trim();
+  const hasChanges = draftValue !== "" && draftValue !== savedValue.trim();
   const cashRevenue = Number(data?.data?.cashRevenue || 0);
   const cashPurchases = Number(data?.data?.cashPurchases || 0);
   const cashExpenses = Number(data?.data?.cashExpenses || 0);
   const totalCounterCash =
     openingBalance + cashRevenue - cashPurchases - cashExpenses;
+
+  const handleUpdate = () => {
+    if (!hasChanges) return;
+
+    const next = draftValue;
+    localStorage.setItem(storageKeyForDate(dateKey), next);
+    setSavedValue(next);
+    setValue("");
+    appToast.success(
+      `Opening balance saved: ${CurrencySign}${Number(next || 0).toLocaleString()}`,
+    );
+  };
+
+  const handleClear = () => {
+    localStorage.setItem(storageKeyForDate(dateKey), "");
+    setSavedValue("");
+    setValue("");
+    appToast.success("Opening balance cleared");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleUpdate();
+  };
 
   const rows = [
     {
@@ -108,36 +117,49 @@ export const OpeningBalance: React.FC<OpeningBalanceProps> = ({
                 Opening balance
               </p>
               <p className="text-[12px] text-[var(--serve-muted)]">
-                Starting cash in the drawer for this day
+                {savedValue
+                  ? `Saved: ${formatAmount(openingBalance)}`
+                  : "Starting cash in the drawer for this day"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-stretch">
-            <div className="w-full sm:w-[180px] [&_.input-wrapper]:!rounded-r-none [&_.input-wrapper]:!border-r-0 [&_.input-wrapper]:!h-10">
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                leftSection={
-                  <span className="text-[13px] font-medium text-[var(--serve-muted)]">
-                    {CurrencySign}
-                  </span>
-                }
-              />
+          <div className="flex items-stretch gap-2">
+            <div className="flex items-stretch">
+              <div className="w-full sm:w-[180px] [&_.input-wrapper]:!rounded-r-none [&_.input-wrapper]:!border-r-0 [&_.input-wrapper]:!h-10">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  leftSection={
+                    <span className="text-[13px] font-medium text-[var(--serve-muted)]">
+                      {CurrencySign}
+                    </span>
+                  }
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleUpdate}
+                disabled={!hasChanges}
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-l-none rounded-r-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Check size={15} strokeWidth={2.25} />
+                Save
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleUpdate}
-              disabled={!hasChanges}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-l-none rounded-r-lg bg-primaryColor px-3.5 text-[13px] font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Check size={15} strokeWidth={2.25} />
-              Save
-            </button>
+            {savedValue ? (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 text-[12px] font-medium text-[var(--serve-muted)] transition hover:bg-[var(--serve-surface-2)] hover:text-[var(--serve-fg)]"
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
         </div>
 

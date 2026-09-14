@@ -1322,6 +1322,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         contentClassName="max-h-none max-w-md gap-3 overflow-hidden p-5 sm:p-5"
                       >
                         <AddEditCustomer
+                          key={dialogOpen ? "customer-form-open" : "customer-form-closed"}
                           isComponent={true}
                           closeModal={closeDialog}
                           onCreated={handleSelectMember}

@@ -11,7 +11,7 @@ export type ProductListItem = {
   description: string;
   price: number;
   quantity: number;
-  departmentId: number;
+  departmentId?: number | null;
   mediaArr: { imageUrl: string }[];
 };
 

@@ -387,7 +387,7 @@ const createOrder = async (req) => {
 
     // One KOT per order (all items on a single kitchen ticket).
     const itemsByDepartment = {
-      [mainItems[0].departmentId]: mainItems,
+      [mainItems[0].departmentId ?? "unassigned"]: mainItems,
     };
 
     // Generate KOT numbers for the day
@@ -449,7 +449,14 @@ const createOrder = async (req) => {
     const createdItems = new Map(); // Store created items by tempId
 
     // Create KOTs and process main items
-    for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
+    for (const [departmentKey, items] of Object.entries(itemsByDepartment)) {
+      const departmentId =
+        departmentKey === "unassigned" ||
+        departmentKey === "null" ||
+        departmentKey === "undefined"
+          ? null
+          : Number(departmentKey);
+
       const kot = await kotModel.create(
         {
           orderId: order.id,
@@ -826,11 +833,18 @@ const updateOrderItems = async (req) => {
 
       // One KOT per order — reuse existing KOT when adding items later.
       const itemsByDepartment = {
-        [newItems[0].departmentId]: newItems,
+        [newItems[0].departmentId ?? "unassigned"]: newItems,
       };
 
       // Create KOTs and main items
-      for (const [departmentId, items] of Object.entries(itemsByDepartment)) {
+      for (const [departmentKey, items] of Object.entries(itemsByDepartment)) {
+        const resolvedDepartmentId =
+          departmentKey === "unassigned" ||
+          departmentKey === "null" ||
+          departmentKey === "undefined"
+            ? null
+            : Number(departmentKey);
+
         let kot = await kotModel.findOne({
           where: { orderId, status: { [Op.ne]: "cancelled" } },
           transaction,
@@ -839,7 +853,7 @@ const updateOrderItems = async (req) => {
           kot = await kotModel.create(
             {
               orderId,
-              departmentId,
+              departmentId: resolvedDepartmentId,
               kotNumber: baseKotNo++,
               status: "pending",
             },
@@ -864,8 +878,8 @@ const updateOrderItems = async (req) => {
             };
           }
 
-          // Verify departmentId
-          if (product.departmentId !== item.departmentId) {
+          // Verify departmentId (treat null/undefined as matching)
+          if ((product.departmentId ?? null) !== (item.departmentId ?? null)) {
             await transaction.rollback();
             return {
               status: 400,

@@ -90,18 +90,67 @@ function serializeAuditLog(log) {
   };
 }
 
-async function resolveOwnerUsername(tenant) {
+/**
+ * Resolve the cafe POS owner to impersonate.
+ * Prefer Super Admin (roleId 1), then tenant.ownerEmail, then earliest user.
+ * Some cafes only have an Admin (roleId 2) if the owner was demoted later.
+ */
+async function resolveCafeOwnerUser(tenant) {
   const schemaName = String(tenant?.schemaName || "");
-  if (/^[a-z0-9_]+$/i.test(schemaName)) {
-    try {
-      const [rows] = await sequelize.query(
-        `SELECT username FROM "${schemaName}".users WHERE "roleId" = 1 ORDER BY id ASC LIMIT 1`,
+  if (!/^[a-z0-9_]+$/i.test(schemaName)) return null;
+
+  try {
+    const [superAdminRows] = await sequelize.query(
+      `SELECT id FROM "${schemaName}".roles
+       WHERE title = 'Super Admin'
+       ORDER BY id ASC
+       LIMIT 1`,
+    );
+    const superAdminRoleId = Number(superAdminRows[0]?.id || 1);
+
+    const [rows] = await sequelize.query(
+      `SELECT id, email, "roleId", username
+       FROM "${schemaName}".users
+       WHERE COALESCE("isDeleted", false) = false
+       ORDER BY
+         CASE
+           WHEN "roleId" = :superAdminRoleId THEN 0
+           WHEN :ownerEmail <> '' AND lower(email) = lower(:ownerEmail) THEN 1
+           ELSE 2
+         END,
+         id ASC
+       LIMIT 1`,
+      {
+        replacements: {
+          superAdminRoleId,
+          ownerEmail: String(tenant.ownerEmail || "").trim(),
+        },
+      },
+    );
+    const owner = rows[0];
+    if (!owner) return null;
+
+    // Keep POS mutations working — same rule as Serve trial POS handoff.
+    if (Number(owner.roleId) !== superAdminRoleId) {
+      await sequelize.query(
+        `UPDATE "${schemaName}".users
+         SET "roleId" = :roleId, "updatedAt" = NOW()
+         WHERE id = :id`,
+        { replacements: { roleId: superAdminRoleId, id: owner.id } },
       );
-      if (rows[0]?.username) return rows[0].username;
-    } catch {
-      // Schema may not exist yet during provisioning.
+      owner.roleId = superAdminRoleId;
     }
+
+    return owner;
+  } catch {
+    // Schema may not exist yet during provisioning.
+    return null;
   }
+}
+
+async function resolveOwnerUsername(tenant) {
+  const owner = await resolveCafeOwnerUser(tenant);
+  if (owner?.username) return owner.username;
 
   const hit = await globalUsernameModel.findOne({
     where: { tenantId: tenant.id },
@@ -1065,14 +1114,7 @@ const impersonateCafe = async (req) => {
     };
   }
 
-  const [ownerRows] = await sequelize.query(
-    `SELECT id, email, "roleId", username
-     FROM "${tenant.schemaName}".users
-     WHERE "roleId" = 1
-     ORDER BY id ASC
-     LIMIT 1`,
-  );
-  const owner = ownerRows[0];
+  const owner = await resolveCafeOwnerUser(tenant);
   if (!owner) {
     return {
       status: 404,

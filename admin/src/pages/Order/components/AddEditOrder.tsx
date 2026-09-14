@@ -390,7 +390,7 @@ export default function AddEditOrder({
     id: string;
     name: string;
     price: number;
-    departmentId: number;
+    departmentId?: number | null;
     quantity: number;
   }) => {
     const existingItem = orderItems.find(
@@ -404,7 +404,10 @@ export default function AddEditOrder({
         productId: product.id,
         productName: product.name,
         productPrice: product.price,
-        departmentId: Number(product.departmentId),
+        departmentId:
+          product.departmentId != null && Number(product.departmentId) > 0
+            ? Number(product.departmentId)
+            : null,
         quantity: 1,
         subtotal: product.price,
         addons: [],
@@ -419,7 +422,7 @@ export default function AddEditOrder({
       id: string;
       name: string;
       price: number;
-      departmentId: number;
+      departmentId?: number | null;
       quantity: number;
     },
     delta: number,

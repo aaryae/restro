@@ -17,8 +17,15 @@ const LOGIN_ATTEMPT_MAX = 10;
 
 const loginAttempts = new Map();
 
+/**
+ * Key by IP + route mount (e.g. /auth vs /platform vs /trial).
+ * Without the surface, failing login on a cafe POS also locks
+ * platform.technirvana (and vice versa) for the same IP.
+ */
 function clientKey(req) {
-  return req.ip || req.deviceFingerprint || "unknown";
+  const ip = req.ip || req.deviceFingerprint || "unknown";
+  const surface = req.baseUrl || "login";
+  return `${surface}:${ip}`;
 }
 
 const skipHardcoreQa = (req) =>
