@@ -19,7 +19,10 @@ import useTranslation from "@/locale/useTranslation";
 import userImage from "@/assets/user_image.jpeg";
 import { trimFormData } from "@/utils/validationHelper";
 import { ImagePlus, RotateCcw } from "lucide-react";
-import { EMPTY_USER_FORM, UserFormType } from "./schema";
+import { EMPTY_USER_FORM, MOBILE_PREFIX_OPTIONS, UserFormType } from "./schema";
+import { RequiredMark } from "@/components/RequiredMark";
+import { cn } from "@/lib/utils";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 
 type UserFormProps = {
   isOpen: boolean;
@@ -230,22 +233,107 @@ export default function UserForm({
             {...register("lastName")}
             error={errors.lastName?.message}
           />
-          <Input
-            label="Mobile No"
-            placeholder="98********"
-            type="text"
-            {...register("mobileNo")}
-            error={errors.mobileNo?.message}
-            isRequired
-          />
-          <Input
-            label="Mobile Prefix"
-            placeholder="+977"
-            type="text"
-            {...register("mobilePrefix")}
-            error={errors.mobilePrefix?.message}
-            isRequired
-          />
+          <div className="md:col-span-2">
+            <label className="input-label mb-1.5 block text-left">
+              {translate("Mobile Number")}
+              <RequiredMark />
+            </label>
+            <div
+              className={cn(
+                "flex overflow-hidden rounded-lg border bg-[var(--serve-surface)] shadow-sm transition",
+                errors.mobileNo || errors.mobilePrefix
+                  ? "border-red-300 ring-2 ring-red-100"
+                  : "border-[var(--serve-border)] focus-within:border-primaryColor/40 focus-within:ring-2 focus-within:ring-primaryColor/15",
+              )}
+            >
+              <Controller
+                name="mobilePrefix"
+                control={control}
+                render={({ field }) => (
+                  <div className="w-[8.5rem] shrink-0 border-r border-[var(--serve-border)] bg-[var(--serve-surface-2)] [&_.select-container]:gap-0 [&_button]:h-10 [&_button]:rounded-none [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-2.5 [&_button]:shadow-none [&_button]:ring-0 [&_button]:focus-visible:ring-0">
+                    <Select
+                      name={field.name}
+                      value={String(field.value ?? "+977")}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      options={[...MOBILE_PREFIX_OPTIONS]}
+                      placeholder="+977"
+                      resolveLabel={(value) => value}
+                    />
+                  </div>
+                )}
+              />
+              <Controller
+                name="mobileNo"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    name={field.name}
+                    ref={field.ref}
+                    value={String(field.value ?? "")}
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={10}
+                    placeholder="98********"
+                    aria-invalid={Boolean(errors.mobileNo)}
+                    className="h-10 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-[var(--serve-fg)] outline-none placeholder:text-slate-400"
+                    onBlur={field.onBlur}
+                    onChange={(e) => {
+                      field.onChange(e.target.value.replace(/\D/g, "").slice(0, 10));
+                    }}
+                    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                      const allowedKeys = [
+                        "Backspace",
+                        "Delete",
+                        "Tab",
+                        "Escape",
+                        "Enter",
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "Home",
+                        "End",
+                      ];
+                      if (
+                        allowedKeys.includes(e.key) ||
+                        e.ctrlKey ||
+                        e.metaKey ||
+                        e.altKey
+                      ) {
+                        return;
+                      }
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                      e.preventDefault();
+                      const text = e.clipboardData
+                        .getData("text")
+                        .replace(/\D/g, "");
+                      const target = e.currentTarget;
+                      const start = target.selectionStart ?? target.value.length;
+                      const end = target.selectionEnd ?? target.value.length;
+                      const next =
+                        `${target.value.slice(0, start)}${text}${target.value.slice(end)}`.slice(
+                          0,
+                          10,
+                        );
+                      field.onChange(next);
+                    }}
+                  />
+                )}
+              />
+            </div>
+            {(errors.mobilePrefix || errors.mobileNo) && (
+              <p className="mt-1.5 text-sm text-red-500">
+                {errors.mobilePrefix?.message || errors.mobileNo?.message}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-[var(--serve-muted)]">
+              {translate("10-digit number without spaces or country code")}
+            </p>
+          </div>
           <Controller
             name="roleId"
             control={control}

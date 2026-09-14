@@ -222,6 +222,7 @@ const createUser = async (req, res, next) => {
     const {
       validateUsernameFormat,
       claimUsername,
+      releaseUsername,
     } = require("../../lib/global-username");
 
     const usernameCheck = validateUsernameFormat(req.body.username);
@@ -236,7 +237,7 @@ const createUser = async (req, res, next) => {
     req.body.username = usernameCheck.username;
 
     // Email is optional for staff accounts — username is the login id.
-    if (req.body.email != null && String(req.body.email).trim() === "") {
+    if (req.body.email == null || String(req.body.email).trim() === "") {
       req.body.email = null;
     }
 
@@ -271,13 +272,17 @@ const createUser = async (req, res, next) => {
     //checking roleId
     if (req.body.roleId) {
       const roleDenied = assertAssignableRole(req, req.body.roleId);
-      if (roleDenied) return roleDenied;
+      if (roleDenied) {
+        await releaseUsername(req.body.username);
+        return roleDenied;
+      }
 
       const role = await roleModel.findOne({
         where: { id: +req.body.roleId, isDeleted: false },
         attributes: { exclude: ["updatedAt", "createdAt"] },
       });
       if (!role) {
+        await releaseUsername(req.body.username);
         returnData = {
           ...generalConstant.EN.ROLES.ROLES_NOT_FOUND,
           data: null,
@@ -303,19 +308,25 @@ const createUser = async (req, res, next) => {
 
     req.body.supervisorId = 1;
 
-    const user = await userModel.create(req.body);
-    if (user) {
-      returnData = {
-        ...generalConstant.EN.USERS.CREATE_USER_SUCCESS,
-        data: toPublicUser(user),
-      };
-    } else {
-      returnData = {
-        ...generalConstant.EN.USERS.CREATE_USER_FAILURE,
-        data: null,
-      };
+    try {
+      const user = await userModel.create(req.body);
+      if (user) {
+        returnData = {
+          ...generalConstant.EN.USERS.CREATE_USER_SUCCESS,
+          data: toPublicUser(user),
+        };
+      } else {
+        await releaseUsername(req.body.username);
+        returnData = {
+          ...generalConstant.EN.USERS.CREATE_USER_FAILURE,
+          data: null,
+        };
+      }
+      return returnData;
+    } catch (err) {
+      await releaseUsername(req.body.username);
+      throw err;
     }
-    return returnData;
   } catch (err) {
     throw err;
   }

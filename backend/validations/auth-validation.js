@@ -45,8 +45,19 @@ const createUserValidation = async (req, res, next) => {
       mobileNo: joi
         .string()
         .pattern(/^[0-9]{10}$/) // Matches exactly 10 digits
-        .required(),
-      mobilePrefix: joi.string().required().label("mobilePrefix"),
+        .required()
+        .messages({
+          "string.pattern.base": "Mobile number must be exactly 10 digits",
+        }),
+      mobilePrefix: joi
+        .string()
+        .pattern(/^\+[1-9]\d{0,3}$/)
+        .required()
+        .label("mobilePrefix")
+        .messages({
+          "string.pattern.base":
+            "Mobile prefix must be a valid country code like +977",
+        }),
       roleId: joi.number().optional().label("role"),
       // for future use
       // supervisorId: joi.number().optional().label("supervisorId"),
@@ -84,8 +95,19 @@ const updateUserValidation = async (req, res, next) => {
       mobileNo: joi
         .string()
         .pattern(/^[0-9]{10}$/) // Matches exactly 10 digits
-        .optional(),
-      mobilePrefix: joi.string().optional().label("mobilePrefix"),
+        .optional()
+        .messages({
+          "string.pattern.base": "Mobile number must be exactly 10 digits",
+        }),
+      mobilePrefix: joi
+        .string()
+        .pattern(/^\+[1-9]\d{0,3}$/)
+        .optional()
+        .label("mobilePrefix")
+        .messages({
+          "string.pattern.base":
+            "Mobile prefix must be a valid country code like +977",
+        }),
       roleId: joi.number().optional().label("role"),
       // for future use
       // supervisorId: joi.number().optional().label("supervisorId"),
@@ -123,8 +145,19 @@ const updatePublicUserValidation = async (req, res, next) => {
       mobileNo: joi
         .string()
         .pattern(/^[0-9]{10}$/) // Matches exactly 10 digits
-        .optional(),
-      mobilePrefix: joi.string().optional().label("mobilePrefix"),
+        .optional()
+        .messages({
+          "string.pattern.base": "Mobile number must be exactly 10 digits",
+        }),
+      mobilePrefix: joi
+        .string()
+        .pattern(/^\+[1-9]\d{0,3}$/)
+        .optional()
+        .label("mobilePrefix")
+        .messages({
+          "string.pattern.base":
+            "Mobile prefix must be a valid country code like +977",
+        }),
       // for future use
       // supervisorId: joi.number().optional().label("supervisorId"),
     })
