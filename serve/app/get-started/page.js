@@ -191,7 +191,10 @@ export default function GetStartedPage() {
                   <path d="M20 8v6" /><path d="M23 11h-6" />
                 </svg>
               }
-              onClick={() => setChoice('join')}
+              onClick={() => {
+                setChoice('join')
+                alert('This feature will be available soon')
+              }}
             />
           </div>
 
@@ -200,13 +203,17 @@ export default function GetStartedPage() {
             type="button"
             onClick={() => {
               if (choice === 'join') {
-                alert('Join via invite is coming soon. Create a new restaurant for now.')
+                alert('This feature will be available soon')
                 return
               }
               router.push('/create-restaurant')
             }}
             className="coffee-fill mt-8 w-full rounded-xl text-white font-semibold py-3.5 text-sm transition-all duration-200 cursor-pointer hover:-translate-y-[1px] hover:shadow-lg shadow-roast/20">
-            {resumeSetup ? 'Continue restaurant setup' : 'Continue'}
+            {choice === 'join'
+              ? 'Coming soon'
+              : resumeSetup
+                ? 'Continue restaurant setup'
+                : 'Continue'}
           </button>
 
           <p className="mt-5 text-center text-xs text-muted">
