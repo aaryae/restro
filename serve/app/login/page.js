@@ -127,8 +127,8 @@ function LoginForm() {
     }
     return {
       badge: 'Welcome back',
-      title: 'Sign in to your cafe',
-      sub: 'Continue setup or jump back into your floor.',
+      title: 'Sign in to Serve',
+      sub: 'Open your cafe POS, or continue restaurant setup if you left mid-registration.',
       cta: 'Sign in',
       footer: 'New here?',
       footerAction: 'Create an account',
@@ -1192,7 +1192,8 @@ function CafeSlugField({ value, onChange, onBlur, error, disabled = false }) {
   return (
     <label className={`block ${disabled ? 'pointer-events-none' : ''}`}>
       <span className="text-[0.8rem] font-medium text-roast">
-        Your cafe <span className="font-normal text-muted">(optional)</span>
+        Cafe domain{' '}
+        <span className="font-normal text-muted">(optional)</span>
       </span>
       <div
         className={`mt-1 flex items-stretch overflow-hidden rounded-2xl border bg-white shadow-[0_1px_0_rgba(26,15,10,0.03)] transition focus-within:ring-4 ${
@@ -1228,9 +1229,10 @@ function CafeSlugField({ value, onChange, onBlur, error, disabled = false }) {
         </p>
       ) : (
         <p id="cafeSlug-hint" className="mt-1.5 text-xs text-muted">
-          Leave blank if you have not created your cafe yet — sign in with
-          username or email and we will continue setup. If you already have a
-          cafe, enter its ID to open it faster.
+          Already set up a cafe? Enter its ID (e.g.{' '}
+          <span className="font-medium text-roast">ammas</span>). Still finishing
+          registration? Leave this blank — we&apos;ll take you to cafe setup after
+          sign-in.
         </p>
       )}
     </label>
