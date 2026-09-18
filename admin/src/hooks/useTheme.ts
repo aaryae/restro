@@ -5,8 +5,10 @@ type Theme = "dark" | "light";
 const STORAGE_KEY = "serve-theme";
 
 function getTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem(STORAGE_KEY) as Theme) || "dark";
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "dark" || stored === "light") return stored;
+  return "light";
 }
 
 function applyTheme(t: Theme) {

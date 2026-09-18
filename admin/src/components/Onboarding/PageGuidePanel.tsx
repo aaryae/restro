@@ -18,7 +18,7 @@ export default function PageGuidePanel({
     <div className="fixed inset-0 z-[150]">
       <div
         aria-hidden
-        className="absolute inset-0 animate-fade-in bg-black/40 backdrop-blur-[3px]"
+        className="absolute inset-0 animate-fade-in bg-black/35"
         onClick={onClose}
       />
 

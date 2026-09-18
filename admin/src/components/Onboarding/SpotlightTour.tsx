@@ -329,23 +329,42 @@ export default function SpotlightTour({
 
   return createPortal(
     <div className="fixed inset-0 z-[200]" aria-live="polite">
-      {/* Dim everything except the target. Four panels keep the cutout crisp. */}
+      {/* Dim everything except the target. Four panels keep the cutout crisp.
+          Overlap by 1px so panel seams never flash a bright hairline. */}
       {rect && !centered ? (
         <>
-          <div className="tour-dim" style={{ top: 0, left: 0, right: 0, height: Math.max(rect.top, 0) }} />
           <div
             className="tour-dim"
-            style={{ top: rect.top + rect.height, left: 0, right: 0, bottom: 0 }}
+            style={{
+              top: 0,
+              left: 0,
+              right: 0,
+              height: Math.max(rect.top + 1, 0),
+            }}
           />
           <div
             className="tour-dim"
-            style={{ top: rect.top, left: 0, width: Math.max(rect.left, 0), height: rect.height }}
+            style={{
+              top: Math.max(rect.top + rect.height - 1, 0),
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
           />
           <div
             className="tour-dim"
             style={{
               top: rect.top,
-              left: rect.left + rect.width,
+              left: 0,
+              width: Math.max(rect.left + 1, 0),
+              height: rect.height,
+            }}
+          />
+          <div
+            className="tour-dim"
+            style={{
+              top: rect.top,
+              left: Math.max(rect.left + rect.width - 1, 0),
               right: 0,
               height: rect.height,
             }}
@@ -360,7 +379,7 @@ export default function SpotlightTour({
               height: rect.height,
             }}
           >
-            <span className="absolute -inset-[3px] animate-tour-halo rounded-[inherit] border-2 border-tourAccent/55 motion-reduce:hidden" />
+            <span className="absolute -inset-[3px] animate-tour-halo rounded-[inherit] border-2 border-tourAccent/40 motion-reduce:hidden" />
           </div>
         </>
       ) : (

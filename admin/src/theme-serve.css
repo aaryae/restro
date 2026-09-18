@@ -463,17 +463,15 @@ html.dark .bg-rose-50 {
    already-black page barely registers. */
 .serve-overlay {
   background: var(--serve-overlay);
-  backdrop-filter: blur(2px);
 }
 
 /* Product tour scrim. Four of these frame the highlighted element, so the
-   cutout stays perfectly sharp while the rest of the app dims. The scrim is
-   deliberately heavier than --serve-overlay: a spotlight only reads as a
-   spotlight when the surroundings genuinely recede. */
+   cutout stays sharp while the rest of the app dims. No backdrop blur —
+   blur seams between panels show as bright horizontal lines and make the
+   page hard to read during the guide. */
 .tour-dim {
   position: absolute;
   background: var(--tour-scrim);
-  backdrop-filter: blur(2px);
   transition:
     top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
     left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
@@ -481,17 +479,15 @@ html.dark .bg-rose-50 {
     height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Layered glow around the spotlighted element. Only the multi-stop box-shadow
-   lives here — Tailwind cannot express it. The breathing halo is a real child
-   element styled with utilities. */
+/* Layered glow around the spotlighted element. Keep the ring tight — a wide
+   outer glow can read as a bright hairline across the cutout edges. */
 .tour-ring {
   position: absolute;
   pointer-events: none;
   border-radius: 14px;
   box-shadow:
     0 0 0 2px rgb(var(--tour-accent-rgb)),
-    0 0 0 6px rgb(var(--tour-accent-rgb) / 0.24),
-    0 0 32px 8px rgb(var(--tour-accent-rgb) / 0.32);
+    0 0 0 5px rgb(var(--tour-accent-rgb) / 0.2);
   transition:
     top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
     left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
@@ -535,7 +531,7 @@ html.dark .bg-rose-50 {
 
 html.light {
   --serve-overlay: rgba(24, 24, 27, 0.45);
-  --tour-scrim: rgba(17, 17, 20, 0.6);
+  --tour-scrim: rgba(17, 17, 20, 0.42);
   --serve-elevated: #ffffff;
   --serve-elevated-border: #d4d4d8;
   --serve-modal-shadow:
@@ -546,7 +542,7 @@ html.light {
 :root,
 html.dark {
   --serve-overlay: rgba(0, 0, 0, 0.72);
-  --tour-scrim: rgba(0, 0, 0, 0.78);
+  --tour-scrim: rgba(0, 0, 0, 0.55);
   --serve-elevated: #16161a;
   --serve-elevated-border: #2c2c33;
   --serve-modal-shadow:

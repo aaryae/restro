@@ -44,7 +44,7 @@ export default function WelcomeModal({
     <div className="fixed inset-0 z-[190] flex items-center justify-center p-4">
       <div
         aria-hidden
-        className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 animate-fade-in bg-black/45"
         onClick={onDismiss}
       />
 
