@@ -48,6 +48,23 @@ function selectorFor(target: string) {
   return `[data-tour="${target.replace(/["\\]/g, "\\$&")}"]`;
 }
 
+/**
+ * Prefer a visible match. Desktop and mobile both mount some tour targets
+ * (e.g. help); querySelector alone grabs the hidden one and the card lands
+ * in the wrong place with no real highlight.
+ */
+function findVisibleTourTarget(target: string): Element | null {
+  const nodes = document.querySelectorAll(selectorFor(target));
+  for (const element of nodes) {
+    const box = element.getBoundingClientRect();
+    if (box.width < 1 || box.height < 1) continue;
+    if (box.bottom < 0 || box.right < 0) continue;
+    if (box.top > window.innerHeight || box.left > window.innerWidth) continue;
+    return element;
+  }
+  return null;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -186,14 +203,16 @@ export default function SpotlightTour({
       return undefined;
     }
 
+    // Drop the previous step's hole immediately so we never flash a wrong cutout.
+    setRect(null);
+
     let frame = 0;
     let cancelled = false;
     const deadline = Date.now() + TARGET_TIMEOUT_MS;
-    const selector = selectorFor(step.target);
 
     const tick = () => {
       if (cancelled) return;
-      const element = document.querySelector(selector);
+      const element = findVisibleTourTarget(step.target!);
 
       if (element) {
         const nextRect = readRect(element);
