@@ -40,7 +40,8 @@ const overview = async (req) => {
     const totalExpense = expenseRes?.success
       ? Number(expenseRes.data?.total || 0)
       : 0;
-    const profit = totalRevenue - (totalPurchase + totalExpense);
+    // Operating result: sales minus cost of goods and operating spend.
+    const profit = totalRevenue - totalPurchase - totalExpense;
 
     const totalDeposit = transactionRes?.success
       ? Number(transactionRes.data?.totalDeposit || 0)
@@ -61,6 +62,15 @@ const overview = async (req) => {
       ? Number(settingsRes.data?.openingBalance || 0)
       : 0;
 
+    // Cash-flow style remainder after opening, P&L, and deposits/withdrawals.
+    const remainingBalance =
+      openingBalance +
+      totalRevenue -
+      totalPurchase -
+      totalExpense +
+      totalDeposit -
+      totalWithdraw;
+
     return {
       status: 200,
       success: true,
@@ -73,8 +83,10 @@ const overview = async (req) => {
         totalDeposit,
         totalWithdraw,
         netTransaction: totalDeposit - totalWithdraw,
-        remainingBalance:
-          profit + totalDeposit - totalWithdraw,
+        remainingBalance: parseFloat(remainingBalance.toFixed(2)),
+        // Alias used by the UI "Total Collected" card — this is sales collected,
+        // not profit (profit was incorrectly shown there before).
+        totalCollected: totalRevenue,
         totalCollectionBalance: parseFloat(totalCollectionBalance.toFixed(2)),
         accounts,
         openingBalance,

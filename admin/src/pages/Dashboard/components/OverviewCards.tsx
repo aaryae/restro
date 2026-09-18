@@ -154,14 +154,25 @@ function OverviewCards() {
             <SummaryCard
               title="Remaining Balance"
               tint="olive"
-              value={`${CurrencySign}${overview.remainingBalance.toLocaleString()}`}
-              amount={overview.remainingBalance}
+              value={`${CurrencySign}${Number(overview.remainingBalance || 0).toLocaleString()}`}
+              amount={Number(overview.remainingBalance || 0)}
               Icon={Landmark}
             />
           )}
+        {showRevenue && showPurchase && showExpense && overview && (
+          <SummaryCard
+            title="Net Profit"
+            tint="olive"
+            value={`${CurrencySign}${profit.toLocaleString()}`}
+            amount={profit}
+            Icon={TrendingUp}
+            signed
+            dimWhenZero={false}
+          />
+        )}
         {overviewData?.success && overview && (
           <SummaryCard
-            title="Collection Till Date"
+            title="Cash on Hand"
             tint="indigo"
             value={`${CurrencySign}${formatCurrencyAmount(overview.totalCollectionBalance)}`}
             amount={overview.totalCollectionBalance}
@@ -180,6 +191,7 @@ function OverviewCards() {
             totalPurchase={overview.totalPurchase}
             totalExpense={overview.totalExpense}
             openingBalance={overview.openingBalance}
+            profit={profit}
             showSalesTrend={orderAccessList.includes("view")}
           />
         )}
@@ -192,18 +204,20 @@ function FiscalYearSummary({
   totalPurchase,
   totalExpense,
   openingBalance,
+  profit,
   showSalesTrend,
 }: {
   totalRevenue: number;
   totalPurchase: number;
   totalExpense: number;
   openingBalance: number | undefined;
+  profit: number;
   showSalesTrend: boolean;
 }) {
   const [chartType, setChartType] = useState<ChartType>("pie");
   const { fiscal, brand } = useChartColors();
-  const profit = totalRevenue - (totalPurchase + totalExpense);
-  const collectedAmount = profit + Number(openingBalance || 0);
+  // Total collected = sales revenue brought in (never profit).
+  const collectedAmount = Number(totalRevenue) || 0;
 
   const { data: dailySalesData } = useGetApiQuery(
     { url: `${DASHBOARD_URL}daily-sales?days=14` },
@@ -261,6 +275,8 @@ function FiscalYearSummary({
                 height={280}
                 showLegend
                 colors={fiscal}
+                centerLabel={profit >= 0 ? "Net Profit" : "Net Loss"}
+                centerValue={profit}
               />
             )}
             {chartType === "bar" && (
