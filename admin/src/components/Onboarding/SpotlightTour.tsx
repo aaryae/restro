@@ -329,43 +329,19 @@ export default function SpotlightTour({
 
   return createPortal(
     <div className="fixed inset-0 z-[200]" aria-live="polite">
-      {/* Dim everything except the target. Four panels keep the cutout crisp.
-          Overlap by 1px so panel seams never flash a bright hairline. */}
+      {/* Single cutout via box-shadow — avoids the 4-panel seam that showed as
+          a hard horizontal line across the page under the highlight. */}
       {rect && !centered ? (
         <>
+          {/* Catch clicks on the dimmed app without painting a second scrim. */}
+          <div className="absolute inset-0" aria-hidden />
           <div
-            className="tour-dim"
-            style={{
-              top: 0,
-              left: 0,
-              right: 0,
-              height: Math.max(rect.top + 1, 0),
-            }}
-          />
-          <div
-            className="tour-dim"
-            style={{
-              top: Math.max(rect.top + rect.height - 1, 0),
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }}
-          />
-          <div
-            className="tour-dim"
+            aria-hidden
+            className="tour-spotlight"
             style={{
               top: rect.top,
-              left: 0,
-              width: Math.max(rect.left + 1, 0),
-              height: rect.height,
-            }}
-          />
-          <div
-            className="tour-dim"
-            style={{
-              top: rect.top,
-              left: Math.max(rect.left + rect.width - 1, 0),
-              right: 0,
+              left: rect.left,
+              width: rect.width,
               height: rect.height,
             }}
           />
@@ -378,9 +354,7 @@ export default function SpotlightTour({
               width: rect.width,
               height: rect.height,
             }}
-          >
-            <span className="absolute -inset-[3px] animate-tour-halo rounded-[inherit] border-2 border-tourAccent/40 motion-reduce:hidden" />
-          </div>
+          />
         </>
       ) : (
         <div className="tour-dim" style={{ inset: 0 }} />
