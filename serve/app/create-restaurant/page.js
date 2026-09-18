@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as yup from 'yup'
 import {
@@ -11,8 +11,8 @@ import {
   markWelcomePending,
 } from '@/lib/trial-api'
 import { rememberCafeSlug } from '@/lib/cafe-slug'
+import { filterNepalLocations } from '@/lib/nepal-locations'
 import OnboardBackdrop from '@/components/OnboardBackdrop'
-
 
 function tenantHostLabel() {
   return String(process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN || 'servecafe.app')
@@ -20,13 +20,6 @@ function tenantHostLabel() {
     .toLowerCase()
     .replace(/^\.+|\.+$/g, '')
 }
-
-const restaurantSchema = yup.object({
-  name: yup.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long').required('Restaurant name is required'),
-  phone: yup.string().matches(/^\d{7,10}$/, 'Enter a valid phone number (7-10 digits)').required('Phone number is required'),
-  address: yup.string().trim().min(3, 'Address must be at least 3 characters').required('Address is required'),
-  slug: yup.string().trim().min(3, 'URL must be at least 3 characters').matches(/^[a-z0-9-]+$/, 'Only lowercase letters, numbers, and dashes').required('Cafe URL is required'),
-})
 
 const TYPES = [
   'FastFood',
@@ -37,7 +30,40 @@ const TYPES = [
   'Bar',
   'Cafe',
   'Restaurant',
+  'Others',
 ]
+
+const restaurantSchema = yup.object({
+  name: yup
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name is too long')
+    .required('Restaurant name is required'),
+  phone: yup
+    .string()
+    .matches(/^(97|98)\d{8}$/, 'Enter a valid Nepal mobile (10 digits, starts with 97/98)')
+    .required('Phone number is required'),
+  businessType: yup
+    .string()
+    .oneOf(TYPES, 'Select a business type')
+    .required('Type is required'),
+  address: yup
+    .string()
+    .trim()
+    .min(3, 'Address must be at least 3 characters')
+    .required('Address is required'),
+  slug: yup
+    .string()
+    .trim()
+    .min(3, 'URL must be at least 3 characters')
+    .max(63, 'URL is too long')
+    .matches(
+      /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/,
+      'Only lowercase letters, numbers, and dashes',
+    )
+    .required('Cafe URL is required'),
+})
 
 export default function CreateRestaurantPage() {
   const router = useRouter()
@@ -45,14 +71,22 @@ export default function CreateRestaurantPage() {
   const [phone, setPhone] = useState('')
   const [businessType, setBusinessType] = useState('Cafe')
   const [address, setAddress] = useState('')
+  const [addressOpen, setAddressOpen] = useState(false)
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
+  const [slugSuggestions, setSlugSuggestions] = useState([])
   const [slugMessage, setSlugMessage] = useState('')
   const [isSlugAvailable, setIsSlugAvailable] = useState(null)
   const [slugBusy, setSlugBusy] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
+  const addressWrapRef = useRef(null)
+
+  const addressSuggestions = useMemo(
+    () => filterNepalLocations(address, 8),
+    [address],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -86,15 +120,35 @@ export default function CreateRestaurantPage() {
   }, [router])
 
   useEffect(() => {
+    function onDocClick(e) {
+      if (!addressWrapRef.current?.contains(e.target)) {
+        setAddressOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  useEffect(() => {
     if (!name.trim() || slugTouched) return
     const t = setTimeout(async () => {
       try {
         setSlugBusy(true)
-        const res = await trialFetch(`/trial/suggest-slug?name=${encodeURIComponent(name)}`)
+        const res = await trialFetch(
+          `/trial/suggest-slug?name=${encodeURIComponent(name)}`,
+        )
         const next = res.data?.slug || ''
+        const options = Array.isArray(res.data?.suggestions)
+          ? res.data.suggestions
+          : next
+            ? [next]
+            : []
         setSlug(next)
+        setSlugSuggestions(options)
         setIsSlugAvailable(true)
-        setSlugMessage(next ? `${next}.${tenantHostLabel()} is available.` : '')
+        setSlugMessage(
+          next ? `${next}.${tenantHostLabel()} is available.` : '',
+        )
       } catch (err) {
         setIsSlugAvailable(false)
         setSlugMessage(err.message || 'Could not suggest a URL.')
@@ -122,7 +176,9 @@ export default function CreateRestaurantPage() {
     const t = setTimeout(async () => {
       setSlugBusy(true)
       try {
-        const res = await trialFetch(`/trial/slug-available?slug=${encodeURIComponent(value)}`)
+        const res = await trialFetch(
+          `/trial/slug-available?slug=${encodeURIComponent(value)}`,
+        )
         if (cancelled) return
         const payload = res.data || {}
         setIsSlugAvailable(Boolean(payload.available))
@@ -154,16 +210,23 @@ export default function CreateRestaurantPage() {
     if (!value) {
       setIsSlugAvailable(false)
       setSlugMessage('Enter a cafe URL first.')
+      setFieldErrors((p) => ({ ...p, slug: 'Cafe URL is required' }))
       return false
     }
     if (value.length < 3) {
       setIsSlugAvailable(false)
       setSlugMessage('URL must be at least 3 characters.')
+      setFieldErrors((p) => ({
+        ...p,
+        slug: 'URL must be at least 3 characters',
+      }))
       return false
     }
     setSlugBusy(true)
     try {
-      const res = await trialFetch(`/trial/slug-available?slug=${encodeURIComponent(value)}`)
+      const res = await trialFetch(
+        `/trial/slug-available?slug=${encodeURIComponent(value)}`,
+      )
       const payload = res.data || {}
       setSlug(value)
       const available = Boolean(payload.available)
@@ -172,7 +235,10 @@ export default function CreateRestaurantPage() {
         ? `${value}.${tenantHostLabel()} is available.`
         : formatSlugTakenMessage(value, payload.reason)
       setSlugMessage(message)
-      setFieldErrors((prev) => ({ ...prev, slug: undefined }))
+      setFieldErrors((prev) => ({
+        ...prev,
+        slug: available ? undefined : message,
+      }))
       return available
     } catch (err) {
       setIsSlugAvailable(false)
@@ -188,13 +254,25 @@ export default function CreateRestaurantPage() {
     if (!name.trim()) {
       setIsSlugAvailable(false)
       setSlugMessage('Enter a restaurant name first.')
+      setFieldErrors((p) => ({
+        ...p,
+        name: 'Restaurant name is required',
+      }))
       return
     }
     setSlugBusy(true)
     try {
-      const res = await trialFetch(`/trial/suggest-slug?name=${encodeURIComponent(name)}`)
+      const res = await trialFetch(
+        `/trial/suggest-slug?name=${encodeURIComponent(name)}`,
+      )
       const next = res.data.slug || ''
+      const options = Array.isArray(res.data?.suggestions)
+        ? res.data.suggestions
+        : next
+          ? [next]
+          : []
       setSlug(next)
+      setSlugSuggestions(options)
       setSlugTouched(true)
       setIsSlugAvailable(true)
       setSlugMessage(`${next}.${tenantHostLabel()} is available.`)
@@ -212,11 +290,14 @@ export default function CreateRestaurantPage() {
     setPhone('')
     setBusinessType('Cafe')
     setAddress('')
+    setAddressOpen(false)
     setSlug('')
     setSlugTouched(false)
+    setSlugSuggestions([])
     setSlugMessage('')
     setIsSlugAvailable(null)
     setError('')
+    setFieldErrors({})
   }
 
   async function onSubmit(e) {
@@ -225,7 +306,10 @@ export default function CreateRestaurantPage() {
     setFieldErrors({})
 
     try {
-      await restaurantSchema.validate({ name, phone, address, slug }, { abortEarly: false })
+      await restaurantSchema.validate(
+        { name, phone, businessType, address, slug },
+        { abortEarly: false },
+      )
     } catch (err) {
       if (err instanceof yup.ValidationError) {
         const errs = {}
@@ -237,6 +321,7 @@ export default function CreateRestaurantPage() {
           setIsSlugAvailable(false)
           setSlugMessage(errs.slug)
         }
+        setError('Please fix the highlighted fields.')
         return
       }
       setError(err.message || 'Validation failed')
@@ -278,6 +363,7 @@ export default function CreateRestaurantPage() {
         setIsSlugAvailable(false)
         const slugMsg = formatSlugTakenMessage(slug, msg)
         setSlugMessage(slugMsg)
+        setFieldErrors((p) => ({ ...p, slug: slugMsg }))
         setError(slugMsg)
       } else {
         setError(msg)
@@ -287,11 +373,15 @@ export default function CreateRestaurantPage() {
     }
   }
 
+  const urlLabel =
+    businessType && businessType !== 'Others'
+      ? `${businessType.replace(/\s+/g, ' ')} URL`
+      : 'Cafe URL'
+
   return (
     <main className="relative min-h-screen onboard-canvas flex items-center justify-center px-4 py-10 overflow-hidden">
       <OnboardBackdrop />
       <div className="relative z-10 w-full max-w-2xl onboard-card-in">
-        {/* Top bar */}
         <div className="flex items-center justify-between mb-6">
           <button
             type="button"
@@ -308,7 +398,6 @@ export default function CreateRestaurantPage() {
           </div>
         </div>
 
-        {/* Card */}
         <div className="rounded-3xl bg-white border border-steam shadow-xl shadow-espresso/[0.04] p-7 sm:p-9">
           <h1 className="font-syne text-xl sm:text-2xl font-800 tracking-[-0.02em] text-espresso">
             Set up your restaurant
@@ -317,37 +406,65 @@ export default function CreateRestaurantPage() {
             Takes 30 seconds. You can change these later.
           </p>
 
-          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-5">
-            <Field label="Restaurant Name" error={fieldErrors.name}>
+          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-5" noValidate>
+            <Field label="Restaurant Name" required error={fieldErrors.name}>
               <input
                 value={name}
-                onChange={(e) => { setName(e.target.value); setFieldErrors(p => ({...p, name: undefined})) }}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((p) => ({ ...p, name: undefined }))
+                }}
+                onBlur={() => {
+                  restaurantSchema
+                    .validateAt('name', { name })
+                    .then(() => setFieldErrors((p) => ({ ...p, name: undefined })))
+                    .catch((err) =>
+                      setFieldErrors((p) => ({ ...p, name: err.message })),
+                    )
+                }}
                 placeholder="e.g. Amechi Cafe"
-                className={`w-full rounded-xl border bg-milk px-3.5 py-2.5 text-sm outline-none transition-all focus:border-coffee focus:ring-2 focus:ring-coffee/[0.08] ${fieldErrors.name ? 'border-red-400' : 'border-steam'}`}
+                className={inputClass(fieldErrors.name)}
               />
             </Field>
 
-            <Field label="Phone" error={fieldErrors.phone}>
+            <Field label="Phone" required error={fieldErrors.phone}>
               <div className="flex gap-2">
                 <span className="inline-flex items-center rounded-xl border border-steam bg-cream px-3 text-sm text-roast">
                   +977
                 </span>
                 <input
                   value={phone}
-                  onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setFieldErrors(p => ({...p, phone: undefined})) }}
+                  onChange={(e) => {
+                    setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                    setFieldErrors((p) => ({ ...p, phone: undefined }))
+                  }}
+                  onBlur={() => {
+                    restaurantSchema
+                      .validateAt('phone', { phone })
+                      .then(() =>
+                        setFieldErrors((p) => ({ ...p, phone: undefined })),
+                      )
+                      .catch((err) =>
+                        setFieldErrors((p) => ({ ...p, phone: err.message })),
+                      )
+                  }}
                   placeholder="98XXXXXXXX"
-                  className={`w-full rounded-xl border bg-milk px-3.5 py-2.5 text-sm outline-none transition-all focus:border-coffee focus:ring-2 focus:ring-coffee/[0.08] flex-1 ${fieldErrors.phone ? 'border-red-400' : 'border-steam'}`}
+                  inputMode="numeric"
+                  className={`${inputClass(fieldErrors.phone)} flex-1`}
                 />
               </div>
             </Field>
 
-            <Field label="Type">
+            <Field label="Type" required error={fieldErrors.businessType}>
               <div className="flex flex-wrap gap-1.5">
                 {TYPES.map((t) => (
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setBusinessType(t)}
+                    onClick={() => {
+                      setBusinessType(t)
+                      setFieldErrors((p) => ({ ...p, businessType: undefined }))
+                    }}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-all cursor-pointer ${
                       businessType === t
                         ? 'coffee-fill text-white border-roast'
@@ -359,16 +476,62 @@ export default function CreateRestaurantPage() {
               </div>
             </Field>
 
-            <Field label="Address" error={fieldErrors.address}>
-              <input
-                value={address}
-                onChange={(e) => { setAddress(e.target.value); setFieldErrors(p => ({...p, address: undefined})) }}
-                placeholder="Location"
-                className={`w-full rounded-xl border bg-milk px-3.5 py-2.5 text-sm outline-none transition-all focus:border-coffee focus:ring-2 focus:ring-coffee/[0.08] ${fieldErrors.address ? 'border-red-400' : 'border-steam'}`}
-              />
+            <Field label="Address" required error={fieldErrors.address}>
+              <div className="relative" ref={addressWrapRef}>
+                <input
+                  value={address}
+                  onChange={(e) => {
+                    setAddress(e.target.value)
+                    setAddressOpen(true)
+                    setFieldErrors((p) => ({ ...p, address: undefined }))
+                  }}
+                  onFocus={() => setAddressOpen(true)}
+                  onBlur={() => {
+                    restaurantSchema
+                      .validateAt('address', { address })
+                      .then(() =>
+                        setFieldErrors((p) => ({ ...p, address: undefined })),
+                      )
+                      .catch((err) =>
+                        setFieldErrors((p) => ({
+                          ...p,
+                          address: err.message,
+                        })),
+                      )
+                  }}
+                  placeholder="Search Nepal city, area, or district…"
+                  autoComplete="off"
+                  className={inputClass(fieldErrors.address)}
+                />
+                {addressOpen && addressSuggestions.length > 0 ? (
+                  <ul className="absolute z-20 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-steam bg-white py-1 shadow-lg">
+                    {addressSuggestions.map((place) => (
+                      <li key={place}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center px-3.5 py-2.5 text-left text-sm text-espresso hover:bg-cream cursor-pointer"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setAddress(place)
+                            setAddressOpen(false)
+                            setFieldErrors((p) => ({
+                              ...p,
+                              address: undefined,
+                            }))
+                          }}>
+                          {place}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <p className="mt-1.5 text-xs text-muted">
+                  Pick a Nepal location from suggestions, or type a full address.
+                </p>
+              </div>
             </Field>
 
-            <Field label="Cafe URL">
+            <Field label={urlLabel} required error={fieldErrors.slug}>
               <div
                 className={`rounded-xl border p-4 transition-colors ${
                   isSlugAvailable === false
@@ -379,10 +542,13 @@ export default function CreateRestaurantPage() {
                 }`}>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input
-                    required
                     value={slug}
                     onChange={(e) => {
-                      const next = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+                      const next = e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, '-')
+                        .replace(/-+/g, '-')
+                        .replace(/^-|-$/g, '')
                       setSlug(next)
                       setSlugTouched(true)
                       setIsSlugAvailable(null)
@@ -417,8 +583,31 @@ export default function CreateRestaurantPage() {
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-muted">
-                  {slug ? `${slug}.${tenantHostLabel()}` : `your-cafe.${tenantHostLabel()}`}
+                  {slug
+                    ? `${slug}.${tenantHostLabel()}`
+                    : `your-cafe.${tenantHostLabel()}`}
                 </p>
+                {slugSuggestions.length > 1 ? (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {slugSuggestions.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setSlug(option)
+                          setSlugTouched(true)
+                          setFieldErrors((p) => ({ ...p, slug: undefined }))
+                        }}
+                        className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition cursor-pointer ${
+                          slug === option
+                            ? 'coffee-fill border-roast text-white'
+                            : 'border-steam bg-white text-roast hover:border-caramel/40'
+                        }`}>
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 {slugBusy && !slugMessage ? (
                   <p className="mt-2 text-xs text-muted">Checking availability…</p>
                 ) : null}
@@ -434,7 +623,8 @@ export default function CreateRestaurantPage() {
                 ) : null}
                 {isSlugAvailable === false ? (
                   <p className="mt-2 text-xs text-red-700">
-                    Pick a different URL or click <strong>Suggest</strong> for an available option.
+                    Pick a different URL or click <strong>Suggest</strong> for a
+                    shorter available option.
                   </p>
                 ) : null}
               </div>
@@ -467,6 +657,12 @@ export default function CreateRestaurantPage() {
   )
 }
 
+function inputClass(error) {
+  return `w-full rounded-xl border bg-milk px-3.5 py-2.5 text-sm outline-none transition-all focus:border-coffee focus:ring-2 focus:ring-coffee/[0.08] ${
+    error ? 'border-red-400' : 'border-steam'
+  }`
+}
+
 function formatSlugTakenMessage(slug, reason) {
   const value = String(slug || '').trim().toLowerCase()
   const base = value ? `${value}.${tenantHostLabel()}` : 'This cafe URL'
@@ -482,10 +678,13 @@ function formatSlugTakenMessage(slug, reason) {
   return reason
 }
 
-function Field({ label, error, children }) {
+function Field({ label, error, required = false, children }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+        {label}
+        {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+      </span>
       <div className="mt-1.5">{children}</div>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </label>
