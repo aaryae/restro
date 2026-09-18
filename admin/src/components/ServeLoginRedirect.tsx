@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { redirectToServeLogin } from "@/utils/serveAuth";
 
-/** Any legacy `/login` bookmark immediately goes to Serve (port 3000). */
+/** Any legacy `/login` bookmark immediately goes to Serve. */
 export default function ServeLoginRedirect() {
   useEffect(() => {
     redirectToServeLogin();

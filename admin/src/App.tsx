@@ -18,7 +18,6 @@ interface DecodedToken {
   email?: string;
 }
 
-
 export default function App() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
