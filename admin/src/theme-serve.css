@@ -465,10 +465,9 @@ html.dark .bg-rose-50 {
   background: var(--serve-overlay);
 }
 
-/* Product tour scrim. Four of these frame the highlighted element, so the
-   cutout stays sharp while the rest of the app dims. No backdrop blur —
-   blur seams between panels show as bright horizontal lines and make the
-   page hard to read during the guide. */
+/* Product tour scrim.
+   Prefer `.tour-spotlight` (one element + huge box-shadow) so there are no
+   seams between panels. `.tour-dim` remains for full-screen centered steps. */
 .tour-dim {
   position: absolute;
   background: var(--tour-scrim);
@@ -479,15 +478,28 @@ html.dark .bg-rose-50 {
     height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Layered glow around the spotlighted element. Keep the ring tight — a wide
-   outer glow can read as a bright hairline across the cutout edges. */
+.tour-spotlight {
+  position: absolute;
+  border-radius: 14px;
+  /* Transparent hole; the shadow paints the dim over the rest of the viewport. */
+  background: transparent;
+  box-shadow: 0 0 0 9999px var(--tour-scrim);
+  pointer-events: none;
+  transition:
+    top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Accent ring only — no wide outer glow (that can look like an edge line). */
 .tour-ring {
   position: absolute;
   pointer-events: none;
   border-radius: 14px;
   box-shadow:
     0 0 0 2px rgb(var(--tour-accent-rgb)),
-    0 0 0 5px rgb(var(--tour-accent-rgb) / 0.2);
+    0 0 0 4px rgb(var(--tour-accent-rgb) / 0.18);
   transition:
     top 0.22s cubic-bezier(0.16, 1, 0.3, 1),
     left 0.22s cubic-bezier(0.16, 1, 0.3, 1),
@@ -509,6 +521,7 @@ html.dark .bg-rose-50 {
 
 @media (prefers-reduced-motion: reduce) {
   .tour-dim,
+  .tour-spotlight,
   .tour-ring {
     transition: none;
   }
