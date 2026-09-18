@@ -1,6 +1,5 @@
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -30,9 +29,29 @@ type AddonFormType = {
   mediaArr?: string[];
 };
 
-const AddEditAddons = () => {
+export type CreatedAddon = {
+  id: number;
+  name: string;
+  price: number;
+  imageUrl?: string | null;
+  description?: string | null;
+};
+
+interface Props {
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onCreated?: (addon: CreatedAddon) => void;
+}
+
+const AddEditAddons = ({
+  isComponent = false,
+  closeModal = () => {},
+  onCreated,
+}: Props) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  // When embedded in the product form, never use route params for edit mode.
+  const editId = isComponent ? undefined : id;
 
   const {
     register,
@@ -55,24 +74,23 @@ const AddEditAddons = () => {
 
   const [image, setImage] = useState<string>("");
 
-  const {
-    isImageModelOpen,
-    setIsImageModalOpen,
-    handleNextButton,
-    handlePrevButton,
-  } = useImageHandler(setValue, getValues, "mediaArr");
+  const { isImageModelOpen, setIsImageModalOpen } = useImageHandler(
+    setValue,
+    getValues,
+    "mediaArr",
+  );
 
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
 
   const { data: addonData, isSuccess: addonSuccess } = useGetApiQuery(
-    { url: `${ADDON_URL}${id}` },
-    { skip: !id },
+    { url: `${ADDON_URL}${editId}` },
+    { skip: !editId },
   );
-  const [createAddon] = useCreateApiMutation();
-  const [updateAddon] = useUpdateApiMutation();
+  const [createAddon, { isLoading: creating }] = useCreateApiMutation();
+  const [updateAddon, { isLoading: updating }] = useUpdateApiMutation();
 
   useEffect(() => {
-    if (id && addonSuccess && addonData?.data) {
+    if (editId && addonSuccess && addonData?.data) {
       const imageUrl = addonData.data.imageUrl || "";
       reset({
         name: addonData.data.name || "",
@@ -87,7 +105,7 @@ const AddEditAddons = () => {
           ? imageUrl.replace(IMAGE_BASE_URL, "")
           : imageUrl,
       );
-    } else if (!id) {
+    } else if (!editId) {
       reset({
         name: "",
         price: undefined as unknown as number,
@@ -96,7 +114,7 @@ const AddEditAddons = () => {
       });
       setImage("");
     }
-  }, [id, addonSuccess, addonData, reset]);
+  }, [editId, addonSuccess, addonData, reset]);
 
   const onConfirmMedia = () => {
     const selected = typeof selectedImage === "string" ? selectedImage : "";
@@ -111,6 +129,15 @@ const AddEditAddons = () => {
     setValue("imageUrl", selected, { shouldValidate: true });
     clearErrors("imageUrl");
     setIsImageModalOpen(false);
+  };
+
+  const handleSuccess = (created?: CreatedAddon) => {
+    if (isComponent) {
+      if (created) onCreated?.(created);
+      closeModal();
+    } else {
+      navigate(ADDONS_LIST_ROUTE);
+    }
   };
 
   const onSubmit = async (data: AddonFormType) => {
@@ -131,29 +158,53 @@ const AddEditAddons = () => {
       imageUrl,
     };
     try {
-      const response = id
-        ? await updateAddon({ url: `${ADDON_URL}${id}`, body }).unwrap()
+      const response = editId
+        ? await updateAddon({ url: `${ADDON_URL}${editId}`, body }).unwrap()
         : await createAddon({ url: `${ADDON_URL}`, body }).unwrap();
       handleResponse({
         res: response,
-        onSuccess: () => navigate(ADDONS_LIST_ROUTE),
+        onSuccess: () => {
+          const created =
+            !editId && response?.data?.id
+              ? {
+                  id: Number(response.data.id),
+                  name: response.data.name || trimmedName,
+                  price: Number(response.data.price ?? body.price),
+                  imageUrl: response.data.imageUrl || imageUrl,
+                  description: response.data.description ?? null,
+                }
+              : undefined;
+          handleSuccess(created);
+        },
       });
     } catch (error) {
       handleError({ error, setError });
     }
   };
 
+  const busy = isSubmitting || creating || updating;
+
   return (
     <>
-      <PageTitle title={id ? "Edit Addon" : "Add Addon"} isBack={true} />
+      {!isComponent && (
+        <PageTitle title={editId ? "Edit Addon" : "Add Addon"} isBack={true} />
+      )}
       <form
-        className="form-container grid grid-cols-1 gap-[1rem] mt-[1rem]"
-        onSubmit={handleSubmit(onSubmit)}
+        className={
+          isComponent
+            ? "mt-5 space-y-4"
+            : "form-container mt-[1rem] grid grid-cols-1 gap-[1rem]"
+        }
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void handleSubmit(onSubmit)(e);
+        }}
       >
         <Input
           label="Name"
           placeholder="Enter addon name"
-          className="w-1/2"
+          className={isComponent ? "w-full" : "w-1/2"}
           {...register("name")}
           error={errors.name?.message}
           isRequired
@@ -163,7 +214,7 @@ const AddEditAddons = () => {
           label="Price"
           type="number"
           step={0.01}
-          className="w-1/2"
+          className={isComponent ? "w-full" : "w-1/2"}
           placeholder="0"
           {...register("price", {
             setValueAs: (v) =>
@@ -173,11 +224,17 @@ const AddEditAddons = () => {
           isRequired
         />
 
-        <div className="flex flex-col items-start w-[20rem]">
+        <div
+          className={`flex flex-col items-start ${isComponent ? "w-full" : "w-[20rem]"}`}
+        >
           <label className="input-label text-start mb-[2px]">
             Image <span className="text-red-500">*</span>
           </label>
-          <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+          <Suspense
+            fallback={
+              <div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />
+            }
+          >
             <MediaComponent
               title={<ImageInputUI image={image} imageMessage="Upload Image" />}
               isMultiSelect={false}
@@ -191,14 +248,34 @@ const AddEditAddons = () => {
           )}
         </div>
 
-        <div className="flex justify-start">
+        <div
+          className={
+            isComponent
+              ? "flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4"
+              : "flex justify-start"
+          }
+        >
+          {isComponent && (
+            <button
+              type="button"
+              onClick={closeModal}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              disabled={busy}
+            >
+              Cancel
+            </button>
+          )}
           <Button
             type="submit"
-            className="submit-button w-[8rem]"
-            disabled={isSubmitting}
+            className={
+              isComponent
+                ? "submit-button h-10 min-w-[7.5rem] px-5"
+                : "submit-button w-[8rem]"
+            }
+            disabled={busy}
           >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white">
-              {id ? "Update" : "Create"}
+            <div className="flex items-center justify-center gap-[0.5rem] text-white">
+              {busy ? "Saving…" : editId ? "Update" : "Create"}
             </div>
           </Button>
         </div>

@@ -34,6 +34,7 @@ const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 const AddEditProductCategory = lazy(
   () => import("../ProductCategory/AddEditProductCategory"),
 );
+const AddEditAddons = lazy(() => import("../Addons/AddEditAddons"));
 const ListCategoryDetails = lazy(() => import("./ListCategoryDetails"));
 
 type ProductFormType = z.infer<typeof ProductSchema>;
@@ -95,11 +96,19 @@ export default function ProductForm() {
   };
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [addonDialogOpen, setAddonDialogOpen] = useState<boolean>(false);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [addonDrawerOpen, setAddonDrawerOpen] = useState<boolean>(false);
   const selectedAddons = watch("addons");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [addonSearch, setAddonSearch] = useState<string>("");
+  // Keep names for chips when list hasn't loaded yet / after inline create.
+  const [knownAddons, setKnownAddons] = useState<
+    Record<
+      number,
+      { id: number; name: string; price?: number; imageUrl?: string | null }
+    >
+  >({});
 
   // Toggle addon selection helper
   const toggleAddon = (addonId: number) => {
@@ -131,11 +140,28 @@ export default function ProductForm() {
     url: `${DEPARTMENT_URL}list?page=1&limit=${LIST_LIMIT}`,
   });
 
-  // Fetch addons only when the selection drawer is opened.
+  // Load addons for chips + drawer (also after inline create via cache invalidation).
   const { data: addonListData } = useGetApiQuery(
     { url: `${ADDON_URL}?page=1&limit=${LIST_LIMIT}` },
-    { skip: !addonDrawerOpen },
+    {
+      skip:
+        !addonDrawerOpen &&
+        !addonDialogOpen &&
+        !(Array.isArray(selectedAddons) && selectedAddons.length > 0),
+    },
   );
+
+  const addonCatalog = useMemo(() => {
+    const map = new Map<
+      number,
+      { id: number; name: string; price?: number; imageUrl?: string | null; description?: string }
+    >();
+    Object.values(knownAddons).forEach((a) => map.set(a.id, a));
+    (addonListData?.data?.data || []).forEach((a: any) => {
+      if (a?.id != null) map.set(a.id, a);
+    });
+    return map;
+  }, [knownAddons, addonListData]);
 
   const departmentOptions = useMemo(() => {
     if (!departmentData?.data) return [];
@@ -190,6 +216,23 @@ export default function ProductForm() {
           ? (product?.data as any).addons.map((a: any) => a.id)
           : [],
       });
+      if (Array.isArray((product?.data as any)?.addons)) {
+        const fromProduct: Record<
+          number,
+          { id: number; name: string; price?: number; imageUrl?: string | null }
+        > = {};
+        (product?.data as any).addons.forEach((a: any) => {
+          if (a?.id != null) {
+            fromProduct[a.id] = {
+              id: a.id,
+              name: a.name,
+              price: a.price,
+              imageUrl: a.imageUrl,
+            };
+          }
+        });
+        setKnownAddons((prev) => ({ ...prev, ...fromProduct }));
+      }
       setSelectedOption(product?.data?.productCategoryId);
     } else {
       reset({
@@ -465,10 +508,10 @@ export default function ProductForm() {
           ) : null}
         </div>
 
-        {/* Addons selector */}
+        {/* Addons selector — select existing or create new from this form */}
         <div className="flex flex-col gap-2 w-full md:w-1/2">
           <label className="input-label">Addons</label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               className="inline-flex items-center rounded-lg bg-primaryColor px-4 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
@@ -476,15 +519,27 @@ export default function ProductForm() {
             >
               Select Addons
             </button>
+            <button
+              type="button"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setAddonDialogOpen(true);
+              }}
+            >
+              <Plus /> Add
+            </button>
             <span className="text-sm text-slate-500">
               {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
               selected
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(addonListData?.data?.data || [])
-              .filter((a: any) => (selectedAddons || []).includes(a.id))
-              .map((a: any) => (
+            {(selectedAddons || []).map((addonId) => {
+              const a = addonCatalog.get(addonId);
+              if (!a) return null;
+              return (
                 <span
                   key={a.id}
                   className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
@@ -499,7 +554,8 @@ export default function ProductForm() {
                     ×
                   </button>
                 </span>
-              ))}
+              );
+            })}
           </div>
         </div>
 
@@ -596,6 +652,39 @@ export default function ProductForm() {
         </Suspense>
       </CustomDialog>
 
+      <CustomDialog
+        dialogOpen={addonDialogOpen}
+        setDialogOpen={setAddonDialogOpen}
+        title="Add Addon"
+        titleDescription="Create an addon and attach it to this item."
+        contentClassName="max-w-md sm:max-w-lg"
+        closeOnOutsideClick
+      >
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+          {addonDialogOpen ? (
+            <AddEditAddons
+              isComponent={true}
+              closeModal={() => setAddonDialogOpen(false)}
+              onCreated={(addon) => {
+                setKnownAddons((prev) => ({
+                  ...prev,
+                  [addon.id]: addon,
+                }));
+                const current = Array.isArray(selectedAddons)
+                  ? [...selectedAddons]
+                  : [];
+                if (!current.includes(addon.id)) {
+                  setValue("addons", [...current, addon.id], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                }
+              }}
+            />
+          ) : null}
+        </Suspense>
+      </CustomDialog>
+
       <Drawer
         isOpen={drawerOpen}
         setIsOpen={setDrawerOpen}
@@ -668,11 +757,11 @@ export default function ProductForm() {
           </div>
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 py-4">
-            {(addonListData?.data?.data || [])
-              .filter((a: any) =>
+            {Array.from(addonCatalog.values())
+              .filter((a) =>
                 a.name.toLowerCase().includes(addonSearch.toLowerCase()),
               )
-              .map((addon: any) => {
+              .map((addon) => {
                 const checked = (selectedAddons || []).includes(addon.id);
                 return (
                   <button
@@ -691,7 +780,7 @@ export default function ProductForm() {
                         src={
                           addon.imageUrl?.startsWith("http")
                             ? addon.imageUrl
-                            : `${IMAGE_BASE_URL}${addon.imageUrl}`
+                            : `${IMAGE_BASE_URL}${addon.imageUrl || ""}`
                         }
                         alt={addon.name}
                         className="h-full w-full object-cover"
@@ -732,12 +821,22 @@ export default function ProductForm() {
                 );
               })}
 
-            {(addonListData?.data?.data || []).filter((a: any) =>
+            {Array.from(addonCatalog.values()).filter((a) =>
               a.name.toLowerCase().includes(addonSearch.toLowerCase()),
             ).length === 0 && (
-              <p className="py-10 text-center text-sm text-slate-500">
-                No addons found
-              </p>
+              <div className="space-y-3 py-10 text-center">
+                <p className="text-sm text-slate-500">No addons found</p>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
+                  onClick={() => {
+                    setAddonDrawerOpen(false);
+                    setAddonDialogOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> Create addon
+                </button>
+              </div>
             )}
           </div>
 

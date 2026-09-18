@@ -1,4 +1,3 @@
-const { Sequelize } = require("sequelize");
 const { customerModel } = require("../../models");
 
 /** Rs. required per 1 loyalty point */
@@ -31,15 +30,13 @@ const awardLoyaltyPoints = async ({
   const points = calculateLoyaltyPoints(amount);
   if (points <= 0) return 0;
 
-  await customerModel.update(
-    {
-      loyaltyPoints: Sequelize.literal(`loyaltyPoints + ${points}`),
-    },
-    {
-      where: { id: customerId },
-      transaction,
-    },
-  );
+  // Use increment so Postgres gets quoted "loyaltyPoints" (raw literals
+  // become loyaltypoints and fail with column does not exist).
+  await customerModel.increment("loyaltyPoints", {
+    by: points,
+    where: { id: customerId },
+    transaction,
+  });
 
   return points;
 };
