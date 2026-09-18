@@ -28,6 +28,10 @@ interface PieChartProps {
   dataKey?: keyof ChartData;
   responsive?: boolean;
   colors?: string[];
+  /** Override the idle donut-hole label (defaults to "Total"). */
+  centerLabel?: string;
+  /** Override the idle donut-hole value (defaults to sum of slices). */
+  centerValue?: number;
 }
 
 const generateColors = (count: number, colorScale: string[]): string[] => {
@@ -66,6 +70,8 @@ const PieChartComponent: React.FC<PieChartProps> = ({
   responsive = false,
   colors: fixedColors,
   showLegend = true,
+  centerLabel,
+  centerValue,
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const themePalette = useChartPalette();
@@ -169,10 +175,12 @@ const PieChartComponent: React.FC<PieChartProps> = ({
             ) : (
               <>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--serve-muted)]">
-                  Total
+                  {centerLabel || "Total"}
                 </p>
                 <p className="mt-1 text-[17px] font-bold tabular-nums tracking-tight text-[var(--serve-fg)]">
-                  {formatChartValue(total)}
+                  {formatChartValue(
+                    typeof centerValue === "number" ? centerValue : total,
+                  )}
                 </p>
               </>
             )}
