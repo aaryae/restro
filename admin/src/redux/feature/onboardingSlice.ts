@@ -1,7 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 /** Bump when tour content changes enough that returning users should see it. */
-export const ONBOARDING_VERSION = 3;
+/** Bumped when tour order/content changes enough that returning users should replay. */
+export const ONBOARDING_VERSION = 4;
 
 type Phase = "idle" | "welcome" | "tour" | "done";
 

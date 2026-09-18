@@ -40,8 +40,9 @@ export interface TourStep {
 }
 
 /**
- * The first-run walkthrough. Steps whose target never appears (hidden by
- * permissions or viewport) are skipped automatically by the tour engine.
+ * First-run walkthrough. Order matches the left sidebar top-to-bottom so the
+ * tour reads serially. Steps whose target never appears (hidden by permissions
+ * or viewport) are skipped automatically by the tour engine.
  */
 export const TOUR_STEPS: TourStep[] = [
   {
@@ -60,21 +61,21 @@ export const TOUR_STEPS: TourStep[] = [
     placement: "right",
   },
   {
-    id: "orders",
-    target: "nav-orders",
-    module: "Order",
-    icon: ShoppingCart,
-    title: "Orders — your floor",
-    body: "The POS itself. Open a table, add items, send them to the kitchen as a KOT, then check out with cash, card, or a NepalPay QR.",
-    placement: "right",
-  },
-  {
     id: "dashboard",
     target: "nav-dashboard",
     module: "Dashboard",
     icon: LayoutDashboard,
     title: "Dashboard — the daily pulse",
     body: "Revenue, purchases, expenses and cash position at a glance. Use the range tabs to compare today against the week or month.",
+    placement: "right",
+  },
+  {
+    id: "orders",
+    target: "nav-orders",
+    module: "Order",
+    icon: ShoppingCart,
+    title: "Orders — your floor",
+    body: "The POS itself. Open a table, add items, send them to the kitchen as a KOT, then check out with cash, card, or a NepalPay QR.",
     placement: "right",
   },
   {
@@ -94,6 +95,35 @@ export const TOUR_STEPS: TourStep[] = [
     icon: UploadCloud,
     title: "Bulk upload your menu",
     body: "Already have your menu in Excel or Google Sheets? Download the template, paste your items, and upload — we validate every row before anything is saved.",
+    placement: "bottom",
+  },
+  {
+    id: "inventory",
+    target: "nav-Inventory",
+    module: ["Stock Item", "Measuring Unit", "Stock Group", "Stock History"],
+    icon: Package,
+    title: "Inventory — store & kitchen stock",
+    body: "Track ingredients and supplies separately from the Menu. Measuring units (kg, ltr, pcs, …) are ready by default; Stock Items hold quantities and value.",
+    placement: "right",
+  },
+  {
+    id: "stock-items",
+    route: "/admin/stock-item/list",
+    target: "stock-kpis",
+    module: "Stock Item",
+    icon: Package,
+    title: "Stock items at a glance",
+    body: "These cards show how many items you track, total stock value, recent restocks, and low-stock alerts. Use Adjust → Purchase / Restock to buy stock from a cash or bank account.",
+    placement: "bottom",
+  },
+  {
+    id: "stock-bulk",
+    route: "/admin/stock-item/list",
+    target: "stock-bulk-upload",
+    module: "Stock Item",
+    icon: UploadCloud,
+    title: "Bulk upload stock",
+    body: "Download the template, fill Name, Measuring Unit, Group, prices and opening quantity, then upload. Units must already exist by name or symbol; groups are created for you if missing.",
     placement: "bottom",
   },
   {
@@ -158,35 +188,6 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Media library",
     body: "Upload item photos once and reuse them anywhere. Everything your menu shows on the POS grid comes from here.",
     placement: "right",
-  },
-  {
-    id: "inventory",
-    target: "nav-Inventory",
-    module: ["Stock Item", "Measuring Unit", "Stock Group", "Stock History"],
-    icon: Package,
-    title: "Inventory — store & kitchen stock",
-    body: "Track ingredients and supplies separately from the Menu. Measuring units (kg, ltr, pcs, …) are ready by default; Stock Items hold quantities and value.",
-    placement: "right",
-  },
-  {
-    id: "stock-items",
-    route: "/admin/stock-item/list",
-    target: "stock-kpis",
-    module: "Stock Item",
-    icon: Package,
-    title: "Stock items at a glance",
-    body: "These cards show how many items you track, total stock value, recent restocks, and low-stock alerts. Use Adjust → Purchase / Restock to buy stock from a cash or bank account.",
-    placement: "bottom",
-  },
-  {
-    id: "stock-bulk",
-    route: "/admin/stock-item/list",
-    target: "stock-bulk-upload",
-    module: "Stock Item",
-    icon: UploadCloud,
-    title: "Bulk upload stock",
-    body: "Download the template, fill Name, Measuring Unit, Group, prices and opening quantity, then upload. Units must already exist by name or symbol; groups are created for you if missing.",
-    placement: "bottom",
   },
   {
     id: "settings",

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 function BrandingWrapper({ children }) {
   useEffect(() => {
-    const stored = localStorage.getItem("serve-theme") || "dark";
+    const stored = localStorage.getItem("serve-theme") || "light";
     const html = document.documentElement;
     html.classList.remove("dark", "light");
     html.classList.add(stored);
