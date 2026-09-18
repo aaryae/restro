@@ -15,7 +15,7 @@ const {
   generateJWT,
 } = require("../../helpers/jwt-helper");
 const { provisionTenant } = require("../../lib/tenant-provisioner");
-const { nextAvailableSlug, suggestSlug } = require("../../lib/trial-slug");
+const { nextAvailableSlug, suggestSlug, suggestSlugOptions } = require("../../lib/trial-slug");
 const { validateSlug } = require("../../lib/tenant-slug");
 const { RESERVED_SLUGS } = require("../../constants/tenant-constants");
 const { runWithTenantContext } = require("../../lib/tenant-context");
@@ -880,11 +880,20 @@ const checkSlug = async (req) => {
 
 const suggestRestaurantSlug = async (req) => {
   const name = String(req.query.name || "").trim();
-  const slug = await nextAvailableSlug(tenantModel, name || "cafe");
+  const suggestions = await suggestSlugOptions(
+    tenantModel,
+    name || "cafe",
+    4,
+  );
+  const slug = suggestions[0] || (await nextAvailableSlug(tenantModel, name || "cafe"));
   return {
     status: 200,
     success: true,
-    data: { slug, suggestedFrom: suggestSlug(name || "cafe") },
+    data: {
+      slug,
+      suggestions,
+      suggestedFrom: suggestSlug(name || "cafe"),
+    },
   };
 };
 
