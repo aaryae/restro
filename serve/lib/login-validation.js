@@ -31,26 +31,23 @@ export const loginSchema = yup.object({
     .min(3, 'Enter your username or email')
     .required('Username or email is required'),
   password: passwordSchema,
+  // Optional: users who verified email but never finished cafe setup have no
+  // domain yet. Empty → resume /get-started after login. Filled → open that POS.
   cafeSlug: yup
     .string()
     .transform((value) => normalizeCafeSlug(value || ''))
-    .test('optional-cafe-slug', function validateOptionalCafeSlug(value) {
-      if (!value) return true
-      if (value.length < 2) {
-        return this.createError({ message: 'Cafe ID must be at least 2 characters' })
-      }
-      if (value.length > 63) {
-        return this.createError({ message: 'Cafe ID is too long' })
-      }
-      if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(value)) {
-        return this.createError({
-          message: 'Use lowercase letters, numbers, and hyphens',
-        })
-      }
-      return true
-    })
-    .optional()
-    .default(''),
+    .test(
+      'cafe-slug-format',
+      'Use lowercase letters, numbers, and hyphens',
+      (value) => {
+        if (!value) return true
+        return (
+          value.length >= 2 &&
+          value.length <= 63 &&
+          /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(value)
+        )
+      },
+    ),
 })
 
 export const registerSchema = yup.object({
