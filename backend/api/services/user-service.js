@@ -33,7 +33,7 @@ const {
   generateJWT,
   POS_JWT_EXPIRY_SECONDS,
 } = require("../../helpers/jwt-helper");
-const { syncPrivilegedRoleAccess } = require("../../helpers/role-access-sync");
+const { syncPrivilegedRoleAccess, PRIVILEGED_ROLE_TITLES } = require("../../helpers/role-access-sync");
 const internal = {};
 
 const USER_PUBLIC_EXCLUDE = ["password"];
@@ -53,15 +53,46 @@ function toPublicUser(user) {
   return json;
 }
 
-function assertAssignableRole(req, roleId) {
+/**
+ * Only Super Admin may assign privileged roles (Super Admin / Admin).
+ * Privileged roles auto-receive full API access on login.
+ */
+async function assertAssignableRole(req, roleId) {
   const targetRoleId = Number(roleId);
-  if (!targetRoleId) return null;
-  // Only an existing Super Admin may assign Super Admin (roleId 1).
-  if (targetRoleId === 1 && Number(req.user?.roleId) !== 1) {
+  if (!targetRoleId) {
+    return {
+      status: 400,
+      success: false,
+      message: "A role is required",
+      data: null,
+    };
+  }
+
+  const targetRole = await roleModel.findOne({
+    where: { id: targetRoleId, isDeleted: false },
+    attributes: ["id", "title"],
+    raw: true,
+  });
+  if (!targetRole) {
+    return {
+      ...generalConstant.EN.ROLES.ROLES_NOT_FOUND,
+      data: null,
+    };
+  }
+
+  const callerIsSuperAdmin = Number(req.user?.roleId) === 1;
+  const targetTitle = String(targetRole.title || "").trim();
+  const targetIsPrivileged =
+    targetRoleId === 1 ||
+    PRIVILEGED_ROLE_TITLES.some(
+      (title) => title.toLowerCase() === targetTitle.toLowerCase(),
+    );
+
+  if (targetIsPrivileged && !callerIsSuperAdmin) {
     return {
       status: 403,
       success: false,
-      message: "You cannot assign the Super Admin role",
+      message: `You cannot assign the ${targetRole.title} role`,
       data: null,
     };
   }
@@ -80,6 +111,18 @@ internal.userLoginPassport = (req, res, next) => {
 const userLogin = async (req, res, next) => {
   try {
     let returnData = { ...generalConstant.EN.SERVER_ERROR };
+
+    // Staff login is always scoped to one cafe (domain + username + password).
+    if (!req.tenant?.schemaName) {
+      return {
+        status: 400,
+        success: false,
+        message:
+          "Cafe domain is required. Sign in with your cafe domain, username, and password.",
+        data: null,
+      };
+    }
+
     const loginId = String(req.body.username || "").trim();
     const isDeletedUser = await userModel.findOne({
       where: {
@@ -219,11 +262,7 @@ const createUser = async (req, res, next) => {
     req.body.password = await hashPassword(req.body.password);
     req.body.addedBy = +req.user.id;
 
-    const {
-      validateUsernameFormat,
-      claimUsername,
-      releaseUsername,
-    } = require("../../lib/global-username");
+    const { validateUsernameFormat } = require("../../lib/global-username");
 
     const usernameCheck = validateUsernameFormat(req.body.username);
     if (!usernameCheck.ok) {
@@ -241,39 +280,26 @@ const createUser = async (req, res, next) => {
       req.body.email = null;
     }
 
-    // Check if username already exists in this cafe
+    // Staff usernames are unique per cafe schema only (not globally).
     const existingUser = await userModel.findOne({
-      where: { username: req.body.username, isDeleted: false },
+      where: {
+        username: { [Op.iLike]: req.body.username },
+        isDeleted: false,
+      },
     });
 
     if (existingUser) {
       return {
         ...generalConstant.EN.USERS.USER_NAME_EXISTS,
+        message: "This username is already used in this cafe",
         data: null,
       };
     }
 
-    try {
-      await claimUsername(req.body.username, {
-        source: "tenant",
-        tenantId: req.tenant?.id || null,
-      });
-    } catch (err) {
-      if (err.status === 409) {
-        return {
-          ...generalConstant.EN.USERS.USER_NAME_EXISTS,
-          message: err.message,
-          data: null,
-        };
-      }
-      throw err;
-    }
-
     //checking roleId
     if (req.body.roleId) {
-      const roleDenied = assertAssignableRole(req, req.body.roleId);
+      const roleDenied = await assertAssignableRole(req, req.body.roleId);
       if (roleDenied) {
-        await releaseUsername(req.body.username);
         return roleDenied;
       }
 
@@ -282,13 +308,19 @@ const createUser = async (req, res, next) => {
         attributes: { exclude: ["updatedAt", "createdAt"] },
       });
       if (!role) {
-        await releaseUsername(req.body.username);
         returnData = {
           ...generalConstant.EN.ROLES.ROLES_NOT_FOUND,
           data: null,
         };
         return returnData;
       }
+    } else {
+      return {
+        status: 400,
+        success: false,
+        message: "A role is required",
+        data: null,
+      };
     }
 
     //  this will for future use
@@ -316,7 +348,6 @@ const createUser = async (req, res, next) => {
           data: toPublicUser(user),
         };
       } else {
-        await releaseUsername(req.body.username);
         returnData = {
           ...generalConstant.EN.USERS.CREATE_USER_FAILURE,
           data: null,
@@ -324,7 +355,13 @@ const createUser = async (req, res, next) => {
       }
       return returnData;
     } catch (err) {
-      await releaseUsername(req.body.username);
+      if (err?.name === "SequelizeUniqueConstraintError") {
+        return {
+          ...generalConstant.EN.USERS.USER_NAME_EXISTS,
+          message: "This username is already used in this cafe",
+          data: null,
+        };
+      }
       throw err;
     }
   } catch (err) {
@@ -349,7 +386,7 @@ const updateUser = async (req, res, next) => {
 
     //checking roleId
     if (req.body.roleId) {
-      const roleDenied = assertAssignableRole(req, req.body.roleId);
+      const roleDenied = await assertAssignableRole(req, req.body.roleId);
       if (roleDenied) return roleDenied;
 
       const role = await roleModel.findOne({
@@ -380,7 +417,48 @@ const updateUser = async (req, res, next) => {
       }
     }
 
-    const user = await isUserExist.update(req.body);
+    if (req.body.username != null && String(req.body.username).trim() !== "") {
+      const { validateUsernameFormat } = require("../../lib/global-username");
+      const usernameCheck = validateUsernameFormat(req.body.username);
+      if (!usernameCheck.ok) {
+        return {
+          status: 400,
+          success: false,
+          message: usernameCheck.message,
+          data: null,
+        };
+      }
+      req.body.username = usernameCheck.username;
+
+      const usernameTaken = await userModel.findOne({
+        where: {
+          username: { [Op.iLike]: req.body.username },
+          isDeleted: false,
+          id: { [Op.ne]: +req.params.id },
+        },
+      });
+      if (usernameTaken) {
+        return {
+          ...generalConstant.EN.USERS.USER_NAME_EXISTS,
+          message: "This username is already used in this cafe",
+          data: null,
+        };
+      }
+    }
+
+    let user;
+    try {
+      user = await isUserExist.update(req.body);
+    } catch (err) {
+      if (err?.name === "SequelizeUniqueConstraintError") {
+        return {
+          ...generalConstant.EN.USERS.USER_NAME_EXISTS,
+          message: "This username is already used in this cafe",
+          data: null,
+        };
+      }
+      throw err;
+    }
 
     if (user) {
       returnData = {

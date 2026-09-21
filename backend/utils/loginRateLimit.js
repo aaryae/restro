@@ -19,13 +19,19 @@ const loginAttempts = new Map();
 
 /**
  * Key by IP + route mount (e.g. /auth vs /platform vs /trial).
- * Without the surface, failing login on a cafe POS also locks
- * platform.technirvana (and vice versa) for the same IP.
+ * Staff POS login also scopes by cafe domain so failures on cafe A
+ * do not lock login attempts for cafe B on the same IP.
  */
 function clientKey(req) {
   const ip = req.ip || req.deviceFingerprint || "unknown";
   const surface = req.baseUrl || "login";
-  return `${surface}:${ip}`;
+  const cafe = String(
+    req.body?.cafeSlug || req.body?.domain || req.headers["x-tenant-slug"] || "",
+  )
+    .trim()
+    .toLowerCase()
+    .split(".")[0];
+  return cafe ? `${surface}:${cafe}:${ip}` : `${surface}:${ip}`;
 }
 
 const skipHardcoreQa = (req) =>

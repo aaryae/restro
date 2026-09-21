@@ -24,5 +24,8 @@ npx sequelize db:migrate
 echo "Running control-plane migrations (trial users, tenants, platform)..."
 npx sequelize db:migrate --migrations-path migrations-control
 
+echo "Applying POS migrations to all cafe schemas..."
+node scripts/migrate-all-tenants.js || echo "Warning: migrate-all-tenants failed (continuing)"
+
 echo "Starting API..."
 exec node index.js

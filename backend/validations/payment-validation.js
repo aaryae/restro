@@ -23,6 +23,11 @@ const initiateQrValidation = async (req, res, next) => {
     amount: joi.number().precision(2).positive().optional(),
     accountId: joi.number().integer().positive().optional(),
     remarks: joi.string().max(255).optional(),
+    orderItemIds: joi
+      .array()
+      .items(joi.number().integer().positive())
+      .min(1)
+      .optional(),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

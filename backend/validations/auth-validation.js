@@ -6,12 +6,38 @@ const isEmpty = require("../helpers/is-empty-helper");
 const { validateRequestBody } = require("../helpers/validator-helper");
 const { GENDER } = require("../constants/value-constants");
 
-const loginValidation = async (req, res, next) => {
-  let joiModel = joi.object({
-    username: joi.string().required().label("username"),
-    password: joi.string().required().label("password"),
-    captchaToken: joi.string().optional().label("captchaToken"),
+/** Match admin Security tab rules so API cannot be bypassed with weak passwords. */
+const strongPassword = joi
+  .string()
+  .trim()
+  .min(8)
+  .max(32)
+  .pattern(/[A-Z]/)
+  .pattern(/[a-z]/)
+  .pattern(/[0-9]/)
+  .required()
+  .messages({
+    "string.min": "Password must be at least 8 characters long",
+    "string.max": "Password must not exceed 32 characters",
+    "string.pattern.base":
+      "Password must include uppercase, lowercase, and a number",
   });
+
+const loginValidation = async (req, res, next) => {
+  let joiModel = joi
+    .object({
+      username: joi.string().trim().min(1).required().label("username"),
+      password: joi.string().required().label("password"),
+      // Cafe domain/slug is required so the same username can exist in two cafes.
+      cafeSlug: joi.string().trim().lowercase().min(1).max(64).label("cafeSlug"),
+      domain: joi.string().trim().lowercase().min(1).max(255).label("domain"),
+      captchaToken: joi.string().optional().allow(null, "").label("captchaToken"),
+    })
+    .or("cafeSlug", "domain")
+    .messages({
+      "object.missing":
+        "Cafe domain is required. Sign in with your cafe domain, username, and password.",
+    });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {
     return responseHelper.sendResponse(
@@ -40,7 +66,7 @@ const createUserValidation = async (req, res, next) => {
         .required()
         .label("gender"),
       imageUrl: joi.string().optional().allow(null).label("imageUrl"),
-      password: joi.string().required().label("password"),
+      password: strongPassword.label("password"),
       isActive: joi.boolean().optional().label("isActive"),
       mobileNo: joi
         .string()
@@ -58,7 +84,7 @@ const createUserValidation = async (req, res, next) => {
           "string.pattern.base":
             "Mobile prefix must be a valid country code like +977",
         }),
-      roleId: joi.number().optional().label("role"),
+      roleId: joi.number().integer().positive().required().label("role"),
       // for future use
       // supervisorId: joi.number().optional().label("supervisorId"),
     })
@@ -199,7 +225,7 @@ const deleteUserValidation = async (req, res, next) => {
 
 const passwordValidation = async (req, res, next) => {
   let joiModel = joi.object({
-    newPassword: joi.string().required().label("newPassword"),
+    newPassword: strongPassword.label("newPassword"),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {

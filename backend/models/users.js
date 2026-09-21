@@ -54,7 +54,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       username: {
         type: DataTypes.STRING,
-        unique: true,
+        allowNull: false,
+        // Uniqueness is enforced per cafe via partial unique index
+        // (LOWER(username) WHERE isDeleted = false). See tenant migrations.
       },
       firstName: {
         type: DataTypes.STRING,
