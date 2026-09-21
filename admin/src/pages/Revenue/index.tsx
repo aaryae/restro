@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { lazy, useState } from "react";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
 import RevenueFilter from "./RevenueFilter";
@@ -11,16 +12,17 @@ import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { buildQueryString } from "@/utils/generalHelper";
 import { format } from "date-fns";
 import { ADToBS } from "bikram-sambat-js";
-import { REVENUE_ADD_ROUTE } from "@/routes/routeNames";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { REVENUE_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 
+const AddEditRevenue = lazy(() => import("./AddEditRevenue"));
+
 const Revenue: React.FC = () => {
-  const navigate = useNavigate();
   const accessList = checkAccess("Revenue");
+  const formModal = useFormModal();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
 
   const [open, setOpen] = useState<boolean>(false);
@@ -68,11 +70,8 @@ const Revenue: React.FC = () => {
   ].filter(Boolean) as string[];
 
   const handleNewUser = (id: number | null) => {
-    if (id === null) {
-      navigate(REVENUE_ADD_ROUTE);
-    } else {
-      navigate(`${REVENUE_ADD_ROUTE}${id}`);
-    }
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -177,6 +176,7 @@ const Revenue: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full overflow-x-hidden">
       <MenuPageToolbar
+        title="Revenue"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Revenue"
@@ -216,6 +216,22 @@ const Revenue: React.FC = () => {
         </div>
       </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Revenue" : "Add Revenue"}
+        description="Customer, amount, account, and payment."
+        size="xl"
+      >
+        <AddEditRevenue
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

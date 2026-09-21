@@ -217,7 +217,7 @@ function TakeAwayOrders() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-start">
                     <button
                       type="button"
                       className="inline-flex items-center gap-2 rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white transition hover:opacity-90"

@@ -464,7 +464,7 @@ export default function BulkUploadModal({
                         />
                       </label>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-2">
+                    <div className="form-actions flex flex-wrap justify-start gap-2">
                       <button
                         type="button"
                         onClick={cancelAddDepartment}
@@ -567,7 +567,7 @@ export default function BulkUploadModal({
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-2 border-t border-[var(--serve-border)] pt-4 sm:flex-row sm:justify-end">
+        <div className="form-actions flex flex-col gap-2 border-t border-[var(--serve-border)] pt-4 sm:flex-row sm:justify-start">
           <button
             type="button"
             onClick={closeAndReset}

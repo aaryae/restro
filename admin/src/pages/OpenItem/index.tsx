@@ -6,9 +6,9 @@ import { lazy, Suspense, useState } from "react";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
+import { useFormModal } from "@/hooks/useFormModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useNavigate } from "react-router-dom";
-import { OPEN_ITEM_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import usePagination from "@/hooks/usePagination";
 import {
@@ -20,11 +20,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
 
 const Table = lazy(() => import("@/components/Table"));
+const OpenItemForm = lazy(() => import("./OpenItemForm"));
 
 export default function OpenItem() {
   const translate = useTranslation();
-  const navigate = useNavigate();
   const accessList = checkAccess("Open Item");
+  const formModal = useFormModal();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -45,9 +46,8 @@ export default function OpenItem() {
   const [deleteOpenItem] = useDeleteApiMutation();
 
   const handleNewUser = (id: number | null) => {
-    id === null
-      ? navigate(OPEN_ITEM_ADD_ROUTE)
-      : navigate(`${OPEN_ITEM_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -60,7 +60,7 @@ export default function OpenItem() {
       const response = await deleteOpenItem(
         `${OPEN_ITEM_URL}${deleteId}`,
       ).unwrap();
-      handleResponse({ res: response, onSuccess: () => {} });
+      handleResponse({ res: response, onSuccess: () => refetch() });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -136,6 +136,7 @@ export default function OpenItem() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Open Items"
         searchPlaceholder="Search open items..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -146,7 +147,7 @@ export default function OpenItem() {
         subText="Quick one-off items you can add directly to orders."
       />
 
-      {!success ? (
+      {loading && !success ? (
         <Loader />
       ) : accessList.includes("view") ? (
         <Suspense fallback={<Loader />}>
@@ -163,6 +164,23 @@ export default function OpenItem() {
           You do not have permission to view open items.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Open Item" : "Add Open Item"}
+        description="One-off items you can add directly to orders."
+        size="lg"
+        closeOnOutsideClick={false}
+      >
+        <OpenItemForm
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 }

@@ -177,7 +177,7 @@ export default function AddEditEmailTemplate() {
               )}
             </div>
           )}
-          <div className="flex justify-end">
+          <div className="form-actions flex justify-start">
             <Button type="submit" className="submit-button w-[5rem]">
               {" "}
               <div className="flex justify-center items-center gap-[0.5rem] text-white ">

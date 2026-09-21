@@ -1,13 +1,14 @@
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
-import Button from "@/components/Button";
-import PageTitle from "@/components/PageTitle";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import Select from "@/components/Select";
 import { useNavigate, useParams } from "react-router-dom";
-import useTranslation from "@/locale/useTranslation";
 import {
   useCreateApiMutation,
   useGetApiQuery,
@@ -25,17 +26,42 @@ import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/redux/store/store";
 import { RevenueSchema } from "./schema";
+import {
+  Banknote,
+  CreditCard,
+  Landmark,
+  TrendingUp,
+  UserRound,
+  X,
+} from "lucide-react";
 
 type RevenueFormType = z.infer<typeof RevenueSchema>;
 
-export default function AddEditRevenue() {
-  const translate = useTranslation();
+type AddEditRevenueProps = {
+  id?: number | string | null;
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onSuccess?: () => void;
+};
+
+export default function AddEditRevenue({
+  id: idProp,
+  isComponent = false,
+  closeModal,
+  onSuccess,
+}: AddEditRevenueProps = {}) {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : paramId;
   const isEditMode = !!id;
   const authUserId = useSelector((state: RootState) => state.auth.id);
 
-  // Customer search state
+  const finish = () => {
+    onSuccess?.();
+    closeModal?.();
+  };
+
   const [customerQuery, setCustomerQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<{
     id: number;
@@ -62,7 +88,6 @@ export default function AddEditRevenue() {
     refetch: customerRefetch,
   } = useGetApiQuery({ url: customerUrl });
 
-  // Fetch accounts (for accountId selection)
   const accountUrl = useMemo(
     () =>
       buildQueryString(`${ACCOUNT_URL}list`, {
@@ -113,7 +138,6 @@ export default function AddEditRevenue() {
             `${c.firstName || ""} ${c.lastName || ""} (${c.mobileNo || c.email || "-"})`.trim(),
         });
       } else if (d.customerId && d.customerName) {
-        // Fallback if API returns only IDs and a display name
         setSelectedCustomer({ id: d.customerId, label: d.customerName });
       }
     }
@@ -122,7 +146,6 @@ export default function AddEditRevenue() {
   useEffect(() => {
     if (!isEditMode && accountsSuccess && accountsResp?.data?.data?.length) {
       const accounts: any[] = accountsResp.data.data;
-      // Prefer default active account
       const defaultActive = accounts.find(
         (a) => a.isDefault && a.status === "active",
       );
@@ -134,7 +157,10 @@ export default function AddEditRevenue() {
     }
   }, [isEditMode, accountsSuccess, accountsResp, setValue]);
 
-  const handleSuccess = () => navigate(REVENUE_LIST_ROUTE);
+  const handleSuccess = () => {
+    if (isComponent) finish();
+    else navigate(REVENUE_LIST_ROUTE);
+  };
 
   const onSubmit = async (form: RevenueFormType) => {
     const body: any = { ...form, userId: authUserId };
@@ -154,219 +180,196 @@ export default function AddEditRevenue() {
   };
 
   return (
-    <>
-      <PageTitle title={isEditMode ? "Edit Revenue" : "Add Revenue"} isBack />
-      <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
-          <p className="text-slate-600 dark:text-slate-300 text-sm">
-            Fill in the details below to {isEditMode ? "update" : "record"} a
-            revenue entry.
+    <EntityForm
+      title={isEditMode ? "Edit Revenue" : "Add Revenue"}
+      sectionTitle="Revenue details"
+      description="Customer, amount, account, and payment."
+      icon={TrendingUp}
+      embedded={isComponent}
+      maxWidthClass="max-w-4xl"
+      columns={3}
+      onSubmit={handleSubmit(onSubmit)}
+      onCancel={() => {
+        if (isComponent) closeModal?.();
+        else navigate(REVENUE_LIST_ROUTE);
+      }}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={isEditMode && revenueLoading && !revenueData}
+      submitLabel={isEditMode ? "Update" : "Submit"}
+    >
+      <div className="relative min-w-0 sm:col-span-2 lg:col-span-3">
+        <Input
+          label="Customer"
+          leftSection={<FieldIcon icon={UserRound} />}
+          value={selectedCustomer ? selectedCustomer.label : customerQuery}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setSelectedCustomer(null);
+            setCustomerQuery(e.target.value);
+          }}
+          placeholder="Search by name, phone or email"
+        />
+        {selectedCustomer ? (
+          <button
+            type="button"
+            className="absolute right-2 top-[2.05rem] inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-[var(--serve-negative)] hover:bg-[color-mix(in_srgb,var(--serve-negative)_8%,transparent)]"
+            onClick={() => {
+              setSelectedCustomer(null);
+              setCustomerQuery("");
+            }}
+          >
+            <X size={12} />
+            Clear
+          </button>
+        ) : null}
+
+        {!selectedCustomer && customerDataLoading ? (
+          <p className="mt-1 text-xs text-[var(--serve-muted)]">
+            Loading customers…
           </p>
-        </div>
-        {isEditMode && revenueLoading ? (
-          <div className="px-6 py-6 text-sm text-slate-500">
-            Loading revenue...
-          </div>
-        ) : (
-          <form className="px-6 py-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="input-label flex">Customer</label>
-                <div className="relative max-w-sm">
-                  <Input
-                    value={customerQuery}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setCustomerQuery(e.target.value)
-                    }
-                    placeholder={
-                      selectedCustomer?.label?.trim() === ""
-                        ? "Search by name, phone or email"
-                        : ""
-                    }
-                  />
-                  {selectedCustomer ? (
-                    <div className="absolute w-[90%] left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 flex justify-between items-center gap-2">
-                      <span className="text-base px-2 py-1 rounded">
-                        {selectedCustomer.label}
-                      </span>
-                      <button
-                        type="button"
-                        className="text-xs text-red-500 hover:underline"
-                        onClick={() => setSelectedCustomer(null)}
-                      >
-                        Clear
-                      </button>
-                    </div>
-                  ) : null}
+        ) : null}
 
-                  {customerDataLoading ? (
-                    <p className="text-gray-500 mt-1">Loading customers...</p>
-                  ) : customerSuccess &&
-                    customerSearch?.data?.data?.length > 0 &&
-                    customerQuery.trim().length > 0 ? (
-                    <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow">
-                      {customerSearch?.data?.data?.map((c: any) => (
-                        <button
-                          type="button"
-                          key={c.id}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          onClick={() => {
-                            setSelectedCustomer({
-                              id: c.id,
-                              label:
-                                `${c.firstName || ""} ${c.lastName || ""} (${c.mobileNo || c.email || "-"})`.trim(),
-                            });
-                            setCustomerQuery("");
-                          }}
-                        >
-                          <div className="text-sm font-medium">
-                            {c.firstName} {c.lastName}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {c.mobileNo || c.email || "-"}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      {customerQuery.trim().length > 0 && (
-                        <div className="mt-1">
-                          <p className="text-red-500 text-sm">
-                            Failed to load customers
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => customerRefetch()}
-                            className="mt-2 px-4 py-1.5 bg-primaryColor text-white rounded hover:bg-blue-600 text-sm"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div>
-                <Input
-                  label="Amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="Enter amount"
-                  {...register("amount", { valueAsNumber: true })}
-                  error={errors.amount?.message}
-          isRequired
-        />
-              </div>
-
-              <Controller
-                name="accountId"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    label="Account"
-                    disabled={isEditMode}
-                    value={field.value ?? ""}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    error={errors.accountId?.message}
-                    placeholder="Select Account"
-                    options={[
-                      { value: "", label: "Select Account" },
-                      ...((accountsSuccess &&
-                        accountsResp?.data?.data?.map((acc: any) => ({
-                          value: String(acc.id),
-                          label: `${acc.name}${acc.isDefault ? " (Default)" : ""} - ${acc.accountType}`,
-                          disabled: acc.status !== "active",
-                        }))) ||
-                        []),
-                    ]}
-                    onValueChange={(next) =>
-                      field.onChange(next ? Number(next) : undefined)
-                    }
-          isRequired
-        />
-                )}
-              />
-
-              <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Payment Details
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Choose how the payment was made and whether it was cash or
-                    credit.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <Controller
-                    name="paymentMethod"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        label="Payment Method"
-                        value={field.value ?? ""}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        error={errors.paymentMethod?.message}
-                        options={[
-                          { value: "cash", label: "Cash" },
-                          { value: "card", label: "Card" },
-                          { value: "online", label: "Online" },
-                        ]}
-                        onValueChange={field.onChange}
-          isRequired
-        />
-                    )}
-                  />
-                  <Controller
-                    name="cash_or_credit"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        label="Cash or Credit"
-                        value={field.value ?? ""}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        error={errors.cash_or_credit?.message}
-                        options={[
-                          { value: "cash", label: "Cash" },
-                          { value: "credit", label: "Credit" },
-                        ]}
-                        onValueChange={field.onChange}
-          isRequired
-        />
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <TextArea
-                  label="Remarks"
-                  placeholder="Add any notes (optional)"
-                  {...register("remarks")}
-                  error={errors.remarks as any}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-6 mt-6 border-t border-slate-200 dark:border-slate-700">
-              <Button
-                type="submit"
-                className="submit-button min-w-[6.5rem]"
-                disabled={isSubmitting || creating || updating}
+        {!selectedCustomer &&
+        customerSuccess &&
+        customerSearch?.data?.data?.length > 0 &&
+        customerQuery.trim().length > 0 ? (
+          <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface)] shadow-lg">
+            {customerSearch?.data?.data?.map((c: any) => (
+              <button
+                type="button"
+                key={c.id}
+                className="w-full px-3 py-2.5 text-left transition hover:bg-[var(--serve-surface-2)]"
+                onClick={() => {
+                  setSelectedCustomer({
+                    id: c.id,
+                    label:
+                      `${c.firstName || ""} ${c.lastName || ""} (${c.mobileNo || c.email || "-"})`.trim(),
+                  });
+                  setCustomerQuery("");
+                }}
               >
-                <div className="flex justify-center items-center gap-[0.5rem] text-white">
-                  {isEditMode ? translate("Update") : translate("Submit")}
+                <div className="text-sm font-medium text-[var(--serve-fg)]">
+                  {c.firstName} {c.lastName}
                 </div>
-              </Button>
-            </div>
-          </form>
-        )}
+                <div className="text-xs text-[var(--serve-muted)]">
+                  {c.mobileNo || c.email || "-"}
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {!selectedCustomer &&
+        customerQuery.trim().length > 0 &&
+        !customerDataLoading &&
+        !(customerSuccess && customerSearch?.data?.data?.length > 0) ? (
+          <div className="mt-1 flex items-center gap-2">
+            <p className="text-xs text-[var(--serve-negative)]">
+              No customers found
+            </p>
+            <button
+              type="button"
+              onClick={() => customerRefetch()}
+              className="text-xs font-medium text-[var(--primary-ink)] hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        ) : null}
       </div>
-    </>
+
+      <Input
+        label="Amount"
+        type="number"
+        step="0.01"
+        placeholder="Enter amount"
+        leftSection={<FieldIcon icon={Banknote} />}
+        {...register("amount", { valueAsNumber: true })}
+        error={errors.amount?.message}
+        isRequired
+      />
+
+      <Controller
+        name="accountId"
+        control={control}
+        render={({ field }) => (
+          <Select
+            label="Account"
+            disabled={isEditMode}
+            value={field.value ?? ""}
+            onBlur={field.onBlur}
+            name={field.name}
+            error={errors.accountId?.message}
+            placeholder="Select Account"
+            leftSection={<FieldIcon icon={Landmark} />}
+            options={[
+              { value: "", label: "Select Account" },
+              ...((accountsSuccess &&
+                accountsResp?.data?.data?.map((acc: any) => ({
+                  value: String(acc.id),
+                  label: `${acc.name}${acc.isDefault ? " (Default)" : ""} - ${acc.accountType}`,
+                  disabled: acc.status !== "active",
+                }))) ||
+                []),
+            ]}
+            onValueChange={(next) =>
+              field.onChange(next ? Number(next) : undefined)
+            }
+            isRequired
+          />
+        )}
+      />
+
+      <Controller
+        name="paymentMethod"
+        control={control}
+        render={({ field }) => (
+          <Select
+            label="Payment Method"
+            value={field.value ?? ""}
+            onBlur={field.onBlur}
+            name={field.name}
+            error={errors.paymentMethod?.message}
+            leftSection={<FieldIcon icon={CreditCard} />}
+            options={[
+              { value: "cash", label: "Cash" },
+              { value: "card", label: "Card" },
+              { value: "online", label: "Online" },
+            ]}
+            onValueChange={field.onChange}
+            isRequired
+          />
+        )}
+      />
+
+      <Controller
+        name="cash_or_credit"
+        control={control}
+        render={({ field }) => (
+          <Select
+            label="Cash or Credit"
+            value={field.value ?? ""}
+            onBlur={field.onBlur}
+            name={field.name}
+            error={errors.cash_or_credit?.message}
+            leftSection={<FieldIcon icon={Banknote} />}
+            options={[
+              { value: "cash", label: "Cash" },
+              { value: "credit", label: "Credit" },
+            ]}
+            onValueChange={field.onChange}
+            isRequired
+          />
+        )}
+      />
+
+      <TextArea
+        label="Remarks"
+        placeholder="Add any notes (optional)"
+        className="sm:col-span-2 lg:col-span-3"
+        rows={2}
+        {...register("remarks")}
+        error={errors.remarks as any}
+      />
+    </EntityForm>
   );
 }

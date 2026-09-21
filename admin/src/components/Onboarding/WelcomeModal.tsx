@@ -107,7 +107,7 @@ export default function WelcomeModal({
             </ul>
 
             {/* Primary action first on phones, where thumbs start at the bottom. */}
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-start">
               <button
                 type="button"
                 onClick={onDismiss}

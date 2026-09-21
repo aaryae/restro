@@ -1,5 +1,6 @@
 import Input from "@/components/Input";
 import MediaComponent from "@/components/MediaComponent";
+import { ImageInputUI } from "@/components/ImageComponent";
 import useTranslation from "@/locale/useTranslation";
 import {
   useGetSettingQuery,
@@ -15,9 +16,7 @@ import { useAppSelector } from "@/redux/store/hooks";
 import { useDispatch } from "react-redux";
 import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import galleryIcon from "@/assets/gallery_icon.svg";
 import Spinner from "@/components/Spinner";
-import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { PRIMARY_COLOR } from "@/constants/projectConstants";
 import { Building2, ImageIcon } from "lucide-react";
 
@@ -225,7 +224,7 @@ export default function Settings() {
         </div>
       </section>
 
-      <div className="flex justify-end pt-1">
+      <div className="form-actions flex justify-start pt-1">
         <Button
           type="submit"
           className="submit-button inline-flex h-10 w-fit items-center gap-2 rounded-lg px-5 text-sm font-medium"
@@ -260,50 +259,16 @@ function ImageField({
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <MediaComponent
-        title={<ImageInputUI image={image} />}
+        title={
+          <ImageInputUI
+            image={image}
+            imageMessage="Allowed JPG, GIF or PNG. Max size of 1MB"
+          />
+        }
         handleConfirmImage={onConfirm}
         open={open}
         setOpen={setOpen}
       />
-    </div>
-  );
-}
-
-function ImageInputUI({ image }: { image?: string }) {
-  const translate = useTranslation();
-  const src = image ? buildAssetUrl(image) : "";
-  const [failed, setFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    setFailed(false);
-  }, [src]);
-
-  const showPreview = Boolean(src) && !failed;
-
-  return (
-    <div className="w-full text-left">
-      <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 transition hover:border-slate-400 hover:bg-slate-100/80 sm:h-44">
-        {showPreview ? (
-          <img
-            src={src}
-            alt="Preview"
-            className="max-h-full w-full object-contain p-3"
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 px-3 text-slate-400">
-            <img
-              src={galleryIcon}
-              alt=""
-              className="h-10 w-14 object-contain opacity-70"
-            />
-            <span className="text-[11px] font-medium">Click to upload</span>
-          </div>
-        )}
-      </div>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-        {translate("Allowed JPG, GIF or PNG. Max size of 1MB")}
-      </p>
     </div>
   );
 }

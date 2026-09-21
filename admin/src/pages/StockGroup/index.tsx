@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { lazy, useState } from "react";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
@@ -11,15 +13,15 @@ import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { STOCK_GROUP_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
-import StockGroupModal from "./StockGroupModal";
+
+const StockGroupModal = lazy(() => import("./StockGroupModal"));
 
 const StockGroup: React.FC = () => {
   const accessList = checkAccess("Stock Group");
+  const formModal = useFormModal();
   const [deleteModelOpen, setDeleteModelOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
 
   const handleDeleteTrigger = (id: number) => {
     setDeleteId(id);
@@ -73,16 +75,6 @@ const StockGroup: React.FC = () => {
     Boolean,
   ) as string[];
 
-  const openCreate = () => {
-    setEditId(null);
-    setModalOpen(true);
-  };
-
-  const openEdit = (id: number) => {
-    setEditId(id);
-    setModalOpen(true);
-  };
-
   const data = rows.map((r: any) => {
     const cells = [
       <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
@@ -95,7 +87,7 @@ const StockGroup: React.FC = () => {
           {accessList.includes("edit") && (
             <button
               type="button"
-              onClick={() => openEdit(r.id)}
+              onClick={() => formModal.openEdit(r.id)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 transition hover:bg-sky-100"
               title="Edit stock group"
             >
@@ -123,12 +115,13 @@ const StockGroup: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Stock Groups"
         searchPlaceholder="Search stock groups..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Stock Group"
-        handleNewButton={openCreate}
+        handleNewButton={() => formModal.openAdd()}
         handleReloadButton={() => refetch()}
         subText="Group stock items (e.g. Drinks, Dairy, Produce)."
       />
@@ -145,12 +138,21 @@ const StockGroup: React.FC = () => {
         </div>
       )}
 
-      <StockGroupModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => refetch()}
-        editId={editId}
-      />
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Stock Group" : "Add Stock Group"}
+        description="Name and optional description for this stock group."
+        size="md"
+      >
+        <StockGroupModal
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

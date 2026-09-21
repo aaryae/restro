@@ -1,5 +1,6 @@
 import Select from "@/components/Select";
 import { TABLE_URL } from "@/constants/apiUrlConstants";
+import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useMemo, useState } from "react";
 import ChooseItems from "./ChooseItems";
@@ -15,7 +16,7 @@ function ChooseTable({
   onClose?: () => void;
 }) {
   const { data: table } = useGetApiQuery({
-    url: `${TABLE_URL}list?page=1&limit=25`,
+    url: `${TABLE_URL}list?page=1&limit=${POS_LIST_LIMIT}`,
   });
   const [selectedTable, setSelectedTable] = useState<number | null>(tableId);
   const [selectedDesiredTable, setSelectedDesiredTable] = useState<
@@ -94,7 +95,7 @@ function ChooseTable({
           </div>
         </div>
 
-        <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:gap-3">
+        <div className="form-actions flex flex-col-reverse justify-start gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:gap-3">
           <button
             type="button"
             className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"

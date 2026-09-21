@@ -320,7 +320,7 @@ export default function BasicInfo() {
             )}
           />
 
-          <div className="col-span-full flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end sm:gap-3">
+          <div className="form-actions col-span-full flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-start sm:gap-3">
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"

@@ -128,7 +128,10 @@ export default function ChooseItems({
                       >
                         <div className="min-w-0">
                           <span className="font-medium text-slate-700">
-                            {item.product.name}
+                            {item.product?.name ??
+                              item.openItem?.name ??
+                              item.productName ??
+                              "Open item"}
                           </span>
                           <span className="ml-2 text-slate-400">
                             × {item.quantity}
@@ -152,7 +155,7 @@ export default function ChooseItems({
           </div>
         )}
 
-        <div className="flex justify-end border-t border-slate-100 pt-4">
+        <div className="form-actions flex justify-start border-t border-slate-100 pt-4">
           <button
             type="button"
             disabled={selectedOrders.length === 0}

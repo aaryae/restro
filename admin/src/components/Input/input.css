@@ -9,6 +9,8 @@
   font-size: 0.8125rem;
   color: var(--serve-muted);
   text-align: start;
+  cursor: pointer;
+  width: fit-content;
 }
 
 .input-wrapper {

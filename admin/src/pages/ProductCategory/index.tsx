@@ -5,9 +5,9 @@ import { lazy, Suspense, useState } from "react";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
+import { useFormModal } from "@/hooks/useFormModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useNavigate } from "react-router-dom";
-import { PRODUCT_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
 import { useDeleteProductCategoryByIdMutation } from "@/redux/services/productCategory";
 import usePagination from "@/hooks/usePagination";
 import { useGetApiQuery, useUpdateApiMutation } from "@/redux/services/crudApi";
@@ -15,11 +15,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
 
 const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
+const AddEditProductCategory = lazy(() => import("./AddEditProductCategory"));
 
 export default function ProductCategory() {
   const translate = useTranslation();
-  const navigate = useNavigate();
   const accessList = checkAccess("Product Category");
+  const formModal = useFormModal();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -42,9 +43,8 @@ export default function ProductCategory() {
   const [updateOrder] = useUpdateApiMutation();
 
   const handleNewUser = (id: number | null) => {
-    id === null
-      ? navigate(PRODUCT_CATEGORY_ADD_ROUTE)
-      : navigate(`${PRODUCT_CATEGORY_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -55,7 +55,7 @@ export default function ProductCategory() {
   const handleDelete = async () => {
     try {
       const response = await deleteProductCategory(deleteId).unwrap();
-      handleResponse({ res: response, onSuccess: () => {} });
+      handleResponse({ res: response, onSuccess: () => refetch() });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -99,8 +99,8 @@ export default function ProductCategory() {
                 compact
                 open={open}
                 setOpen={setOpen}
-                  itemId={id}
-                  activeId={deleteId}
+                itemId={id}
+                activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(id)}
                 handleConfirmDelete={handleDelete}
               />
@@ -112,6 +112,7 @@ export default function ProductCategory() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Item Categories"
         searchPlaceholder="Search categories..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -143,6 +144,22 @@ export default function ProductCategory() {
           You do not have permission to view categories.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Item Category" : "Add Item Category"}
+        description="Name and optional description for this menu category."
+        size="md"
+      >
+        <AddEditProductCategory
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 }

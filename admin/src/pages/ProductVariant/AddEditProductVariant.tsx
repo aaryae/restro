@@ -147,8 +147,8 @@ export default function AddEditProductVariantCategory() {
             />
           )}
         />
-        <div className="flex flex-col items-start w-[20rem] ">
-          <label className="input-label text-start mb-[2px]">
+        <div className="flex min-w-0 flex-col md:w-full">
+          <label className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
             Image <span className="text-red-500">*</span>
           </label>
           <MediaComponent
@@ -156,6 +156,7 @@ export default function AddEditProductVariantCategory() {
               <MultipleImageInputUI
                 images={media}
                 imageIndex={currentImageIndex}
+                imageMessage="Allowed JPG, GIF or PNG. You can select multiple."
               />
             }
             isMultiSelect={true}
@@ -163,23 +164,23 @@ export default function AddEditProductVariantCategory() {
             open={isImageModelOpen}
             setOpen={setIsImageModalOpen}
           />
-          <div className="mt-[1rem] flex w-full justify-between">
+          <div className="mt-3 flex w-full justify-between gap-2">
             <button
               type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
+              className="rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white"
               onClick={handlePrevButton}
             >
               Previous
             </button>
             <button
               type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
+              className="rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white"
             >
               Remove
             </button>
             <button
               type="button"
-              className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
+              className="rounded-lg bg-primaryColor px-3 py-2 text-sm font-medium text-white"
               onClick={handleNextButton}
             >
               Next
@@ -218,7 +219,7 @@ export default function AddEditProductVariantCategory() {
           error={errors.price?.message}
           isRequired
         />
-        <div className="flex justify-start">
+        <div className="form-actions flex justify-start">
           <Button type="submit" className="submit-button w-[5rem]">
             {" "}
             <div className="flex justify-center items-center gap-[0.5rem] text-white ">

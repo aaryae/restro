@@ -3,10 +3,11 @@ import { FieldError } from "react-hook-form";
 import "./textarea.css";
 import useTranslation from "@/locale/useTranslation";
 import { RequiredMark } from "@/components/RequiredMark";
+import { useFieldId } from "@/hooks/useFieldId";
 
 interface TextAreaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: any | React.ReactNode;
+  label?: string | React.ReactNode;
   error?: string | FieldError;
   className?: string;
   leftSection?: React.ReactNode;
@@ -26,16 +27,19 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
       rightSection,
       isRequired,
       required,
+      id,
       ...rest
     },
     ref,
   ) => {
     const translate = useTranslation();
+    const fieldId = useFieldId(id);
     const showRequired = Boolean(isRequired || required);
+
     return (
       <div className={`textarea-container ${className || ""}`}>
         {label && (
-          <label className="input-label">
+          <label htmlFor={fieldId} className="input-label">
             {typeof label === "string" ? translate(label) : label}{" "}
             {showRequired && <RequiredMark />}
           </label>
@@ -46,6 +50,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           )}
           <textarea
             ref={ref}
+            id={fieldId}
             rows={rows || 10}
             required={required}
             className={`textarea-field ${error ? "textarea-error-field" : ""}`}
@@ -65,6 +70,6 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   },
 );
 
-TextArea.displayName = "TextArea"; // Needed for forwardRef components
+TextArea.displayName = "TextArea";
 
 export default TextArea;

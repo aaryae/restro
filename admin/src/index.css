@@ -662,3 +662,27 @@ html.dark .sidebar-flyout-item-active:hover {
   animation: dashboard-chart-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/*
+ * One size for form actions. Page-level Tailwind (h-9, min-h-11, w-[5rem],
+ * !px-5, text-[13px]) was making Cancel and Submit a different box on every
+ * screen. This wins those overrides.
+ */
+button.submit-button,
+.button.submit-button,
+.form-actions button,
+.pur-actions button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+  min-width: 6.5rem !important;
+  width: auto !important;
+  padding: 0 1.25rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  border-radius: 10px !important;
+}
+

@@ -437,6 +437,7 @@ const Ledger: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Ledger"
         showSearch={false}
         subText="Watch every cash and bank money movement — inflows, outflows, and transfers."
       />

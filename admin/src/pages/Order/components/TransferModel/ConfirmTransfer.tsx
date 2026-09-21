@@ -165,7 +165,7 @@ function ConfirmTransfer({
         </div>
       )}
 
-      <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:gap-3">
+      <div className="form-actions flex flex-col-reverse justify-start gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:gap-3">
         <button
           type="button"
           className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"

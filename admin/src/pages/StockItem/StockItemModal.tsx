@@ -2,12 +2,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
-import Modal from "@/components/Modal";
+import { Plus, Package } from "lucide-react";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
-import Button from "@/components/Button";
 import CustomDialog from "@/components/Dialog";
+import {
+  EntityForm,
+  FieldHeader,
+  FieldIcon,
+} from "@/components/EntityForm";
 import AddEditSupplier from "@/pages/SuppliersModule/AddEditSupplier";
 import {
   useCreateApiMutation,
@@ -17,6 +20,7 @@ import {
 import { STOCK_ITEM_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { buildQueryString } from "@/utils/generalHelper";
+import { Banknote, Boxes, Hash, Ruler, Truck, Type } from "lucide-react";
 
 const emptyToUndef = (v: unknown) =>
   v === "" || v === null || v === undefined ? undefined : v;
@@ -60,10 +64,18 @@ const StockItemSchema = z
 type StockItemFormType = z.infer<typeof StockItemSchema>;
 
 type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  editId?: number | null;
+  id?: number | string | null;
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onSuccess?: () => void;
+  /** Called after a successful create with the new stock item. */
+  onCreated?: (item: {
+    id: number;
+    name: string;
+    defaultPrice: number;
+  }) => void;
+  /** Prefill supplier when creating from Purchase. */
+  defaultSupplierId?: number | string | null;
 };
 
 const blankCreateValues = {
@@ -85,12 +97,16 @@ const paymentTermOptions = [
 ];
 
 const StockItemModal: React.FC<Props> = ({
-  isOpen,
-  onClose,
+  id: idProp,
+  isComponent = true,
+  closeModal,
   onSuccess,
-  editId = null,
+  onCreated,
+  defaultSupplierId = null,
 }) => {
-  const isEdit = Boolean(editId);
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : undefined;
+  const isEdit = Boolean(id);
   const [addSupplierOpen, setAddSupplierOpen] = useState(false);
 
   const {
@@ -128,25 +144,18 @@ const StockItemModal: React.FC<Props> = ({
     limit: 50,
   });
 
-  const { data: unitsResp } = useGetApiQuery(
-    { url: unitsUrl },
-    { skip: !isOpen },
-  );
-  const { data: groupsResp } = useGetApiQuery(
-    { url: groupsUrl },
-    { skip: !isOpen },
-  );
-  const { data: suppliersResp, refetch: refetchSuppliers } = useGetApiQuery(
-    { url: suppliersUrl },
-    { skip: !isOpen },
-  );
+  const { data: unitsResp } = useGetApiQuery({ url: unitsUrl });
+  const { data: groupsResp } = useGetApiQuery({ url: groupsUrl });
+  const { data: suppliersResp, refetch: refetchSuppliers } = useGetApiQuery({
+    url: suppliersUrl,
+  });
   const { data: accountsResp } = useGetApiQuery(
     { url: accountsUrl },
-    { skip: !isOpen || isEdit },
+    { skip: isEdit },
   );
-  const { data: itemResp } = useGetApiQuery(
-    { url: `${STOCK_ITEM_URL}${editId}` },
-    { skip: !isOpen || !isEdit },
+  const { data: itemResp, isLoading } = useGetApiQuery(
+    { url: `${STOCK_ITEM_URL}${id}` },
+    { skip: !isEdit },
   );
 
   const [createApi, { isLoading: creating }] = useCreateApiMutation();
@@ -187,9 +196,11 @@ const StockItemModal: React.FC<Props> = ({
   }, [accountsResp]);
 
   useEffect(() => {
-    if (!isOpen) return;
     if (!isEdit) {
-      reset(blankCreateValues);
+      reset({
+        ...blankCreateValues,
+        supplierId: defaultSupplierId ? String(defaultSupplierId) : "",
+      });
       return;
     }
     const row = itemResp?.data as any;
@@ -214,12 +225,22 @@ const StockItemModal: React.FC<Props> = ({
       accountId: "",
       paymentTerms: "cash",
     });
-  }, [isOpen, isEdit, itemResp, reset]);
+  }, [isEdit, itemResp, reset, defaultSupplierId]);
 
-  const handleClose = () => {
+  const finish = (created?: {
+    id: number;
+    name: string;
+    defaultPrice: number;
+  }) => {
     setAddSupplierOpen(false);
-    reset(blankCreateValues);
-    onClose();
+    if (created) onCreated?.(created);
+    onSuccess?.();
+    closeModal?.();
+  };
+
+  const onCancel = () => {
+    setAddSupplierOpen(false);
+    closeModal?.();
   };
 
   const onSubmit = async (data: StockItemFormType) => {
@@ -249,7 +270,7 @@ const StockItemModal: React.FC<Props> = ({
     try {
       const response = isEdit
         ? await updateApi({
-            url: `${STOCK_ITEM_URL}${editId}`,
+            url: `${STOCK_ITEM_URL}${id}`,
             body,
           }).unwrap()
         : await createApi({ url: STOCK_ITEM_URL, body }).unwrap();
@@ -264,8 +285,17 @@ const StockItemModal: React.FC<Props> = ({
               : "Stock item created successfully."),
         },
         onSuccess: () => {
-          handleClose();
-          onSuccess();
+          const created =
+            !isEdit && response?.data?.id != null
+              ? {
+                  id: Number(response.data.id),
+                  name: String(response.data.name || data.name),
+                  defaultPrice: Number(
+                    response.data.defaultPrice ?? data.defaultPrice ?? 0,
+                  ),
+                }
+              : undefined;
+          finish(created);
         },
       });
     } catch (error) {
@@ -273,147 +303,130 @@ const StockItemModal: React.FC<Props> = ({
     }
   };
 
-  const saving = isSubmitting || creating || updating;
-
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={isEdit ? "Edit Stock Item" : "Create Stock Item"}
-      size="large"
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Item Name"
-            placeholder="Enter name of stock"
-            {...register("name")}
-            error={errors.name?.message}
-            isRequired
+    <>
+      <EntityForm
+        title={isEdit ? "Edit Stock Item" : "Create Stock Item"}
+        sectionTitle="Stock item details"
+        description="Unit, pricing, group, and optional opening stock."
+        icon={Package}
+        embedded={isComponent}
+        columns={2}
+        maxWidthClass="max-w-4xl"
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={onCancel}
+        isSaving={isSubmitting || creating || updating}
+        isLoading={isEdit && isLoading && !itemResp}
+        submitLabel={isEdit ? "Update Item" : "Save Item"}
+      >
+        <Input
+          label="Item Name"
+          placeholder="Enter name of stock"
+          leftSection={<FieldIcon icon={Type} />}
+          {...register("name")}
+          error={errors.name?.message}
+          isRequired
+        />
+        <Controller
+          name="measuringUnitId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              label="Measuring Unit"
+              options={unitOptions}
+              value={field.value}
+              onValueChange={field.onChange}
+              placeholder="Select unit"
+              leftSection={<FieldIcon icon={Ruler} />}
+              isRequired
+              error={errors.measuringUnitId?.message}
+            />
+          )}
+        />
+        <Input
+          label="Default Price (Rs)"
+          type="number"
+          step="0.01"
+          min={0}
+          placeholder="e.g. 100"
+          leftSection={<FieldIcon icon={Banknote} />}
+          {...register("defaultPrice")}
+          error={errors.defaultPrice?.message as string | undefined}
+        />
+        <Controller
+          name="stockGroupId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              label="Group"
+              options={groupOptions}
+              value={field.value || ""}
+              onValueChange={field.onChange}
+              placeholder="Select group (optional)"
+              leftSection={<FieldIcon icon={Boxes} />}
+              clearable
+              clearLabel="No group"
+              error={errors.stockGroupId?.message}
+            />
+          )}
+        />
+        <div className="flex min-w-0 flex-col">
+          <FieldHeader
+            label="Supplier"
+            required={needsPayment}
+            actions={
+              <button
+                type="button"
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                onClick={() => setAddSupplierOpen(true)}
+              >
+                <Plus size={12} strokeWidth={2.5} />
+                Add
+              </button>
+            }
           />
           <Controller
-            name="measuringUnitId"
+            name="supplierId"
             control={control}
             render={({ field }) => (
               <Select
-                label="Measuring Unit"
-                options={unitOptions}
-                value={field.value}
+                options={supplierOptions}
+                value={field.value || ""}
                 onValueChange={field.onChange}
-                placeholder="Select unit"
-                isRequired
-                error={errors.measuringUnitId?.message}
+                placeholder={
+                  needsPayment
+                    ? "Select supplier"
+                    : "Select supplier (optional)"
+                }
+                leftSection={<FieldIcon icon={Truck} />}
+                clearable={!needsPayment}
+                clearLabel="No supplier"
+                isRequired={needsPayment}
+                error={errors.supplierId?.message}
               />
             )}
           />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
           <Input
-            label="Default Price (Rs)"
+            label="Low Stock Threshold"
             type="number"
             step="0.01"
             min={0}
-            placeholder="e.g. 100"
-            {...register("defaultPrice")}
-            error={errors.defaultPrice?.message as string | undefined}
+            placeholder="e.g. 10"
+            leftSection={<FieldIcon icon={Hash} />}
+            {...register("lowStockThreshold")}
+            error={errors.lowStockThreshold?.message as string | undefined}
           />
-          <Controller
-            name="stockGroupId"
-            control={control}
-            render={({ field }) => (
-              <Select
-                label="Group"
-                options={groupOptions}
-                value={field.value || ""}
-                onValueChange={field.onChange}
-                placeholder="Select group (optional)"
-                clearable
-                clearLabel="No group"
-                error={errors.stockGroupId?.message}
-              />
-            )}
-          />
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-center justify-between gap-2">
-              <label className="input-label text-left">
-                Supplier
-                {needsPayment ? (
-                  <span className="text-red-500"> *</span>
-                ) : null}
-              </label>
-              <CustomDialog
-                buttonTitle={
-                  <button
-                    type="button"
-                    className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setAddSupplierOpen(true);
-                    }}
-                  >
-                    <Plus size={12} strokeWidth={2.5} />
-                    Add
-                  </button>
-                }
-                dialogOpen={addSupplierOpen}
-                setDialogOpen={setAddSupplierOpen}
-                title="Add New Supplier"
-                contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
-              >
-                <AddEditSupplier
-                  isComponent={true}
-                  closeModal={async (created?: any) => {
-                    setAddSupplierOpen(false);
-                    await refetchSuppliers();
-                    const id = created?.id;
-                    if (id != null) {
-                      setValue("supplierId", String(id), {
-                        shouldValidate: true,
-                      });
-                    }
-                  }}
-                />
-              </CustomDialog>
-            </div>
-            <Controller
-              name="supplierId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  options={supplierOptions}
-                  value={field.value || ""}
-                  onValueChange={field.onChange}
-                  placeholder={
-                    needsPayment
-                      ? "Select supplier"
-                      : "Select supplier (optional)"
-                  }
-                  clearable={!needsPayment}
-                  clearLabel="No supplier"
-                  isRequired={needsPayment}
-                  error={errors.supplierId?.message}
-                />
-              )}
-            />
-          </div>
-          <div className="flex min-w-0 flex-col gap-1">
-            <Input
-              label="Low Stock Threshold"
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="e.g. 10"
-              {...register("lowStockThreshold")}
-              error={errors.lowStockThreshold?.message as string | undefined}
-            />
-            <p className="text-[11px] leading-snug text-slate-500">
-              When quantity falls to this level or below, the item counts toward
-              Low Stock on the Stock Items page. Leave blank to ignore.
-            </p>
-          </div>
+          <p className="text-[11px] leading-snug text-[var(--serve-muted)]">
+            When quantity falls to this level or below, the item counts toward
+            Low Stock. Leave blank to ignore.
+          </p>
         </div>
 
-        {!isEdit && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <h4 className="mb-3 text-sm font-semibold text-slate-800">
+        {!isEdit ? (
+          <div className="md:col-span-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-4">
+            <h4 className="mb-3 text-sm font-semibold text-[var(--serve-fg)]">
               Opening Stock
             </h4>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -433,14 +446,14 @@ const StockItemModal: React.FC<Props> = ({
                 disabled
               />
             </div>
-            <p className="mt-2 text-[11px] leading-snug text-slate-500">
+            <p className="mt-2 text-[11px] leading-snug text-[var(--serve-muted)]">
               Value is Quantity × Default Price. Leave quantity at 0 if you are
               only registering the item name for now.
             </p>
 
             {needsPayment ? (
-              <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
-                <p className="text-[12px] leading-snug text-slate-600">
+              <div className="mt-4 space-y-4 border-t border-[var(--serve-border)] pt-4">
+                <p className="text-[12px] leading-snug text-[var(--serve-muted)]">
                   This stock is treated as a purchase: money is deducted from
                   the account you choose, and a Finance purchase is created.
                 </p>
@@ -476,27 +489,33 @@ const StockItemModal: React.FC<Props> = ({
               </div>
             ) : null}
           </div>
-        )}
+        ) : null}
+      </EntityForm>
 
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <Button
-            type="submit"
-            className="submit-button !h-10 !rounded-lg !px-5 !py-0 !text-sm !font-medium"
-            disabled={saving}
-            isLoading={saving}
-          >
-            {isEdit ? "Update Item" : "Save Item"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <CustomDialog
+        buttonTitle={null}
+        dialogOpen={addSupplierOpen}
+        setDialogOpen={setAddSupplierOpen}
+        title="Add New Supplier"
+        nested
+        closeOnOutsideClick={false}
+        contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
+      >
+        <AddEditSupplier
+          isComponent={true}
+          closeModal={async (created?: any) => {
+            setAddSupplierOpen(false);
+            await refetchSuppliers();
+            const createdId = created?.id;
+            if (createdId != null) {
+              setValue("supplierId", String(createdId), {
+                shouldValidate: true,
+              });
+            }
+          }}
+        />
+      </CustomDialog>
+    </>
   );
 };
 

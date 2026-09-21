@@ -6,9 +6,9 @@ import { lazy, Suspense, useState } from "react";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
+import { useFormModal } from "@/hooks/useFormModal";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useNavigate } from "react-router-dom";
-import { ADDONS_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import usePagination from "@/hooks/usePagination";
 import {
@@ -20,11 +20,12 @@ import { buildQueryString } from "@/utils/generalHelper";
 import Loader from "@/components/Loader";
 
 const Table = lazy(() => import("@/components/Table"));
+const AddEditAddons = lazy(() => import("./AddEditAddons"));
 
 const Addons = () => {
   const translate = useTranslation();
-  const navigate = useNavigate();
   const accessList = checkAccess("Addons");
+  const formModal = useFormModal();
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -40,9 +41,8 @@ const Addons = () => {
   const [deleteApi] = useDeleteApiMutation();
 
   const handleNewAddon = (id: number | null) => {
-    id === null
-      ? navigate(ADDONS_ADD_ROUTE)
-      : navigate(`${ADDONS_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -53,7 +53,7 @@ const Addons = () => {
   const handleDelete = async () => {
     try {
       const res = await deleteApi(`${ADDON_URL}${deleteId}`).unwrap();
-      handleResponse({ res, onSuccess: () => {} });
+      handleResponse({ res, onSuccess: () => refetch() });
     } catch (error) {
       handleError({ error });
     } finally {
@@ -110,8 +110,8 @@ const Addons = () => {
                 compact
                 open={deleteModelOpen}
                 setOpen={setDeleteModelOpen}
-                  itemId={item.id}
-                  activeId={deleteId}
+                itemId={item.id}
+                activeId={deleteId}
                 handleDeleteTrigger={() => handleDeleteTrigger(item.id)}
                 handleConfirmDelete={handleDelete}
               />
@@ -123,6 +123,7 @@ const Addons = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Addons"
         searchPlaceholder="Search addons..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -150,6 +151,23 @@ const Addons = () => {
           You do not have permission to view addons.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Addon" : "Add Addon"}
+        description="Name, price, and image for this extra."
+        size="md"
+        closeOnOutsideClick={false}
+      >
+        <AddEditAddons
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

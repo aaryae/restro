@@ -154,6 +154,7 @@ export default function EmailTemplate() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Email Templates"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add Template")}

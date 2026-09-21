@@ -3,18 +3,20 @@ import Drawer from "@/components/Drawer";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import { TABLE_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { checkAccess } from "@/utils/accessHelper";
 import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useState } from "react";
+import { lazy, useState } from "react";
 import { Eye, SquarePen } from "lucide-react";
 import ViewTable from "./ViewTable";
 import Spinner from "@/components/Spinner";
-import { TABLE_ADD_ROUTE } from "@/routes/routeNames";
-import { useNavigate } from "react-router-dom";
+
+const AddEditTable = lazy(() => import("./AddEditTable"));
 
 interface TableResponseType {
   id: number;
@@ -33,14 +35,13 @@ export default function OrderTable() {
   const accessList = checkAccess("Table");
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
   const [searchTerm, setSearchTerm] = useState("");
+  const formModal = useFormModal();
 
   const [open, setOpen] = useState<boolean>(false);
   const [deleteId, setDeletedId] = useState<number | null>(null);
 
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [drawerId, setOpenDrawerId] = useState<number | null>(null);
-
-  const navigate = useNavigate();
 
   const url = buildQueryString(`${TABLE_URL}list`, {
     page: query.page,
@@ -62,9 +63,8 @@ export default function OrderTable() {
   };
 
   const handleNewButton = (id: number | null) => {
-    id === null
-      ? navigate(TABLE_ADD_ROUTE)
-      : navigate(`${TABLE_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -124,7 +124,9 @@ export default function OrderTable() {
             <span className="text-sm font-semibold text-slate-800">
               {tableNo}
             </span>,
-            floor.floorNo + "-" + floor?.name || "-",
+            floor
+              ? `${floor.floorNo}-${floor.name || ""}`
+              : "-",
             <span
               className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${getStatusColor(status)}`}
             >
@@ -174,6 +176,7 @@ export default function OrderTable() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Tables"
         searchPlaceholder="Search by table number..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -205,6 +208,22 @@ export default function OrderTable() {
       >
         <ViewTable id={drawerId} />
       </Drawer>
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Table" : "Add Table"}
+        description="Place the table on a floor and set capacity."
+        size="lg"
+      >
+        <AddEditTable
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 }

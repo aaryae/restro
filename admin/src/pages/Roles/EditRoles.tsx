@@ -478,7 +478,7 @@ export default function EditRoles({
       </div>
 
       <div className="shrink-0 border-t border-slate-200/80 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
-        <div className="flex justify-end">
+        <div className="form-actions flex justify-start">
           <Button
             className="submit-button min-h-11 w-full min-w-[8rem] sm:w-auto"
             handleClick={handleSubmit}

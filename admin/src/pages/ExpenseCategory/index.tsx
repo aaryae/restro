@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { lazy, useState } from "react";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import useTranslation from "@/locale/useTranslation";
-import { EXPENSE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
-import { useNavigate } from "react-router-dom";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -15,10 +15,12 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { EXPENSE_CATEGORY_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 
+const AddExpenseCategory = lazy(() => import("./AddEditExpenseCategory"));
+
 const ExpenseCategory: React.FC = () => {
   const translate = useTranslation();
-  const navigate = useNavigate();
   const accessList = checkAccess("Expense Category");
+  const formModal = useFormModal();
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,11 +76,8 @@ const ExpenseCategory: React.FC = () => {
   ].filter(Boolean) as string[];
 
   const handleNewExpenseCategory = (id: number | null) => {
-    if (id === null) {
-      navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}`);
-    } else {
-      navigate(`${EXPENSE_CATEGORY_ADD_ROUTE}${id}`);
-    }
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const showActions =
@@ -124,6 +123,7 @@ const ExpenseCategory: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Expense Categories"
         searchPlaceholder="Search expense categories..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -134,17 +134,35 @@ const ExpenseCategory: React.FC = () => {
         subText="Organize expense entries into categories."
       />
       {accessList.includes("view") ? (
-      <Table
-        data={data}
-        headers={headers}
-        handlePagination={handlePagination}
-        pagination={pagination}
-      />
+        <Table
+          data={data}
+          headers={headers}
+          handlePagination={handlePagination}
+          pagination={pagination}
+        />
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view expense categories.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={
+          formModal.isEdit ? "Edit Expense Category" : "Add Expense Category"
+        }
+        description="Title and optional description for this expense category."
+        size="md"
+      >
+        <AddExpenseCategory
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

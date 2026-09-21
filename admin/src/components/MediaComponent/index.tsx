@@ -9,11 +9,12 @@ import {
 import {
   useCreateMediaCategoryMutation,
   useDeleteMediaCategoryMutation,
+  useDeleteMediaMutation,
   useGetMediaByCategoryQuery,
   useListAllMediaQuery,
   useUpdateMediaCategoryByIdMutation,
   useUploadMediaMutation,
-  useUploadVideoMutation, // Add this import
+  useUploadVideoMutation,
 } from "../../redux/services/media";
 import React, { useEffect, useRef, useState } from "react";
 import { handleError, handleResponse } from "../../utils/responseHandler";
@@ -63,6 +64,9 @@ export default function MediaComponent({
   const [openModel, setOpenModel] = useState<boolean>(false);
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [deleteImageId, setDeleteImageId] = useState<number | null>(null);
+  const [deleteImageOpen, setDeleteImageOpen] = useState(false);
+  const [deleteImagePath, setDeleteImagePath] = useState<string | null>(null);
 
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null); // Track which input is being edited
@@ -105,6 +109,7 @@ export default function MediaComponent({
 
   const [renameFolder] = useUpdateMediaCategoryByIdMutation();
   const [deleteFolder] = useDeleteMediaCategoryMutation();
+  const [deleteMedia] = useDeleteMediaMutation();
   const [createFolder] = useCreateMediaCategoryMutation();
 
   const handleOpenModel = () => {
@@ -130,6 +135,37 @@ export default function MediaComponent({
   const handleDeleteFolder = async (id: number) => {
     const response = await deleteFolder(id).unwrap();
     handleResponse({ res: response, onSuccess: () => {} });
+  };
+
+  const clearSelectionIfDeleted = (path: string | null) => {
+    if (!path) return;
+    if (isMultiSelect && Array.isArray(selectedImage)) {
+      if (selectedImage.includes(path)) {
+        dispatch(setSelectMultipleMedia(path));
+      }
+    } else if (typeof selectedImage === "string" && selectedImage === path) {
+      dispatch(setSelectedMedia(path));
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (deleteImageId == null) return;
+    try {
+      const response = await deleteMedia(deleteImageId).unwrap();
+      handleResponse({
+        res: response,
+        onSuccess: () => {
+          clearSelectionIfDeleted(deleteImagePath);
+          refetch();
+        },
+      });
+    } catch (error) {
+      handleError({ error });
+    } finally {
+      setDeleteImageOpen(false);
+      setDeleteImageId(null);
+      setDeleteImagePath(null);
+    }
   };
 
   const handleImageSelect = (path: string) => {
@@ -428,7 +464,8 @@ export default function MediaComponent({
 
                       return (
                         <button
-                          className={`relative border w-full aspect-square flex flex-col items-center justify-center p-2 md:p-3 cursor-pointer transition-all ${
+                          type="button"
+                          className={`group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center border p-2 transition-all md:p-3 ${
                             (typeof selectedImage === "string" &&
                               each.path === selectedImage) ||
                             (Array.isArray(selectedImage) &&
@@ -436,18 +473,40 @@ export default function MediaComponent({
                               ? "border-2 border-black"
                               : "border hover:border-gray-400"
                           }`}
-                          key={index}
+                          key={each.id ?? index}
                           onClick={() => handleImageSelect(each.path)}
                         >
+                          {accessListFile.includes("delete") && (
+                            <div
+                              className="absolute left-2 top-2 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DeleteModal
+                                compact
+                                open={deleteImageOpen}
+                                setOpen={setDeleteImageOpen}
+                                itemId={each.id}
+                                activeId={deleteImageId}
+                                handleDeleteTrigger={() => {
+                                  setDeleteImageId(each.id);
+                                  setDeleteImagePath(each.path);
+                                  setDeleteImageOpen(true);
+                                }}
+                                handleConfirmDelete={handleDeleteImage}
+                                title="Delete image?"
+                                description="This will permanently remove the image from the media library."
+                              />
+                            </div>
+                          )}
                           {isVideo ? (
-                            <div className="relative w-full h-full max-h-[120px] sm:max-h-[140px]">
+                            <div className="relative h-full max-h-[120px] w-full sm:max-h-[140px]">
                               <video
                                 src={buildAssetUrl(each.path)}
-                                className="w-full h-full object-cover"
+                                className="h-full w-full object-cover"
                                 crossOrigin="anonymous"
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                                <span className="text-white text-xl sm:text-2xl">
+                                <span className="text-xl text-white sm:text-2xl">
                                   ▶
                                 </span>
                               </div>
@@ -456,10 +515,10 @@ export default function MediaComponent({
                             <img
                               src={buildAssetUrl(each.path)}
                               alt="Gallery"
-                              className="w-full h-full max-h-[120px] sm:max-h-[140px] object-cover"
+                              className="h-full max-h-[120px] w-full object-cover sm:max-h-[140px]"
                             />
                           )}
-                          <p className="bg-inherit text-black w-full text-center text-xs sm:text-sm overflow-hidden line-clamp-1 mt-1 sm:mt-2">
+                          <p className="mt-1 w-full overflow-hidden bg-inherit text-center text-xs text-black line-clamp-1 sm:mt-2 sm:text-sm">
                             {each.name}
                           </p>
                         </button>
@@ -510,7 +569,7 @@ export default function MediaComponent({
           <DialogHeader>
             <DialogTitle>Create Folder</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="form-actions space-y-4">
             <Input
               label="Create Folder"
               placeholder="Enter Folder Name"

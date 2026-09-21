@@ -312,7 +312,7 @@ const NepalPayIntegrationForm = forwardRef<
         </label>
 
         {showActions && (
-          <div className="flex justify-end gap-3 pt-3 border-t">
+          <div className="form-actions flex justify-start gap-3 pt-3 border-t">
             <button
               type="button"
               onClick={() =>

@@ -1,12 +1,15 @@
 import Input from "@/components/Input";
+import TextArea from "@/components/TextArea";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { ProductCategorySchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import Button from "@/components/Button";
 import { z } from "zod";
-import useTranslation from "@/locale/useTranslation";
 import { PRODUCT_CATEGORY_LIST_ROUTE } from "@/routes/routeNames";
 import { useEffect } from "react";
 import {
@@ -14,23 +17,29 @@ import {
   useGetProductCategoryByIdQuery,
   useUpdateProductCategoryByIdMutation,
 } from "@/redux/services/productCategory";
-import PageTitle from "@/components/PageTitle";
-import TextArea from "@/components/TextArea";
+import { AlignLeft, FolderTree, Type } from "lucide-react";
 
 type ProductCategoryFormType = z.infer<typeof ProductCategorySchema>;
 
 interface Props {
+  id?: number | string | null;
   isComponent?: boolean;
   closeModal?: () => void;
+  onSuccess?: () => void;
 }
 
 export default function AddEditProductCategory({
+  id: idProp,
   isComponent = false,
   closeModal = () => {},
+  onSuccess,
 }: Props) {
-  const translate = useTranslation();
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : paramId;
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
@@ -45,9 +54,9 @@ export default function AddEditProductCategory({
     },
   });
 
-  const { data: productCategory, isSuccess: success } =
+  const { data: productCategory, isSuccess: success, isLoading } =
     useGetProductCategoryByIdQuery(id, {
-      skip: id === null || id === undefined,
+      skip: !isEdit,
     });
 
   const [createCategory, { isLoading: creating }] =
@@ -61,12 +70,15 @@ export default function AddEditProductCategory({
     }
   }, [success, productCategory, reset]);
 
-  const handleSuccess = () => {
-    if (isComponent) {
-      closeModal();
-    } else {
-      navigate(PRODUCT_CATEGORY_LIST_ROUTE);
-    }
+  const finish = () => {
+    onSuccess?.();
+    if (isComponent) closeModal();
+    else navigate(PRODUCT_CATEGORY_LIST_ROUTE);
+  };
+
+  const onCancel = () => {
+    if (isComponent) closeModal();
+    else navigate(PRODUCT_CATEGORY_LIST_ROUTE);
   };
 
   const onSubmit = async (data: ProductCategoryFormType) => {
@@ -76,88 +88,49 @@ export default function AddEditProductCategory({
     };
 
     try {
-      const response = id
+      const response = isEdit
         ? await updateCategory({ body, id }).unwrap()
         : await createCategory(body).unwrap();
       handleResponse({
         res: response,
-        onSuccess: handleSuccess,
+        onSuccess: finish,
       });
     } catch (error) {
       handleError({ error, setError });
     }
   };
 
-  const busy = isSubmitting || creating || updating;
-
   return (
-    <>
-      {!isComponent && (
-        <PageTitle
-          title={id ? "Edit Item Category" : "Add Item Category"}
-          isBack={true}
-        />
-      )}
-      <form
-        className={
-          isComponent
-            ? "mt-5 space-y-4"
-            : "form-container mt-[1rem] grid grid-cols-1 gap-[2rem]"
-        }
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          void handleSubmit(onSubmit)(e);
-        }}
-      >
-        <Input
-          label="Name"
-          placeholder="e.g. Hot drinks, Desserts"
-          className={isComponent ? "w-full" : "w-full md:w-1/2"}
-          {...register("name")}
-          error={errors.name?.message}
-          isRequired
-        />
-        <TextArea
-          label="Description"
-          placeholder="Optional short description for this category"
-          className={isComponent ? "w-full" : "w-full md:w-1/2"}
-          rows={isComponent ? 4 : 10}
-          {...register("description")}
-          error={errors.description?.message}
-        />
-        <div
-          className={
-            isComponent
-              ? "flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4"
-              : "flex justify-start"
-          }
-        >
-          {isComponent && (
-            <button
-              type="button"
-              onClick={closeModal}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              disabled={busy}
-            >
-              Cancel
-            </button>
-          )}
-          <Button
-            type="submit"
-            className={
-              isComponent
-                ? "submit-button h-10 min-w-[7.5rem] px-5"
-                : "submit-button w-[5rem]"
-            }
-            disabled={busy}
-          >
-            <div className="flex items-center justify-center gap-[0.5rem] text-white">
-              {busy ? "Saving…" : translate("Submit")}
-            </div>
-          </Button>
-        </div>
-      </form>
-    </>
+    <EntityForm
+      title={isEdit ? "Edit Item Category" : "Add Item Category"}
+      sectionTitle="Category details"
+      description="Name and optional description for this menu category."
+      icon={FolderTree}
+      embedded={isComponent}
+      columns={1}
+      maxWidthClass="max-w-2xl"
+      onSubmit={handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={isEdit && isLoading && !productCategory}
+      submitLabel={isEdit ? "Update" : "Submit"}
+    >
+      <Input
+        label="Name"
+        placeholder="e.g. Hot drinks, Desserts"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <TextArea
+        label="Description"
+        placeholder="Optional short description for this category"
+        rows={isComponent ? 3 : 4}
+        leftSection={<FieldIcon icon={AlignLeft} />}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+    </EntityForm>
   );
 }

@@ -856,16 +856,19 @@
 .confirmActionGroup {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.5rem;
 }
 
 .confirmCancelBtn {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-width: 6.5rem;
   border: 1px solid transparent;
   background: transparent;
   color: var(--serve-muted);
-  border-radius: 0.65rem;
-  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  padding: 0 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
   transition:
@@ -879,11 +882,14 @@
 }
 
 .confirmPrimaryBtn {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-width: 6.5rem;
   border: none;
   background: var(--primary-color);
   color: var(--primary-fg);
-  border-radius: 0.65rem;
-  padding: 0.62rem 1.1rem;
+  border-radius: 10px;
+  padding: 0 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
   transition: background 0.15s ease, opacity 0.15s ease;
@@ -1097,7 +1103,7 @@
 .modalActions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.45rem;
   padding: 0.85rem 1.1rem;
   border-top: 1px solid var(--serve-border);
@@ -1105,22 +1111,28 @@
 }
 
 .modalSecondary {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-width: 6.5rem;
   border: 1px solid var(--serve-border);
   background: var(--serve-surface);
   color: var(--serve-muted);
-  border-radius: 0.55rem;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.85rem;
+  border-radius: 10px;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .modalPrimary {
+  box-sizing: border-box;
+  height: 2.5rem;
+  min-width: 6.5rem;
   border: none;
   background: var(--primary-color);
   color: var(--primary-fg);
-  border-radius: 0.55rem;
-  padding: 0.55rem 0.9rem;
-  font-size: 0.85rem;
+  border-radius: 10px;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 

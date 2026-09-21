@@ -240,6 +240,7 @@ export default function Customer() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Customers"
         searchPlaceholder="Search by name, email, or phone..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

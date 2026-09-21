@@ -184,7 +184,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
             isRequired
           />
 
-          <div className="flex justify-end gap-3 pt-2 border-t mt-4">
+          <div className="form-actions flex justify-start gap-3 pt-2 border-t mt-4">
             <button
               type="button"
               onClick={onClose}

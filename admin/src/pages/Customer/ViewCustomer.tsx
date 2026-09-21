@@ -94,7 +94,7 @@ export default function ViewCustomer({
             ? format(new Date(orderDateValue), "MMM d, yy hh:mm a")
             : "—",
           paymentMethodLabel,
-          <div className="flex justify-center">
+          <div className="flex w-full items-center justify-center">
             <div className={changeClassNameByName(paymentStatus)}>
               {formatPaymentStatus(paymentStatus)}
             </div>

@@ -1,14 +1,17 @@
 import Input from "@/components/Input";
+import TextArea from "@/components/TextArea";
 import Select from "@/components/Select";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { Controller, useForm } from "react-hook-form";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
-import Button from "@/components/Button";
 import { OpenItemSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { OPEN_ITEM_LIST_ROUTE } from "@/routes/routeNames";
-
 import { useNavigate, useParams } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import useImageHandler from "@/hooks/useImageHandler";
@@ -18,27 +21,49 @@ import {
   useUpdateApiMutation,
 } from "@/redux/services/crudApi";
 import { OPEN_ITEM_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
-import { LIST_LIMIT } from "@/constants/listLimits";
+import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { Department } from "../../types/department";
+import {
+  Banknote,
+  ChefHat,
+  CircleDot,
+  Hash,
+  PackageOpen,
+  Type,
+} from "lucide-react";
 
 const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 
 type OpenItemFormType = z.infer<typeof OpenItemSchema>;
 
-export default function OpenItemForm() {
-  const { id } = useParams();
+type OpenItemFormProps = {
+  id?: number | string | null;
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onSuccess?: () => void;
+};
+
+export default function OpenItemForm({
+  id: idProp,
+  isComponent = false,
+  closeModal,
+  onSuccess,
+}: OpenItemFormProps = {}) {
+  const { id: paramId } = useParams();
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : paramId;
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
 
   const {
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     getValues,
     setError,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<OpenItemFormType>({
     resolver: zodResolver(OpenItemSchema),
     defaultValues: {
@@ -58,26 +83,21 @@ export default function OpenItemForm() {
     isImageModelOpen,
     setIsImageModalOpen,
     handleConfirmImage,
-    handleNextButton,
-    handlePrevButton,
   } = useImageHandler(setValue, getValues, "mediaArr");
 
-  const { data: openItem, isSuccess: success } = useGetApiQuery(
+  const { data: openItem, isSuccess: success, isLoading } = useGetApiQuery(
     { url: `${OPEN_ITEM_URL}${id}` },
-    {
-      skip: !id,
-    },
+    { skip: !isEdit },
   );
 
-  const [createOpenItem] = useCreateApiMutation();
-  const [updateOpenItem] = useUpdateApiMutation();
+  const [createOpenItem, { isLoading: creating }] = useCreateApiMutation();
+  const [updateOpenItem, { isLoading: updating }] = useUpdateApiMutation();
   const [departments, setDepartments] = useState<
     { value: number; label: string }[]
   >([]);
 
-  // Fetch departments
   const { data: departmentsData } = useGetApiQuery({
-    url: `${DEPARTMENT_URL}list?page=1&limit=${LIST_LIMIT}`,
+    url: `${DEPARTMENT_URL}list?page=1&limit=${POS_LIST_LIMIT}`,
   });
 
   useEffect(() => {
@@ -93,7 +113,7 @@ export default function OpenItemForm() {
   }, [departmentsData]);
 
   useEffect(() => {
-    if (id && success && openItem?.data) {
+    if (isEdit && success && openItem?.data) {
       reset({
         name: openItem.data.name,
         description: openItem.data.description || "",
@@ -111,7 +131,18 @@ export default function OpenItemForm() {
           openItem.data.mediaArr?.map((each: any) => each.imageUrl) || [],
       });
     }
-  }, [success, openItem, reset, id]);
+  }, [success, openItem, reset, isEdit]);
+
+  const finish = () => {
+    onSuccess?.();
+    if (isComponent) closeModal?.();
+    else navigate(OPEN_ITEM_LIST_ROUTE);
+  };
+
+  const onCancel = () => {
+    if (isComponent) closeModal?.();
+    else navigate(OPEN_ITEM_LIST_ROUTE);
+  };
 
   const onSubmit = async (data: OpenItemFormType) => {
     const body = {
@@ -120,17 +151,15 @@ export default function OpenItemForm() {
       price: data.price !== undefined ? Number(data.price) : undefined,
       departmentId: Number(data.departmentId),
     };
-    console.log("Submitting payload:", body);
     try {
-      const response = id
+      const response = isEdit
         ? await updateOpenItem({ url: `${OPEN_ITEM_URL}${id}`, body }).unwrap()
         : await createOpenItem({ url: `${OPEN_ITEM_URL}`, body }).unwrap();
       handleResponse({
         res: response,
-        onSuccess: () => navigate(OPEN_ITEM_LIST_ROUTE),
+        onSuccess: finish,
       });
     } catch (error) {
-      console.error("API Error:", error);
       handleError({ error, setError });
     }
   };
@@ -142,102 +171,102 @@ export default function OpenItemForm() {
   ];
 
   return (
-    <form
-      className="form-container grid grid-cols-1 gap-[1rem] mt-[1rem]"
+    <EntityForm
+      title={isEdit ? "Edit Open Item" : "Add Open Item"}
+      sectionTitle="Open item details"
+      description="One-off items you can add directly to orders."
+      icon={PackageOpen}
+      embedded={isComponent}
+      columns={2}
+      maxWidthClass="max-w-3xl"
       onSubmit={handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={isEdit && isLoading && !openItem}
+      submitLabel={isEdit ? "Update" : "Submit"}
     >
       <Input
-        label={"Name"}
-        placeholder={"Enter Open Item Name"}
-        className="w-1/2"
+        label="Name"
+        placeholder="Enter open item name"
+        leftSection={<FieldIcon icon={Type} />}
         {...register("name")}
         error={errors.name?.message}
-          isRequired
-        />
-
-      <div className="md:w-1/2 w-full">
-        <label className="input-label flex mb-[2px]">Description</label>
-        <textarea
-          value={watch("description") || ""}
-          onChange={(e) => setValue("description", e.target.value)}
-          className={`w-full p-2 border rounded bg-white ${
-            errors.description ? "border-red-500" : "border-gray-300"
-          }`}
-          rows={4}
-          placeholder="Enter open item description..."
-        />
-        {errors.description?.message && (
-          <p className="mt-1 text-sm text-red-500">
-            {errors.description.message}
-          </p>
-        )}
-      </div>
-
+        isRequired
+      />
       <Input
-        label={"Quantity"}
+        label="Quantity"
         type="number"
-        className="w-1/2"
         placeholder="0"
+        leftSection={<FieldIcon icon={Hash} />}
         {...register("quantity", {
           setValueAs: (v) =>
             v === "" || v === null || v === undefined ? undefined : Number(v),
         })}
         error={errors.quantity?.message}
-          isRequired
-        />
-
-      <div className="w-1/2">
-        <Controller
-          name="departmentId"
-          control={control}
-          render={({ field }) => (
-            <Select
-              {...field}
-              label="Department"
-              options={departments}
-              className="w-full"
-              error={errors.departmentId?.message}
-          isRequired
-        />
-          )}
-        />
-      </div>
-
+        isRequired
+      />
+      <Controller
+        name="departmentId"
+        control={control}
+        render={({ field }) => (
+          <Select
+            {...field}
+            label="Department"
+            options={departments}
+            leftSection={<FieldIcon icon={ChefHat} />}
+            error={errors.departmentId?.message}
+            isRequired
+          />
+        )}
+      />
       <Input
-        label={"Price"}
+        label="Price"
         type="number"
         step={0.01}
-        className="w-1/2"
         placeholder="0"
+        leftSection={<FieldIcon icon={Banknote} />}
         {...register("price", {
           setValueAs: (v) =>
             v === "" || v === null || v === undefined ? undefined : Number(v),
         })}
         error={errors.price?.message}
       />
-
       <Controller
         name="stockStatus"
         control={control}
         render={({ field }) => (
           <Select
             {...field}
-            label={"Stock Status"}
+            label="Stock Status"
             options={stockStatusOptions}
-            className="w-1/2"
+            leftSection={<FieldIcon icon={CircleDot} />}
             error={errors.stockStatus?.message}
           />
         )}
       />
-
-      <div className="flex flex-col items-start w-[20rem]">
-        <label className="input-label text-start mb-[2px]">{"Images"}</label>
-        <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+      <TextArea
+        label="Description"
+        placeholder="Optional notes about this open item"
+        className="md:col-span-2"
+        rows={isComponent ? 2 : 3}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+      <div className="flex min-w-0 flex-col md:col-span-2">
+        <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
+          Images
+        </span>
+        <Suspense
+          fallback={
+            <div className="h-40 w-full animate-pulse rounded-[10px] bg-[var(--serve-surface-2)]" />
+          }
+        >
           <MediaComponent
             title={
               <MultipleImageInputUI
                 images={media}
                 imageIndex={currentImageIndex}
+                imageMessage="Allowed JPG, GIF or PNG. You can select multiple."
               />
             }
             isMultiSelect={true}
@@ -246,38 +275,7 @@ export default function OpenItemForm() {
             setOpen={setIsImageModalOpen}
           />
         </Suspense>
-        {/* <div className="mt-[1rem] flex w-full justify-between">
-          <button
-            type="button"
-            className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-            onClick={handlePrevButton}
-          >
-            {"Previous"}
-          </button>
-          <button
-            type="button"
-            className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-            onClick={() => setValue("mediaArr", [])}
-          >
-            {"Remove"}
-          </button>
-          <button
-            type="button"
-            className="px-[0.75rem] py-[0.5rem] rounded-[0.25rem] bg-primaryColor text-white"
-            onClick={handleNextButton}
-          >
-            {"Next"}
-          </button>
-        </div> */}
       </div>
-
-      <div className="flex justify-start">
-        <Button type="submit" className="submit-button w-[5rem]">
-          <div className="flex justify-center items-center gap-[0.5rem] text-white">
-            {"Submit"}
-          </div>
-        </Button>
-      </div>
-    </form>
+    </EntityForm>
   );
 }

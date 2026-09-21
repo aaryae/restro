@@ -18,6 +18,8 @@ interface DialogProps {
   dialogOpen: boolean;
   setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   closeOnOutsideClick?: boolean;
+  /** Stack above another open dialog (e.g. form inside EntityFormDialog). */
+  nested?: boolean;
 }
 
 export default function CustomDialog({
@@ -29,6 +31,7 @@ export default function CustomDialog({
   dialogOpen,
   setDialogOpen,
   closeOnOutsideClick = false,
+  nested = false,
 }: DialogProps) {
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -40,10 +43,18 @@ export default function CustomDialog({
       <DialogContent
         className={cn(
           "max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto p-6 sm:p-7",
+          nested && "z-[110]",
           contentClassName,
         )}
+        overlayClassName={nested ? "z-[105]" : undefined}
         onInteractOutside={(e) => {
           if (!closeOnOutsideClick) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (nested) e.stopPropagation();
+        }}
+        onFocusOutside={(e) => {
+          if (nested) e.preventDefault();
         }}
       >
         <DialogHeader>

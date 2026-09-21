@@ -139,7 +139,7 @@ export default function TrialLifecycleGate() {
             <p className="text-sm text-[var(--serve-negative)]">{error}</p>
           ) : null}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-start">
             <button
               type="button"
               className="rounded-xl border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)]"
