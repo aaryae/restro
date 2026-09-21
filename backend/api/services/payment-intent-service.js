@@ -199,13 +199,34 @@ const initiateQrPayment = async (req) => {
       };
     }
 
-    const { orderId, amount, accountId, tableId, checkoutAll } = req.body;
+    const { orderId, amount, accountId, tableId, checkoutAll, orderItemIds } =
+      req.body;
     const userId = req.user.id;
+
+    const selectiveItemIds = Array.isArray(orderItemIds)
+      ? [
+          ...new Set(
+            orderItemIds
+              .map((id) => Number(id))
+              .filter((id) => Number.isInteger(id) && id > 0),
+          ),
+        ]
+      : null;
 
     // Two modes: settle a single order, or settle EVERY active order on a table
     // with one combined QR (checkoutAll). For checkoutAll the first active order
     // is the "anchor" stored on orderId; settlement completes all of them.
+    // Selective orderItemIds are only valid for single-order (non-checkoutAll) QR.
     const isTableCheckoutAll = Boolean(checkoutAll && tableId);
+
+    if (isTableCheckoutAll && selectiveItemIds?.length) {
+      return {
+        status: 400,
+        success: false,
+        message:
+          "Partial item selection is not supported for table checkout-all QR",
+      };
+    }
 
     let anchorOrderId;
     let sessionId = null;
@@ -345,6 +366,7 @@ const initiateQrPayment = async (req) => {
       tableId: isTableCheckoutAll ? Number(tableId) : null,
       sessionId,
       checkoutAll: isTableCheckoutAll,
+      orderItemIds: selectiveItemIds,
       amount: payAmount,
       currency: currencyAlpha,
       merchantTxnRef,
@@ -600,6 +622,9 @@ const settleFromGatewayEvent = async (event) => {
             paymentIntentId: intent.id,
             gatewayReference: event.gatewayTxnId || intent.merchantTxnRef,
             remarks: `NEPALPAY QR ${intent.merchantTxnRef}`,
+            orderItemIds: Array.isArray(intent.orderItemIds)
+              ? intent.orderItemIds
+              : null,
           },
           transaction,
         );

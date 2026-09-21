@@ -2926,6 +2926,7 @@ const moveOrderItems = async (req) => {
     });
 
     if (!sourceTable || !destinationTable) {
+      await transaction.rollback();
       return {
         status: 404,
         success: false,
@@ -2964,6 +2965,7 @@ const moveOrderItems = async (req) => {
     });
 
     if (orders.length === 0) {
+      await transaction.rollback();
       return {
         status: 404,
         success: false,
@@ -2977,6 +2979,7 @@ const moveOrderItems = async (req) => {
     );
 
     if (invalidOrders.length > 0) {
+      await transaction.rollback();
       return {
         status: 400,
         success: false,
@@ -2990,6 +2993,7 @@ const moveOrderItems = async (req) => {
     );
 
     if (nonMovableOrders.length > 0) {
+      await transaction.rollback();
       return {
         status: 400,
         success: false,
@@ -3097,6 +3101,7 @@ const finalizeQrPayment = async (
     paymentIntentId,
     gatewayReference,
     remarks,
+    orderItemIds,
   },
   transaction,
 ) => {
@@ -3161,16 +3166,80 @@ const finalizeQrPayment = async (
     paymentMethods.push("nepalpay_qr");
   }
 
+  const selectiveIds = Array.isArray(orderItemIds)
+    ? [
+        ...new Set(
+          orderItemIds
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ),
+      ]
+    : [];
+
+  // Partial QR: complete only the selected main items (+ their addons).
+  if (selectiveIds.length > 0) {
+    const targetItems = await orderItemModel.findAll({
+      where: {
+        id: { [Op.in]: selectiveIds },
+        orderId: order.id,
+        isAddon: false,
+        status: { [Op.notIn]: ["completed", "cancelled"] },
+      },
+      include: [
+        {
+          model: orderItemModel,
+          as: "addons",
+          where: { status: { [Op.ne]: "cancelled" } },
+          required: false,
+        },
+      ],
+      transaction,
+    });
+
+    const idsToComplete = [];
+    for (const item of targetItems) {
+      idsToComplete.push(item.id);
+      if (Array.isArray(item.addons)) {
+        for (const addon of item.addons) {
+          idsToComplete.push(addon.id);
+        }
+      }
+    }
+
+    if (idsToComplete.length > 0) {
+      await orderItemModel.update(
+        { status: "completed" },
+        {
+          where: { id: { [Op.in]: idsToComplete } },
+          validate: false,
+          transaction,
+        },
+      );
+    }
+  }
+
+  const remainingOpenItems = await orderItemModel.count({
+    where: {
+      orderId: order.id,
+      isAddon: false,
+      status: { [Op.notIn]: ["completed", "cancelled"] },
+    },
+    transaction,
+  });
+
+  const fullySettled = newPayable <= 0.01 && remainingOpenItems === 0;
+
   const updateFields = {
     payableAmount: newPayable,
     paymentMethods,
-    paymentStatus: newPayable <= 0 ? "paid" : "partially_paid",
+    paymentStatus: fullySettled ? "paid" : "partially_paid",
   };
 
-  if (newPayable <= 0) {
+  if (fullySettled) {
     updateFields.status = "completed";
     updateFields.orderFinishTime = new Date();
 
+    // Safety: complete any leftover lines if payable is cleared.
     await orderItemModel.update(
       { status: "completed" },
       {
@@ -3213,6 +3282,23 @@ const finalizeQrPayment = async (
         );
       }
     }
+  } else if (selectiveIds.length === 0 && newPayable <= 0.01) {
+    // Full-amount QR without item IDs: complete all open lines (legacy path).
+    updateFields.status = "completed";
+    updateFields.orderFinishTime = new Date();
+    updateFields.paymentStatus = "paid";
+
+    await orderItemModel.update(
+      { status: "completed" },
+      {
+        where: {
+          orderId: order.id,
+          status: { [Op.notIn]: ["completed", "cancelled"] },
+        },
+        validate: false,
+        transaction,
+      },
+    );
   }
 
   await order.update(updateFields, { transaction });

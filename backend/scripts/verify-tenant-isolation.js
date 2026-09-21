@@ -105,7 +105,7 @@ async function login(username, password, slug) {
       "Content-Type": "application/json",
       "X-Tenant-Slug": slug,
     },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, cafeSlug: slug }),
   });
   return res.json();
 }

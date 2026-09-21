@@ -50,9 +50,33 @@ function peekJwtSlug(req) {
 
 /**
  * Decide which slug this request should use.
- * Priority: X-Tenant-Slug (local/dev) → paid subdomain → JWT slug (cafe / fallback).
+ * Priority:
+ *   1. cafeSlug|domain on staff login body (must match the cafe the user typed)
+ *   2. X-Tenant-Slug (admin / explicit header)
+ *   3. paid cafe subdomain from Host
+ *   4. Admin JWT slug (reserved hosts like serveapi / pos)
  */
 function resolveTenantSlug(req) {
+  const url = `${req.baseUrl || ""}${req.path || ""}`;
+  const isStaffLogin =
+    req.method === "POST" && /\/auth\/login\/?$/.test(url);
+
+  // Staff POS login: body domain wins so shared API hosts / stale headers
+  // cannot authenticate against the wrong cafe.
+  if (isStaffLogin && req.body && typeof req.body === "object") {
+    const bodySlug = String(req.body.cafeSlug || req.body.domain || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^\.+|\.+$/g, "");
+    // Accept bare slug ("mocha") or hostname ("mocha.technirvana.com.np").
+    const slugFromDomain = bodySlug.includes(".")
+      ? bodySlug.split(".").filter(Boolean)[0]
+      : bodySlug;
+    if (slugFromDomain && !RESERVED_SLUGS.includes(slugFromDomain)) {
+      return slugFromDomain;
+    }
+  }
+
   const headerSlug = (req.headers["x-tenant-slug"] || "")
     .toString()
     .trim()

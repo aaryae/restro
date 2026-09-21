@@ -52,6 +52,12 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
+      /** Main order-item IDs this QR settles (partial checkout). Null = whole order. */
+      orderItemIds: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: null,
+      },
       amount: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
