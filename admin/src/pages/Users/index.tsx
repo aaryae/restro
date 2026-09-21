@@ -218,6 +218,7 @@ export default function Users() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Users"
         searchPlaceholder="Search users..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -19,6 +19,26 @@ const Modal: React.FC<ModalProps> = ({
   size = "medium",
   className = "",
 }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -30,7 +50,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 py-8">
+      <div className="flex min-h-screen items-center justify-center px-4 py-8">
         <button
           type="button"
           aria-label="Close modal"
@@ -44,11 +64,11 @@ const Modal: React.FC<ModalProps> = ({
           className={`serve-modal relative w-full rounded-xl ${sizeClasses[size]} ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           {title && (
             <div className="flex items-center justify-between border-b border-slate-200 p-6">
               <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
               <button
+                type="button"
                 onClick={onClose}
                 className="text-slate-400 transition-colors hover:text-slate-600"
               >
@@ -57,10 +77,10 @@ const Modal: React.FC<ModalProps> = ({
             </div>
           )}
 
-          {/* Content */}
           <div className="relative">
             {!title && (
               <button
+                type="button"
                 onClick={onClose}
                 className="absolute right-4 top-4 z-10 text-slate-400 transition-colors hover:text-slate-600"
               >

@@ -2,10 +2,12 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Modal from "@/components/Modal";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
-import Button from "@/components/Button";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import {
   useCreateApiMutation,
   useGetApiQuery,
@@ -13,6 +15,7 @@ import {
 } from "@/redux/services/crudApi";
 import { STOCK_GROUP_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { AlignLeft, Boxes, Type } from "lucide-react";
 
 const StockGroupSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -21,19 +24,21 @@ const StockGroupSchema = z.object({
 type StockGroupFormType = z.infer<typeof StockGroupSchema>;
 
 type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  editId?: number | null;
+  id?: number | string | null;
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onSuccess?: () => void;
 };
 
 const StockGroupModal: React.FC<Props> = ({
-  isOpen,
-  onClose,
+  id: idProp,
+  isComponent = true,
+  closeModal,
   onSuccess,
-  editId = null,
 }) => {
-  const isEdit = Boolean(editId);
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : undefined;
+  const isEdit = Boolean(id);
 
   const {
     register,
@@ -48,28 +53,33 @@ const StockGroupModal: React.FC<Props> = ({
   const [createApi, { isLoading: creating }] = useCreateApiMutation();
   const [updateApi, { isLoading: updating }] = useUpdateApiMutation();
 
-  const { data: groupResp } = useGetApiQuery(
-    { url: `${STOCK_GROUP_URL}${editId}` },
-    { skip: !isOpen || !isEdit },
+  const { data: groupResp, isLoading } = useGetApiQuery(
+    { url: `${STOCK_GROUP_URL}${id}` },
+    { skip: !isEdit },
   );
 
   useEffect(() => {
-    if (!isOpen) return;
     if (!isEdit) {
       reset({ name: "", description: "" });
       return;
     }
-    const row = groupResp?.data as any;
+    const row = groupResp?.data as
+      | { name?: string; description?: string }
+      | undefined;
     if (!row) return;
     reset({
       name: row.name || "",
       description: row.description || "",
     });
-  }, [isOpen, isEdit, groupResp, reset]);
+  }, [isEdit, groupResp, reset]);
 
-  const handleClose = () => {
-    reset({ name: "", description: "" });
-    onClose();
+  const finish = () => {
+    onSuccess?.();
+    closeModal?.();
+  };
+
+  const onCancel = () => {
+    closeModal?.();
   };
 
   const onSubmit = async (data: StockGroupFormType) => {
@@ -80,7 +90,7 @@ const StockGroupModal: React.FC<Props> = ({
     try {
       const response = isEdit
         ? await updateApi({
-            url: `${STOCK_GROUP_URL}${editId}`,
+            url: `${STOCK_GROUP_URL}${id}`,
             body,
           }).unwrap()
         : await createApi({ url: STOCK_GROUP_URL, body }).unwrap();
@@ -94,58 +104,45 @@ const StockGroupModal: React.FC<Props> = ({
               ? "Stock group updated successfully."
               : "Stock group created successfully."),
         },
-        onSuccess: () => {
-          handleClose();
-          onSuccess();
-        },
+        onSuccess: finish,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError({ error });
     }
   };
 
-  const saving = isSubmitting || creating || updating;
-
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
+    <EntityForm
       title={isEdit ? "Edit Stock Group" : "Add Stock Group"}
-      size="medium"
+      sectionTitle="Group details"
+      description="Name and optional description for this stock group."
+      icon={Boxes}
+      embedded={isComponent}
+      columns={1}
+      maxWidthClass="max-w-2xl"
+      onSubmit={handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={isEdit && isLoading && !groupResp}
+      submitLabel={isEdit ? "Update" : "Save"}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-6">
-        <Input
-          label="Name"
-          placeholder="Enter stock group name"
-          {...register("name")}
-          error={errors.name?.message}
-          isRequired
-        />
-        <TextArea
-          label="Description"
-          placeholder="Optional description"
-          {...register("description")}
-          error={errors.description?.message}
-        />
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <Button
-            type="submit"
-            className="submit-button !h-10 !rounded-lg !px-5 !py-0 !text-sm !font-medium"
-            disabled={saving}
-            isLoading={saving}
-          >
-            {isEdit ? "Update" : "Save"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <Input
+        label="Name"
+        placeholder="Enter stock group name"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <TextArea
+        label="Description"
+        placeholder="Optional description"
+        rows={3}
+        leftSection={<FieldIcon icon={AlignLeft} />}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+    </EntityForm>
   );
 };
 

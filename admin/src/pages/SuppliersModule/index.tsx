@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { lazy, useMemo, useState } from "react";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Spinner from "@/components/Spinner";
-import { useNavigate } from "react-router-dom";
 import usePagination from "@/hooks/usePagination";
 import DeleteModal from "@/components/DeleteModal";
+import { EntityFormDialog } from "@/components/EntityForm";
+import { useFormModal } from "@/hooks/useFormModal";
 import { buildQueryString } from "@/utils/generalHelper";
-import { SUPPLIER_ADD_ROUTE } from "@/routes/routeNames";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import {
@@ -24,15 +24,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SupplierFilterSchema, type SupplierFilterInput } from "./schema";
 import { UserRound, MapPin, Phone, SquarePen } from "lucide-react";
 
+const AddEditSupplier = lazy(() => import("./AddEditSupplier"));
+
 export default function Supplier() {
   const accessList = checkAccess("Supplier");
+  const formModal = useFormModal();
   const [deleteId, setDeletedId] = useState<number | null>(null);
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
 
   const [deleteData] = useDeleteSupplierByIdMutation();
 
   const { query, handlePagination } = usePagination({ page: 1, limit: 10 });
-  const navigate = useNavigate();
 
   const { control, handleSubmit, reset } = useForm<SupplierFilterInput>({
     resolver: zodResolver(SupplierFilterSchema),
@@ -99,11 +101,8 @@ export default function Supplier() {
   );
 
   const handleNewButton = (id: number | null) => {
-    if (id === null) {
-      navigate(SUPPLIER_ADD_ROUTE);
-    } else {
-      navigate(`${SUPPLIER_ADD_ROUTE}${id}`);
-    }
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -122,7 +121,6 @@ export default function Supplier() {
         },
         onSuccess: () => {
           refetch();
-          navigate("/admin/supplier/list");
         },
       });
     } catch (error: any) {
@@ -233,6 +231,7 @@ export default function Supplier() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Suppliers"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Supplier"
@@ -257,6 +256,22 @@ export default function Supplier() {
           You do not have permission to view suppliers.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Supplier" : "Add Supplier"}
+        description="Vendor contact and tax details for purchases."
+        size="lg"
+      >
+        <AddEditSupplier
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 }

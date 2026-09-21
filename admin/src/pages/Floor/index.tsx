@@ -3,8 +3,10 @@ import Drawer from "@/components/Drawer";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import { FLOOR_URL } from "@/constants/apiUrlConstants";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import {
   useDeleteApiMutation,
   useGetApiQuery,
@@ -13,12 +15,12 @@ import {
 import { checkAccess } from "@/utils/accessHelper";
 import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
-import { useEffect, useRef, useState } from "react";
+import { lazy, useEffect, useRef, useState } from "react";
 import { Eye, Power, PowerOff, SquarePen } from "lucide-react";
 import ViewFloor from "./ViewFloor";
 import Spinner from "@/components/Spinner";
-import { FLOOR_ADD_ROUTE } from "@/routes/routeNames";
-import { useNavigate } from "react-router-dom";
+
+const AddEditFloor = lazy(() => import("./AddEditFloor"));
 
 interface FloorResponseType {
   id: number;
@@ -35,6 +37,7 @@ export default function Floor() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formModal = useFormModal();
 
   useEffect(() => {
     debounceRef.current = setTimeout(() => {
@@ -50,8 +53,6 @@ export default function Floor() {
 
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [drawerId, setOpenDrawerId] = useState<number | null>(null);
-
-  const navigate = useNavigate();
 
   const url = buildQueryString(`${FLOOR_URL}list`, {
     page: query.page,
@@ -73,9 +74,8 @@ export default function Floor() {
   };
 
   const handleNewButton = (id: number | null) => {
-    id === null
-      ? navigate(FLOOR_ADD_ROUTE)
-      : navigate(`${FLOOR_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -207,6 +207,7 @@ export default function Floor() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Floors"
         searchPlaceholder="Search floors..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -238,6 +239,22 @@ export default function Floor() {
       >
         <ViewFloor id={drawerId} />
       </Drawer>
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Floor" : "Add Floor"}
+        description="Number and name shown on the floor plan."
+        size="md"
+      >
+        <AddEditFloor
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 }

@@ -2,7 +2,9 @@ import React, { lazy, Suspense, useState } from "react";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import { PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
@@ -11,9 +13,9 @@ import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { STOCK_ITEM_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
-import StockItemModal from "./StockItemModal";
-import AdjustStockModal from "./AdjustStockModal";
 
+const StockItemModal = lazy(() => import("./StockItemModal"));
+const AdjustStockModal = lazy(() => import("./AdjustStockModal"));
 const BulkUploadModal = lazy(() => import("./BulkUploadModal"));
 
 const formatQty = (qty: number | string, symbol?: string) => {
@@ -44,8 +46,7 @@ const StockItem: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const formModal = useFormModal();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustItem, setAdjustItem] = useState<any>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -126,19 +127,17 @@ const StockItem: React.FC = () => {
     showActions && "Actions",
   ].filter(Boolean) as string[];
 
-  const openCreate = () => {
-    setEditId(null);
-    setModalOpen(true);
-  };
-
-  const openEdit = (id: number) => {
-    setEditId(id);
-    setModalOpen(true);
-  };
+  const openCreate = () => formModal.openAdd();
+  const openEdit = (id: number) => formModal.openEdit(id);
 
   const openAdjust = (row: any) => {
     setAdjustItem(row);
     setAdjustOpen(true);
+  };
+
+  const closeAdjust = () => {
+    setAdjustOpen(false);
+    setAdjustItem(null);
   };
 
   const refreshAll = () => {
@@ -269,6 +268,7 @@ const StockItem: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Stock Items"
         searchPlaceholder="Search stock items..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -371,12 +371,51 @@ const StockItem: React.FC = () => {
         </div>
       )}
 
-      <StockItemModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={refreshAll}
-        editId={editId}
-      />
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Stock Item" : "Create Stock Item"}
+        description="Unit, pricing, group, and optional opening stock."
+        size="xl"
+        closeOnOutsideClick={false}
+      >
+        <StockItemModal
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={refreshAll}
+        />
+      </EntityFormDialog>
+
+      <EntityFormDialog
+        open={adjustOpen}
+        onOpenChange={(next) => {
+          if (!next) closeAdjust();
+        }}
+        title={
+          adjustItem?.name
+            ? `Adjust Stock — ${adjustItem.name}`
+            : "Adjust Stock"
+        }
+        description="Record a purchase, in/out adjustment, or waste."
+        size="md"
+      >
+        <AdjustStockModal
+          key={adjustItem?.id ?? "adjust"}
+          isComponent
+          closeModal={closeAdjust}
+          onSuccess={refreshAll}
+          itemId={adjustItem?.id ?? null}
+          itemName={adjustItem?.name}
+          defaultRate={Number(adjustItem?.defaultPrice || 0)}
+          defaultSupplierId={
+            adjustItem?.supplierId != null
+              ? Number(adjustItem.supplierId)
+              : null
+          }
+        />
+      </EntityFormDialog>
 
       {bulkUploadOpen ? (
         <Suspense fallback={null}>
@@ -387,18 +426,6 @@ const StockItem: React.FC = () => {
           />
         </Suspense>
       ) : null}
-
-      <AdjustStockModal
-        isOpen={adjustOpen}
-        onClose={() => setAdjustOpen(false)}
-        onSuccess={refreshAll}
-        itemId={adjustItem?.id ?? null}
-        itemName={adjustItem?.name}
-        defaultRate={Number(adjustItem?.defaultPrice || 0)}
-        defaultSupplierId={
-          adjustItem?.supplierId != null ? Number(adjustItem.supplierId) : null
-        }
-      />
     </div>
   );
 };

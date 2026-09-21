@@ -54,12 +54,16 @@ function isStatusHeader(header: string) {
     text === "is active" ||
     text === "active" ||
     text === "status" ||
-    text.includes("is active")
+    text.endsWith(" status") ||
+    text.includes("is active") ||
+    text.includes("payment status")
   );
 }
 
 function isNumericHeader(header: string) {
   const text = String(header || "").toLowerCase();
+  // Don't treat status columns as numeric (e.g. "Payment Status" vs "paid").
+  if (isStatusHeader(header)) return false;
   return NUMERIC_HINTS.some((hint) => text.includes(hint));
 }
 

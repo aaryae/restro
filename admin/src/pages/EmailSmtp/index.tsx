@@ -61,6 +61,7 @@ export default function EmailSmtp() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Email SMTP"
         showSearch={false}
         handleReloadButton={() => refetch()}
         subText="Configure outgoing mail server settings for system emails."
@@ -120,7 +121,7 @@ export default function EmailSmtp() {
             </div>
           )}
         />
-        <div className="flex justify-end pt-2">
+        <div className="form-actions flex justify-start pt-2">
           <button
             type="submit"
             className="submit-button inline-flex h-9 items-center rounded-lg px-4 text-[13px] font-medium"

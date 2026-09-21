@@ -145,6 +145,7 @@ export default function Roles() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Roles"
         searchPlaceholder="Search roles..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

@@ -2,10 +2,12 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Modal from "@/components/Modal";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
-import Button from "@/components/Button";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import {
   useCreateApiMutation,
   useGetApiQuery,
@@ -13,6 +15,7 @@ import {
 } from "@/redux/services/crudApi";
 import { MEASURING_UNIT_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
+import { AlignLeft, Hash, Ruler, Type } from "lucide-react";
 
 const MeasuringUnitSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -22,19 +25,21 @@ const MeasuringUnitSchema = z.object({
 type MeasuringUnitFormType = z.infer<typeof MeasuringUnitSchema>;
 
 type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  editId?: number | null;
+  id?: number | string | null;
+  isComponent?: boolean;
+  closeModal?: () => void;
+  onSuccess?: () => void;
 };
 
 const MeasuringUnitModal: React.FC<Props> = ({
-  isOpen,
-  onClose,
+  id: idProp,
+  isComponent = true,
+  closeModal,
   onSuccess,
-  editId = null,
 }) => {
-  const isEdit = Boolean(editId);
+  const id =
+    idProp !== undefined && idProp !== null ? String(idProp) : undefined;
+  const isEdit = Boolean(id);
 
   const {
     register,
@@ -49,36 +54,41 @@ const MeasuringUnitModal: React.FC<Props> = ({
   const [createApi, { isLoading: creating }] = useCreateApiMutation();
   const [updateApi, { isLoading: updating }] = useUpdateApiMutation();
 
-  const { data: unitResp } = useGetApiQuery(
-    { url: `${MEASURING_UNIT_URL}${editId}` },
-    { skip: !isOpen || !isEdit },
+  const { data: unitResp, isLoading } = useGetApiQuery(
+    { url: `${MEASURING_UNIT_URL}${id}` },
+    { skip: !isEdit },
   );
 
   useEffect(() => {
-    if (!isOpen) return;
     if (!isEdit) {
       reset({ name: "", symbol: "", description: "" });
       return;
     }
-    const row = unitResp?.data as any;
+    const row = unitResp?.data as
+      | { name?: string; symbol?: string; description?: string }
+      | undefined;
     if (!row) return;
     reset({
       name: row.name || "",
       symbol: row.symbol || "",
       description: row.description || "",
     });
-  }, [isOpen, isEdit, unitResp, reset]);
+  }, [isEdit, unitResp, reset]);
 
-  const handleClose = () => {
-    reset({ name: "", symbol: "", description: "" });
-    onClose();
+  const finish = () => {
+    onSuccess?.();
+    closeModal?.();
+  };
+
+  const onCancel = () => {
+    closeModal?.();
   };
 
   const onSubmit = async (data: MeasuringUnitFormType) => {
     try {
       const response = isEdit
         ? await updateApi({
-            url: `${MEASURING_UNIT_URL}${editId}`,
+            url: `${MEASURING_UNIT_URL}${id}`,
             body: data,
           }).unwrap()
         : await createApi({ url: MEASURING_UNIT_URL, body: data }).unwrap();
@@ -92,68 +102,54 @@ const MeasuringUnitModal: React.FC<Props> = ({
               ? "Measuring unit updated successfully."
               : "Measuring unit created successfully."),
         },
-        onSuccess: () => {
-          handleClose();
-          onSuccess();
-        },
+        onSuccess: finish,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       handleError({ error });
     }
   };
 
-  const saving = isSubmitting || creating || updating;
-
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
+    <EntityForm
       title={isEdit ? "Edit Measuring Unit" : "Add Measuring Unit"}
-      size="medium"
+      sectionTitle="Unit details"
+      description="Name, symbol, and optional notes for this unit."
+      icon={Ruler}
+      embedded={isComponent}
+      columns={2}
+      maxWidthClass="max-w-2xl"
+      onSubmit={handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={isEdit && isLoading && !unitResp}
+      submitLabel={isEdit ? "Update" : "Save"}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Name"
-            placeholder="Enter unit name"
-            {...register("name")}
-            error={errors.name?.message}
-            isRequired
-          />
-          <Input
-            label="Symbol"
-            placeholder="e.g. ltr, kg, pcs"
-            {...register("symbol")}
-            error={errors.symbol?.message}
-            isRequired
-          />
-        </div>
-        <TextArea
-          label="Description"
-          placeholder="When to use this unit in the kitchen or store"
-          rows={3}
-          {...register("description")}
-          error={errors.description?.message}
-        />
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <Button
-            type="submit"
-            className="submit-button !h-10 !rounded-lg !px-5 !py-0 !text-sm !font-medium"
-            disabled={saving}
-            isLoading={saving}
-          >
-            {isEdit ? "Update" : "Save"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      <Input
+        label="Name"
+        placeholder="Enter unit name"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <Input
+        label="Symbol"
+        placeholder="e.g. ltr, kg, pcs"
+        leftSection={<FieldIcon icon={Hash} />}
+        {...register("symbol")}
+        error={errors.symbol?.message}
+        isRequired
+      />
+      <TextArea
+        label="Description"
+        placeholder="When to use this unit in the kitchen or store"
+        className="md:col-span-2"
+        rows={3}
+        leftSection={<FieldIcon icon={AlignLeft} />}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+    </EntityForm>
   );
 };
 

@@ -1,149 +1,92 @@
 import Input from "@/components/Input";
-import { FloorSchema } from "./schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
-import { handleError, handleResponse } from "@/utils/responseHandler";
-import Button from "@/components/Button";
-import { z } from "zod";
-import useTranslation from "@/locale/useTranslation";
-import { FLOOR_LIST_ROUTE } from "@/routes/routeNames";
-import { useEffect } from "react";
-import {
-  useCreateApiMutation,
-  useGetApiQuery,
-  useUpdateApiMutation,
-} from "@/redux/services/crudApi";
-import { FLOOR_URL } from "@/constants/apiUrlConstants";
-import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
+import {
+  EntityForm,
+  FieldIcon,
+  useResourceForm,
+} from "@/components/EntityForm";
+import { FLOOR_URL } from "@/constants/apiUrlConstants";
+import { FLOOR_LIST_ROUTE } from "@/routes/routeNames";
+import { AlignLeft, Hash, Layers, Type } from "lucide-react";
+import { z } from "zod";
+import { FloorSchema } from "./schema";
 
 type FloorFormType = z.infer<typeof FloorSchema>;
 
-interface Props {
+type AddEditFloorProps = {
+  id?: number | string | null;
   isComponent?: boolean;
   closeModal?: () => void;
-}
+  onSuccess?: () => void;
+};
 
 export default function AddEditFloor({
+  id,
   isComponent = false,
-  closeModal = () => {},
-}: Props) {
-  const translate = useTranslation();
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const isEditMode = !!id;
+  closeModal,
+  onSuccess,
+}: AddEditFloorProps = {}) {
+  const finish = () => {
+    onSuccess?.();
+    closeModal?.();
+  };
 
   const {
     register,
-    handleSubmit,
-    setError,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FloorFormType>({
-    resolver: zodResolver(FloorSchema),
+    errors,
+    isEditMode,
+    isSaving,
+    isLoading,
+    onSubmit,
+    onCancel,
+  } = useResourceForm<FloorFormType>({
+    schema: FloorSchema,
+    resourceUrl: FLOOR_URL,
+    listRoute: FLOOR_LIST_ROUTE,
+    resourceId: id,
+    onSuccess: isComponent ? finish : undefined,
+    onCancel: isComponent ? closeModal : undefined,
   });
 
-  const [createFloor, { isLoading: creatingFloor }] = useCreateApiMutation();
-  const [updateFloor, { isLoading: updatingFloor }] = useUpdateApiMutation();
-
-  const {
-    data: floorData,
-    isSuccess: success,
-    isLoading: loading,
-  } = useGetApiQuery(
-    { url: `${FLOOR_URL}${id}` },
-    {
-      skip: !isEditMode,
-    },
-  );
-
-  useEffect(() => {
-    if (isEditMode && floorData && floorData?.data) {
-      reset(floorData?.data);
-    }
-  }, [floorData]);
-
-  const handleSuccess = () => {
-    if (isComponent) {
-      closeModal();
-    } else {
-      navigate(FLOOR_LIST_ROUTE);
-    }
-  };
-
-  const onSubmit = async (data: FloorFormType) => {
-    const body = { ...data };
-
-    try {
-      const response = isEditMode
-        ? await updateFloor({
-            url: `${FLOOR_URL}${id}`,
-            body,
-          }).unwrap()
-        : await createFloor({
-            url: `${FLOOR_URL}`,
-            body,
-          }).unwrap();
-
-      handleResponse({
-        res: response,
-        onSuccess: handleSuccess,
-      });
-    } catch (error) {
-      handleError({ error, setError });
-    }
-  };
-
   return (
-    <>
-      {!isComponent && (
-        <PageTitle title={isEditMode ? "Edit Floor" : "Add Floor"} isBack />
-      )}
-      <form
-        className={`grid grid-cols-1 gap-[2rem] mt-[1rem] ${
-          isComponent ? "" : " form-container"
-        }`}
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <Input
-          label="Floor No"
-          placeholder="Enter Floor Number"
-          className="w-full md:w-1/2"
-          {...register("floorNo")}
-          error={errors.floorNo?.message}
-          isRequired
-        />
-
-        <Input
-          label="Name"
-          placeholder="Enter Floor Name"
-          className="w-full md:w-1/2"
-          {...register("name")}
-          error={errors.name?.message}
-          isRequired
-        />
-
-        <TextArea
-          label="Description"
-          placeholder="Enter Floor Description"
-          className="w-full md:w-1/2"
-          {...register("description")}
-          error={errors.description?.message}
-        />
-
-        <div className="flex justify-start">
-          <Button
-            type="submit"
-            className="submit-button w-[5rem]"
-            disabled={isSubmitting || creatingFloor || updatingFloor}
-          >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
-              {translate("Submit")}
-            </div>
-          </Button>
-        </div>
-      </form>
-    </>
+    <EntityForm
+      title={isEditMode ? "Edit Floor" : "Add Floor"}
+      sectionTitle="Floor details"
+      description="Number and name shown on the floor plan."
+      icon={Layers}
+      embedded={isComponent}
+      columns={isComponent ? 1 : 2}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      isSaving={isSaving}
+      isLoading={isLoading}
+      submitLabel={isEditMode ? "Update" : "Submit"}
+    >
+      <Input
+        label="Floor No"
+        placeholder="e.g. 1, G, B1"
+        leftSection={<FieldIcon icon={Hash} />}
+        {...register("floorNo")}
+        error={errors.floorNo?.message}
+        isRequired
+      />
+      <Input
+        label="Name"
+        placeholder="e.g. Ground Floor, Rooftop"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <TextArea
+        label="Description"
+        placeholder="Optional notes about this floor"
+        className={isComponent ? undefined : "md:col-span-2"}
+        rows={isComponent ? 2 : 4}
+        leftSection={<FieldIcon icon={AlignLeft} />}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+    </EntityForm>
   );
 }

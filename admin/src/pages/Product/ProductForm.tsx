@@ -1,16 +1,20 @@
 import DishPlaceHolder from "@/assets/product_placeholder.jpg";
-import Button from "@/components/Button";
 import CustomDialog from "@/components/Dialog";
 import Drawer from "@/components/Drawer";
+import {
+  EntityForm,
+  FieldHeader,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { ImageInputUI } from "@/components/ImageComponent";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
+import TextArea from "@/components/TextArea";
 import ToggleSwitch from "@/components/Switch";
 import { CurrencySign, IMAGE_BASE_URL } from "@/constants";
 import { LIST_LIMIT } from "@/constants/listLimits";
 import { ADDON_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import { clearSelectedMedia } from "@/redux/feature/mediaSlice";
-import useTranslation from "@/locale/useTranslation";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import {
   useCreateProductMutation,
@@ -25,7 +29,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
-import { Eye, Plus, Trash2 } from "lucide-react";
+import {
+  AlignLeft,
+  Banknote,
+  ChefHat,
+  Eye,
+  FolderTree,
+  Package,
+  Plus,
+  Trash2,
+  Type,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ProductSchema } from "./schema";
@@ -40,9 +54,9 @@ const ListCategoryDetails = lazy(() => import("./ListCategoryDetails"));
 type ProductFormType = z.infer<typeof ProductSchema>;
 
 export default function ProductForm() {
-  const translate = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const isEdit = Boolean(id);
 
   const {
     register,
@@ -52,7 +66,7 @@ export default function ProductForm() {
     setValue,
     setError,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ProductFormType>({
     resolver: zodResolver(ProductSchema),
     defaultValues: {
@@ -76,7 +90,6 @@ export default function ProductForm() {
 
   const hasVariant = watch("hasVariant");
   const isTopSelling = watch("isTopSelling");
-  const variants = watch("variants");
   const mediaArr = watch("mediaArr") || [];
   const productImage =
     Array.isArray(mediaArr) && mediaArr.length > 0 ? mediaArr[0] : "";
@@ -95,14 +108,22 @@ export default function ProductForm() {
     setIsImageModalOpen(false);
   };
 
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [addonDialogOpen, setAddonDialogOpen] = useState<boolean>(false);
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
-  const [addonDrawerOpen, setAddonDrawerOpen] = useState<boolean>(false);
+  const clearImage = () => {
+    setValue("mediaArr", [], {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    dispatch(clearSelectedMedia());
+  };
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [addonDialogOpen, setAddonDialogOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [addonDrawerOpen, setAddonDrawerOpen] = useState(false);
   const selectedAddons = watch("addons");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [addonSearch, setAddonSearch] = useState<string>("");
-  // Keep names for chips when list hasn't loaded yet / after inline create.
+  const [addonSearch, setAddonSearch] = useState("");
   const [knownAddons, setKnownAddons] = useState<
     Record<
       number,
@@ -110,7 +131,6 @@ export default function ProductForm() {
     >
   >({});
 
-  // Toggle addon selection helper
   const toggleAddon = (addonId: number) => {
     const current = Array.isArray(selectedAddons) ? [...selectedAddons] : [];
     const index = current.indexOf(addonId);
@@ -123,7 +143,11 @@ export default function ProductForm() {
     { label: string; value: string }[]
   >([]);
 
-  const { data: product, isSuccess: success } = useGetProductByIdQuery(id, {
+  const {
+    data: product,
+    isSuccess: success,
+    isLoading: loadingProduct,
+  } = useGetProductByIdQuery(id, {
     skip: id === null || id === undefined,
   });
 
@@ -133,14 +157,13 @@ export default function ProductForm() {
       limit: LIST_LIMIT,
     });
 
-  const [createProduct] = useCreateProductMutation();
-  const [updateProduct] = useUpdateProductByIdMutation();
+  const [createProduct, { isLoading: creating }] = useCreateProductMutation();
+  const [updateProduct, { isLoading: updating }] = useUpdateProductByIdMutation();
 
   const { data: departmentData } = useGetApiQuery({
     url: `${DEPARTMENT_URL}list?page=1&limit=${LIST_LIMIT}`,
   });
 
-  // Load addons for chips + drawer (also after inline create via cache invalidation).
   const { data: addonListData } = useGetApiQuery(
     { url: `${ADDON_URL}?page=1&limit=${LIST_LIMIT}` },
     {
@@ -154,7 +177,13 @@ export default function ProductForm() {
   const addonCatalog = useMemo(() => {
     const map = new Map<
       number,
-      { id: number; name: string; price?: number; imageUrl?: string | null; description?: string }
+      {
+        id: number;
+        name: string;
+        price?: number;
+        imageUrl?: string | null;
+        description?: string;
+      }
     >();
     Object.values(knownAddons).forEach((a) => map.set(a.id, a));
     (addonListData?.data?.data || []).forEach((a: any) => {
@@ -209,7 +238,6 @@ export default function ProductForm() {
             product?.data?.mediaArr
               ?.map((each: { imageUrl?: string }) => each?.imageUrl)
               .filter(Boolean) || [];
-          // Items support a single image only.
           return urls.slice(0, 1);
         })(),
         addons: Array.isArray((product?.data as any)?.addons)
@@ -260,7 +288,6 @@ export default function ProductForm() {
   }, [productCategory, productCategorySuccess]);
 
   useEffect(() => {
-    // Automatically add an initial variant when hasVariant is toggled to true
     if (
       hasVariant &&
       fields.length === 0 &&
@@ -277,12 +304,14 @@ export default function ProductForm() {
 
   const closeDialog = () => setDialogOpen(false);
 
-  const openDrawer = (event) => {
+  const openDrawer = (event: React.MouseEvent) => {
     event.preventDefault();
     setDrawerOpen(true);
   };
 
-  const handleSelectComponent = (event) => {
+  const handleSelectComponent = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     setValue("productCategoryId", event.target.value);
     setSelectedOption(Number(event.target.value));
   };
@@ -300,7 +329,6 @@ export default function ProductForm() {
     const body = {
       ...data,
       price: data.hasVariant ? 0 : Number(data.price || 0),
-      // quantity: data.hasVariant ? 0 : Number(data.quantity || 0),
       productCategoryId: Number(data.productCategoryId),
       departmentId:
         data.departmentId != null && Number(data.departmentId) > 0
@@ -319,65 +347,100 @@ export default function ProductForm() {
         onSuccess: () => navigate(PRODUCT_LIST_ROUTE),
       });
     } catch (error) {
-      console.error("API Error:", error);
       handleError({ error, setError });
     }
   };
 
-  const isHasVariantDisabled = id && product?.data?.variants?.length > 0;
-
- 
+  const selectedCount = Array.isArray(selectedAddons)
+    ? selectedAddons.length
+    : 0;
 
   return (
     <>
-      <form
-        className="form-container grid grid-cols-1 gap-[1rem] mt-[1rem]"
+      <EntityForm
+        title={isEdit ? "Edit Item" : "Add Item"}
+        sectionTitle="Item details"
+        description="Name, category, price, image, and optional addons."
+        icon={Package}
+        columns={2}
+        maxWidthClass="max-w-4xl"
         onSubmit={handleSubmit(onSubmit)}
+        onCancel={() => navigate(PRODUCT_LIST_ROUTE)}
+        isSaving={isSubmitting || creating || updating}
+        isLoading={isEdit && loadingProduct && !product}
+        submitLabel={isEdit ? "Update" : "Submit"}
       >
         <Input
           label="Name"
-          placeholder="Enter Item"
-          className="w-1/2"
+          placeholder="e.g. Masala Chai, Chicken Momo"
+          leftSection={<FieldIcon icon={Type} />}
           {...register("name")}
           error={errors.name?.message}
           isRequired
         />
 
+        {!hasVariant ? (
+          <Input
+            label="Price"
+            type="number"
+            step={0.01}
+            placeholder="0"
+            leftSection={<FieldIcon icon={Banknote} />}
+            {...register("price", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined
+                  ? undefined
+                  : Number(v),
+            })}
+            error={errors.price?.message}
+            isRequired
+          />
+        ) : (
+          <div className="hidden md:block" aria-hidden />
+        )}
+
         <Controller
           name="productCategoryId"
           control={control}
           render={({ field }) => (
-            <div className="flex items-start gap-3">
+            <div className="flex min-w-0 flex-col">
+              <FieldHeader
+                label="Item Category"
+                required
+                actions={
+                  <>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--serve-border)] bg-[var(--serve-surface)] px-2 text-[11px] font-medium text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)]"
+                      onClick={openDrawer}
+                      title="View category"
+                    >
+                      <Eye size={12} strokeWidth={2.5} />
+                      Show
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Plus size={12} strokeWidth={2.5} />
+                      Add
+                    </button>
+                  </>
+                }
+              />
               <Select
                 {...field}
                 options={productCategoryOptions}
-                className="w-[50%] md:w-1/4"
-                label="Item Category"
+                leftSection={<FieldIcon icon={FolderTree} />}
                 onChange={(event) => handleSelectComponent(event)}
                 error={errors.productCategoryId?.message}
                 isRequired
               />
-              {/* Offset by label + gap so buttons stay level with the select trigger */}
-              <div className="flex shrink-0 items-center gap-2 pt-[1.7rem]">
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
-                  onClick={openDrawer}
-                >
-                  <Eye /> Show
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDialogOpen(true);
-                  }}
-                >
-                  <Plus /> Add
-                </button>
-              </div>
             </div>
           )}
         />
@@ -386,26 +449,47 @@ export default function ProductForm() {
           name="departmentId"
           control={control}
           render={({ field }) => (
-            <Select
-              {...field}
-              label="Department"
-              options={departmentOptions}
-              className="w-full md:w-1/2"
-              error={errors.departmentId?.message}
-              clearable
-              clearLabel="None"
-            />
+            <div className="flex min-w-0 flex-col">
+              <FieldHeader label="Department" />
+              <Select
+                {...field}
+                options={departmentOptions}
+                leftSection={<FieldIcon icon={ChefHat} />}
+                error={errors.departmentId?.message}
+                clearable
+                clearLabel="None"
+              />
+            </div>
           )}
         />
 
-        <div className="flex flex-col items-start w-[20rem]">
-          <label className="input-label text-start mb-[2px]">Image</label>
-          <Suspense fallback={<div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />}>
+        {(!id || success) && (
+          <TextArea
+            label="Description"
+            placeholder="Optional short description for this item"
+            className="md:col-span-2"
+            rows={3}
+            leftSection={<FieldIcon icon={AlignLeft} />}
+            {...register("description")}
+            error={errors.description?.message}
+          />
+        )}
+
+        <div className="flex min-w-0 flex-col md:col-span-2">
+          <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
+            Image
+          </span>
+          <Suspense
+            fallback={
+              <div className="h-40 w-full animate-pulse rounded-[10px] bg-[var(--serve-surface-2)]" />
+            }
+          >
             <MediaComponent
               title={
                 <ImageInputUI
                   image={productImage}
                   imageMessage="Upload one image. Allowed JPG, GIF or PNG."
+                  onClear={productImage ? clearImage : undefined}
                 />
               }
               isMultiSelect={false}
@@ -416,77 +500,14 @@ export default function ProductForm() {
           </Suspense>
         </div>
 
-        {(!id || success) && (
-          <div className="md:w-1/2 w-full ">
-            <label className="input-label flex mb-[2px]">Description</label>
-            <textarea
-              value={watch("description") || ""}
-              onChange={(e) => setValue("description", e.target.value)}
-              className={`w-full p-2 border rounded bg-white ${
-                errors.description ? "border-red-500" : "border-gray-300"
-              }`}
-              rows={4}
-              placeholder="Enter item description..."
-            />
-            {errors.description?.message && (
-              <p className="mt-1 text-sm text-red-500">
-                {errors.description.message}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            {...register("hasVariant")}
-            disabled={isHasVariantDisabled}
-          />
-          <label>Has Variants?</label>
-          {isHasVariantDisabled && (
-            <span className="text-red-500 text-sm">
-              Cannot disable variants while editing an item with existing
-              variants. Manage variants below.
-            </span>
-          )}
-        </div> */}
-
-        {!hasVariant && (
-          <>
-            {/* <Input
-              label="Quantity"
-              type="number"
-              className="w-1/2"
-              placeholder="Enter Quantity"
-              {...register("quantity", { valueAsNumber: true })}
-              error={errors.quantity?.message}
-            /> */}
-            <Input
-              label="Price"
-              type="number"
-              step={0.01}
-              className="w-1/2"
-              placeholder="0"
-              {...register("price", {
-                setValueAs: (v) =>
-                  v === "" || v === null || v === undefined
-                    ? undefined
-                    : Number(v),
-              })}
-              error={errors.price?.message}
-          isRequired
-        />
-          </>
-        )}
-
-        <div className="flex w-full flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:max-w-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">
+        <div className="md:col-span-2">
+          <div className="flex items-center justify-between gap-4 py-1">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--serve-fg)]">
                 Show in Top Selling
               </p>
-              <p className="mt-0.5 text-[12px] text-slate-500">
-                Pin this item on the Create Order menu grid.
+              <p className="mt-0.5 text-xs text-[var(--serve-muted)]">
+                Pin this item on the Create Order menu grid
               </p>
             </div>
             <ToggleSwitch
@@ -496,76 +517,89 @@ export default function ProductForm() {
               }
             />
           </div>
-          {isTopSelling ? (
-            <Input
-              label="Top Selling order"
-              type="number"
-              min={0}
-              placeholder="0"
-              {...register("topSellingOrder", { valueAsNumber: true })}
-              error={errors.topSellingOrder?.message as string | undefined}
-            />
-          ) : null}
         </div>
 
-        {/* Addons selector — select existing or create new from this form */}
-        <div className="flex flex-col gap-2 w-full md:w-1/2">
-          <label className="input-label">Addons</label>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex items-center rounded-lg bg-primaryColor px-4 py-2 text-sm font-medium text-white transition hover:bg-primaryColor/90"
-              onClick={() => setAddonDrawerOpen(true)}
-            >
-              Select Addons
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primaryColor px-3 text-sm font-medium text-white transition hover:bg-primaryColor/90"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setAddonDialogOpen(true);
-              }}
-            >
-              <Plus /> Add
-            </button>
-            <span className="text-sm text-slate-500">
-              {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
-              selected
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(selectedAddons || []).map((addonId) => {
-              const a = addonCatalog.get(addonId);
-              if (!a) return null;
-              return (
-                <span
-                  key={a.id}
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+        <div className="flex min-w-0 flex-col md:col-span-2">
+          <FieldHeader
+            label="Addons"
+            actions={
+              <>
+                <button
+                  type="button"
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-[var(--serve-border)] bg-[var(--serve-surface)] px-2 text-[11px] font-medium text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)]"
+                  onClick={() => setAddonDrawerOpen(true)}
                 >
-                  {a.name}
-                  <button
-                    type="button"
-                    aria-label={`Remove ${a.name}`}
-                    className="ml-0.5 text-slate-400 hover:text-slate-700"
-                    onClick={() => toggleAddon(a.id)}
-                  >
-                    ×
-                  </button>
-                </span>
-              );
-            })}
+                  Select
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setAddonDialogOpen(true);
+                  }}
+                >
+                  <Plus size={12} strokeWidth={2.5} />
+                  Add
+                </button>
+              </>
+            }
+          />
+          <div className="rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 py-2.5">
+            <p className="mb-2 text-xs text-[var(--serve-muted)]">
+              {selectedCount} selected
+            </p>
+            {selectedCount > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {(selectedAddons || []).map((addonId) => {
+                  const a = addonCatalog.get(addonId);
+                  if (!a) return null;
+                  return (
+                    <span
+                      key={a.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--serve-fg)]"
+                    >
+                      {a.name}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${a.name}`}
+                        className="ml-0.5 text-[var(--serve-muted)] hover:text-[var(--serve-fg)]"
+                        onClick={() => toggleAddon(a.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--serve-muted)]">
+                No addons linked. Use Select or Add above.
+              </p>
+            )}
           </div>
         </div>
 
-        {hasVariant && (
-          <div className="flex flex-col gap-4 w-full md:w-2/3">
-            <label className="font-medium">Variants</label>
+        {hasVariant ? (
+          <div className="flex flex-col gap-3 md:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-[var(--serve-muted)]">
+                Variants
+              </span>
+              <button
+                type="button"
+                className="inline-flex h-8 items-center gap-1 rounded-lg bg-primaryColor px-3 text-xs font-medium text-white transition hover:bg-primaryColor/90"
+                onClick={handleAddVariant}
+              >
+                <Plus size={14} />
+                Add Variant
+              </button>
+            </div>
             {fields.map((field, index) => (
               <div
                 key={field.id}
-                className="flex gap-4 items-end border p-2 rounded"
+                className="grid grid-cols-1 gap-3 rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]"
               >
                 <Input
                   label="Name"
@@ -600,39 +634,23 @@ export default function ProductForm() {
                 />
                 <Input
                   label="Description"
-                  placeholder="Variant Description"
+                  placeholder="Optional"
                   {...register(`variants.${index}.description`)}
                   error={errors.variants?.[index]?.description?.message}
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    remove(index);
-                  }}
-                  className="text-red-500"
+                  onClick={() => remove(index)}
+                  className="inline-flex h-10 w-10 items-center justify-center self-end rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                  title="Remove variant"
                 >
-                  <Trash2 />
+                  <Trash2 size={16} />
                 </button>
               </div>
             ))}
-            <button
-              type="button"
-              className="bg-primaryColor text-white px-4 py-2 rounded"
-              onClick={handleAddVariant}
-            >
-              + Add Variant
-            </button>
           </div>
-        )}
-
-        <div className="flex justify-start">
-          <Button type="submit" className="submit-button w-[5rem]">
-            <div className="flex justify-center items-center gap-[0.5rem] text-white">
-              {translate("Submit")}
-            </div>
-          </Button>
-        </div>
-      </form>
+        ) : null}
+      </EntityForm>
 
       <CustomDialog
         dialogOpen={dialogOpen}
@@ -641,8 +659,13 @@ export default function ProductForm() {
         titleDescription="Create a category to group menu items."
         contentClassName="max-w-md sm:max-w-lg"
         closeOnOutsideClick
+        nested
       >
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+        <Suspense
+          fallback={
+            <div className="h-40 animate-pulse rounded-lg bg-slate-100" />
+          }
+        >
           {dialogOpen ? (
             <AddEditProductCategory
               isComponent={true}
@@ -659,8 +682,13 @@ export default function ProductForm() {
         titleDescription="Create an addon and attach it to this item."
         contentClassName="max-w-md sm:max-w-lg"
         closeOnOutsideClick
+        nested
       >
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+        <Suspense
+          fallback={
+            <div className="h-40 animate-pulse rounded-lg bg-slate-100" />
+          }
+        >
           {addonDialogOpen ? (
             <AddEditAddons
               isComponent={true}
@@ -692,12 +720,15 @@ export default function ProductForm() {
         className="border-l border-slate-200/80 shadow-2xl"
         contentClassName="p-6 pt-5"
       >
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-slate-100" />}>
+        <Suspense
+          fallback={
+            <div className="h-40 animate-pulse rounded-lg bg-slate-100" />
+          }
+        >
           {drawerOpen ? <ListCategoryDetails id={selectedOption} /> : null}
         </Suspense>
       </Drawer>
 
-      {/* Addon selection Drawer */}
       <Drawer
         isOpen={addonDrawerOpen}
         setIsOpen={setAddonDrawerOpen}
@@ -717,8 +748,7 @@ export default function ProductForm() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                  {Array.isArray(selectedAddons) ? selectedAddons.length : 0}{" "}
-                  selected
+                  {selectedCount} selected
                 </span>
                 {!!selectedAddons?.length && (
                   <button

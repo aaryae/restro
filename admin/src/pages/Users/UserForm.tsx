@@ -392,7 +392,7 @@ export default function UserForm({
       </div>
 
       <div className="sticky bottom-0 -mx-5 mt-6 border-t border-[var(--serve-border)] bg-[var(--serve-surface)] px-5 py-4 sm:-mx-6 sm:px-6">
-        <div className="flex justify-end">
+        <div className="form-actions flex justify-start">
           <Button
             type="submit"
             disabled={isSubmitting}

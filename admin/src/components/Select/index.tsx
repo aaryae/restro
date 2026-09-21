@@ -4,6 +4,7 @@ import { Check, ChevronDown } from "lucide-react";
 import useTranslation from "@/locale/useTranslation";
 import { cn } from "@/lib/utils";
 import { RequiredMark } from "@/components/RequiredMark";
+import { useFieldId } from "@/hooks/useFieldId";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +76,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
     ref,
   ) => {
     const translate = useTranslation();
+    const fieldId = useFieldId(id);
     const showRequired = Boolean(isRequired || required);
     const [open, setOpen] = useState(false);
     const [uncontrolled, setUncontrolled] = useState(
@@ -117,7 +119,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
     return (
       <div className={cn("select-container flex w-full flex-col gap-1", className)}>
         {label && (
-          <label htmlFor={id} className="input-label text-left">
+          <label htmlFor={fieldId} className="input-label text-left">
             {typeof label === "string" ? translate(label) : label}
             {showRequired && <RequiredMark />}
           </label>
@@ -127,7 +129,7 @@ const Select = forwardRef<HTMLButtonElement, SelectProps>(
           <DropdownMenuTrigger asChild disabled={disabled}>
             <button
               ref={ref}
-              id={id}
+              id={fieldId}
               type="button"
               name={name}
               disabled={disabled}

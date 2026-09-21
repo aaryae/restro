@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import PageTitle from "@/components/PageTitle";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
-import Button from "@/components/Button";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { Controller, useForm } from "react-hook-form";
 import useTranslation from "@/locale/useTranslation";
 import { useParams, useNavigate } from "react-router-dom";
@@ -28,12 +30,20 @@ import {
   useGetPaymentIntegrationsQuery,
   useUpdatePaymentIntegrationMutation,
 } from "@/redux/services/paymentIntegration";
-import { Banknote, Building2, Check, ImagePlus, QrCode, Wallet, X } from "lucide-react";
+import {
+  Banknote,
+  Building2,
+  Check,
+  ImagePlus,
+  Landmark,
+  QrCode,
+  Type,
+  Wallet,
+  X,
+} from "lucide-react";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 
 type AccountFromType = z.infer<typeof AccountSchema>;
-
-const fieldClass = "w-full max-w-xl";
 
 function PillToggle<T extends string>({
   value,
@@ -52,10 +62,10 @@ function PillToggle<T extends string>({
           <button
             key={opt.value}
             type="button"
-            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+            className={`inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-medium transition ${
               active
-                ? "border-primaryColor bg-primaryColor text-white shadow-sm"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                ? "border-[var(--primary-color)] bg-[var(--primary-color)] text-[var(--primary-fg)] shadow-sm"
+                : "border-[var(--serve-border)] bg-[var(--serve-surface)] text-[var(--serve-muted)] hover:border-[var(--serve-muted)] hover:bg-[var(--serve-surface-2)]"
             }`}
             onClick={() => onChange(opt.value)}
           >
@@ -269,14 +279,14 @@ const AddEditAccount: React.FC = () => {
   const staticQrUrl = watch("staticQrUrl");
 
   const renderQrUpload = (hint?: string) => (
-    <div className={`flex flex-col ${fieldClass}`}>
-      <label className="mb-2 text-sm font-medium text-slate-700">
-        Static QR <span className="text-red-500">*</span>
-      </label>
+    <div className="min-w-0 md:col-span-2">
+      <span className="mb-1.5 block text-xs font-medium text-[var(--serve-muted)]">
+        Static QR <span className="text-[var(--serve-negative)]">*</span>
+      </span>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-          <div className="relative mx-auto h-36 w-36 shrink-0 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50 sm:mx-0">
+      <div className="overflow-hidden rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)]">
+        <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+          <div className="relative mx-auto h-28 w-28 shrink-0 overflow-hidden rounded-[10px] border border-dashed border-[var(--serve-border)] bg-[var(--serve-surface-2)] sm:mx-0">
             {staticQrUrl ? (
               <img
                 src={buildAssetUrl(staticQrUrl)}
@@ -284,26 +294,26 @@ const AddEditAccount: React.FC = () => {
                 className="h-full w-full object-contain p-2"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-slate-400">
-                <QrCode size={28} strokeWidth={1.5} />
+              <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-[var(--serve-muted)]">
+                <QrCode size={24} strokeWidth={1.5} />
                 <span className="text-[11px] font-medium">QR preview</span>
               </div>
             )}
           </div>
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
-            <p className="text-sm font-medium text-slate-800">
+            <p className="text-sm font-medium text-[var(--serve-fg)]">
               {staticQrUrl ? "QR image selected" : "Upload a QR code image"}
             </p>
-            <p className="mt-1 text-[12px] leading-relaxed text-slate-500">
+            <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--serve-muted)]">
               {hint ||
                 "JPG, PNG, or GIF · max 1MB. Shown to customers at checkout."}
             </p>
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <MediaComponent
                 title={
-                  <span className="inline-flex items-center gap-2 rounded-xl border border-primaryColor/25 bg-primaryColor/5 px-3.5 py-2 text-sm font-medium text-primaryColor transition hover:bg-primaryColor/10">
+                  <span className="inline-flex items-center gap-2 rounded-[10px] border border-[color-mix(in_srgb,var(--primary-color)_25%,var(--serve-border))] bg-[color-mix(in_srgb,var(--primary-color)_8%,transparent)] px-3 py-1.5 text-sm font-medium text-[var(--primary-ink)] transition hover:bg-[color-mix(in_srgb,var(--primary-color)_14%,transparent)]">
                     <ImagePlus size={15} />
                     {staticQrUrl ? "Change image" : "Choose image"}
                   </span>
@@ -334,7 +344,7 @@ const AddEditAccount: React.FC = () => {
                       shouldValidate: true,
                     })
                   }
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-3 py-1.5 text-sm font-medium text-[var(--serve-muted)] transition hover:border-[color-mix(in_srgb,var(--serve-negative)_30%,var(--serve-border))] hover:bg-[color-mix(in_srgb,var(--serve-negative)_8%,transparent)] hover:text-[var(--serve-negative)]"
                 >
                   <X size={14} />
                   Remove
@@ -347,7 +357,7 @@ const AddEditAccount: React.FC = () => {
 
       <input type="hidden" {...register("staticQrUrl")} />
       {(errors as any)?.staticQrUrl && (
-        <p className="mt-1.5 text-xs text-red-500">
+        <p className="mt-1.5 text-xs text-[var(--serve-negative)]">
           {(errors as any)?.staticQrUrl?.message as string}
         </p>
       )}
@@ -355,286 +365,242 @@ const AddEditAccount: React.FC = () => {
   );
 
   return (
-    <div className="min-w-0 max-w-3xl">
-      <PageTitle title={isEditMode ? "Edit Account" : "Add Account"} isBack />
+    <>
+      <EntityForm
+        title={isEditMode ? "Edit Account" : "Add Account"}
+        sectionTitle="Account details"
+        description="Cash, bank, or wallet used at checkout."
+        icon={Landmark}
+        maxWidthClass="max-w-3xl"
+        columns={2}
+        onSubmit={handleSubmit(onSubmit)}
+        onCancel={() => navigate(BANK_LIST_ROUTE)}
+        isSaving={isSaving}
+        isLoading={isEditMode && isFetchingAccount && !accountResp}
+        submitLabel={isEditMode ? translate("Update") : translate("Submit")}
+        footerExtra={
+          <button
+            type="button"
+            className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 text-sm font-semibold text-[var(--serve-fg)] transition hover:border-[var(--serve-muted)]"
+            onClick={() => {
+              reset();
+              setDynamicQrDraft(null);
+            }}
+          >
+            {translate("Reset")}
+          </button>
+        }
+      >
+        <Input
+          label="Account Name"
+          placeholder="Enter account name"
+          leftSection={<FieldIcon icon={Type} />}
+          {...register("accountName")}
+          error={errors?.accountName?.message as string}
+          isRequired
+        />
 
-      {isEditMode && isFetchingAccount ? (
-        <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-slate-500">
-          Loading account…
+        <div className="flex min-w-0 flex-col">
+          <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
+            Status
+          </span>
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <PillToggle
+                value={field.value}
+                options={[
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ]}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </div>
-      ) : (
-        <form
-          className="mt-4 space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Account details
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">
-              {isEditMode ? "Update cash, bank, or wallet" : "Create a new account"}
-            </h2>
-          </div>
 
-          <Input
-            label="Account Name"
-            placeholder="Enter account name"
-            className={fieldClass}
-            {...register("accountName")}
-            error={errors?.accountName?.message as string}
-          isRequired
-        />
-
-          {!isEditMode && (
-            <div className={fieldClass}>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Account Type
-                <span className="ml-0.5 text-red-500" aria-hidden="true">
-                  *
-                </span>
-              </label>
-              <Controller
-                name="accountType"
-                control={control}
-                render={({ field }) => (
-                  <PillToggle
-                    value={field.value}
-                    options={[
-                      {
-                        label: "Cash",
-                        value: "cash",
-                        icon: <Banknote size={16} />,
-                      },
-                      {
-                        label: "Bank",
-                        value: "bank",
-                        icon: <Building2 size={16} />,
-                      },
-                      {
-                        label: "Wallet",
-                        value: "wallet",
-                        icon: <Wallet size={16} />,
-                      },
-                    ]}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </div>
-          )}
-
-          {(accountType === "cash" || accountType === "bank") && (
-            <div className={fieldClass}>
-              <Controller
-                name="isPrimaryBank"
-                control={control}
-                render={({ field }) => (
-                  <label
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition ${
-                      field.value
-                        ? "border-primaryColor/40 bg-primaryColor/5"
-                        : "border-slate-200 bg-slate-50/50 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primaryColor focus:ring-primaryColor/40"
-                      checked={Boolean(field.value)}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                    />
-                    <span>
-                      <span className="block text-sm font-medium text-slate-800">
-                        Show in checkout
-                      </span>
-                      <span className="mt-0.5 block text-xs text-slate-500">
-                        {accountType === "cash"
-                          ? "This cash account will appear in checkout payment options."
-                          : "This bank will appear in checkout payment options."}
-                      </span>
-                    </span>
-                  </label>
-                )}
-              />
-            </div>
-          )}
-
-          {accountType === "bank" && (
-            <div className="space-y-5 border-t border-slate-100 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Bank &amp; QR
-              </p>
-
-              <Input
-                label="Account Number"
-                placeholder="Enter bank account number"
-                className={fieldClass}
-                {...register("bankAccountNumber")}
-                error={errors?.bankAccountNumber?.message as string}
-          isRequired
-        />
-
-              <div className={fieldClass}>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  QR Type
-                </label>
-                <Controller
-                  name="qrType"
-                  control={control}
-                  render={({ field }) => (
-                    <PillToggle
-                      value={field.value}
-                      options={[
-                        { label: "Static", value: "static" },
-                        { label: "Dynamic", value: "dynamic" },
-                      ]}
-                      onChange={(v) => {
-                        field.onChange(v);
-                        if (v === "dynamic" && !isDynamicConfigured) {
-                          setDynamicModalOpen(true);
-                        }
-                      }}
-                    />
-                  )}
+        {!isEditMode && (
+          <div className="min-w-0 md:col-span-2">
+            <span className="mb-1.5 block text-xs font-medium text-[var(--serve-muted)]">
+              Account Type
+              <span className="text-[var(--serve-negative)]"> *</span>
+            </span>
+            <Controller
+              name="accountType"
+              control={control}
+              render={({ field }) => (
+                <PillToggle
+                  value={field.value}
+                  options={[
+                    {
+                      label: "Cash",
+                      value: "cash",
+                      icon: <Banknote size={16} />,
+                    },
+                    {
+                      label: "Bank",
+                      value: "bank",
+                      icon: <Building2 size={16} />,
+                    },
+                    {
+                      label: "Wallet",
+                      value: "wallet",
+                      icon: <Wallet size={16} />,
+                    },
+                  ]}
+                  onChange={field.onChange}
                 />
-                <p className="mt-2 text-xs text-slate-500">
-                  Static uses an uploaded QR image. Dynamic generates a NepalPay
-                  QR at checkout.
-                </p>
-              </div>
+              )}
+            />
+          </div>
+        )}
 
-              {qrType === "static" &&
-                renderQrUpload(
-                  "Upload your bank QR image. JPG, PNG, or GIF · max 1MB.",
-                )}
-
-              {qrType === "dynamic" && (
-                <div
-                  className={`flex flex-wrap items-center gap-3 ${fieldClass}`}
+        {(accountType === "cash" || accountType === "bank") && (
+          <div className="min-w-0 md:col-span-2">
+            <Controller
+              name="isPrimaryBank"
+              control={control}
+              render={({ field }) => (
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-[10px] border px-3.5 py-2.5 transition ${
+                    field.value
+                      ? "border-[color-mix(in_srgb,var(--primary-color)_40%,var(--serve-border))] bg-[color-mix(in_srgb,var(--primary-color)_6%,transparent)]"
+                      : "border-[var(--serve-border)] bg-[var(--serve-surface-2)] hover:border-[var(--serve-muted)]"
+                  }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setDynamicModalOpen(true)}
-                    className="inline-flex items-center rounded-xl border border-primaryColor/30 bg-primaryColor/5 px-4 py-2.5 text-sm font-medium text-primaryColor transition hover:bg-primaryColor/10"
-                  >
-                    {isDynamicConfigured
-                      ? "Edit NepalPay Dynamic"
-                      : "Setup NepalPay Dynamic"}
-                  </button>
-                  {isDynamicConfigured && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primaryColor/10 px-2.5 py-1 text-xs font-medium text-primaryColor">
-                      <Check size={12} />
-                      Dynamic ready
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 rounded border-[var(--serve-border)] text-[var(--primary-color)] focus:ring-[color-mix(in_srgb,var(--primary-color)_40%,transparent)]"
+                    checked={Boolean(field.value)}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-[var(--serve-fg)]">
+                      Show in checkout
                     </span>
-                  )}
-                </div>
+                    <span className="mt-0.5 block text-xs text-[var(--serve-muted)]">
+                      {accountType === "cash"
+                        ? "This cash account will appear in checkout payment options."
+                        : "This bank will appear in checkout payment options."}
+                    </span>
+                  </span>
+                </label>
               )}
-            </div>
-          )}
+            />
+          </div>
+        )}
 
-          {accountType === "wallet" && (
-            <div className="space-y-5 border-t border-slate-100 pt-5">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Wallet details
-                </p>
-                <p className="mt-1 text-[13px] text-slate-500">
-                  Add the wallet ID and QR customers will scan at checkout.
-                </p>
-              </div>
+        {accountType === "bank" && (
+          <>
+            <Input
+              label="Account Number"
+              placeholder="Enter bank account number"
+              leftSection={<FieldIcon icon={Building2} />}
+              {...register("bankAccountNumber")}
+              error={errors?.bankAccountNumber?.message as string}
+              isRequired
+            />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Input
-                  label="Wallet Name"
-                  placeholder="e.g. eSewa, Khalti"
-                  className="w-full"
-                  {...register("walletAccountName")}
-                  error={errors?.walletAccountName?.message as string}
-          isRequired
-        />
-                <Input
-                  label="Wallet ID"
-                  placeholder="Enter wallet ID / number"
-                  className="w-full"
-                  {...register("walletId")}
-                  error={errors?.walletId?.message as string}
-          isRequired
-        />
-              </div>
-
-              {renderQrUpload(
-                "Upload this wallet’s QR image. JPG, PNG, or GIF · max 1MB.",
-              )}
-            </div>
-          )}
-
-          <div className="space-y-5 border-t border-slate-100 pt-5">
-            <div className={fieldClass}>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Status
-              </label>
+            <div className="flex min-w-0 flex-col">
+              <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
+                QR Type
+              </span>
               <Controller
-                name="status"
+                name="qrType"
                 control={control}
                 render={({ field }) => (
                   <PillToggle
                     value={field.value}
                     options={[
-                      { label: "Active", value: "active" },
-                      { label: "Inactive", value: "inactive" },
+                      { label: "Static", value: "static" },
+                      { label: "Dynamic", value: "dynamic" },
                     ]}
-                    onChange={field.onChange}
+                    onChange={(v) => {
+                      field.onChange(v);
+                      if (v === "dynamic" && !isDynamicConfigured) {
+                        setDynamicModalOpen(true);
+                      }
+                    }}
                   />
                 )}
               />
+              <p className="mt-1.5 text-[11px] text-[var(--serve-muted)]">
+                Static uses an uploaded QR. Dynamic generates NepalPay at
+                checkout.
+              </p>
             </div>
 
+            {qrType === "static" &&
+              renderQrUpload(
+                "Upload your bank QR image. JPG, PNG, or GIF · max 1MB.",
+              )}
+
+            {qrType === "dynamic" && (
+              <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setDynamicModalOpen(true)}
+                  className="inline-flex items-center rounded-[10px] border border-[color-mix(in_srgb,var(--primary-color)_30%,var(--serve-border))] bg-[color-mix(in_srgb,var(--primary-color)_6%,transparent)] px-4 py-2 text-sm font-medium text-[var(--primary-ink)] transition hover:bg-[color-mix(in_srgb,var(--primary-color)_12%,transparent)]"
+                >
+                  {isDynamicConfigured
+                    ? "Edit NepalPay Dynamic"
+                    : "Setup NepalPay Dynamic"}
+                </button>
+                {isDynamicConfigured && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--primary-color)_12%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--primary-ink)]">
+                    <Check size={12} />
+                    Dynamic ready
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {accountType === "wallet" && (
+          <>
             <Input
-              label="Opening Balance"
-              type="number"
-              step={0.01}
-              placeholder="0"
-              className={fieldClass}
-              {...register("openingBalance", { valueAsNumber: true })}
-              error={errors?.openingBalance?.message as string}
+              label="Wallet Name"
+              placeholder="e.g. eSewa, Khalti"
+              leftSection={<FieldIcon icon={Wallet} />}
+              {...register("walletAccountName")}
+              error={errors?.walletAccountName?.message as string}
+              isRequired
             />
-
-            <TextArea
-              label="Description"
-              placeholder="Optional notes"
-              className={fieldClass}
-              rows={3}
-              {...register("description")}
-              error={errors?.description?.message as string}
+            <Input
+              label="Wallet ID"
+              placeholder="Enter wallet ID / number"
+              leftSection={<FieldIcon icon={QrCode} />}
+              {...register("walletId")}
+              error={errors?.walletId?.message as string}
+              isRequired
             />
-          </div>
+            {renderQrUpload(
+              "Upload this wallet’s QR image. JPG, PNG, or GIF · max 1MB.",
+            )}
+          </>
+        )}
 
-          <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
-            <Button
-              type="submit"
-              className="submit-button min-w-[7rem]"
-              disabled={isSaving}
-            >
-              <span className="text-white">
-                {isSaving
-                  ? "Saving…"
-                  : isEditMode
-                    ? translate("Update")
-                    : translate("Submit")}
-              </span>
-            </Button>
-            <Button
-              type="button"
-              className="min-w-[7rem] bg-slate-500 hover:bg-slate-600"
-              onClick={() => {
-                reset();
-                setDynamicQrDraft(null);
-              }}
-            >
-              <span className="text-white">{translate("Reset")}</span>
-            </Button>
-          </div>
-        </form>
-      )}
+        <Input
+          label="Opening Balance"
+          type="number"
+          step={0.01}
+          placeholder="0"
+          leftSection={<FieldIcon icon={Banknote} />}
+          {...register("openingBalance", { valueAsNumber: true })}
+          error={errors?.openingBalance?.message as string}
+        />
+
+        <TextArea
+          label="Description"
+          placeholder="Optional notes"
+          rows={2}
+          className="md:col-span-2"
+          {...register("description")}
+          error={errors?.description?.message as string}
+        />
+      </EntityForm>
 
       <NepalPayIntegrationModal
         isOpen={dynamicModalOpen}
@@ -649,7 +615,7 @@ const AddEditAccount: React.FC = () => {
           Toast("NepalPay saved.", "success");
         }}
       />
-    </div>
+    </>
   );
 };
 

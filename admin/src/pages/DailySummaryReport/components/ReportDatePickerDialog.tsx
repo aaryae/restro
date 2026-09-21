@@ -59,7 +59,7 @@ export function ReportDatePickerDialog({
           <p className="mb-2 text-left text-[13px] text-slate-500 sm:mb-0">
             {formatDate(draft)}
           </p>
-          <div className="flex gap-2">
+          <div className="form-actions flex gap-2">
             <button
               type="button"
               onClick={() => onOpenChange(false)}

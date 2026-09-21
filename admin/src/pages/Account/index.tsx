@@ -296,6 +296,7 @@ const Account: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Accounts"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Account"

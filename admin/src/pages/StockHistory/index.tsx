@@ -161,6 +161,7 @@ const StockHistory: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Stock History"
         searchPlaceholder="Search by stock item..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}

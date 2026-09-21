@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Controller, useWatch } from "react-hook-form";
+import { useFieldId } from "@/hooks/useFieldId";
 
 interface MultiInputProps {
   name: string;
@@ -18,9 +19,10 @@ const MultiInput: React.FC<MultiInputProps> = ({
   className,
   error,
 }) => {
-  const [inputValue, setInputValue] = useState(""); // State for the input field
-  const value = useWatch({ control, name }); // Watch the form value for changes
-  const [tags, setTags] = useState<string[]>(value || []); // Initialize tags from form value
+  const fieldId = useFieldId();
+  const [inputValue, setInputValue] = useState("");
+  const value = useWatch({ control, name });
+  const [tags, setTags] = useState<string[]>(value || []);
 
   useEffect(() => {
     // Update tags state when form value changes
@@ -42,12 +44,14 @@ const MultiInput: React.FC<MultiInputProps> = ({
 
   return (
     <div className={className}>
-      <label className="input-label">{label}</label>
+      <label htmlFor={fieldId} className="input-label">
+        {label}
+      </label>
       <Controller
         name={name}
         control={control}
         defaultValue={tags}
-        render={({ field: { onChange, onBlur } }) => (
+        render={({ field: { onChange } }) => (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag, index) => (
@@ -60,7 +64,7 @@ const MultiInput: React.FC<MultiInputProps> = ({
                     type="button"
                     onClick={() => {
                       handleRemoveTag(index);
-                      onChange(tags.filter((_, i) => i !== index)); // Update form value
+                      onChange(tags.filter((_, i) => i !== index));
                     }}
                     className="ml-2 text-red-600"
                   >
@@ -70,6 +74,7 @@ const MultiInput: React.FC<MultiInputProps> = ({
               ))}
             </div>
             <input
+              id={fieldId}
               placeholder={placeholder}
               className="border rounded p-2 bg-white"
               value={inputValue}
@@ -78,7 +83,7 @@ const MultiInput: React.FC<MultiInputProps> = ({
                 if (e.key === "Enter") {
                   e.preventDefault();
                   handleAddTag();
-                  onChange([...tags, inputValue]); // Update the form value with the new tag
+                  onChange([...tags, inputValue]);
                 }
               }}
               onBlur={() => onChange(tags)}

@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { lazy, useState } from "react";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import useTranslation from "@/locale/useTranslation";
-import { PURCHASE_CATEGORY_ADD_ROUTE } from "@/routes/routeNames";
-import { useNavigate } from "react-router-dom";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -15,10 +15,12 @@ import { handleError, handleResponse } from "@/utils/responseHandler";
 import { PURCHASE_CATEGORY_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
 
+const AddPurchaseCategory = lazy(() => import("./AddEditPurchaseCategory"));
+
 const PurchaseCategory: React.FC = () => {
   const translate = useTranslation();
-  const navigate = useNavigate();
   const accessList = checkAccess("Purchase Category");
+  const formModal = useFormModal();
   const [deleteModelOpen, setDeleteModelOpen] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,9 +79,8 @@ const PurchaseCategory: React.FC = () => {
   ].filter(Boolean) as string[];
 
   const handleNewUser = (id: number | null) => {
-    id === null
-      ? navigate(PURCHASE_CATEGORY_ADD_ROUTE)
-      : navigate(`${PURCHASE_CATEGORY_ADD_ROUTE}${id}`);
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const showActions =
@@ -125,6 +126,7 @@ const PurchaseCategory: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Purchase Categories"
         searchPlaceholder="Search purchase categories..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -135,17 +137,35 @@ const PurchaseCategory: React.FC = () => {
         subText="Organize purchase entries into categories."
       />
       {accessList.includes("view") ? (
-      <Table
-        data={data}
-        headers={headers}
-        handlePagination={handlePagination}
-        pagination={pagination}
-      />
+        <Table
+          data={data}
+          headers={headers}
+          handlePagination={handlePagination}
+          pagination={pagination}
+        />
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view purchase categories.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={
+          formModal.isEdit ? "Edit Purchase Category" : "Add Purchase Category"
+        }
+        description="Title and optional description for this purchase category."
+        size="md"
+      >
+        <AddPurchaseCategory
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

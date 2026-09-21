@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import PageTitle from "@/components/PageTitle";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { CurrencySign } from "@/constants";
-import { Trash2 } from "lucide-react";
+import { Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetAllUserQuery } from "@/redux/services/authentication";
@@ -22,6 +21,7 @@ import {
   PURCHASE_CATEGORY_URL,
   STOCK_ITEM_URL,
 } from "@/constants/apiUrlConstants";
+import { PURCHASE_LIST_ROUTE } from "@/routes/routeNames";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   PurchaseSchema,
@@ -36,7 +36,13 @@ import { Controller, type FieldErrors } from "react-hook-form";
 import Select from "@/components/Select";
 import Toast from "@/components/Toast";
 import TextArea from "@/components/TextArea";
+import { EntityForm, FieldHeader } from "@/components/EntityForm";
 import "./purchase.css";
+
+const StockItemModal = lazy(() => import("@/pages/StockItem/StockItemModal"));
+const AddPurchaseCategory = lazy(
+  () => import("@/pages/PurchaseCategory/AddEditPurchaseCategory"),
+);
 
 const computeBackendPurchaseTotal = (items: PurchaseItemInput[]) =>
   items.reduce((total, item) => {
@@ -64,7 +70,6 @@ const getInsufficientBalanceMessage = (
 type ItemRow = PurchaseItemInput;
 type FormValues = PurchaseFormInput;
 
-const labelClass = "pur-label";
 const inputClass = "pur-field";
 
 function getFirstFormErrorMessage(errors: FieldErrors<FormValues>): string {
@@ -156,6 +161,12 @@ const AddEditPurchase: React.FC = () => {
 
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [viewSuppliersDialogOpen, setViewSuppliersDialogOpen] = useState(false);
+  const [stockDialogOpen, setStockDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [lineForNewStock, setLineForNewStock] = useState<number | null>(null);
+  const [lineForNewCategory, setLineForNewCategory] = useState<number | null>(
+    null,
+  );
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<{
     value: string;
@@ -243,9 +254,10 @@ const AddEditPurchase: React.FC = () => {
   const [purchaseCategories, setPurchaseCategories] = useState<
     { value: string; label: string }[]
   >([]);
-  const { data: PurchaseCategoriesData } = useGetApiQuery({
-    url: `${PURCHASE_CATEGORY_URL}list?page=1&limit=50`,
-  });
+  const { data: PurchaseCategoriesData, refetch: refetchCategories } =
+    useGetApiQuery({
+      url: `${PURCHASE_CATEGORY_URL}list?page=1&limit=50`,
+    });
 
   useEffect(() => {
     if (PurchaseCategoriesData?.data?.data) {
@@ -261,7 +273,7 @@ const AddEditPurchase: React.FC = () => {
   const [stockItems, setStockItems] = useState<
     { value: string; label: string; defaultPrice: number; name: string }[]
   >([]);
-  const { data: StockItemsData } = useGetApiQuery({
+  const { data: StockItemsData, refetch: refetchStockItems } = useGetApiQuery({
     url: `${STOCK_ITEM_URL}list?page=1&limit=200`,
   });
 
@@ -293,6 +305,7 @@ const AddEditPurchase: React.FC = () => {
   }, [usersData]);
 
   const items = watch("items") as ItemRow[];
+  const watchedSupplierId = watch("supplierId");
   const username = useAppSelector((s) => (s as any).auth?.username) as
     | string
     | undefined;
@@ -472,25 +485,74 @@ const AddEditPurchase: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <PageTitle title={isEdit ? "Edit Purchase" : "Add Purchase"} isBack />
-
-      <form
-        onSubmit={handleSubmit(onSubmit, onInvalid)}
-        className="mt-4 flex flex-col gap-6"
-      >
-        <fieldset className="contents">
-          {/* ── SECTION 1: Invoice Details ── */}
-          <section className="pur-section">
-            <div className="mb-4">
-              <h3 className="pur-section-title">Invoice Details</h3>
-              <div className="mt-2 h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <>
+    <EntityForm
+      title={isEdit ? "Edit Purchase" : "Add Purchase"}
+      sectionTitle="Purchase details"
+      description="Invoice, supplier, line items, and payment summary."
+      icon={ShoppingCart}
+      maxWidthClass="max-w-6xl"
+      columns="stack"
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      onCancel={() => navigate(PURCHASE_LIST_ROUTE)}
+      isSaving={creating || updating}
+      footer={
+        <div className="form-actions flex flex-wrap items-center justify-start gap-2 border-t border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-4 py-3 md:px-5">
+          <button
+            type="button"
+            onClick={() => navigate(PURCHASE_LIST_ROUTE)}
+            className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 text-sm font-semibold text-[var(--serve-fg)] transition hover:border-[var(--serve-muted)]"
+          >
+            Cancel
+          </button>
+          {isCompleted ? (
+            <button
+              type="submit"
+              className="submit-button inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--primary-color)] px-5 text-sm font-semibold text-[var(--primary-fg)] disabled:opacity-60"
+              disabled={creating || updating}
+              onClick={() => setSubmitMode("draft")}
+            >
+              Save Changes
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  reset();
+                  setSelectedSupplier(null);
+                  setSupplierSearchTerm("");
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 text-sm font-semibold text-[var(--serve-fg)] transition hover:border-[var(--serve-muted)]"
+              >
+                Clear
+              </button>
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[var(--serve-border)] bg-[var(--serve-surface)] px-4 text-sm font-semibold text-[var(--serve-fg)] transition hover:border-[var(--serve-muted)] disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("draft")}
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                className="submit-button inline-flex h-10 items-center justify-center rounded-[10px] bg-[var(--primary-color)] px-5 text-sm font-semibold text-[var(--primary-fg)] disabled:opacity-60"
+                disabled={creating || updating}
+                onClick={() => setSubmitMode("complete")}
+              >
+                Complete Payment
+              </button>
+            </>
+          )}
+        </div>
+      }
+    >
+      <fieldset className="contents">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
               {/* Invoice Date */}
               <div>
-                <label className={labelClass}>Invoice Date</label>
+                <FieldHeader label="Invoice Date" required />
                 <input
                   type="date"
                   className={inputClass}
@@ -506,10 +568,47 @@ const AddEditPurchase: React.FC = () => {
               </div>
 
               {/* Supplier */}
-              <div>
-                <label className={labelClass}>Supplier</label>
-                <div className="flex items-center gap-2">
-                  <div className="relative min-w-0 flex-1">
+              <div className="sm:col-span-2 xl:col-span-2">
+                <FieldHeader
+                  label="Supplier"
+                  required
+                  actions={
+                    <>
+                      <CustomDialog
+                        buttonTitle={
+                          <button
+                            type="button"
+                            className="inline-flex h-7 items-center gap-1 rounded-md bg-[var(--primary-color)] px-2 text-[11px] font-medium text-[var(--primary-fg)] transition hover:opacity-90"
+                          >
+                            + Add
+                          </button>
+                        }
+                        dialogOpen={supplierDialogOpen}
+                        setDialogOpen={setSupplierDialogOpen}
+                        title="Add Supplier"
+                        contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
+                      >
+                        <AddEditSupplier
+                          isComponent={true}
+                          closeModal={closeDialog}
+                        />
+                      </CustomDialog>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAllSuppliers(true);
+                          setSupplierSearchTerm("");
+                          setViewSuppliersDialogOpen(true);
+                          refetchSuppliers();
+                        }}
+                        className="inline-flex h-7 items-center rounded-md border border-[var(--serve-border)] bg-[var(--serve-surface)] px-2 text-[11px] font-medium text-[var(--serve-fg)] transition hover:bg-[var(--serve-surface-2)]"
+                      >
+                        View All
+                      </button>
+                    </>
+                  }
+                />
+                <div className="relative min-w-0">
                     <Input
                       placeholder="Search supplier..."
                       className={inputClass}
@@ -594,38 +693,6 @@ const AddEditPurchase: React.FC = () => {
                           )}
                         </div>
                       )}
-                  </div>
-                  <CustomDialog
-                    buttonTitle={
-                      <button
-                        type="button"
-                        className="inline-flex h-[38px] items-center whitespace-nowrap rounded-md bg-primaryColor px-2.5 text-[11px] font-medium text-white transition hover:bg-primaryColor/90"
-                      >
-                        + Add
-                      </button>
-                    }
-                    dialogOpen={supplierDialogOpen}
-                    setDialogOpen={setSupplierDialogOpen}
-                    title="Add Supplier"
-                    contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
-                  >
-                    <AddEditSupplier
-                      isComponent={true}
-                      closeModal={closeDialog}
-                    />
-                  </CustomDialog>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAllSuppliers(true);
-                      setSupplierSearchTerm("");
-                      setViewSuppliersDialogOpen(true);
-                      refetchSuppliers();
-                    }}
-                    className="pur-view-all inline-flex h-[38px] items-center whitespace-nowrap rounded-md px-2.5 text-[11px] font-medium"
-                  >
-                    View All
-                  </button>
                   <CustomDialog
                     buttonTitle={null}
                     dialogOpen={viewSuppliersDialogOpen}
@@ -723,7 +790,7 @@ const AddEditPurchase: React.FC = () => {
 
               {/* Invoice Number */}
               <div>
-                <label className={labelClass}>Invoice Number</label>
+                <FieldHeader label="Invoice Number" />
                 <input
                   type="text"
                   placeholder="Optional"
@@ -738,7 +805,7 @@ const AddEditPurchase: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className={labelClass}>Payment Terms</label>
+                    <FieldHeader label="Payment Terms" />
                     <Select
                       value={field.value ?? ""}
                       onBlur={field.onBlur}
@@ -749,6 +816,7 @@ const AddEditPurchase: React.FC = () => {
                         { value: "credit", label: "Credit" },
                       ]}
                       onValueChange={field.onChange}
+                      triggerClassName="h-10"
                     />
                   </div>
                 )}
@@ -760,9 +828,7 @@ const AddEditPurchase: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <label className={labelClass}>
-                      Account <span className="text-red-500">*</span>
-                    </label>
+                    <FieldHeader label="Account" required />
                     <Select
                       value={
                         field.value !== undefined && field.value !== null
@@ -784,17 +850,19 @@ const AddEditPurchase: React.FC = () => {
                         field.onChange(next ? Number(next) : undefined)
                       }
                       isRequired
+                      triggerClassName="h-10"
                     />
                   </div>
                 )}
               />
-            </div>
-          </section>
+        </div>
 
-          {/* ── SECTION 2: Purchase Items ── */}
-          <section className="pur-section">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 className="pur-section-title">Purchase Items</h3>
+          {/* ── Purchase Items ── */}
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-[var(--serve-fg)]">
+                Purchase Items
+              </h3>
               <button
                 type="button"
                 onClick={() =>
@@ -851,96 +919,124 @@ const AddEditPurchase: React.FC = () => {
                       <tr key={field.id}>
                         <td className="pur-cell-sn">{idx + 1}</td>
                         <td>
-                          <Controller
-                            name={`items.${idx}.stockItemId`}
-                            control={control}
-                            render={({ field: stockField }) => (
-                              <Select
-                                value={
-                                  stockField.value !== undefined &&
-                                  stockField.value !== null
-                                    ? String(stockField.value)
-                                    : ""
-                                }
-                                onBlur={stockField.onBlur}
-                                name={stockField.name}
-                                placeholder="Optional"
-                                clearable
-                                clearLabel="No stock link"
-                                options={stockItems.map((option) => ({
-                                  value: option.value,
-                                  label: option.label,
-                                }))}
-                                onValueChange={(next) => {
-                                  const value = next ? Number(next) : "";
-                                  stockField.onChange(value);
-                                  if (!next) return;
-                                  const matched = stockItems.find(
-                                    (s) => s.value === String(next),
-                                  );
-                                  if (!matched) return;
-                                  const currentParticulars = String(
-                                    watch(`items.${idx}.particulars`) || "",
-                                  ).trim();
-                                  if (!currentParticulars) {
-                                    setValue(
-                                      `items.${idx}.particulars`,
-                                      matched.name,
-                                      { shouldValidate: true },
-                                    );
+                          <div className="flex items-center gap-1">
+                            <Controller
+                              name={`items.${idx}.stockItemId`}
+                              control={control}
+                              render={({ field: stockField }) => (
+                                <Select
+                                  value={
+                                    stockField.value !== undefined &&
+                                    stockField.value !== null
+                                      ? String(stockField.value)
+                                      : ""
                                   }
-                                  const currentRate = Number(
-                                    watch(`items.${idx}.rate`),
-                                  );
-                                  if (
-                                    !Number.isFinite(currentRate) ||
-                                    currentRate <= 0
-                                  ) {
-                                    setValue(
-                                      `items.${idx}.rate`,
-                                      matched.defaultPrice || 0,
-                                      { shouldValidate: true },
+                                  onBlur={stockField.onBlur}
+                                  name={stockField.name}
+                                  placeholder="Optional"
+                                  clearable
+                                  clearLabel="No stock link"
+                                  options={stockItems.map((option) => ({
+                                    value: option.value,
+                                    label: option.label,
+                                  }))}
+                                  onValueChange={(next) => {
+                                    const value = next ? Number(next) : "";
+                                    stockField.onChange(value);
+                                    if (!next) return;
+                                    const matched = stockItems.find(
+                                      (s) => s.value === String(next),
                                     );
-                                  }
-                                }}
-                                triggerClassName="h-9 min-w-[140px]"
-                              />
-                            )}
-                          />
+                                    if (!matched) return;
+                                    const currentParticulars = String(
+                                      watch(`items.${idx}.particulars`) || "",
+                                    ).trim();
+                                    if (!currentParticulars) {
+                                      setValue(
+                                        `items.${idx}.particulars`,
+                                        matched.name,
+                                        { shouldValidate: true },
+                                      );
+                                    }
+                                    const currentRate = Number(
+                                      watch(`items.${idx}.rate`),
+                                    );
+                                    if (
+                                      !Number.isFinite(currentRate) ||
+                                      currentRate <= 0
+                                    ) {
+                                      setValue(
+                                        `items.${idx}.rate`,
+                                        matched.defaultPrice || 0,
+                                        { shouldValidate: true },
+                                      );
+                                    }
+                                  }}
+                                  triggerClassName="h-9 min-w-[120px]"
+                                  className="min-w-0 flex-1"
+                                />
+                              )}
+                            />
+                            <button
+                              type="button"
+                              className="pur-inline-add shrink-0"
+                              title="Add stock item for this line"
+                              onClick={() => {
+                                setLineForNewStock(idx);
+                                setStockDialogOpen(true);
+                              }}
+                            >
+                              <Plus size={12} strokeWidth={2.5} />
+                            </button>
+                          </div>
                         </td>
                         <td>
-                          <Controller
-                            name={`items.${idx}.categoryId`}
-                            control={control}
-                            render={({ field }) => (
-                              <Select
-                                value={
-                                  field.value !== undefined &&
-                                  field.value !== null
-                                    ? String(field.value)
-                                    : ""
-                                }
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                placeholder="Category"
-                                options={[
-                                  { value: "", label: "Select" },
-                                  ...purchaseCategories.map((option) => ({
-                                    value: String(option.value),
-                                    label: option.label,
-                                  })),
-                                ]}
-                                onValueChange={(next) =>
-                                  field.onChange(
-                                    next ? Number(next) : undefined,
-                                  )
-                                }
-                                triggerClassName="h-9"
-                              />
-                            )}
-                          />
+                          <div className="flex items-center gap-1">
+                            <Controller
+                              name={`items.${idx}.categoryId`}
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  value={
+                                    field.value !== undefined &&
+                                    field.value !== null
+                                      ? String(field.value)
+                                      : ""
+                                  }
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  placeholder="Category"
+                                  options={[
+                                    { value: "", label: "Select" },
+                                    ...purchaseCategories.map((option) => ({
+                                      value: String(option.value),
+                                      label: option.label,
+                                    })),
+                                  ]}
+                                  onValueChange={(next) =>
+                                    field.onChange(
+                                      next ? Number(next) : undefined,
+                                    )
+                                  }
+                                  triggerClassName="h-9"
+                                  className="min-w-0 flex-1"
+                                />
+                              )}
+                            />
+                            <button
+                              type="button"
+                              className="pur-inline-add shrink-0"
+                              title="Add category for this line"
+                              onClick={() => {
+                                setLineForNewCategory(idx);
+                                setCategoryDialogOpen(true);
+                              }}
+                            >
+                              <Plus size={12} strokeWidth={2.5} />
+                            </button>
+                          </div>
                           {errors.items?.[idx]?.categoryId?.message && (
-                            <span className="text-red-500 text-xs">
+                            <span className="text-xs text-red-500">
                               {String(errors.items[idx].categoryId.message)}
                             </span>
                           )}
@@ -965,6 +1061,7 @@ const AddEditPurchase: React.FC = () => {
                             type="number"
                             min={0}
                             step="1"
+                            placeholder="0"
                             className="pur-row-input"
                             {...register(`items.${idx}.qty` as const, {
                               valueAsNumber: true,
@@ -981,6 +1078,7 @@ const AddEditPurchase: React.FC = () => {
                             type="number"
                             min={0}
                             step="0.01"
+                            placeholder="0"
                             className="pur-row-input"
                             {...register(`items.${idx}.rate` as const, {
                               valueAsNumber: true,
@@ -992,14 +1090,14 @@ const AddEditPurchase: React.FC = () => {
                             </span>
                           ) : null}
                         </td>
-                        <td className="pur-cell-center">
+                        <td className="pur-cell-center pur-cell-taxable">
                           <input
                             type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-primaryColor focus:ring-primaryColor"
+                            className="pur-taxable-check"
                             {...register(`items.${idx}.isTaxable` as const)}
                           />
                         </td>
-                        <td className="pur-cell-num">
+                        <td className="pur-cell-num pur-cell-amount">
                           {(base - discountAmt).toFixed(2)}
                         </td>
                         <td className="pur-cell-center">
@@ -1019,9 +1117,9 @@ const AddEditPurchase: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </section>
+          </div>
 
-          {/* ── SECTION 3: Purchase Summary ── */}
+          {/* ── Purchase Summary ── */}
           <section className="pur-panel">
             <h3 className="pur-panel-title">Purchase Summary</h3>
 
@@ -1084,7 +1182,7 @@ const AddEditPurchase: React.FC = () => {
             <TextArea
               label="Remarks"
               placeholder="Add any notes for this purchase (optional)"
-              rows={3}
+              rows={2}
               className="pur-remarks"
               {...register("notes")}
               error={errors.notes?.message}
@@ -1092,53 +1190,99 @@ const AddEditPurchase: React.FC = () => {
 
             <span className="pur-chip">Entry By: {username || "-"}</span>
           </section>
-        </fieldset>
+      </fieldset>
+    </EntityForm>
 
-        {/* ── ACTION BAR ── */}
-        <div className="pur-actions">
-          {isCompleted ? (
-            <button
-              type="submit"
-              className="pur-btn pur-btn-primary"
-              disabled={creating || updating}
-              onClick={() => setSubmitMode("draft")}
-            >
-              Save Changes
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  reset();
-                  setSelectedSupplier(null);
-                  setSupplierSearchTerm("");
-                }}
-                className="pur-btn pur-btn-ghost"
-              >
-                Clear
-              </button>
-              <button
-                type="submit"
-                className="pur-btn pur-btn-secondary"
-                disabled={creating || updating}
-                onClick={() => setSubmitMode("draft")}
-              >
-                Save Draft
-              </button>
-              <button
-                type="submit"
-                className="pur-btn pur-btn-primary"
-                disabled={creating || updating}
-                onClick={() => setSubmitMode("complete")}
-              >
-                Complete Payment
-              </button>
-            </>
-          )}
-        </div>
-      </form>
-    </div>
+    <CustomDialog
+      dialogOpen={stockDialogOpen}
+      setDialogOpen={(open) => {
+        setStockDialogOpen(open);
+        if (!open) setLineForNewStock(null);
+      }}
+      title="Add Stock Item"
+      contentClassName="max-h-none max-w-3xl gap-3 overflow-hidden p-5 sm:p-5"
+    >
+      <Suspense fallback={<p className="text-sm text-[var(--serve-muted)]">Loading…</p>}>
+        <StockItemModal
+          key={`purchase-stock-create-${lineForNewStock ?? "x"}`}
+          isComponent
+          defaultSupplierId={
+            watchedSupplierId != null &&
+            String(watchedSupplierId).trim() !== "" &&
+            Number(watchedSupplierId) > 0
+              ? Number(watchedSupplierId)
+              : undefined
+          }
+          onCreated={async (created) => {
+            await refetchStockItems();
+            const idx = lineForNewStock;
+            if (idx != null && created?.id != null) {
+              setValue(`items.${idx}.stockItemId`, Number(created.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+              const currentParticulars = String(
+                watch(`items.${idx}.particulars`) || "",
+              ).trim();
+              if (!currentParticulars && created.name) {
+                setValue(`items.${idx}.particulars`, created.name, {
+                  shouldValidate: true,
+                });
+              }
+              const currentRate = Number(watch(`items.${idx}.rate`));
+              if (
+                (!Number.isFinite(currentRate) || currentRate <= 0) &&
+                created.defaultPrice > 0
+              ) {
+                setValue(`items.${idx}.rate`, created.defaultPrice, {
+                  shouldValidate: true,
+                });
+              }
+            }
+            setStockDialogOpen(false);
+            setLineForNewStock(null);
+          }}
+          closeModal={() => {
+            setStockDialogOpen(false);
+            setLineForNewStock(null);
+          }}
+        />
+      </Suspense>
+    </CustomDialog>
+
+    <CustomDialog
+      dialogOpen={categoryDialogOpen}
+      setDialogOpen={(open) => {
+        setCategoryDialogOpen(open);
+        if (!open) setLineForNewCategory(null);
+      }}
+      title="Add Purchase Category"
+      contentClassName="max-h-none max-w-lg gap-3 overflow-hidden p-5 sm:p-5"
+    >
+      <Suspense fallback={<p className="text-sm text-[var(--serve-muted)]">Loading…</p>}>
+        <AddPurchaseCategory
+          key={`purchase-cat-create-${lineForNewCategory ?? "x"}`}
+          isComponent
+          onCreated={async (created) => {
+            await refetchCategories();
+            const idx = lineForNewCategory;
+            if (idx != null && created?.id != null) {
+              setValue(`items.${idx}.categoryId`, Number(created.id), {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }
+            setCategoryDialogOpen(false);
+            setLineForNewCategory(null);
+          }}
+          closeModal={() => {
+            setCategoryDialogOpen(false);
+            setLineForNewCategory(null);
+          }}
+        />
+      </Suspense>
+    </CustomDialog>
+    </>
   );
 };
 

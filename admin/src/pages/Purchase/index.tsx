@@ -415,6 +415,7 @@ const Purchase: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Purchases"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Purchase"

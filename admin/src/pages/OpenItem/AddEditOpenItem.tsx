@@ -5,6 +5,7 @@ import Loader from "@/components/Loader";
 
 const OpenItemForm = lazy(() => import("./OpenItemForm.tsx"));
 
+/** Route-level page wrapper (redirects usually go to list modal). */
 export default function AddEditOpenItem() {
   const { id } = useParams();
 

@@ -127,6 +127,7 @@ const Transaction: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Transactions"
         showSearch={false}
         subText="Record deposits and withdrawals across cash and bank accounts."
         extraActions={

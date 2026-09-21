@@ -128,7 +128,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="form-actions flex justify-start gap-3 pt-4">
           <button
             type="button"
             onClick={handleClose}

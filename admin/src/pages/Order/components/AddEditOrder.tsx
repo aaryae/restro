@@ -249,16 +249,27 @@ export default function AddEditOrder({
   useEffect(() => {
     if (currentOrders?.data?.orderItems?.length > 0) {
       setOrderItems(
-        currentOrders?.data?.orderItems.map(
-          (item): OrderItem => ({
+        currentOrders?.data?.orderItems.map((item: any): OrderItem => {
+          const product = item.product;
+          const openItem = item.openItem;
+          return {
             id: item.id,
-            productId: item.product.id,
-            productName: item.product.name,
-            productPrice: Number(item.product.price),
+            productId: product?.id ?? openItem?.id ?? item.productId ?? 0,
+            productName:
+              product?.name ??
+              openItem?.name ??
+              item.productName ??
+              "Open item",
+            productPrice: Number(
+              product?.price ?? openItem?.price ?? item.unitPrice ?? 0,
+            ),
             quantity: item.quantity,
             subtotal: Number(item.subtotal),
             status: item.status,
-            departmentId: item.product.departmentId,
+            departmentId:
+              product?.departmentId ??
+              openItem?.departmentId ??
+              item.departmentId,
 
             addons: (item.addons || []).map((a: any) => ({
               addonId: a.addonId ?? a.id ?? a.addon?.id,
@@ -266,8 +277,8 @@ export default function AddEditOrder({
               price: Number(a.price ?? a.addon?.price ?? 0),
               quantity: a.quantity ?? a.qty ?? 1,
             })),
-          }),
-        ),
+          };
+        }),
       );
       setValue("orderNote", currentOrders?.data?.orderNote ?? "");
       if (currentOrders?.data?.takeAwayName != null) {
@@ -317,7 +328,7 @@ export default function AddEditOrder({
 
   // Fetch tables from backend (generic)
   const { data: tableData } = useGetApiQuery({
-    url: `${TABLE_URL}list?page=1&limit=25`,
+    url: `${TABLE_URL}list?page=1&limit=200`,
   });
 
   // Fetch products from backend (generic)
@@ -478,7 +489,15 @@ export default function AddEditOrder({
         }).unwrap();
         handleResponse({
           res: response,
-          onSuccess: () => {},
+          onSuccess: () => {
+            setOrderItems((prev) =>
+              prev.map((item) =>
+                item.id === itemId
+                  ? { ...item, status: "cancelled", subtotal: 0 }
+                  : item,
+              ),
+            );
+          },
         });
       } catch (error) {
         handleError({ error });
@@ -487,6 +506,33 @@ export default function AddEditOrder({
       setOrderItems((prev) => prev.filter((item) => item.id !== itemId));
     }
   };
+
+  const buildOrderItemsPayload = () =>
+    orderItems
+      .filter((item: OrderItem) => item.status !== "cancelled")
+      .map((item: OrderItem) => {
+        const base = {
+          productId: Number(item.productId),
+          quantity: item.quantity,
+          departmentId: item.departmentId,
+        } as any;
+
+        if (item.specialInstructions) {
+          base.specialInstructions = item.specialInstructions;
+        }
+
+        const addons = (item.addons || []).map((a) => ({
+          addonId: a.addonId,
+          quantity: a.quantity,
+        }));
+
+        if (String(item.id).includes("newitem_")) {
+          return addons.length ? { ...base, addons } : base;
+        }
+        return addons.length
+          ? { id: item.id, ...base, addons }
+          : { id: item.id, ...base };
+      });
 
   const handleSuccess = () => {
     clearCreateOrderDraft();
@@ -509,31 +555,7 @@ export default function AddEditOrder({
       const payload: any = {
         orderType,
         orderNote: getValues("orderNote") || data.orderNote || "",
-        orderItems: orderItems
-          .filter((item: OrderItem) => item.status !== "cancelled")
-          .map((item: OrderItem) => {
-            const base = {
-              productId: Number(item.productId),
-              quantity: item.quantity,
-              departmentId: item.departmentId,
-            } as any;
-
-            if (item.specialInstructions) {
-              base.specialInstructions = item.specialInstructions;
-            }
-
-            const addons = (item.addons || []).map((a) => ({
-              addonId: a.addonId,
-              quantity: a.quantity,
-            }));
-
-            if (String(item.id).includes("newitem_")) {
-              return addons.length ? { ...base, addons } : base;
-            }
-            return addons.length
-              ? { id: item.id, ...base, addons }
-              : { id: item.id, ...base };
-          }),
+        orderItems: buildOrderItemsPayload(),
       };
 
       if (orderType === "dineIn") {
@@ -599,27 +621,7 @@ export default function AddEditOrder({
       const payload: any = {
         orderType,
         orderNote: getValues("orderNote") || pendingData.orderNote || "",
-        orderItems: orderItems
-          .filter((item: OrderItem) => item.status !== "cancelled")
-          .map((item: OrderItem) => {
-            const base = {
-              productId: Number(item.productId),
-              quantity: item.quantity,
-              departmentId: item.departmentId,
-            } as any;
-
-            if (item.specialInstructions) {
-              base.specialInstructions = item.specialInstructions;
-            }
-
-            if (String(item.id).includes("newitem_")) {
-              return base;
-            }
-            return {
-              id: item.id,
-              ...base,
-            };
-          }),
+        orderItems: buildOrderItemsPayload(),
       };
       if (orderType === "dineIn") {
         payload.tableId = Number(pendingData.tableId);

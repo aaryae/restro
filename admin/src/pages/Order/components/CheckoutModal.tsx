@@ -3,6 +3,7 @@ import Bill from "@/components/Bill";
 import CustomDialog from "@/components/Dialog";
 import { CurrencySign } from "@/constants";
 import { ACCOUNT_URL, ORDER_URL } from "@/constants/apiUrlConstants";
+import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { useCheckoutOrderMutation } from "@/redux/services/orders";
 import {
@@ -102,7 +103,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [dynamicQrError, setDynamicQrError] = useState<string | null>(null);
   const [tenderAmount, setTenderAmount] = useState<string>("");
 
-  const [checkoutOrderApi] = useCheckoutOrderMutation();
+  const [checkoutOrderApi, { isLoading: isCheckingOut }] =
+    useCheckoutOrderMutation();
+  const paymentInFlightRef = useRef(false);
   const [initiateQrPayment] = useInitiateQrPaymentMutation();
   const [cancelQrPayment] = useCancelQrPaymentMutation();
   const [fetchQrStatus] = useLazyGetQrPaymentStatusQuery();
@@ -171,7 +174,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   // Fetch all accounts to populate bank and wallet dropdowns
   const { data: accountsResp } = useGetApiQuery(
     {
-      url: buildQueryString("account/list", { page: 1, limit: 25 }),
+      url: buildQueryString("account/list", { page: 1, limit: POS_LIST_LIMIT }),
     },
     { skip: !isOpen },
   );
@@ -321,6 +324,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   };
 
   const handlePayment = async () => {
+    if (paymentInFlightRef.current || isCheckingOut || isPaymentSuccess) {
+      return;
+    }
+    paymentInFlightRef.current = true;
+    let paymentSucceeded = false;
     try {
       if (paymentType === "cash") {
         const tendered = parseFloat(tenderAmount) || 0;
@@ -329,16 +337,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             error: {
               data: {
                 message: `Cash received must be at least ${CurrencySign}${selectedSubtotal.toFixed(2)}`,
-              },
-            },
-          });
-          return;
-        }
-        if (tendered > selectedSubtotal + CHECKOUT_ROUND_EPS) {
-          handleError({
-            error: {
-              data: {
-                message: `Cash received cannot exceed ${CurrencySign}${selectedSubtotal.toFixed(2)}`,
               },
             },
           });
@@ -476,6 +474,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         if (response?.success) {
           handleResponse({ res: response });
           setIsPaymentSuccess(true);
+          paymentSucceeded = true;
         }
       }
 
@@ -483,6 +482,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         if (isNepalPaySelected) {
           if (dynamicIntent?.status === "paid") {
             setIsPaymentSuccess(true);
+            paymentSucceeded = true;
             setTimeout(() => {
               setIsPaymentSuccess(false);
               onClose();
@@ -540,6 +540,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         if (response?.success) {
           handleResponse({ res: response });
           setIsPaymentSuccess(true);
+          paymentSucceeded = true;
         }
       }
 
@@ -615,15 +616,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         if (response?.success) {
           handleResponse({ res: response });
           setIsPaymentSuccess(true);
+          paymentSucceeded = true;
         }
       }
 
-      setTimeout(() => {
-        setIsPaymentSuccess(false);
-        onClose();
-      }, 2000);
+      if (paymentSucceeded) {
+        setTimeout(() => {
+          setIsPaymentSuccess(false);
+          onClose();
+        }, 2000);
+      }
     } catch (error) {
       handleError({ error });
+    } finally {
+      paymentInFlightRef.current = false;
     }
   };
 
@@ -863,9 +869,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     paymentType === "cash" &&
     tenderAmount.trim() !== "" &&
     tenderValue + CHECKOUT_ROUND_EPS < selectedSubtotal;
-  const cashTenderExcessive =
-    paymentType === "cash" &&
-    tenderValue > selectedSubtotal + CHECKOUT_ROUND_EPS;
 
   const handleTenderAmountChange = (value: string) => {
     if (value === "" || value === ".") {
@@ -875,11 +878,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     const parsed = parseFloat(value);
     if (!Number.isFinite(parsed) || parsed < 0) return;
-
-    if (parsed > selectedSubtotal) {
-      setTenderAmount(selectedSubtotal.toFixed(2));
-      return;
-    }
 
     setTenderAmount(value);
   };
@@ -942,12 +940,32 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
 
         const fetchFreshQr = async (attempt = 0): Promise<void> => {
+          const selectedSet = new Set(selectedIds);
+          const addonIdsForSelected = (items || [])
+            .filter((it: any) => selectedSet.has(String(it.id)))
+            .flatMap((it: any) =>
+              Array.isArray(it.addons) ? it.addons : [],
+            )
+            .map((a: any) => Number(a.id))
+            .filter((n: any) => Number.isFinite(n) && n > 0);
+
+          const selectiveOrderItemIds =
+            selectedIds.length > 0
+              ? [
+                  ...selectedIds.map(Number).filter((n) => Number.isFinite(n)),
+                  ...addonIdsForSelected,
+                ]
+              : undefined;
+
           const body =
             checkoutOrderId != null
               ? {
                   orderId: checkoutOrderId,
                   amount: selectedSubtotal,
                   accountId: selectedBankId ?? undefined,
+                  ...(selectiveOrderItemIds?.length
+                    ? { orderItemIds: selectiveOrderItemIds }
+                    : {}),
                 }
               : {
                   tableId: tableId!,
@@ -1020,6 +1038,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     tableId,
     selectedSubtotal,
     selectedBankId,
+    selectedIds,
+    items,
     cancelQrPayment,
     initiateQrPayment,
   ]);
@@ -1040,12 +1060,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   });
 
   const paymentSubmitDisabled =
+    isCheckingOut ||
+    isPaymentSuccess ||
     selectedSubtotal <= CHECKOUT_ROUND_EPS ||
     (paymentType === "split" && splitPaymentData === null) ||
     (paymentType === "cash" && !selectedCashId) ||
     (paymentType === "cash" &&
       (cashTenderShort ||
-        cashTenderExcessive ||
         tenderValue + CHECKOUT_ROUND_EPS < selectedSubtotal)) ||
     (paymentType === "qr" && !selectedBankId) ||
     (paymentType === "qr" &&
@@ -1554,12 +1575,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             }
                             placeholder="0.00"
                             className={`${styles.tenderInput} ${
-                              cashTenderShort || cashTenderExcessive
-                                ? styles.tenderInputError
-                                : ""
+                              cashTenderShort ? styles.tenderInputError : ""
                             }`}
                             min="0"
-                            max={selectedSubtotal}
                             step="0.01"
                           />
                           {cashTenderShort ? (

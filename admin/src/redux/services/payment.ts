@@ -34,6 +34,7 @@ const paymentApi = api.injectEndpoints({
         amount?: number;
         accountId?: number;
         remarks?: string;
+        orderItemIds?: number[];
       }
     >({
       query: (body) => ({

@@ -1,4 +1,5 @@
 import { CurrencySign } from "@/constants";
+import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { buildQueryString } from "@/utils/generalHelper";
@@ -23,7 +24,10 @@ function SplitPayment({
   const [filter, setFilter] = useState<AccountFilter>("all");
   const [qrAccountId, setQrAccountId] = useState<number | null>(null);
 
-  const url = buildQueryString("account/list", { page: 1, limit: 25 });
+  const url = buildQueryString("account/list", {
+    page: 1,
+    limit: POS_LIST_LIMIT,
+  });
   const { data: allAccount, isSuccess: accountSuccess } = useGetApiQuery({
     url,
   });

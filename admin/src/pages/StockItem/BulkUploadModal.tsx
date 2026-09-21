@@ -443,7 +443,7 @@ export default function BulkUploadModal({
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-2 border-t border-[var(--serve-border)] pt-4 sm:flex-row sm:justify-end">
+        <div className="form-actions flex flex-col gap-2 border-t border-[var(--serve-border)] pt-4 sm:flex-row sm:justify-start">
           <button
             type="button"
             onClick={closeAndReset}

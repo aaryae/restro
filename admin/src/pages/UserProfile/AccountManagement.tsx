@@ -87,7 +87,7 @@ export default function AccountManagement() {
           />
         </div>
 
-        <div className="flex justify-end border-t border-slate-100 pt-4">
+        <div className="form-actions flex justify-start border-t border-slate-100 pt-4">
           <Button
             type="submit"
             className="submit-button inline-flex h-10 w-full items-center justify-center rounded-lg px-5 text-sm font-medium sm:w-auto"

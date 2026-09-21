@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "@/components/Button";
 import RestroTable from "@/components/RestroTable";
 import { FLOOR_URL } from "@/constants/apiUrlConstants";
-import { LIST_LIMIT } from "@/constants/listLimits";
+import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useUpdateFloorMutation } from "@/redux/services/floor";
 import { useAppSelector } from "@/redux/store/hooks";
 import Drawer from "@/components/Drawer";
@@ -33,7 +33,7 @@ export default function TableList() {
 
   const { query, handlePagination } = usePagination({
     page: 1,
-    limit: LIST_LIMIT,
+    limit: POS_LIST_LIMIT,
     search: {
       status:
         selectedStatus === "all" ? undefined : selectedStatus || undefined,
@@ -87,7 +87,7 @@ export default function TableList() {
   });
 
   const { data: floorsData } = useGetApiQuery({
-    url: `${FLOOR_URL}list?page=1&limit=${LIST_LIMIT}`,
+    url: `${FLOOR_URL}list?page=1&limit=${POS_LIST_LIMIT}`,
   });
 
   const floorOptions = useMemo(() => {

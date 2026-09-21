@@ -2,8 +2,10 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import Input from "@/components/Input";
-import Button from "@/components/Button";
-import PageTitle from "@/components/PageTitle";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { ImageInputUI } from "@/components/ImageComponent";
 import { IMAGE_BASE_URL } from "@/constants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -19,6 +21,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AddonSchema } from "./schema";
 import { useAppSelector } from "@/redux/store/hooks";
+import { Banknote, Puzzle, Type } from "lucide-react";
 
 const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 
@@ -38,20 +41,31 @@ export type CreatedAddon = {
 };
 
 interface Props {
+  id?: number | string | null;
   isComponent?: boolean;
   closeModal?: () => void;
+  onSuccess?: () => void;
   onCreated?: (addon: CreatedAddon) => void;
 }
 
 const AddEditAddons = ({
+  id: idProp,
   isComponent = false,
   closeModal = () => {},
+  onSuccess,
   onCreated,
 }: Props) => {
-  const { id } = useParams();
+  const { id: paramId } = useParams();
   const navigate = useNavigate();
-  // When embedded in the product form, never use route params for edit mode.
-  const editId = isComponent ? undefined : id;
+  // When embedded, prefer explicit id prop; don't use unrelated route params for create.
+  const editId =
+    isComponent
+      ? idProp !== undefined && idProp !== null
+        ? String(idProp)
+        : undefined
+      : idProp !== undefined && idProp !== null
+        ? String(idProp)
+        : paramId;
 
   const {
     register,
@@ -82,7 +96,7 @@ const AddEditAddons = ({
 
   const selectedImage = useAppSelector((state) => state.media.selectedImage);
 
-  const { data: addonData, isSuccess: addonSuccess } = useGetApiQuery(
+  const { data: addonData, isSuccess: addonSuccess, isLoading } = useGetApiQuery(
     { url: `${ADDON_URL}${editId}` },
     { skip: !editId },
   );
@@ -131,13 +145,19 @@ const AddEditAddons = ({
     setIsImageModalOpen(false);
   };
 
-  const handleSuccess = (created?: CreatedAddon) => {
+  const finish = (created?: CreatedAddon) => {
+    onSuccess?.();
     if (isComponent) {
       if (created) onCreated?.(created);
       closeModal();
     } else {
       navigate(ADDONS_LIST_ROUTE);
     }
+  };
+
+  const onCancel = () => {
+    if (isComponent) closeModal();
+    else navigate(ADDONS_LIST_ROUTE);
   };
 
   const onSubmit = async (data: AddonFormType) => {
@@ -174,7 +194,7 @@ const AddEditAddons = ({
                   description: response.data.description ?? null,
                 }
               : undefined;
-          handleSuccess(created);
+          finish(created);
         },
       });
     } catch (error) {
@@ -182,105 +202,83 @@ const AddEditAddons = ({
     }
   };
 
-  const busy = isSubmitting || creating || updating;
-
   return (
-    <>
-      {!isComponent && (
-        <PageTitle title={editId ? "Edit Addon" : "Add Addon"} isBack={true} />
-      )}
-      <form
-        className={
-          isComponent
-            ? "mt-5 space-y-4"
-            : "form-container mt-[1rem] grid grid-cols-1 gap-[1rem]"
-        }
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          void handleSubmit(onSubmit)(e);
-        }}
-      >
-        <Input
-          label="Name"
-          placeholder="Enter addon name"
-          className={isComponent ? "w-full" : "w-1/2"}
-          {...register("name")}
-          error={errors.name?.message}
-          isRequired
-        />
-
-        <Input
-          label="Price"
-          type="number"
-          step={0.01}
-          className={isComponent ? "w-full" : "w-1/2"}
-          placeholder="0"
-          {...register("price", {
-            setValueAs: (v) =>
-              v === "" || v === null || v === undefined ? undefined : Number(v),
-          })}
-          error={errors.price?.message}
-          isRequired
-        />
-
-        <div
-          className={`flex flex-col items-start ${isComponent ? "w-full" : "w-[20rem]"}`}
-        >
-          <label className="input-label text-start mb-[2px]">
-            Image <span className="text-red-500">*</span>
-          </label>
-          <Suspense
-            fallback={
-              <div className="h-24 w-full animate-pulse rounded-lg bg-slate-100" />
-            }
-          >
-            <MediaComponent
-              title={<ImageInputUI image={image} imageMessage="Upload Image" />}
-              isMultiSelect={false}
-              handleConfirmImage={onConfirmMedia}
-              open={isImageModelOpen}
-              setOpen={setIsImageModalOpen}
-            />
-          </Suspense>
-          {errors.imageUrl?.message && (
-            <span className="input-error mt-1">{errors.imageUrl.message}</span>
-          )}
-        </div>
-
-        <div
-          className={
-            isComponent
-              ? "flex items-center justify-end gap-2 border-t border-slate-200/80 pt-4"
-              : "flex justify-start"
+    <EntityForm
+      title={editId ? "Edit Addon" : "Add Addon"}
+      sectionTitle="Addon details"
+      description="Name, price, and image for this extra."
+      icon={Puzzle}
+      embedded={isComponent}
+      columns={2}
+      maxWidthClass="max-w-2xl"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void handleSubmit(onSubmit)(e);
+      }}
+      onCancel={onCancel}
+      isSaving={isSubmitting || creating || updating}
+      isLoading={Boolean(editId) && isLoading && !addonData}
+      submitLabel={editId ? "Update" : "Create"}
+    >
+      <Input
+        label="Name"
+        placeholder="Enter addon name"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <Input
+        label="Price"
+        type="number"
+        step={0.01}
+        placeholder="0"
+        leftSection={<FieldIcon icon={Banknote} />}
+        {...register("price", {
+          setValueAs: (v) =>
+            v === "" || v === null || v === undefined ? undefined : Number(v),
+        })}
+        error={errors.price?.message}
+        isRequired
+      />
+      <div className="flex min-w-0 flex-col md:col-span-2">
+        <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
+          Image <span className="text-[var(--serve-negative)]">*</span>
+        </span>
+        <Suspense
+          fallback={
+            <div className="h-40 w-full animate-pulse rounded-[10px] bg-[var(--serve-surface-2)]" />
           }
         >
-          {isComponent && (
-            <button
-              type="button"
-              onClick={closeModal}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-              disabled={busy}
-            >
-              Cancel
-            </button>
-          )}
-          <Button
-            type="submit"
-            className={
-              isComponent
-                ? "submit-button h-10 min-w-[7.5rem] px-5"
-                : "submit-button w-[8rem]"
+          <MediaComponent
+            title={
+              <ImageInputUI
+                image={image}
+                imageMessage="Allowed JPG, GIF or PNG."
+                onClear={
+                  image
+                    ? () => {
+                        setImage("");
+                        setValue("imageUrl", "", { shouldValidate: true });
+                      }
+                    : undefined
+                }
+              />
             }
-            disabled={busy}
-          >
-            <div className="flex items-center justify-center gap-[0.5rem] text-white">
-              {busy ? "Saving…" : editId ? "Update" : "Create"}
-            </div>
-          </Button>
-        </div>
-      </form>
-    </>
+            isMultiSelect={false}
+            handleConfirmImage={onConfirmMedia}
+            open={isImageModelOpen}
+            setOpen={setIsImageModalOpen}
+          />
+        </Suspense>
+        {errors.imageUrl?.message ? (
+          <span className="mt-1 text-xs text-[var(--serve-negative)]">
+            {errors.imageUrl.message}
+          </span>
+        ) : null}
+      </div>
+    </EntityForm>
   );
 };
 

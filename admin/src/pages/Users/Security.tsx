@@ -128,7 +128,7 @@ export default function Security({
       </div>
 
       <div className="sticky bottom-0 -mx-5 mt-6 border-t border-slate-200/80 bg-white/95 px-5 py-4 backdrop-blur-sm sm:-mx-6 sm:px-6">
-        <div className="flex justify-end gap-2">
+        <div className="form-actions flex justify-start gap-2">
           {isCreating ? (
             <Button
               type="submit"

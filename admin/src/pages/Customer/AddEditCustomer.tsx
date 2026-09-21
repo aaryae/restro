@@ -223,7 +223,7 @@ export default function AddEditCustomer({
             {...mobileFieldProps}
           />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="form-actions flex justify-start gap-2 pt-1">
           <button
             type="button"
             onClick={closeModal}
@@ -286,7 +286,7 @@ export default function AddEditCustomer({
           />
         </div>
 
-        <div className="flex justify-start">
+        <div className="form-actions flex justify-start">
           <Button
             type="submit"
             className="submit-button w-[5rem]"

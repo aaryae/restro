@@ -1,13 +1,13 @@
-import React, { useMemo, useState } from "react";
+import React, { lazy, useMemo, useState } from "react";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import FinanceQuickDateChips from "@/components/FinanceQuickDateChips";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
+import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
+import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
 import { CurrencySign } from "@/constants";
-import { useNavigate } from "react-router-dom";
-import { EXPENSE_ADD_ROUTE } from "@/routes/routeNames";
 import { SquarePen } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
@@ -24,9 +24,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { checkAccess } from "@/utils/accessHelper";
 
+const AddEditExpense = lazy(() => import("./AddEditExpense"));
+
 const Expenses: React.FC = () => {
-  const navigate = useNavigate();
   const accessList = checkAccess("Expense");
+  const formModal = useFormModal();
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
@@ -158,11 +160,8 @@ const Expenses: React.FC = () => {
   ].filter(Boolean) as string[];
 
   const handleNewExpense = (id: number | null) => {
-    if (id === null) {
-      navigate(EXPENSE_ADD_ROUTE);
-    } else {
-      navigate(`${EXPENSE_ADD_ROUTE}${id}`);
-    }
+    if (id === null) formModal.openAdd();
+    else formModal.openEdit(id);
   };
 
   const handleDeleteTrigger = (id: number) => {
@@ -240,6 +239,7 @@ const Expenses: React.FC = () => {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Expenses"
         showSearch={false}
         hasAddButton={accessList.includes("add")}
         newButtonText="Add Expense"
@@ -286,6 +286,23 @@ const Expenses: React.FC = () => {
           You do not have permission to view expenses.
         </div>
       )}
+
+      <EntityFormDialog
+        open={formModal.open}
+        onOpenChange={formModal.onOpenChange}
+        title={formModal.isEdit ? "Edit Expense" : "Add Expense"}
+        description="Category, payment, amount, and optional supplier."
+        size="2xl"
+        closeOnOutsideClick={false}
+      >
+        <AddEditExpense
+          key={formModal.editId ?? "new"}
+          id={formModal.editId}
+          isComponent
+          closeModal={formModal.close}
+          onSuccess={() => refetch()}
+        />
+      </EntityFormDialog>
     </div>
   );
 };

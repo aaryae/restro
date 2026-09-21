@@ -1,33 +1,41 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from "react";
-
 import { z } from "zod";
 import Input from "@/components/Input";
-
-import Button from "@/components/Button";
+import {
+  EntityForm,
+  FieldIcon,
+} from "@/components/EntityForm";
 import { useForm } from "react-hook-form";
 import { SupplierSchema } from "./schema";
-
-import PageTitle from "@/components/PageTitle";
-import useTranslation from "@/locale/useTranslation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SUPPLIER_LIST_ROUTE } from "@/routes/routeNames";
 import { useNavigate, useParams } from "react-router-dom";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { convertEmptyStringsToNull } from "@/utils/validationHelper";
-
 import {
   useCreateSupplierMutation,
   useGetSupplierByIdQuery,
   useUpdateSupplierByIdMutation,
 } from "@/redux/services/supplier";
 import { SUPPLIER_URL } from "@/constants/apiUrlConstants";
+import {
+  Building2,
+  Hash,
+  Mail,
+  MapPin,
+  Phone,
+  UserRound,
+  IdCard,
+} from "lucide-react";
 
 type SupplierFormType = z.infer<typeof SupplierSchema>;
 
 interface Props {
+  id?: number | string | null;
   isComponent?: boolean;
   closeModal?: (created?: any) => void;
+  onSuccess?: () => void;
   /** Prefill name when opening create form from another flow (e.g. bulk import). */
   defaultName?: string;
 }
@@ -43,17 +51,24 @@ const controlKeys = new Set([
 ]);
 
 export default function AddEditSupplier({
+  id: idProp,
   isComponent = false,
   closeModal = () => {},
+  onSuccess,
   defaultName = "",
 }: Props) {
-  const translate = useTranslation();
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  // Embedded create flows sit on other routes (purchase/:id, expense/:id, etc.).
-  // Never treat the parent route param as a supplier id.
-  const id = isComponent ? undefined : routeId;
-  const isEditMode = !!id;
+  // Embedded create flows sit on other routes — never use parent :id as supplier id.
+  const id =
+    isComponent
+      ? idProp !== undefined && idProp !== null
+        ? String(idProp)
+        : undefined
+      : idProp !== undefined && idProp !== null
+        ? String(idProp)
+        : routeId;
+  const isEditMode = Boolean(id);
 
   const {
     register,
@@ -74,16 +89,20 @@ export default function AddEditSupplier({
     useUpdateSupplierByIdMutation();
   const saving = isSubmitting || creatingSupplier || updatingSupplier;
 
-  const { data: supplierData } = useGetSupplierByIdQuery(id!, {
-    skip: !isEditMode,
-  });
+  const { data: supplierData, isLoading: loadingRecord } =
+    useGetSupplierByIdQuery(id!, {
+      skip: !isEditMode,
+    });
 
-  const handleSuccess = (created?: any) => {
-    if (isComponent) {
-      closeModal(created);
-    } else {
-      navigate(SUPPLIER_LIST_ROUTE);
-    }
+  const finish = (created?: any) => {
+    onSuccess?.();
+    if (isComponent) closeModal(created);
+    else navigate(SUPPLIER_LIST_ROUTE);
+  };
+
+  const onCancel = () => {
+    if (isComponent) closeModal();
+    else navigate(SUPPLIER_LIST_ROUTE);
   };
 
   const onSubmit = async (data: SupplierFormType) => {
@@ -110,7 +129,7 @@ export default function AddEditSupplier({
           success: true,
           msg: response?.message,
         },
-        onSuccess: () => handleSuccess(response?.data),
+        onSuccess: () => finish(response?.data),
       });
     } catch (error: any) {
       handleError({ error, setError });
@@ -159,112 +178,72 @@ export default function AddEditSupplier({
     error: errors.contact_number?.message,
   };
 
-  const fields = (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+  return (
+    <EntityForm
+      title={isEditMode ? "Edit Supplier" : "Add Supplier"}
+      sectionTitle="Supplier details"
+      description="Vendor contact and tax details for purchases."
+      icon={Building2}
+      embedded={isComponent}
+      columns={2}
+      maxWidthClass="max-w-3xl"
+      onSubmit={handleSubmit(onSubmit)}
+      onCancel={onCancel}
+      isSaving={saving}
+      isLoading={isEditMode && loadingRecord && !supplierData}
+      submitLabel={isEditMode ? "Update" : "Submit"}
+    >
       <Input
         label="Name of Entity"
         placeholder="Supplier name"
-        className="w-full"
+        leftSection={<FieldIcon icon={Building2} />}
         {...register("name")}
         error={errors.name?.message}
+        isRequired
       />
       <Input
         label="Contact Person"
         placeholder="Contact person"
-        className="w-full"
+        leftSection={<FieldIcon icon={UserRound} />}
         {...register("contact_person")}
         error={errors.contact_person?.message}
       />
       <Input
         label="Contact Number"
         placeholder="9800000000"
-        className="w-full"
+        leftSection={<FieldIcon icon={Phone} />}
         {...phoneFieldProps}
       />
       <Input
-        label="PAN/VAT Number"
+        label="PAN / VAT Number"
         placeholder="PAN/VAT"
-        className="w-full"
+        leftSection={<FieldIcon icon={IdCard} />}
         {...register("pan_vat_number")}
         error={errors.pan_vat_number?.message}
       />
       <Input
         label="Supplier Code"
         placeholder="ASP001"
-        className="w-full"
+        leftSection={<FieldIcon icon={Hash} />}
         {...register("supplier_code")}
         error={errors.supplier_code?.message}
       />
       <Input
         label="Email"
         type="email"
-        placeholder="Email"
-        className="w-full"
+        placeholder="email@example.com"
+        leftSection={<FieldIcon icon={Mail} />}
         {...register("email")}
         error={errors.email?.message}
       />
       <Input
         label="Address"
         placeholder="Street, city"
-        className="w-full sm:col-span-2"
+        className="md:col-span-2"
+        leftSection={<FieldIcon icon={MapPin} />}
         {...register("address")}
         error={errors.address?.message}
       />
-    </div>
-  );
-
-  if (isComponent) {
-    return (
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
-        {fields}
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => closeModal()}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-primaryColor px-4 text-sm font-medium text-white hover:bg-primaryColor/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? "Saving…" : isEditMode ? "Update" : "Save"}
-          </button>
-        </div>
-      </form>
-    );
-  }
-
-  return (
-    <>
-      <PageTitle
-        title={isEditMode ? "Edit Supplier" : "Add Supplier"}
-        isBack
-      />
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
-        {fields}
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <Button
-            type="submit"
-            className="submit-button inline-flex h-10 items-center rounded-lg px-5 text-sm font-medium"
-            disabled={saving}
-          >
-            {translate(isEditMode ? "Update" : "Submit")}
-          </Button>
-        </div>
-      </form>
-    </>
+    </EntityForm>
   );
 }

@@ -7,6 +7,16 @@ function LegacyProductToItemRedirect() {
   return <Navigate to={id ? `/admin/item/${id}` : "/admin/item/"} replace />;
 }
 
+function ListFormRedirect({ listPath }: { listPath: string }) {
+  const { id } = useParams();
+  return (
+    <Navigate
+      to={id ? `${listPath}?edit=${id}` : `${listPath}?add=1`}
+      replace
+    />
+  );
+}
+
 const UserProfile = lazy(() => import("@/pages/UserProfile"));
 const Access = lazy(() => import("@/pages/Access"));
 const EditAccess = lazy(() => import("@/pages/Access/EditAccess"));
@@ -25,9 +35,6 @@ const AddEditEmailTemplate = lazy(
 const EmailSmtp = lazy(() => import("@/pages/EmailSmtp"));
 const ActiveEmailTemplate = lazy(() => import("@/pages/ActiveEmailTemplate"));
 const ProductCategory = lazy(() => import("@/pages/ProductCategory"));
-const AddEditProductCategory = lazy(
-  () => import("@/pages/ProductCategory/AddEditProductCategory"),
-);
 const Product = lazy(() => import("@/pages/Product"));
 const AddEditProduct = lazy(() => import("@/pages/Product/AddEditProduct"));
 const ProductVariant = lazy(() => import("@/pages/ProductVariant"));
@@ -37,43 +44,22 @@ const AddEditProductVariant = lazy(
 const Customer = lazy(() => import("@/pages/Customer"));
 const Order = lazy(() => import("@/pages/Order"));
 const Department = lazy(() => import("@/pages/Department"));
-const AddEditDepartment = lazy(
-  () => import("@/pages/Department/AddEditDepartment"),
-);
 const Floor = lazy(() => import("@/pages/Floor"));
-const AddEditFloor = lazy(() => import("@/pages/Floor/AddEditFloor"));
 const OrderTable = lazy(() => import("@/pages/Table"));
-const AddEditTable = lazy(() => import("@/pages/Table/AddEditTable"));
 const AddEditOrder = lazy(() => import("@/pages/Order/components/AddEditOrder"));
 const CheckoutPage = lazy(() => import("@/pages/Order/CheckoutPage"));
 const AddEditCustomer = lazy(() => import("@/pages/Customer/AddEditCustomer"));
 const Supplier = lazy(() => import("@/pages/SuppliersModule"));
-const AddEditSupplier = lazy(
-  () => import("@/pages/SuppliersModule/AddEditSupplier"),
-);
 const Revenue = lazy(() => import("@/pages/Revenue"));
-const AddEditRevenue = lazy(() => import("@/pages/Revenue/AddEditRevenue"));
 const Purchase = lazy(() => import("@/pages/Purchase"));
 const PurchaseCategory = lazy(() => import("@/pages/PurchaseCategory"));
-const AddPurchaseCategory = lazy(
-  () => import("@/pages/PurchaseCategory/AddEditPurchaseCategory"),
-);
 const AddEditPurchase = lazy(() => import("@/pages/Purchase/AddEditPurchase"));
 const Account = lazy(() => import("@/pages/Account"));
 const Expenses = lazy(() => import("@/pages/Expenses"));
-const AddEditExpense = lazy(() => import("@/pages/Expenses/AddEditExpense"));
 const AddEditAccount = lazy(() => import("@/pages/Account/AddEditAccount"));
 const OpenItem = lazy(() => import("@/pages/OpenItem"));
-const AddEditOpenItem = lazy(() => import("@/pages/OpenItem/AddEditOpenItem"));
 const ExpenseCategory = lazy(() => import("@/pages/ExpenseCategory"));
-const AddExpenseCategory = lazy(
-  () => import("@/pages/ExpenseCategory/AddEditExpenseCategory"),
-);
 const Transaction = lazy(() => import("@/pages/Transaction"));
-const AddEditAccountPermission = lazy(
-  () => import("@/pages/AccountPermission/AddEditAccountPermission"),
-);
-const AddEditAddons = lazy(() => import("@/pages/Addons/AddEditAddons"));
 const Addons = lazy(() => import("@/pages/Addons"));
 const AccountPermission = lazy(() => import("@/pages/AccountPermission"));
 const Report = lazy(() => import("@/pages/DailyReport"));
@@ -168,11 +154,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/product-category/",
-    element: <AddEditProductCategory />,
+    element: <ListFormRedirect listPath="/admin/product-category/list" />,
   },
   {
     path: "/product-category/:id",
-    element: <AddEditProductCategory />,
+    element: <ListFormRedirect listPath="/admin/product-category/list" />,
   },
   {
     path: "/item/list",
@@ -205,11 +191,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/open-item/",
-    element: <AddEditOpenItem />,
+    element: <ListFormRedirect listPath="/admin/open-item/list" />,
   },
   {
     path: "/open-item/:id",
-    element: <AddEditOpenItem />,
+    element: <ListFormRedirect listPath="/admin/open-item/list" />,
   },
   {
     path: "/product-variant/list",
@@ -229,11 +215,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/revenue/",
-    element: <AddEditRevenue />,
+    element: <ListFormRedirect listPath="/admin/revenue/list" />,
   },
   {
     path: "/revenue/:id",
-    element: <AddEditRevenue />,
+    element: <ListFormRedirect listPath="/admin/revenue/list" />,
   },
   {
     path: "/purchase/list",
@@ -253,11 +239,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/purchase-category/",
-    element: <AddPurchaseCategory />,
+    element: <ListFormRedirect listPath="/admin/purchase-category/list" />,
   },
   {
     path: "/purchase-category/:id",
-    element: <AddPurchaseCategory />,
+    element: <ListFormRedirect listPath="/admin/purchase-category/list" />,
   },
   {
     path: "/expense-category/list",
@@ -265,11 +251,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/expense-category/",
-    element: <AddExpenseCategory />,
+    element: <ListFormRedirect listPath="/admin/expense-category/list" />,
   },
   {
     path: "/expense-category/:id",
-    element: <AddExpenseCategory />,
+    element: <ListFormRedirect listPath="/admin/expense-category/list" />,
   },
   {
     path: "/customer/list",
@@ -311,12 +297,12 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
 
   {
     path: "/supplier/",
-    element: <AddEditSupplier />,
+    element: <ListFormRedirect listPath="/admin/supplier/list" />,
   },
 
   {
     path: "/supplier/:id",
-    element: <AddEditSupplier />,
+    element: <ListFormRedirect listPath="/admin/supplier/list" />,
   },
 
   {
@@ -325,11 +311,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/department/:id",
-    element: <AddEditDepartment />,
+    element: <ListFormRedirect listPath="/admin/department/list" />,
   },
   {
     path: "/department/",
-    element: <AddEditDepartment />,
+    element: <ListFormRedirect listPath="/admin/department/list" />,
   },
   {
     path: "/floor/list",
@@ -337,11 +323,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/floor/:id",
-    element: <AddEditFloor />,
+    element: <ListFormRedirect listPath="/admin/floor/list" />,
   },
   {
     path: "/floor/",
-    element: <AddEditFloor />,
+    element: <ListFormRedirect listPath="/admin/floor/list" />,
   },
   {
     path: "/table/list",
@@ -349,11 +335,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/table/:id",
-    element: <AddEditTable />,
+    element: <ListFormRedirect listPath="/admin/table/list" />,
   },
   {
     path: "/table/",
-    element: <AddEditTable />,
+    element: <ListFormRedirect listPath="/admin/table/list" />,
   },
   {
     path: "/account/list",
@@ -373,11 +359,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/expense/",
-    element: <AddEditExpense />,
+    element: <ListFormRedirect listPath="/admin/expense/list" />,
   },
   {
     path: "/expense/:id",
-    element: <AddEditExpense />,
+    element: <ListFormRedirect listPath="/admin/expense/list" />,
   },
   {
     path: "/transaction/list",
@@ -389,11 +375,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/account-permission/",
-    element: <AddEditAccountPermission />,
+    element: <ListFormRedirect listPath="/admin/account-permission/list" />,
   },
   {
     path: "/account-permission/:id",
-    element: <AddEditAccountPermission />,
+    element: <ListFormRedirect listPath="/admin/account-permission/list" />,
   },
 
   {
@@ -402,11 +388,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/addons/",
-    element: <AddEditAddons />,
+    element: <ListFormRedirect listPath="/admin/addons/list" />,
   },
   {
     path: "/addons/:id",
-    element: <AddEditAddons />,
+    element: <ListFormRedirect listPath="/admin/addons/list" />,
   },
   {
     path: "/daily-report",
@@ -426,11 +412,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/measuring-unit/",
-    element: <Navigate to="/admin/measuring-unit/list" replace />,
+    element: <ListFormRedirect listPath="/admin/measuring-unit/list" />,
   },
   {
     path: "/measuring-unit/:id",
-    element: <Navigate to="/admin/measuring-unit/list" replace />,
+    element: <ListFormRedirect listPath="/admin/measuring-unit/list" />,
   },
   {
     path: "/stock-group/list",
@@ -438,11 +424,11 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   },
   {
     path: "/stock-group/",
-    element: <Navigate to="/admin/stock-group/list" replace />,
+    element: <ListFormRedirect listPath="/admin/stock-group/list" />,
   },
   {
     path: "/stock-group/:id",
-    element: <Navigate to="/admin/stock-group/list" replace />,
+    element: <ListFormRedirect listPath="/admin/stock-group/list" />,
   },
   {
     path: "/stock-item/list",

@@ -1,155 +1,93 @@
 import Input from "@/components/Input";
-import { DepartmentSchema } from "./schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useNavigate, useParams } from "react-router-dom";
-import { handleError, handleResponse } from "@/utils/responseHandler";
-import Button from "@/components/Button";
-import { z } from "zod";
-import useTranslation from "@/locale/useTranslation";
-import { DEPARTMENT_LIST_ROUTE } from "@/routes/routeNames";
-import { useEffect } from "react";
-import {
-  useCreateApiMutation,
-  useGetApiQuery,
-  useUpdateApiMutation,
-} from "@/redux/services/crudApi";
-import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
-import PageTitle from "@/components/PageTitle";
 import TextArea from "@/components/TextArea";
+import {
+  EntityForm,
+  FieldIcon,
+  useResourceForm,
+} from "@/components/EntityForm";
+import { DEPARTMENT_URL } from "@/constants/apiUrlConstants";
+import { DEPARTMENT_LIST_ROUTE } from "@/routes/routeNames";
+import { AlignLeft, ChefHat, Timer, Type } from "lucide-react";
+import { z } from "zod";
+import { DepartmentSchema } from "./schema";
 
 type DepartmentFormType = z.infer<typeof DepartmentSchema>;
 
-interface Props {
+type AddEditDepartmentProps = {
+  id?: number | string | null;
   isComponent?: boolean;
   closeModal?: () => void;
-}
+  onSuccess?: () => void;
+};
 
 export default function AddEditDepartment({
+  id,
   isComponent = false,
-  closeModal = () => {},
-}: Props) {
-  const translate = useTranslation();
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const isEditMode = !!id;
+  closeModal,
+  onSuccess,
+}: AddEditDepartmentProps = {}) {
+  const finish = () => {
+    onSuccess?.();
+    closeModal?.();
+  };
 
   const {
     register,
-    handleSubmit,
-    setError,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<DepartmentFormType>({
-    resolver: zodResolver(DepartmentSchema),
+    errors,
+    isEditMode,
+    isSaving,
+    isLoading,
+    onSubmit,
+    onCancel,
+  } = useResourceForm<DepartmentFormType>({
+    schema: DepartmentSchema,
+    resourceUrl: DEPARTMENT_URL,
+    listRoute: DEPARTMENT_LIST_ROUTE,
+    resourceId: id,
+    onSuccess: isComponent ? finish : undefined,
+    onCancel: isComponent ? closeModal : undefined,
   });
 
-  const [createDepartment, { isLoading: creatingDepartment }] =
-    useCreateApiMutation();
-  const [updateDepartment, { isLoading: updatingDepartment }] =
-    useUpdateApiMutation();
-
-  const {
-    data: departmentData,
-    isSuccess: success,
-    isLoading: loading,
-  } = useGetApiQuery(
-    { url: `${DEPARTMENT_URL}${id}` },
-    {
-      skip: !isEditMode,
-    },
-  );
-
-  useEffect(() => {
-    if (isEditMode && departmentData && departmentData?.data) {
-      reset(departmentData?.data);
-    }
-  }, [departmentData, isEditMode, reset]);
-
-  const handleSuccess = () => {
-    if (isComponent) {
-      closeModal();
-    } else {
-      navigate(DEPARTMENT_LIST_ROUTE);
-    }
-  };
-
-  const onSubmit = async (data: DepartmentFormType) => {
-    const body = { ...data };
-
-    try {
-      const response = isEditMode
-        ? await updateDepartment({
-            url: `${DEPARTMENT_URL}${id}`,
-            body,
-          }).unwrap()
-        : await createDepartment({
-            url: `${DEPARTMENT_URL}`,
-            body,
-          }).unwrap();
-
-      handleResponse({
-        res: response,
-        onSuccess: handleSuccess,
-      });
-    } catch (error) {
-      handleError({ error, setError });
-    }
-  };
-
   return (
-    <>
-      {!isComponent && (
-        <PageTitle
-          title={isEditMode ? "Edit Department" : "Add Department"}
-          isBack
-        />
-      )}
-      <form
-        className={`grid grid-cols-1 gap-[2rem] mt-[1rem] ${
-          isComponent ? "" : " form-container"
-        }`}
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <Input
-          label="Name"
-          placeholder="Enter Department Name"
-          className="w-full md:w-1/2"
-          {...register("name")}
-          error={errors.name?.message}
-          isRequired
-        />
-
-        <TextArea
-          label="Description"
-          placeholder="Enter Department Description"
-          className="w-full md:w-1/2"
-          {...register("description")}
-          error={errors.description?.message}
-        />
-
-        <Input
-          label="Average Preparation Time (minutes)"
-          type="number"
-          placeholder="Enter preparation time"
-          className="w-full md:w-1/2"
-          {...register("AvgPreparationTime", { valueAsNumber: true })}
-          error={errors.AvgPreparationTime?.message}
-          isRequired
-        />
-
-        <div className="flex justify-start">
-          <Button
-            type="submit"
-            className="submit-button w-[5rem]"
-            disabled={isSubmitting || creatingDepartment || updatingDepartment}
-          >
-            <div className="flex justify-center items-center gap-[0.5rem] text-white ">
-              {translate("Submit")}
-            </div>
-          </Button>
-        </div>
-      </form>
-    </>
+    <EntityForm
+      title={isEditMode ? "Edit Department" : "Add Department"}
+      sectionTitle="Department details"
+      description="Name the station and how long a typical order takes to prepare."
+      icon={ChefHat}
+      embedded={isComponent}
+      columns={isComponent ? 1 : 2}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      isSaving={isSaving}
+      isLoading={isLoading}
+      submitLabel={isEditMode ? "Update" : "Submit"}
+    >
+      <Input
+        label="Name"
+        placeholder="e.g. Kitchen, Bar, Grill"
+        leftSection={<FieldIcon icon={Type} />}
+        {...register("name")}
+        error={errors.name?.message}
+        isRequired
+      />
+      <Input
+        label="Average Preparation Time (minutes)"
+        type="number"
+        placeholder="e.g. 15"
+        leftSection={<FieldIcon icon={Timer} />}
+        {...register("AvgPreparationTime", { valueAsNumber: true })}
+        error={errors.AvgPreparationTime?.message}
+        isRequired
+      />
+      <TextArea
+        label="Description"
+        placeholder="Optional notes about this department"
+        className={isComponent ? undefined : "md:col-span-2"}
+        rows={isComponent ? 2 : 4}
+        leftSection={<FieldIcon icon={AlignLeft} />}
+        {...register("description")}
+        error={errors.description?.message}
+      />
+    </EntityForm>
   );
 }

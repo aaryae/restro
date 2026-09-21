@@ -182,6 +182,7 @@ export default function Product() {
   return (
     <div className="min-w-0 max-w-full">
       <MenuPageToolbar
+        title="Menu Items"
         searchPlaceholder="Search items..."
         searchValue={productSearchTerm}
         onSearchChange={(value) => {
