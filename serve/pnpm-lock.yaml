@@ -11,6 +11,9 @@ importers:
       framer-motion:
         specifier: ^12.38.0
         version: 12.43.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      nepal-places:
+        specifier: ^0.3.0
+        version: 0.3.0
       next:
         specifier: ^16.3.0
         version: 16.3.3(@babel/core@7.29.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1550,6 +1553,9 @@ packages:
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
+
+  nepal-places@0.3.0:
+    resolution: {integrity: sha512-CuDj3Ea/ziVo7NvQ2jVJq5r9KvpRpYWDSVM87moHgeb6WBu124WoVN2NsRF4dzzeQumTlxwx/gT6wAvV8Vy8zw==}
 
   next@16.3.3:
     resolution: {integrity: sha512-tuRTx1nQ/yVw83cwJBo9F+njGUgMn3UHQycreWHB8XsStvvAh1AthbI8/4IpKnFaF58F+iSiHejYOlMQ/eq83g==}
@@ -3593,6 +3599,8 @@ snapshots:
   napi-postinstall@0.3.4: {}
 
   natural-compare@1.4.0: {}
+
+  nepal-places@0.3.0: {}
 
   next@16.3.3(@babel/core@7.29.7)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
