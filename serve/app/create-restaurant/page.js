@@ -84,7 +84,7 @@ export default function CreateRestaurantPage() {
   const addressWrapRef = useRef(null)
 
   const addressSuggestions = useMemo(
-    () => filterNepalLocations(address, 8),
+    () => filterNepalLocations(address, 12),
     [address],
   )
 

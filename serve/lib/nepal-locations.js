@@ -1,134 +1,58 @@
-/** Popular Nepal places for restaurant address suggestions. */
-export const NEPAL_LOCATIONS = [
-  // Kathmandu Valley
-  'Thamel, Kathmandu',
-  'New Baneshwor, Kathmandu',
-  'Old Baneshwor, Kathmandu',
-  'Putalisadak, Kathmandu',
-  'Durbarmarg, Kathmandu',
-  'Lazimpat, Kathmandu',
-  'Baluwatar, Kathmandu',
-  'Maharajgunj, Kathmandu',
-  'Boudha, Kathmandu',
-  'Chabahil, Kathmandu',
-  'Kalanki, Kathmandu',
-  'Kalimati, Kathmandu',
-  'Koteshwor, Kathmandu',
-  'Gongabu, Kathmandu',
-  'Swayambhu, Kathmandu',
-  'Kirtipur, Kathmandu',
-  'Patan Durbar Square, Lalitpur',
-  'Jawalakhel, Lalitpur',
-  'Pulchowk, Lalitpur',
-  'Kupondole, Lalitpur',
-  'Satdobato, Lalitpur',
-  'Imadol, Lalitpur',
-  'Bhaktapur Durbar Square, Bhaktapur',
-  'Suryabinayak, Bhaktapur',
-  'Thimi, Bhaktapur',
-  // Major cities
-  'Lakeside, Pokhara',
-  'Mahendrapul, Pokhara',
-  'New Road, Pokhara',
-  'Biratnagar',
-  'Birgunj',
-  'Butwal',
-  'Bhairahawa / Siddharthanagar',
-  'Dharan',
-  'Itahari',
-  'Janakpur',
-  'Nepalgunj',
-  'Hetauda',
-  'Bharatpur, Chitwan',
-  'Narayangarh, Chitwan',
-  'Dhangadhi',
-  'Mahendranagar / Bhimdatta',
-  'Damak',
-  'Tulsipur',
-  'Ghorahi, Dang',
-  'Surkhet / Birendranagar',
-  'Ilam',
-  'Dhulikhel',
-  'Banepa',
-  'Nagarkot',
-  'Bandipur',
-  'Tansen, Palpa',
-  'Jomsom',
-  'Namche Bazaar',
-  // Districts / regions (broader)
-  'Kathmandu',
-  'Lalitpur',
-  'Bhaktapur',
-  'Pokhara, Kaski',
-  'Chitwan',
-  'Kaski',
-  'Morang',
-  'Sunsari',
-  'Jhapa',
-  'Parsa',
-  'Rupandehi',
-  'Banke',
-  'Kailali',
-  'Kanchanpur',
-  'Makwanpur',
-  'Kavrepalanchok',
-  'Nuwakot',
-  'Sindhupalchok',
-  'Syangja',
-  'Tanahun',
-  'Gorkha',
-  'Lamjung',
-  'Baglung',
-  'Myagdi',
-  'Mustang',
-  'Dolakha',
-  'Ramechhap',
-  'Sindhuli',
-  'Bara',
-  'Rautahat',
-  'Sarlahi',
-  'Mahottari',
-  'Dhanusha',
-  'Siraha',
-  'Saptari',
-  'Udayapur',
-  'Okhaldhunga',
-  'Solukhumbu',
-  'Sankhuwasabha',
-  'Taplejung',
-  'Panchthar',
-  'Tehrathum',
-  'Dhankuta',
-  'Bhojpur',
-  'Khotang',
-  'Kapilvastu',
-  'Nawalparasi East',
-  'Nawalparasi West',
-  'Palpa',
-  'Gulmi',
-  'Arghakhanchi',
-  'Pyuthan',
-  'Rolpa',
-  'Rukum East',
-  'Rukum West',
-  'Salyan',
-  'Jajarkot',
-  'Dailekh',
-  'Kalikot',
-  'Jumla',
-  'Mugu',
-  'Humla',
-  'Dolpa',
-  'Bajura',
-  'Bajhang',
-  'Achham',
-  'Doti',
-  'Dadeldhura',
-  'Baitadi',
-  'Darchula',
-]
+/**
+ * Nepal address suggestions via `nepal-places`
+ * (7 provinces · 77 districts · 753 municipalities / palikas).
+ *
+ * Uses official local levels (Tokha, Chandragiri, Kirtipur, …),
+ * not colloquial neighborhoods (Thamel, Baneshwor).
+ */
+import { districts, municipalities } from 'nepal-places'
 
-export function filterNepalLocations(query, limit = 8) {
+const TYPE_SUFFIX = {
+  metropolitan: 'Metropolitan City',
+  'sub-metropolitan': 'Sub-Metropolitan City',
+  municipality: 'Municipality',
+  'rural-municipality': 'Rural Municipality',
+}
+
+const districtById = new Map(districts.map((d) => [d.id, d]))
+
+function formatMunicipalityLabel(m, district) {
+  const suffix = TYPE_SUFFIX[m.type]
+  const fullName =
+    suffix && !m.name.toLowerCase().includes(suffix.split(' ')[0].toLowerCase())
+      ? `${m.name} ${suffix}`
+      : m.name
+
+  if (!district) return fullName
+  if (m.name.toLowerCase() === district.name.toLowerCase()) return fullName
+  return `${fullName}, ${district.name}`
+}
+
+/** Flat labels for autocomplete. */
+export const NEPAL_LOCATIONS = (() => {
+  const labels = []
+  const seen = new Set()
+
+  for (const m of municipalities) {
+    const district = districtById.get(m.district_id)
+    const label = formatMunicipalityLabel(m, district)
+    if (!seen.has(label)) {
+      seen.add(label)
+      labels.push(label)
+    }
+  }
+
+  for (const d of districts) {
+    if (!seen.has(d.name)) {
+      seen.add(d.name)
+      labels.push(d.name)
+    }
+  }
+
+  return labels.sort((a, b) => a.localeCompare(b))
+})()
+
+export function filterNepalLocations(query, limit = 12) {
   const q = String(query || '')
     .trim()
     .toLowerCase()
