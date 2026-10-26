@@ -8,6 +8,7 @@ const {
 const { Sequelize, Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { getLocalDateRange } = require("../../utils/timezone");
+const { parseBusinessDate } = require("../../utils/business-date");
 const generalConstant = require("../../constants/general-constant");
 const paginate = require("../../utils/paginate");
 
@@ -22,6 +23,7 @@ const create = async (req) => {
       categoryId,
       accountId,
       supplierId,
+      date,
     } = req.body;
 
     // Validate input
@@ -108,20 +110,35 @@ const create = async (req) => {
       }
     }
 
-    const expense = await expenseModel.create(
-      {
-        cash_or_credit,
-        paymentMethod,
-        amount,
-        remarks,
-        categoryId,
-        userId: req.user.id,
-        accountId,
-        supplierId,
-        paymentDate: cash_or_credit === "cash" ? new Date() : null,
-      },
-      { transaction },
-    );
+    const parsedDate = parseBusinessDate(date, { label: "Date" });
+    if (!parsedDate.ok) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: parsedDate.error,
+        data: null,
+      };
+    }
+
+    const businessDate = parsedDate.date || new Date();
+    const expensePayload = {
+      cash_or_credit,
+      paymentMethod,
+      amount,
+      remarks,
+      categoryId,
+      userId: req.user.id,
+      accountId,
+      supplierId,
+      paymentDate: cash_or_credit === "cash" ? businessDate : null,
+    };
+    if (parsedDate.date) {
+      expensePayload.createdAt = parsedDate.date;
+    }
+
+    const expense = await expenseModel.create(expensePayload, { transaction });
+
 
     const result = await expenseModel.findByPk(expense.id, {
       include: [
@@ -312,6 +329,7 @@ const updateById = async (req) => {
       categoryId,
       accountId,
       supplierId,
+      date,
     } = req.body;
     // Do not allow changing the associated account in an update to avoid
     // double/missed balance adjustments with model hooks.
@@ -385,6 +403,27 @@ const updateById = async (req) => {
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (supplierId !== undefined) updateData.supplierId = supplierId;
     // We already disallow changing accountId, so do not update it here
+
+    if (date !== undefined) {
+      const parsedDate = parseBusinessDate(date, {
+        required: true,
+        label: "Date",
+      });
+      if (!parsedDate.ok) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: parsedDate.error,
+          data: null,
+        };
+      }
+      updateData.createdAt = parsedDate.date;
+      const nextCashOrCredit = cash_or_credit || expense.cash_or_credit;
+      if (nextCashOrCredit === "cash") {
+        updateData.paymentDate = parsedDate.date;
+      }
+    }
 
     await expense.update(updateData, { transaction });
 

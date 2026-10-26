@@ -54,6 +54,9 @@ const revenuePostValidation = async (req, res, next) => {
       "number.positive": "Account ID must be a positive number",
       "any.required": "Account ID is required",
     }),
+    date: joi.date().iso().optional().messages({
+      "date.base": "Date must be a valid ISO date",
+    }),
     remarks: joi.string().trim().allow("").optional().messages({
       "string.base": "Remarks must be a string",
     }),
@@ -108,6 +111,9 @@ const revenuePutValidation = async (req, res, next) => {
       "number.base": "User ID must be a number",
       "number.integer": "User ID must be an integer",
       "number.positive": "User ID must be a positive number",
+    }),
+    date: joi.date().iso().optional().messages({
+      "date.base": "Date must be a valid ISO date",
     }),
     remarks: joi.string().trim().allow("").optional().messages({
       "string.base": "Remarks must be a string",

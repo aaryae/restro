@@ -89,7 +89,10 @@ async function ensureDefaultMeasuringUnits(
     let created = 0;
     for (const unit of DEFAULT_MEASURING_UNITS) {
       const existing = await measuringUnitModel.findOne({
-        where: { slug: unit.slug },
+        where: sequelize.where(
+          sequelize.fn("lower", sequelize.col("slug")),
+          unit.slug.toLowerCase(),
+        ),
       });
       if (existing) {
         if (!existing.description && unit.description) {
@@ -111,7 +114,7 @@ async function ensureDefaultMeasuringUnits(
 
   for (const unit of DEFAULT_MEASURING_UNITS) {
     const [rows] = await sequelize.query(
-      `SELECT id, description FROM ${table} WHERE slug = :slug LIMIT 1`,
+      `SELECT id, description FROM ${table} WHERE lower(slug) = lower(:slug) LIMIT 1`,
       queryOptions(schemaName, { replacements: { slug: unit.slug } }),
     );
     if (rows.length) {

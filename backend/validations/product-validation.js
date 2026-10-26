@@ -5,6 +5,12 @@ const responseHelper = require("../helpers/response-helper");
 const messageConstant = require("../constants/message-constant");
 const { validateRequestBody } = require("../helpers/validator-helper");
 
+const recipeItem = joi.object({
+  stockItemId: joi.number().integer().positive().required(),
+  measuringUnitId: joi.number().integer().positive().required(),
+  quantity: joi.number().positive().required(),
+});
+
 const productPostValidation = async (req, res, next) => {
   let joiModel = joi.object({
     productCategoryId: joi.number().integer().positive().required(),
@@ -26,6 +32,7 @@ const productPostValidation = async (req, res, next) => {
       'number.integer': 'Each addon ID must be an integer',
       'number.positive': 'Each addon ID must be a positive number'
     }),
+    recipes: joi.array().items(recipeItem).optional(),
     variants: joi.when("hasVariant", {
       is: true,
       then: joi
@@ -101,6 +108,7 @@ const productPutValidation = async (req, res, next) => {
       'number.integer': 'Each addon ID must be an integer',
       'number.positive': 'Each addon ID must be a positive number'
     }),
+    recipes: joi.array().items(recipeItem).optional(),
     variants: joi.when("hasVariant", {
       is: true,
       then: joi

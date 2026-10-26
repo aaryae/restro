@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import Input from "@/components/Input";
 import {
@@ -20,6 +20,7 @@ import useImageHandler from "@/hooks/useImageHandler";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AddonSchema } from "./schema";
+import ProductRecipes from "@/pages/Product/ProductRecipes";
 import { useAppSelector } from "@/redux/store/hooks";
 import { Banknote, Puzzle, Type } from "lucide-react";
 
@@ -30,6 +31,11 @@ type AddonFormType = {
   price: number;
   imageUrl?: string | null;
   mediaArr?: string[];
+  recipes?: {
+    stockItemId: string;
+    measuringUnitId: string;
+    quantity?: number | string;
+  }[];
 };
 
 export type CreatedAddon = {
@@ -69,6 +75,7 @@ const AddEditAddons = ({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setValue,
@@ -83,6 +90,7 @@ const AddEditAddons = ({
       price: undefined as unknown as number,
       imageUrl: "",
       mediaArr: [],
+      recipes: [],
     },
   });
 
@@ -113,6 +121,13 @@ const AddEditAddons = ({
             ? Number(addonData.data.price)
             : (undefined as unknown as number),
         imageUrl: imageUrl,
+        recipes: Array.isArray(addonData.data.recipes)
+          ? addonData.data.recipes.map((recipe: any) => ({
+              stockItemId: String(recipe.stockItemId),
+              measuringUnitId: String(recipe.measuringUnitId),
+              quantity: Number(recipe.quantity),
+            }))
+          : [],
       });
       setImage(
         imageUrl.startsWith(IMAGE_BASE_URL)
@@ -176,6 +191,11 @@ const AddEditAddons = ({
       name: trimmedName,
       price: Number(data.price || 0),
       imageUrl,
+      recipes: (data.recipes || []).map((recipe) => ({
+        stockItemId: Number(recipe.stockItemId),
+        measuringUnitId: Number(recipe.measuringUnitId),
+        quantity: Number(recipe.quantity),
+      })),
     };
     try {
       const response = editId
@@ -278,6 +298,12 @@ const AddEditAddons = ({
           </span>
         ) : null}
       </div>
+      <ProductRecipes
+        control={control as never}
+        setValue={setValue as never}
+        errors={errors}
+        note="Each time this addon is sold, these ingredients are taken from inventory. Leave this empty if the addon does not use stock."
+      />
     </EntityForm>
   );
 };

@@ -1,24 +1,56 @@
-const { addonModel, productModel, sequelize } = require("../../models");
+const {
+  addonModel,
+  addonRecipeModel,
+  stockItemModel,
+  measuringUnitModel,
+  productModel,
+  sequelize,
+} = require("../../models");
 const paginate = require("../../utils/paginate");
 const generalConstant = require("../../constants/general-constant");
 const { Op } = require("sequelize");
+const { replaceAddonRecipes } = require("../../lib/product-recipes");
+const { UnitChainError } = require("../../lib/unit-quantity");
+
+const recipeInclude = {
+  model: addonRecipeModel,
+  as: "recipes",
+  include: [
+    {
+      model: stockItemModel,
+      as: "stockItem",
+      attributes: ["id", "name"],
+    },
+    {
+      model: measuringUnitModel,
+      as: "measuringUnit",
+      attributes: ["id", "name", "symbol"],
+    },
+  ],
+};
+
+const recipeError = (error) => {
+  if (error instanceof UnitChainError) return error.toResponse();
+  return null;
+};
 
 const create = async (req) => {
+  const transaction = await sequelize.transaction();
   try {
-    const addon = await addonModel.create(req.body);
+    const { recipes, ...addonData } = req.body;
+    const addon = await addonModel.create(addonData, { transaction });
+    await replaceAddonRecipes(addon.id, recipes, transaction);
+    await transaction.commit();
 
-    if (!addon) {
-      return {
-        ...generalConstant.EN.ADDON.CREATE_ADDON_FAILURE,
-        data: null,
-      };
-    }
-
+    const full = await addonModel.findByPk(addon.id, { include: [recipeInclude] });
     return {
       ...generalConstant.EN.ADDON.CREATE_ADDON_SUCCESS,
-      data: addon,
+      data: full,
     };
   } catch (error) {
+    if (!transaction.finished) await transaction.rollback();
+    const response = recipeError(error);
+    if (response) return response;
     throw error;
   }
 };
@@ -58,7 +90,7 @@ const list = async (req) => {
 const getById = async (req) => {
   try {
     const { id } = req.params;
-    const addon = await addonModel.findByPk(id);
+    const addon = await addonModel.findByPk(id, { include: [recipeInclude] });
 
     if (!addon) {
       return {
@@ -77,9 +109,11 @@ const getById = async (req) => {
 };
 
 const updateById = async (req) => {
+  const transaction = await sequelize.transaction();
   try {
-    const result = await addonModel.findByPk(+req.params.id);
+    const result = await addonModel.findByPk(+req.params.id, { transaction });
     if (!result) {
+      await transaction.rollback();
       return {
         status: 404,
         success: false,
@@ -88,20 +122,20 @@ const updateById = async (req) => {
       };
     }
 
-    const updatedAddon = await result.update(req.body);
-    if (!updatedAddon) {
-      return {
-        status: 500,
-        success: false,
-        message: `Addon updated Failed`,
-        data: null,
-      };
-    }
+    const { recipes, ...addonData } = req.body;
+    await result.update(addonData, { transaction });
+    await replaceAddonRecipes(result.id, recipes, transaction);
+    await transaction.commit();
+
+    const full = await addonModel.findByPk(result.id, { include: [recipeInclude] });
     return {
       ...generalConstant.EN.ADDON.UPDATE_ADDON_SUCCESS,
-      data: updatedAddon,
+      data: full,
     };
   } catch (error) {
+    if (!transaction.finished) await transaction.rollback();
+    const response = recipeError(error);
+    if (response) return response;
     throw error;
   }
 };

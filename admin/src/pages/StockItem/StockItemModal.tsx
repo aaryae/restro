@@ -1,8 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Control,
+  Controller,
+  useFieldArray,
+  useForm,
+  useWatch,
+} from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Trash2 } from "lucide-react";
 import Input from "@/components/Input";
 import Select from "@/components/Select";
 import CustomDialog from "@/components/Dialog";
@@ -21,6 +27,7 @@ import { STOCK_ITEM_URL } from "@/constants/apiUrlConstants";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { buildQueryString } from "@/utils/generalHelper";
 import { Banknote, Boxes, Hash, Ruler, Truck, Type } from "lucide-react";
+import { equivalenceLabel, resolveUnitRows } from "@/utils/unitChain";
 
 const emptyToUndef = (v: unknown) =>
   v === "" || v === null || v === undefined ? undefined : v;
@@ -41,22 +48,32 @@ const StockItemSchema = z
     lowStockThreshold: optionalAmount,
     accountId: z.string().optional(),
     paymentTerms: z.enum(["cash", "cheque", "credit"]).optional(),
+    units: z
+      .array(
+        z.object({
+          measuringUnitId: z.string(),
+          ofUnitId: z.string(),
+          factor: z.union([z.string(), z.number()]),
+        }),
+      )
+      .optional()
+      .default([]),
   })
   .superRefine((data, ctx) => {
+    const chain = resolveUnitRows(data.measuringUnitId, data.units || []);
+    if (chain.error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: chain.error,
+        path: ["units"],
+      });
+    }
     const qty = Number(data.openingQuantity || 0);
-    if (qty <= 0) return;
-    if (!data.accountId) {
+    if (qty > 0 && data.supplierId && !data.accountId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Select the cash or bank account used for this purchase",
         path: ["accountId"],
-      });
-    }
-    if (!data.supplierId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Supplier is required when quantity is greater than 0",
-        path: ["supplierId"],
       });
     }
   });
@@ -88,6 +105,7 @@ const blankCreateValues = {
   lowStockThreshold: "" as unknown as number | undefined,
   accountId: "",
   paymentTerms: "cash" as const,
+  units: [] as { measuringUnitId: string; ofUnitId: string; factor: string }[],
 };
 
 const paymentTermOptions = [
@@ -121,11 +139,19 @@ const StockItemModal: React.FC<Props> = ({
     defaultValues: blankCreateValues,
   });
 
+  const { fields: unitFields, append: appendUnit, remove: removeUnit } =
+    useFieldArray({ control, name: "units" });
+  const unitRows = useWatch({ control, name: "units" }) || [];
+  const baseUnitId = useWatch({ control, name: "measuringUnitId" }) || "";
+  const previousBaseUnitId = useRef(baseUnitId);
+
   const openingQuantity = useWatch({ control, name: "openingQuantity" });
   const defaultPrice = useWatch({ control, name: "defaultPrice" });
+  const supplierId = useWatch({ control, name: "supplierId" });
   const openingValue =
     Number(openingQuantity || 0) * Number(defaultPrice || 0);
-  const needsPayment = !isEdit && Number(openingQuantity || 0) > 0;
+  const needsPayment =
+    !isEdit && Number(openingQuantity || 0) > 0 && Boolean(supplierId);
 
   const unitsUrl = buildQueryString("measuring-unit/list", {
     page: 1,
@@ -168,6 +194,9 @@ const StockItemModal: React.FC<Props> = ({
         value: String(u.id),
       })),
     [unitsResp],
+  );
+  const baseUnitLabel = shortUnitLabel(
+    unitOptions.find((option) => option.value === baseUnitId)?.label || "",
   );
   const groupOptions = useMemo(
     () =>
@@ -224,8 +253,26 @@ const StockItemModal: React.FC<Props> = ({
           : Number(row.lowStockThreshold),
       accountId: "",
       paymentTerms: "cash",
+      units: Array.isArray(row.units)
+        ? row.units.map((level: any) => ({
+            measuringUnitId: String(level.measuringUnitId),
+            ofUnitId: String(level.ofUnitId),
+            factor: String(Number(level.factor)),
+          }))
+        : [],
     });
   }, [isEdit, itemResp, reset, defaultSupplierId]);
+
+  useEffect(() => {
+    if (
+      previousBaseUnitId.current &&
+      baseUnitId &&
+      previousBaseUnitId.current !== baseUnitId
+    ) {
+      setValue("units", []);
+    }
+    previousBaseUnitId.current = baseUnitId;
+  }, [baseUnitId, setValue]);
 
   const finish = (created?: {
     id: number;
@@ -254,6 +301,11 @@ const StockItemModal: React.FC<Props> = ({
         data.lowStockThreshold === undefined || data.lowStockThreshold === null
           ? null
           : Number(data.lowStockThreshold),
+      units: (data.units || []).map((level) => ({
+        measuringUnitId: Number(level.measuringUnitId),
+        ofUnitId: Number(level.ofUnitId),
+        factor: Number(level.factor),
+      })),
     };
 
     if (!isEdit) {
@@ -261,7 +313,7 @@ const StockItemModal: React.FC<Props> = ({
       const qty = Number(data.openingQuantity || 0);
       body.openingQuantity = qty;
       body.openingRate = price;
-      if (qty > 0) {
+      if (qty > 0 && data.supplierId) {
         body.accountId = Number(data.accountId);
         body.paymentTerms = data.paymentTerms || "cash";
       }
@@ -279,6 +331,7 @@ const StockItemModal: React.FC<Props> = ({
         res: {
           success: true,
           msg:
+            response?.msg ||
             response?.message ||
             (isEdit
               ? "Stock item updated successfully."
@@ -308,7 +361,7 @@ const StockItemModal: React.FC<Props> = ({
       <EntityForm
         title={isEdit ? "Edit Stock Item" : "Create Stock Item"}
         sectionTitle="Stock item details"
-        description="Unit, pricing, group, and optional opening stock."
+        description="Base unit, pack sizes, pricing, and opening stock."
         icon={Package}
         embedded={isComponent}
         columns={2}
@@ -373,7 +426,6 @@ const StockItemModal: React.FC<Props> = ({
         <div className="flex min-w-0 flex-col">
           <FieldHeader
             label="Supplier"
-            required={needsPayment}
             actions={
               <button
                 type="button"
@@ -393,15 +445,10 @@ const StockItemModal: React.FC<Props> = ({
                 options={supplierOptions}
                 value={field.value || ""}
                 onValueChange={field.onChange}
-                placeholder={
-                  needsPayment
-                    ? "Select supplier"
-                    : "Select supplier (optional)"
-                }
+                placeholder="Select supplier (optional)"
                 leftSection={<FieldIcon icon={Truck} />}
-                clearable={!needsPayment}
+                clearable
                 clearLabel="No supplier"
-                isRequired={needsPayment}
                 error={errors.supplierId?.message}
               />
             )}
@@ -420,9 +467,31 @@ const StockItemModal: React.FC<Props> = ({
           />
           <p className="text-[11px] leading-snug text-[var(--serve-muted)]">
             When quantity falls to this level or below, the item counts toward
-            Low Stock. Leave blank to ignore.
+            Low Stock. Leave blank to ignore. The threshold uses the base unit.
           </p>
         </div>
+
+        <UnitRelations
+          control={control}
+          fields={unitFields}
+          rows={unitRows}
+          baseUnitId={baseUnitId}
+          unitOptions={unitOptions}
+          error={
+            (errors.units as { message?: string; root?: { message?: string } })
+              ?.message ||
+            (errors.units as { root?: { message?: string } })?.root?.message
+          }
+          onAdd={() => {
+            const previous = unitRows[unitRows.length - 1];
+            appendUnit({
+              measuringUnitId: "",
+              ofUnitId: previous?.measuringUnitId || baseUnitId,
+              factor: "",
+            });
+          }}
+          onRemove={removeUnit}
+        />
 
         {!isEdit ? (
           <div className="md:col-span-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-4">
@@ -447,15 +516,19 @@ const StockItemModal: React.FC<Props> = ({
               />
             </div>
             <p className="mt-2 text-[11px] leading-snug text-[var(--serve-muted)]">
-              Value is Quantity × Default Price. Leave quantity at 0 if you are
-              only registering the item name for now.
+              Quantity is counted in the base unit
+              {baseUnitLabel ? ` (${baseUnitLabel})` : ""}. Value is Quantity ×
+              Default Price. The same name, in any case, is added to the
+              existing item. Supplier is optional.
             </p>
 
             {needsPayment ? (
               <div className="mt-4 space-y-4 border-t border-[var(--serve-border)] pt-4">
                 <p className="text-[12px] leading-snug text-[var(--serve-muted)]">
-                  This stock is treated as a purchase: money is deducted from
-                  the account you choose, and a Finance purchase is created.
+                  A supplier is optional. With a supplier, this quantity is a
+                  purchase and the account you choose is charged. Without a
+                  supplier, the quantity is added and the info note shows it
+                  is not from a supplier. Meat and meat are the same item.
                 </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Controller
@@ -518,5 +591,171 @@ const StockItemModal: React.FC<Props> = ({
     </>
   );
 };
+
+const shortUnitLabel = (label: string) => {
+  const match = label.match(/\(([^)]+)\)\s*$/);
+  return match?.[1] || label;
+};
+
+function UnitRelations({
+  control,
+  fields,
+  rows,
+  baseUnitId,
+  unitOptions,
+  error,
+  onAdd,
+  onRemove,
+}: {
+  control: Control<StockItemFormType>;
+  fields: { id: string }[];
+  rows: {
+    measuringUnitId?: string;
+    ofUnitId?: string;
+    factor?: string | number;
+  }[];
+  baseUnitId: string;
+  unitOptions: { label: string; value: string }[];
+  error?: string;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  const labelOf = (id: string) => {
+    const match = unitOptions.find((option) => option.value === id);
+    return match ? shortUnitLabel(match.label) : "";
+  };
+  const baseLabel = labelOf(baseUnitId);
+  const preview = equivalenceLabel(
+    baseUnitId,
+    baseLabel,
+    rows.map((row) => ({
+      measuringUnitId: row.measuringUnitId || "",
+      ofUnitId: row.ofUnitId || "",
+      factor: row.factor || "",
+    })),
+    labelOf,
+  );
+
+  return (
+    <div className="md:col-span-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-4">
+      <FieldHeader
+        label="Unit relations"
+        actions={
+          <button
+            type="button"
+            className="inline-flex h-7 items-center gap-1 rounded-md bg-primaryColor px-2 text-[11px] font-medium text-white transition hover:bg-primaryColor/90 disabled:opacity-50"
+            disabled={!baseUnitId}
+            onClick={onAdd}
+          >
+            <Plus size={12} strokeWidth={2.5} />
+            Add larger unit
+          </button>
+        }
+      />
+      <p className="mb-3 text-[11px] leading-snug text-[var(--serve-muted)]">
+        Stock is stored in the base unit. Add how larger units break down, for
+        example 1 packet = 20 piece and 1 dozen = 12 packet. Selling one piece
+        then reduces the piece, packet, and dozen counts together.
+      </p>
+
+      {fields.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          No larger units. This item is counted only in{" "}
+          {baseLabel || "its base unit"}.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {fields.map((field, index) => {
+            const usedElsewhere = new Set(
+              rows
+                .filter((_, rowIndex) => rowIndex !== index)
+                .map((row) => row.measuringUnitId)
+                .filter(Boolean),
+            );
+            const largerOptions = unitOptions.filter(
+              (option) =>
+                option.value !== baseUnitId &&
+                option.value !== rows[index]?.ofUnitId &&
+                !usedElsewhere.has(option.value),
+            );
+            const containedIds = new Set<string>(
+              baseUnitId ? [baseUnitId] : [],
+            );
+            rows.forEach((row, rowIndex) => {
+              if (rowIndex !== index && row.measuringUnitId) {
+                containedIds.add(row.measuringUnitId);
+              }
+            });
+            const containedOptions = unitOptions.filter(
+              (option) =>
+                containedIds.has(option.value) &&
+                option.value !== rows[index]?.measuringUnitId,
+            );
+            return (
+              <div
+                key={field.id}
+                className="grid grid-cols-1 gap-3 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface)] p-3 sm:grid-cols-[minmax(0,1fr)_110px_minmax(0,1fr)_auto]"
+              >
+                <Controller
+                  name={`units.${index}.measuringUnitId`}
+                  control={control}
+                  render={({ field: unitField }) => (
+                    <Select
+                      label="1 of"
+                      options={largerOptions}
+                      value={unitField.value || ""}
+                      onValueChange={unitField.onChange}
+                      placeholder="Larger unit"
+                    />
+                  )}
+                />
+                <Controller
+                  name={`units.${index}.factor`}
+                  control={control}
+                  render={({ field: factorField }) => (
+                    <Input
+                      label="contains"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="12"
+                      value={factorField.value ?? ""}
+                      onChange={factorField.onChange}
+                    />
+                  )}
+                />
+                <Controller
+                  name={`units.${index}.ofUnitId`}
+                  control={control}
+                  render={({ field: ofField }) => (
+                    <Select
+                      label="of"
+                      options={containedOptions}
+                      value={ofField.value || ""}
+                      onValueChange={ofField.onChange}
+                      placeholder="Smaller unit"
+                    />
+                  )}
+                />
+                <button
+                  type="button"
+                  className="inline-flex h-9 w-9 items-center justify-center self-end rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                  onClick={() => onRemove(index)}
+                  title="Remove unit"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {preview ? (
+        <p className="mt-3 text-sm font-medium text-slate-700">{preview}</p>
+      ) : null}
+      {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+    </div>
+  );
+}
 
 export default StockItemModal;

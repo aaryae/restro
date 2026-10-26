@@ -2,9 +2,12 @@ const { Op } = require("sequelize");
 const {
   stockItemModel,
   stockHistoryModel,
+  stockItemUnitModel,
+  productRecipeModel,
   measuringUnitModel,
   stockGroupModel,
   supplierModel,
+  stockSupplierBalanceModel,
   sequelize,
 } = require("../../models");
 const generalConstant = require("../../constants/general-constant");
@@ -20,10 +23,20 @@ const {
   applyPurchaseToStock,
   createCompletedPurchaseForStockAdjust,
 } = require("../../lib/purchase-stock-sync");
+const { saveStockUnits } = require("../../lib/stock-units");
+const {
+  addSupplierQty,
+  takeSupplierQty,
+  receiveStock,
+} = require("../../lib/stock-suppliers");
+const {
+  UnitChainError,
+  formatBreakdown,
+  formatEquivalence,
+} = require("../../lib/unit-quantity");
 
 const MAX_IMPORT_ROWS = 2000;
 
-const INBOUND_TYPES = new Set(["opening", "purchase", "adjustment_in"]);
 const OUTBOUND_TYPES = new Set(["adjustment_out", "waste"]);
 
 /**
@@ -50,9 +63,73 @@ const itemIncludes = [
   { model: measuringUnitModel, as: "measuringUnit", attributes: ["id", "name", "symbol"] },
   { model: stockGroupModel, as: "stockGroup", attributes: ["id", "name"] },
   { model: supplierModel, as: "supplier", attributes: ["id", "name"] },
+  {
+    model: stockItemUnitModel,
+    as: "units",
+    separate: true,
+    order: [["level", "ASC"]],
+    include: [
+      {
+        model: measuringUnitModel,
+        as: "measuringUnit",
+        attributes: ["id", "name", "symbol"],
+      },
+    ],
+  },
+  {
+    model: stockSupplierBalanceModel,
+    as: "supplierBalances",
+    separate: true,
+    include: [
+      { model: supplierModel, as: "supplier", attributes: ["id", "name"] },
+    ],
+  },
 ];
 
 const toNumber = (value) => Number(value || 0);
+
+const presentStockItem = (item) => {
+  if (!item) return item;
+  const plain = item.get ? item.get({ plain: true }) : { ...item };
+  const units = [...(plain.units || [])].sort(
+    (a, b) => Number(a.level) - Number(b.level),
+  );
+  return {
+    ...plain,
+    units: units.map((level) => ({
+      ...level,
+      factor: toNumber(level.factor),
+      factorToBase: toNumber(level.factorToBase),
+    })),
+    quantityLabel: formatBreakdown(
+      plain.quantity,
+      plain.measuringUnit,
+      units,
+    ),
+    openingLabel: formatBreakdown(
+      plain.openingQuantity,
+      plain.measuringUnit,
+      units,
+    ),
+    equivalence: formatEquivalence(units, plain.measuringUnit),
+    supplierBalances: (plain.supplierBalances || []).map((row) => ({
+      supplierId: row.supplierId || null,
+      supplierName: row.supplier?.name || null,
+      quantity: toNumber(row.quantity),
+      quantityLabel: formatBreakdown(
+        row.quantity,
+        plain.measuringUnit,
+        units,
+      ),
+    })),
+  };
+};
+
+const stockWriteError = (error) => {
+  if (error instanceof PurchaseStockSyncError) return error.toResponse();
+  if (error instanceof UnitChainError) return error.toResponse();
+  return null;
+};
 
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -68,6 +145,7 @@ const create = async (req) => {
       lowStockThreshold,
       accountId,
       paymentTerms,
+      units,
     } = req.body;
 
     const unit = await measuringUnitModel.findByPk(measuringUnitId, {
@@ -83,56 +161,77 @@ const create = async (req) => {
       };
     }
 
+    const trimmedName = String(name || "").trim();
     const rate = toNumber(
       openingRate !== undefined ? openingRate : defaultPrice,
     );
     const openingQty = toNumber(openingQuantity);
     const price = toNumber(defaultPrice);
-    const paidOpening = openingQty > 0 && Boolean(accountId);
+    const paidOpening =
+      openingQty > 0 && Boolean(supplierId) && Boolean(accountId);
 
-    if (paidOpening) {
-      if (!supplierId) {
+    if (paidOpening && !req.user?.id) {
+      await transaction.rollback();
+      return {
+        status: 401,
+        success: false,
+        message: "Authentication required to record purchase",
+        data: null,
+      };
+    }
+
+    const existing = await stockItemModel.findOne({
+      where: sequelize.where(
+        sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
+        trimmedName.toLowerCase(),
+      ),
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    let item = existing;
+    let merged = false;
+
+    if (existing) {
+      if (Number(existing.measuringUnitId) !== Number(measuringUnitId)) {
         await transaction.rollback();
         return {
           status: 400,
           success: false,
-          message: "Supplier is required when recording a paid opening stock",
+          message: `${existing.name} already exists in a different measuring unit`,
           data: null,
         };
       }
-      if (!req.user?.id) {
-        await transaction.rollback();
-        return {
-          status: 401,
-          success: false,
-          message: "Authentication required to record purchase",
-          data: null,
-        };
+      merged = true;
+      if (supplierId && !existing.supplierId) {
+        await existing.update({ supplierId }, { transaction });
+      }
+    } else {
+      const slug = await uniqueSlug(trimmedName, null, transaction);
+      item = await stockItemModel.create(
+        {
+          name: trimmedName,
+          slug,
+          measuringUnitId,
+          stockGroupId: stockGroupId || null,
+          supplierId: supplierId || null,
+          defaultPrice: price,
+          openingQuantity: openingQty,
+          quantity: 0,
+          lowStockThreshold:
+            lowStockThreshold === undefined || lowStockThreshold === null
+              ? null
+              : toNumber(lowStockThreshold),
+        },
+        { transaction },
+      );
+
+      if (Array.isArray(units)) {
+        await saveStockUnits(item.id, item.measuringUnitId, units, transaction);
       }
     }
 
-    const slug = await uniqueSlug(name, null, transaction);
-
-    // Paid opening starts at 0; purchase apply sets the live quantity.
-    const item = await stockItemModel.create(
-      {
-        name,
-        slug,
-        measuringUnitId,
-        stockGroupId: stockGroupId || null,
-        supplierId: supplierId || null,
-        defaultPrice: price,
-        openingQuantity: openingQty,
-        quantity: paidOpening ? 0 : openingQty,
-        lowStockThreshold:
-          lowStockThreshold === undefined || lowStockThreshold === null
-            ? null
-            : toNumber(lowStockThreshold),
-      },
-      { transaction },
-    );
-
-    if (paidOpening) {
+    if (openingQty > 0 && paidOpening) {
       const purchase = await createCompletedPurchaseForStockAdjust({
         stockItem: item,
         quantity: openingQty,
@@ -141,24 +240,27 @@ const create = async (req) => {
         supplierId,
         paymentTerms: paymentTerms || "cash",
         enteredByUserId: req.user.id,
-        note: "Opening stock purchase",
+        note: merged ? `Added to ${item.name}` : "Opening stock purchase",
         transaction,
       });
       await applyPurchaseToStock(purchase.id, {
         transaction,
         userId: null,
       });
-    } else {
-      const createdBy = historyCreatedBy();
+    } else if (openingQty > 0) {
+      await receiveStock(item, openingQty, rate, null, transaction);
       await stockHistoryModel.create(
         {
           stockItemId: item.id,
-          type: "opening",
+          type: merged ? "adjustment_in" : "opening",
           quantity: openingQty,
           rate,
           value: openingQty * rate,
-          note: "Opening stock",
-          createdBy,
+          note: merged
+            ? `Added to ${item.name} with no supplier`
+            : "Opening stock",
+          supplierSplit: [{ supplierId: null, quantity: openingQty }],
+          createdBy: historyCreatedBy(),
         },
         { transaction },
       );
@@ -170,15 +272,21 @@ const create = async (req) => {
       include: itemIncludes,
     });
 
+    const message = merged
+      ? openingQty > 0
+        ? `Added to ${item.name}. The same name in any case is one stock item.`
+        : `${item.name} already exists.`
+      : generalConstant.EN.STOCK_ITEM.CREATE_SUCCESS.message;
+
     return {
       ...generalConstant.EN.STOCK_ITEM.CREATE_SUCCESS,
-      data: full,
+      message,
+      data: presentStockItem(full),
     };
   } catch (error) {
-    await transaction.rollback();
-    if (error instanceof PurchaseStockSyncError) {
-      return error.toResponse();
-    }
+    if (!transaction.finished) await transaction.rollback();
+    const response = stockWriteError(error);
+    if (response) return response;
     throw error;
   }
 };
@@ -213,6 +321,8 @@ const list = async (req) => {
       ],
     });
 
+    result.data = (result.data || []).map(presentStockItem);
+
     return {
       ...generalConstant.EN.STOCK_ITEM.LIST_SUCCESS,
       data: result,
@@ -235,7 +345,7 @@ const getById = async (req) => {
     }
     return {
       ...generalConstant.EN.STOCK_ITEM.GET_SUCCESS,
-      data: item,
+      data: presentStockItem(item),
     };
   } catch (error) {
     throw error;
@@ -263,6 +373,7 @@ const update = async (req) => {
       supplierId,
       defaultPrice,
       lowStockThreshold,
+      units,
     } = req.body;
 
     const updates = {};
@@ -270,7 +381,9 @@ const update = async (req) => {
       updates.name = name;
       updates.slug = await uniqueSlug(name, item.id, transaction);
     }
+    const previousBaseUnitId = item.measuringUnitId;
     if (measuringUnitId) updates.measuringUnitId = measuringUnitId;
+    const nextBaseUnitId = updates.measuringUnitId || previousBaseUnitId;
     if (stockGroupId !== undefined) updates.stockGroupId = stockGroupId || null;
     if (supplierId !== undefined) updates.supplierId = supplierId || null;
     if (defaultPrice !== undefined) updates.defaultPrice = toNumber(defaultPrice);
@@ -280,6 +393,17 @@ const update = async (req) => {
     }
 
     await item.update(updates, { transaction });
+    if (Array.isArray(units)) {
+      await saveStockUnits(item.id, nextBaseUnitId, units, transaction);
+    } else if (
+      updates.measuringUnitId &&
+      Number(updates.measuringUnitId) !== Number(previousBaseUnitId)
+    ) {
+      await stockItemUnitModel.destroy({
+        where: { stockItemId: item.id },
+        transaction,
+      });
+    }
     await transaction.commit();
 
     const full = await stockItemModel.findByPk(item.id, {
@@ -288,10 +412,12 @@ const update = async (req) => {
 
     return {
       ...generalConstant.EN.STOCK_ITEM.UPDATE_SUCCESS,
-      data: full,
+      data: presentStockItem(full),
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) await transaction.rollback();
+    const response = stockWriteError(error);
+    if (response) return response;
     throw error;
   }
 };
@@ -327,18 +453,12 @@ const adjust = async (req) => {
         : toNumber(item.defaultPrice);
     const currentQty = toNumber(item.quantity);
 
-    let nextQty = currentQty;
-    if (INBOUND_TYPES.has(type)) {
-      nextQty = currentQty + qty;
-    } else if (OUTBOUND_TYPES.has(type)) {
-      if (qty > currentQty) {
-        await transaction.rollback();
-        return {
-          ...generalConstant.EN.STOCK_ITEM.INSUFFICIENT_STOCK,
-          data: null,
-        };
-      }
-      nextQty = currentQty - qty;
+    if (OUTBOUND_TYPES.has(type) && qty > currentQty) {
+      await transaction.rollback();
+      return {
+        ...generalConstant.EN.STOCK_ITEM.INSUFFICIENT_STOCK,
+        data: null,
+      };
     }
 
     let purchaseId = null;
@@ -391,11 +511,8 @@ const adjust = async (req) => {
         transaction,
         userId: null,
       });
-    } else {
-      await item.update({ quantity: nextQty }, { transaction });
-
-      const createdBy = historyCreatedBy();
-
+    } else if (type === "adjustment_in") {
+      await receiveStock(item, qty, applyRate, null, transaction);
       await stockHistoryModel.create(
         {
           stockItemId: item.id,
@@ -404,7 +521,27 @@ const adjust = async (req) => {
           rate: applyRate,
           value: qty * applyRate,
           note: note || null,
-          createdBy,
+          supplierSplit: [{ supplierId: null, quantity: qty }],
+          createdBy: historyCreatedBy(),
+        },
+        { transaction },
+      );
+    } else {
+      const taken = await takeSupplierQty(item.id, qty, transaction);
+      await item.update(
+        { quantity: currentQty - qty },
+        { transaction },
+      );
+      await stockHistoryModel.create(
+        {
+          stockItemId: item.id,
+          type,
+          quantity: qty,
+          rate: applyRate,
+          value: qty * applyRate,
+          note: note || null,
+          supplierSplit: taken,
+          createdBy: historyCreatedBy(),
         },
         { transaction },
       );
@@ -418,7 +555,7 @@ const adjust = async (req) => {
 
     return {
       ...generalConstant.EN.STOCK_ITEM.ADJUST_SUCCESS,
-      data: { item: full, purchaseId },
+      data: { item: presentStockItem(full), purchaseId },
     };
   } catch (error) {
     await transaction.rollback();
@@ -488,6 +625,20 @@ const deleteById = async (req) => {
       await transaction.rollback();
       return {
         ...generalConstant.EN.STOCK_ITEM.NOT_FOUND,
+        data: null,
+      };
+    }
+
+    const recipeLinks = await productRecipeModel.count({
+      where: { stockItemId: item.id },
+      transaction,
+    });
+    if (recipeLinks > 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "This stock item is used by a menu item. Remove it from the menu item first",
         data: null,
       };
     }
@@ -717,10 +868,22 @@ const importFromExcel = async (file, options = {}, req = {}) => {
           rate,
           value: openingQty * rate,
           note: "Opening stock (bulk import)",
+          supplierSplit:
+            openingQty > 0
+              ? [{ supplierId: supplier ? supplier.id : null, quantity: openingQty }]
+              : null,
           createdBy,
         },
         { transaction },
       );
+      if (openingQty > 0) {
+        await addSupplierQty(
+          item.id,
+          supplier ? supplier.id : null,
+          openingQty,
+          transaction,
+        );
+      }
 
       existingNames.add(candidate.name.toLowerCase());
       created += 1;

@@ -57,8 +57,40 @@ export const ProductSchema = z
         .optional(),
     ),
     variants: z.array(VariantSchema).optional(),
+    recipes: z
+      .array(
+        z.object({
+          stockItemId: z.string().min(1, "Select an inventory item"),
+          measuringUnitId: z.string().min(1, "Select a unit"),
+          quantity: z.preprocess(
+            (v) =>
+              v === "" || v === null || v === undefined || Number.isNaN(v)
+                ? undefined
+                : v,
+            z.coerce
+              .number({ message: "Quantity must be a number" })
+              .positive("Quantity must be greater than 0"),
+          ),
+        }),
+      )
+      .optional()
+      .default([]),
   })
   .superRefine((data, ctx) => {
+    const seen = new Set<string>();
+    (data.recipes || []).forEach((recipe, index) => {
+      if (!recipe.stockItemId || seen.has(recipe.stockItemId)) {
+        if (recipe.stockItemId && seen.has(recipe.stockItemId)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "This inventory item is already linked",
+            path: ["recipes", index, "stockItemId"],
+          });
+        }
+        return;
+      }
+      seen.add(recipe.stockItemId);
+    });
     if (!data.hasVariant) {
       if (data.price === undefined || data.price <= 0) {
         ctx.addIssue({

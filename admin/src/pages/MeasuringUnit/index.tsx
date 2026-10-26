@@ -74,6 +74,7 @@ const MeasuringUnit: React.FC = () => {
   const headers = [
     "Name",
     "Symbol",
+    "Relation",
     "Description",
     showActions && "Actions",
   ].filter(Boolean) as string[];
@@ -82,6 +83,11 @@ const MeasuringUnit: React.FC = () => {
     const cells = [
       <span className="text-sm font-semibold text-slate-800">{r.name}</span>,
       <span className="text-slate-600">{r.symbol}</span>,
+      <span className="text-sm text-slate-700">
+        {r.equalsUnit && r.equalsFactor != null
+          ? `${Number(r.equalsCount) || 1} ${r.symbol} = ${Number(r.equalsFactor)} ${r.equalsUnit.symbol}`
+          : "—"}
+      </span>,
       <span className="max-w-md text-sm text-slate-500">
         {r.description || "—"}
       </span>,
@@ -129,7 +135,7 @@ const MeasuringUnit: React.FC = () => {
         newButtonText="Add Measuring Unit"
         handleNewButton={() => formModal.openAdd()}
         handleReloadButton={() => refetch()}
-        subText="Restaurant defaults (kg, ltr, pcs, …) are ready. Add custom units when you need them."
+        subText="Name each unit here, and optionally say what it equals, such as 1 liter = 1 piece. Pack sizes that differ by product — 1 packet = 20 pieces for cigarettes — stay on the stock item."
       />
       {accessList.includes("view") ? (
         <Table
@@ -148,7 +154,7 @@ const MeasuringUnit: React.FC = () => {
         open={formModal.open}
         onOpenChange={formModal.onOpenChange}
         title={formModal.isEdit ? "Edit Measuring Unit" : "Add Measuring Unit"}
-        description="Name, symbol, and optional notes for this unit."
+        description="Name, symbol, and an optional relation such as 1 pt = 12 dz."
         size="md"
       >
         <MeasuringUnitModal

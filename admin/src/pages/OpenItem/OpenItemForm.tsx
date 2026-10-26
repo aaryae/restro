@@ -5,7 +5,7 @@ import {
   EntityForm,
   FieldIcon,
 } from "@/components/EntityForm";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { MultipleImageInputUI } from "@/components/ImageComponent";
 import { OpenItemSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +22,7 @@ import {
 } from "@/redux/services/crudApi";
 import { OPEN_ITEM_URL, DEPARTMENT_URL } from "@/constants/apiUrlConstants";
 import { POS_LIST_LIMIT } from "@/constants/listLimits";
+import { buildQueryString } from "@/utils/generalHelper";
 import { Department } from "../../types/department";
 import {
   Banknote,
@@ -73,6 +74,8 @@ export default function OpenItemForm({
       price: undefined as unknown as number,
       departmentId: undefined,
       stockStatus: "in_stock",
+      stockItemId: "",
+      stockQuantity: undefined as unknown as number | undefined,
       mediaArr: [],
     },
   });
@@ -127,6 +130,13 @@ export default function OpenItemForm({
             : (undefined as unknown as number),
         departmentId: openItem.data.departmentId,
         stockStatus: openItem.data.stockStatus,
+        stockItemId: openItem.data.stockItemId
+          ? String(openItem.data.stockItemId)
+          : "",
+        stockQuantity:
+          openItem.data.stockQuantity != null && openItem.data.stockQuantity !== ""
+            ? Number(openItem.data.stockQuantity)
+            : undefined,
         mediaArr:
           openItem.data.mediaArr?.map((each: any) => each.imageUrl) || [],
       });
@@ -150,6 +160,8 @@ export default function OpenItemForm({
       quantity: Number(data.quantity),
       price: data.price !== undefined ? Number(data.price) : undefined,
       departmentId: Number(data.departmentId),
+      stockItemId: data.stockItemId ? Number(data.stockItemId) : null,
+      stockQuantity: data.stockItemId ? Number(data.stockQuantity) : null,
     };
     try {
       const response = isEdit
@@ -163,6 +175,20 @@ export default function OpenItemForm({
       handleError({ error, setError });
     }
   };
+
+  const { data: stockData } = useGetApiQuery({
+    url: buildQueryString("stock-item/list", { page: 1, limit: 300 }),
+  });
+  const stockItems = (stockData?.data?.data || []) as {
+    id: number;
+    name: string;
+    measuringUnit?: { symbol?: string };
+  }[];
+  const stockItemId = useWatch({ control, name: "stockItemId" });
+  const selectedStock = stockItems.find(
+    (item) => String(item.id) === String(stockItemId || ""),
+  );
+  const stockSymbol = selectedStock?.measuringUnit?.symbol;
 
   const stockStatusOptions = [
     { value: "in_stock", label: "In Stock" },
@@ -252,6 +278,53 @@ export default function OpenItemForm({
         {...register("description")}
         error={errors.description?.message}
       />
+      <div className="md:col-span-2 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-4">
+        <p className="mb-1 text-sm font-medium text-[var(--serve-fg)]">
+          Inventory used when this is sold
+        </p>
+        <p className="mb-3 text-[11px] leading-snug text-[var(--serve-muted)]">
+          Optional. One sale uses this much of one stock item, counted in that
+          item&apos;s base unit. Leave it blank if this open item does not use
+          kitchen stock. Quantity above is still how many of this open item
+          you can sell.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Controller
+            name="stockItemId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Stock item"
+                options={stockItems.map((item) => ({
+                  label: item.name,
+                  value: String(item.id),
+                }))}
+                value={field.value || ""}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  if (!value) setValue("stockQuantity", undefined);
+                }}
+                placeholder="No inventory"
+                clearable
+                clearLabel="No inventory"
+                error={errors.stockItemId?.message}
+              />
+            )}
+          />
+          <Input
+            label={stockSymbol ? `Amount per sale (${stockSymbol})` : "Amount per sale"}
+            type="number"
+            step="0.01"
+            placeholder="0"
+            leftSection={<FieldIcon icon={Hash} />}
+            {...register("stockQuantity", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined ? undefined : Number(v),
+            })}
+            error={errors.stockQuantity?.message}
+          />
+        </div>
+      </div>
       <div className="flex min-w-0 flex-col md:col-span-2">
         <span className="mb-1.5 text-xs font-medium text-[var(--serve-muted)]">
           Images

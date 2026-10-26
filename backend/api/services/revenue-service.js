@@ -18,6 +18,7 @@ const {
 
 const { withTransaction } = require("../../helpers/order/transaction");
 const { awardLoyaltyPoints } = require("../../helpers/loyalty/award-points");
+const { parseBusinessDate } = require("../../utils/business-date");
 
 const paginate = require("../../utils/paginate");
 const paginateWithAggregate = require("../../utils/paginateWithAggregate");
@@ -33,6 +34,7 @@ const createRevenue = async (req) => {
       userId,
       accountId,
       remarks,
+      date,
     } = req.body;
 
     // Validate required fields
@@ -93,19 +95,31 @@ const createRevenue = async (req) => {
       }
     }
 
-    // Create Revenue record
-    const revenue = await revenueModel.create(
-      {
-        amount,
-        paymentMethod: paymentMethod || "cash",
-        cash_or_credit: cash_or_credit || "cash",
-        customerId,
-        userId,
-        accountId,
-        remarks,
-      },
-      { transaction },
-    );
+    const parsedDate = parseBusinessDate(date, { label: "Date" });
+    if (!parsedDate.ok) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: parsedDate.error,
+      };
+    }
+
+    // Create Revenue record (createdAt drives list/report date filters)
+    const revenuePayload = {
+      amount,
+      paymentMethod: paymentMethod || "cash",
+      cash_or_credit: cash_or_credit || "cash",
+      customerId,
+      userId,
+      accountId,
+      remarks,
+    };
+    if (parsedDate.date) {
+      revenuePayload.createdAt = parsedDate.date;
+    }
+
+    const revenue = await revenueModel.create(revenuePayload, { transaction });
 
     console.log(
       `[createRevenue] Created revenue ID: ${revenue.id} with accountId: ${accountId}`,
@@ -154,7 +168,7 @@ const updateRevenue = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { customerId, ...rest } = req.body;
+    const { customerId, date, ...rest } = req.body;
 
     // Find the revenue entry
     const revenue = await revenueModel.findByPk(id, { transaction });
@@ -184,14 +198,29 @@ const updateRevenue = async (req) => {
       }
     }
 
+    const updatePayload = {
+      ...rest,
+      customerId: customerId !== undefined ? customerId : revenue.customerId,
+    };
+
+    if (date !== undefined) {
+      const parsedDate = parseBusinessDate(date, {
+        required: true,
+        label: "Date",
+      });
+      if (!parsedDate.ok) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: parsedDate.error,
+        };
+      }
+      updatePayload.createdAt = parsedDate.date;
+    }
+
     // Update only provided fields
-    await revenue.update(
-      {
-        ...rest,
-        customerId: customerId !== undefined ? customerId : revenue.customerId,
-      },
-      { transaction },
-    );
+    await revenue.update(updatePayload, { transaction });
 
     await transaction.commit();
 

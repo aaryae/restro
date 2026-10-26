@@ -16,6 +16,10 @@ module.exports = (sequelize) => {
         as: "department",
         onDelete: "SET NULL",
       });
+      OpenItem.belongsTo(models.stockItemModel, {
+        foreignKey: "stockItemId",
+        as: "stockItem",
+      });
     }
   }
 
@@ -54,6 +58,15 @@ module.exports = (sequelize) => {
       departmentId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+      stockItemId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "stock_items", key: "id" },
+      },
+      stockQuantity: {
+        type: DataTypes.DECIMAL(14, 4),
+        allowNull: true,
       },
     },
     {

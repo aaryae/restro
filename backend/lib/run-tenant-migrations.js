@@ -3,6 +3,10 @@
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
+const {
+  installTenantSearchPathPatch,
+  runWithTenantContext,
+} = require("./tenant-context");
 
 function metaTable(schemaName) {
   return `"${schemaName}"."SequelizeMeta"`;
@@ -145,6 +149,13 @@ function patchQueryInterfaceForTenant(queryInterface, schemaName) {
  * Each tenant gets its own SequelizeMeta + copy of POS tables.
  */
 async function runTenantMigrations(sequelize, schemaName) {
+  installTenantSearchPathPatch(sequelize);
+  return runWithTenantContext({ tenant: { schemaName } }, () =>
+    runTenantMigrationsInSchema(sequelize, schemaName),
+  );
+}
+
+async function runTenantMigrationsInSchema(sequelize, schemaName) {
   await sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
   await setTenantSearchPath(sequelize, schemaName);
   await ensureMetaTable(sequelize, schemaName);

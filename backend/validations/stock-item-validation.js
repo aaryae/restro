@@ -5,10 +5,17 @@ const responseHelper = require("../helpers/response-helper");
 const messageConstant = require("../constants/message-constant");
 const { validateRequestBody } = require("../helpers/validator-helper");
 
+const unitRelation = Joi.object({
+  measuringUnitId: Joi.number().integer().positive().required(),
+  ofUnitId: Joi.number().integer().positive().required(),
+  factor: Joi.number().positive().required(),
+});
+
 const postValidation = async (req, res, next) => {
   const joiModel = Joi.object({
     name: Joi.string().trim().min(1).max(150).required(),
     measuringUnitId: Joi.number().integer().positive().required(),
+    units: Joi.array().items(unitRelation).optional(),
     stockGroupId: Joi.number().integer().positive().optional().allow(null),
     supplierId: Joi.number().integer().positive().optional().allow(null),
     defaultPrice: Joi.number().min(0).optional().default(0),
@@ -22,17 +29,10 @@ const postValidation = async (req, res, next) => {
       .default("cash"),
   }).custom((value, helpers) => {
     const qty = Number(value.openingQuantity || 0);
-    if (qty > 0) {
-      if (!value.accountId) {
-        return helpers.message(
-          "Pay From Account is required when opening quantity is greater than 0",
-        );
-      }
-      if (!value.supplierId) {
-        return helpers.message(
-          "Supplier is required when opening quantity is greater than 0",
-        );
-      }
+    if (qty > 0 && value.supplierId && !value.accountId) {
+      return helpers.message(
+        "Pay From Account is required when a supplier is selected",
+      );
     }
     return value;
   });
@@ -55,6 +55,7 @@ const putValidation = async (req, res, next) => {
   const joiModel = Joi.object({
     name: Joi.string().trim().min(1).max(150).optional(),
     measuringUnitId: Joi.number().integer().positive().optional(),
+    units: Joi.array().items(unitRelation).optional(),
     stockGroupId: Joi.number().integer().positive().optional().allow(null),
     supplierId: Joi.number().integer().positive().optional().allow(null),
     defaultPrice: Joi.number().min(0).optional(),

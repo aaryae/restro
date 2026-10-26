@@ -7,6 +7,10 @@ module.exports = (sequelize) => {
         foreignKey: "measuringUnitId",
         as: "stockItems",
       });
+      MeasuringUnit.belongsTo(models.measuringUnitModel, {
+        foreignKey: "equalsUnitId",
+        as: "equalsUnit",
+      });
     }
   }
 
@@ -33,6 +37,19 @@ module.exports = (sequelize) => {
       },
       description: {
         type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      equalsUnitId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "measuring_units", key: "id" },
+      },
+      equalsFactor: {
+        type: DataTypes.DECIMAL(14, 4),
+        allowNull: true,
+      },
+      equalsCount: {
+        type: DataTypes.DECIMAL(14, 4),
         allowNull: true,
       },
     },

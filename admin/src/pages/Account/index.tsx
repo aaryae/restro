@@ -7,8 +7,7 @@ import usePagination from "@/hooks/usePagination";
 import { useNavigate } from "react-router-dom";
 import { BANK_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign } from "@/constants";
-import { SquarePen, ArrowLeftRight } from "lucide-react";
-import DeleteModal from "@/components/DeleteModal";
+import { SquarePen, ArrowLeftRight, Power, PowerOff } from "lucide-react";import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
@@ -256,9 +255,9 @@ const Account: React.FC = () => {
                 {accessList.includes("edit-status") && (
                   <button
                     type="button"
-                    className={`inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition ${
                       row?.isDefault
-                        ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                        ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
                         : row?.status === "active"
                           ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                           : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
@@ -267,11 +266,17 @@ const Account: React.FC = () => {
                     title={
                       row?.isDefault
                         ? "Primary account cannot be deactivated"
-                        : "Toggle status"
+                        : row?.status === "active"
+                          ? "Deactivate account"
+                          : "Activate account"
                     }
                     disabled={row?.isDefault}
                   >
-                    {row?.status === "active" ? "Deactivate" : "Activate"}
+                    {row?.status === "active" ? (
+                      <PowerOff size={16} />
+                    ) : (
+                      <Power size={16} />
+                    )}
                   </button>
                 )}
                 {accessList.includes("delete") && (
@@ -281,7 +286,12 @@ const Account: React.FC = () => {
                     setOpen={setDeleteModelOpen}
                     itemId={row?.id}
                     activeId={deleteId}
-                    handleDeleteTrigger={() => handleDeleteTrigger(row?.id)}
+                    disabled={Boolean(row?.isDefault)}
+                    disabledTitle="Primary account cannot be deleted"
+                    handleDeleteTrigger={() => {
+                      if (row?.isDefault) return;
+                      handleDeleteTrigger(row?.id);
+                    }}
                     handleConfirmDelete={handleDelete}
                   />
                 )}

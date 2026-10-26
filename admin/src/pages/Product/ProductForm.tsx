@@ -43,6 +43,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { ProductSchema } from "./schema";
+import ProductRecipes from "./ProductRecipes";
 
 const MediaComponent = lazy(() => import("@/components/MediaComponent"));
 const AddEditProductCategory = lazy(
@@ -80,6 +81,7 @@ export default function ProductForm() {
       price: undefined,
       mediaArr: [],
       addons: [],
+      recipes: [],
     },
   });
 
@@ -243,6 +245,13 @@ export default function ProductForm() {
         addons: Array.isArray((product?.data as any)?.addons)
           ? (product?.data as any).addons.map((a: any) => a.id)
           : [],
+        recipes: Array.isArray((product?.data as any)?.recipes)
+          ? (product?.data as any).recipes.map((recipe: any) => ({
+              stockItemId: String(recipe.stockItemId),
+              measuringUnitId: String(recipe.measuringUnitId),
+              quantity: Number(recipe.quantity),
+            }))
+          : [],
       });
       if (Array.isArray((product?.data as any)?.addons)) {
         const fromProduct: Record<
@@ -273,6 +282,7 @@ export default function ProductForm() {
         price: undefined,
         mediaArr: [],
         addons: [],
+        recipes: [],
       });
     }
   }, [success, product, reset, id]);
@@ -337,6 +347,11 @@ export default function ProductForm() {
       isTopSelling: Boolean(data.isTopSelling),
       topSellingOrder: Number(data.topSellingOrder || 0),
       variants: data.hasVariant ? data.variants : [],
+      recipes: (data.recipes || []).map((recipe) => ({
+        stockItemId: Number(recipe.stockItemId),
+        measuringUnitId: Number(recipe.measuringUnitId),
+        quantity: Number(recipe.quantity),
+      })),
     };
     try {
       const response = id
@@ -360,7 +375,7 @@ export default function ProductForm() {
       <EntityForm
         title={isEdit ? "Edit Item" : "Add Item"}
         sectionTitle="Item details"
-        description="Name, category, price, image, and optional addons."
+        description="Name, price, and the inventory this item uses when it is sold."
         icon={Package}
         columns={2}
         maxWidthClass="max-w-4xl"
@@ -518,6 +533,12 @@ export default function ProductForm() {
             />
           </div>
         </div>
+
+        <ProductRecipes
+          control={control as never}
+          setValue={setValue as never}
+          errors={errors}
+        />
 
         <div className="flex min-w-0 flex-col md:col-span-2">
           <FieldHeader

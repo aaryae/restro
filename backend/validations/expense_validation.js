@@ -47,6 +47,9 @@ const expensePostValidation = async (req, res, next) => {
         "number.base": "Supplier ID must be a number",
         "number.positive": "Supplier ID must be positive",
       }),
+    date: Joi.date().iso().optional().messages({
+      "date.base": "Date must be a valid ISO date",
+    }),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -78,6 +81,9 @@ const expensePutValidation = async (req, res, next) => {
     categoryId: Joi.number().integer().positive().optional().allow(null),
     accountId: Joi.number().integer().positive().optional(),
     supplierId: Joi.number().integer().positive().optional().allow(null),
+    date: Joi.date().iso().optional().messages({
+      "date.base": "Date must be a valid ISO date",
+    }),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

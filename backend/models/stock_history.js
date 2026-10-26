@@ -34,6 +34,8 @@ module.exports = (sequelize) => {
           "adjustment_in",
           "adjustment_out",
           "waste",
+          "sale",
+          "sale_reversal",
         ),
         allowNull: false,
       },
@@ -61,6 +63,10 @@ module.exports = (sequelize) => {
       },
       referenceId: {
         type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      supplierSplit: {
+        type: DataTypes.JSON,
         allowNull: true,
       },
       createdBy: {

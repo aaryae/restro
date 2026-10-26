@@ -20,6 +20,8 @@ type DeleteModalProps = {
   compact?: boolean;
   /** When true, trigger is non-interactive (e.g. locked rows). Default false. */
   disabled?: boolean;
+  /** Tooltip when `disabled` is true */
+  disabledTitle?: string;
   /** Row id for this trigger — pass with `activeId` when many rows share one `open` state */
   itemId?: number | string | null;
   /** Currently selected delete id from the parent */
@@ -36,6 +38,7 @@ export default function DeleteModal({
   handleConfirmDelete,
   compact = false,
   disabled = false,
+  disabledTitle,
   itemId,
   activeId,
   title,
@@ -59,13 +62,17 @@ export default function DeleteModal({
       <DialogTrigger asChild>
         <button
           type="button"
-          title={disabled ? "Delete unavailable" : "Delete"}
+          title={
+            disabled
+              ? disabledTitle || "Delete unavailable"
+              : "Delete"
+          }
           disabled={disabled}
           aria-disabled={disabled}
           data-variant="danger"
           className={
             compact
-              ? `inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+              ? `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition ${
                   disabled
                     ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
                     : "border-rose-300 bg-rose-100 text-rose-700 hover:bg-rose-200"

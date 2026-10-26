@@ -62,6 +62,7 @@ type Props = {
   onSuccess?: () => void;
   itemId: number | null;
   itemName?: string;
+  unitSymbol?: string;
   defaultRate?: number;
   defaultSupplierId?: number | null;
 };
@@ -72,6 +73,16 @@ const typeOptions = [
   { label: "Adjustment Out", value: "adjustment_out" },
   { label: "Waste", value: "waste" },
 ];
+
+const typeHints: Record<string, string> = {
+  purchase:
+    "Adds stock and writes a Finance purchase. Opening stays as it was. Closing goes up.",
+  adjustment_in:
+    "Adds stock with no bill, such as a count you found extra. Closing goes up.",
+  adjustment_out:
+    "Removes stock that was not sold, such as a count correction. Closing goes down.",
+  waste: "Removes spoiled or lost stock. Closing goes down, marked as waste.",
+};
 
 const paymentTermOptions = [
   { label: "Cash", value: "cash" },
@@ -85,6 +96,7 @@ const AdjustStockModal: React.FC<Props> = ({
   onSuccess,
   itemId,
   itemName,
+  unitSymbol,
   defaultRate = 0,
   defaultSupplierId = null,
 }) => {
@@ -232,6 +244,11 @@ const AdjustStockModal: React.FC<Props> = ({
           />
         )}
       />
+      {typeHints[adjustType] ? (
+        <p className="-mt-2 text-[12px] leading-snug text-[var(--serve-muted)]">
+          {typeHints[adjustType]}
+        </p>
+      ) : null}
 
       {isPurchase ? (
         <div className="space-y-4 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] p-4">
@@ -287,7 +304,7 @@ const AdjustStockModal: React.FC<Props> = ({
       ) : null}
 
       <Input
-        label="Quantity"
+        label={unitSymbol ? `Quantity (${unitSymbol})` : "Quantity"}
         type="number"
         step="0.01"
         leftSection={<FieldIcon icon={Hash} />}

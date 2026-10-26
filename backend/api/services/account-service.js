@@ -239,9 +239,9 @@ const deleteAccount = async (req) => {
     if (account.isDefault) {
       await transaction.rollback();
       return {
-        status: 401,
+        status: 400,
         success: false,
-        message: "Default Account cannot be deleted",
+        message: "Primary account cannot be deleted",
       };
     }
 
@@ -386,9 +386,9 @@ const updateAccount = async (req) => {
       if (newStatus === "inactive" && account.isDefault) {
         await transaction.rollback();
         return {
-          status: 401,
+          status: 400,
           success: false,
-          message: "Default Account cannot be inactive",
+          message: "Primary account cannot be deactivated",
         };
       }
       baseUpdates.status = newStatus;
@@ -479,9 +479,9 @@ const changeStatus = async (req) => {
     if (account.isDefault) {
       await transaction.rollback();
       return {
-        status: 401,
+        status: 400,
         success: false,
-        message: "Default Account cannot be inactive",
+        message: "Primary account cannot be deactivated",
       };
     }
 

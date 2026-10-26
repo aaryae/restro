@@ -1,6 +1,14 @@
 import { z } from "zod";
+import { isFutureLocalDate } from "@/utils/localDate";
 
 export const RevenueSchema = z.object({
+  date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: "Invalid date" })
+    .refine((v) => !isFutureLocalDate(v.slice(0, 10)), {
+      message: "Date cannot be in the future",
+    }),
   amount: z
     .number({ required_error: "Amount is required" })
     .positive("Amount must be greater than 0"),

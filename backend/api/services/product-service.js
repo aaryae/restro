@@ -10,16 +10,43 @@ const {
   productMediaModel,
   productVariantModel,
   productCategoryModel,
+  productRecipeModel,
+  stockItemModel,
+  measuringUnitModel,
   departmentModel,
   addonModel,
   orderItemModel,
   sequelize,
 } = require("../../models");
+const { replaceProductRecipes } = require("../../lib/product-recipes");
+const { UnitChainError } = require("../../lib/unit-quantity");
 const paginate = require("../../utils/paginate");
 const slugGenerator = require("../../utils/slugify");
 
 /** Keeps a single import transaction to a sane size. */
 const MAX_IMPORT_ROWS = 2000;
+
+const recipeInclude = {
+  model: productRecipeModel,
+  as: "recipes",
+  include: [
+    {
+      model: stockItemModel,
+      as: "stockItem",
+      attributes: ["id", "name", "measuringUnitId"],
+    },
+    {
+      model: measuringUnitModel,
+      as: "measuringUnit",
+      attributes: ["id", "name", "symbol"],
+    },
+  ],
+};
+
+const recipeError = (error) => {
+  if (error instanceof UnitChainError) return error.toResponse();
+  return null;
+};
 // const { Op } = require("sequelize");
 const create = async (req) => {
   const transaction = await sequelize.transaction();
@@ -36,6 +63,8 @@ const create = async (req) => {
       req.body.quantity = 0;
     }
 
+    const recipes = req.body.recipes;
+    delete req.body.recipes;
     const product = await productModel.create(req.body, { transaction });
     // Place newly created items first in the admin list (order ASC).
     const minOrder = await productModel.min("order", { transaction });
@@ -72,6 +101,8 @@ const create = async (req) => {
       await product.addAddons(validAddons, { transaction });
     }
 
+    await replaceProductRecipes(product.id, recipes, transaction);
+
     if (!product) {
       await transaction.rollback();
       return {
@@ -86,6 +117,7 @@ const create = async (req) => {
         { model: productMediaModel, as: "mediaArr" },
         { model: productVariantModel, as: "variants" },
         { model: addonModel, as: "addons" },
+        recipeInclude,
       ],
       transaction,
     });
@@ -96,7 +128,9 @@ const create = async (req) => {
       data: createdProduct,
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) await transaction.rollback();
+    const response = recipeError(error);
+    if (response) return response;
     throw error;
   }
 };
@@ -158,6 +192,7 @@ const getById = async (req) => {
           as: "addons",
           through: { attributes: [] }, // Exclude the join table attributes
         },
+        recipeInclude,
       ],
     });
 
@@ -203,7 +238,7 @@ const updateById = async (req) => {
       };
     }
 
-    const { mediaArr, variants, addons, ...productData } = req.body;
+    const { mediaArr, variants, addons, recipes, ...productData } = req.body;
 
     // Update product data
     const updated = await product.update(productData, { transaction });
@@ -281,12 +316,15 @@ const updateById = async (req) => {
       }
     }
 
+    await replaceProductRecipes(product.id, recipes, transaction);
+
     // Fetch updated product with all associations
     const updatedProduct = await productModel.findByPk(+req.params.id, {
       include: [
         { model: productMediaModel, as: "mediaArr" },
         { model: productVariantModel, as: "variants" },
         { model: addonModel, as: "addons" },
+        recipeInclude,
       ],
       transaction,
     });
@@ -307,9 +345,13 @@ const updateById = async (req) => {
     };
   } catch (error) {
     console.error("UpdateById error:", error);
-    await transaction.rollback().catch((rollbackError) => {
-      console.error("Rollback error:", rollbackError);
-    });
+    if (!transaction.finished) {
+      await transaction.rollback().catch((rollbackError) => {
+        console.error("Rollback error:", rollbackError);
+      });
+    }
+    const response = recipeError(error);
+    if (response) return response;
     throw error;
   }
 };

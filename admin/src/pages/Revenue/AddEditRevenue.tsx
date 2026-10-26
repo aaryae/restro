@@ -28,14 +28,19 @@ import type { RootState } from "@/redux/store/store";
 import { RevenueSchema } from "./schema";
 import {
   Banknote,
+  Calendar,
   CreditCard,
   Landmark,
   TrendingUp,
   UserRound,
   X,
 } from "lucide-react";
+import { todayLocalYmd, toLocalDateString } from "@/utils/localDate";
 
 type RevenueFormType = z.infer<typeof RevenueSchema>;
+
+const todayYmd = todayLocalYmd();
+
 
 type AddEditRevenueProps = {
   id?: number | string | null;
@@ -110,7 +115,11 @@ export default function AddEditRevenue({
     formState: { errors, isSubmitting },
   } = useForm<RevenueFormType>({
     resolver: zodResolver(RevenueSchema),
+    defaultValues: {
+      date: todayYmd,
+    },
   });
+
 
   const [createRevenue, { isLoading: creating }] = useCreateApiMutation();
   const [updateRevenue, { isLoading: updating }] = useUpdateApiMutation();
@@ -124,12 +133,14 @@ export default function AddEditRevenue({
     if (isEditMode && revenueData?.data) {
       const d = revenueData.data as any;
       reset({
+        date: d.createdAt ? toLocalDateString(d.createdAt) : todayYmd,
         amount: Number(d.amount) || 0,
         paymentMethod: d.paymentMethod || "cash",
         cash_or_credit: d.cash_or_credit || "cash",
         accountId: d.accountId,
         remarks: d.remarks || "",
       });
+
       if (d.customer && d.customer.id) {
         const c = d.customer;
         setSelectedCustomer({
@@ -183,7 +194,7 @@ export default function AddEditRevenue({
     <EntityForm
       title={isEditMode ? "Edit Revenue" : "Add Revenue"}
       sectionTitle="Revenue details"
-      description="Customer, amount, account, and payment."
+      description="Date, customer, amount, account, and payment."
       icon={TrendingUp}
       embedded={isComponent}
       maxWidthClass="max-w-4xl"
@@ -197,7 +208,17 @@ export default function AddEditRevenue({
       isLoading={isEditMode && revenueLoading && !revenueData}
       submitLabel={isEditMode ? "Update" : "Submit"}
     >
-      <div className="relative min-w-0 sm:col-span-2 lg:col-span-3">
+      <Input
+        label="Date"
+        type="date"
+        max={todayYmd}
+        leftSection={<FieldIcon icon={Calendar} />}
+        {...register("date")}
+        error={errors.date?.message}
+        isRequired
+      />
+
+      <div className="relative min-w-0 sm:col-span-2 lg:col-span-2">
         <Input
           label="Customer"
           leftSection={<FieldIcon icon={UserRound} />}

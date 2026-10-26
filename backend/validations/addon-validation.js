@@ -24,6 +24,16 @@ const addonPostValidation = async (req, res, next) => {
       "string.min": "Image is required",
       "any.required": "Image is required",
     }),
+    recipes: joi
+      .array()
+      .items(
+        joi.object({
+          stockItemId: joi.number().integer().positive().required(),
+          measuringUnitId: joi.number().integer().positive().required(),
+          quantity: joi.number().positive().required(),
+        }),
+      )
+      .optional(),
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -56,6 +66,16 @@ const addonPutValidation = async (req, res, next) => {
       imageUrl: joi.string().messages({
         "any.required": "Image URL is required",
       }),
+      recipes: joi
+        .array()
+        .items(
+          joi.object({
+            stockItemId: joi.number().integer().positive().required(),
+            measuringUnitId: joi.number().integer().positive().required(),
+            quantity: joi.number().positive().required(),
+          }),
+        )
+        .optional(),
     })
     .min(1); // At least one field is required for update
 

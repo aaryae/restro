@@ -13,6 +13,7 @@ const { Sequelize } = require("sequelize");
 const { Op } = Sequelize;
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { getLocalDateRange } = require("../../utils/timezone");
+const { parseBusinessDate } = require("../../utils/business-date");
 const {
   PurchaseStockSyncError,
   applyPurchaseToStock,
@@ -92,6 +93,20 @@ const create = async (req) => {
       ? String(invoiceNumber).trim()
       : null;
 
+    const parsedInvoiceDate = parseBusinessDate(invoiceDate, {
+      required: true,
+      label: "Invoice date",
+    });
+    if (!parsedInvoiceDate.ok) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: parsedInvoiceDate.error,
+        data: null,
+      };
+    }
+
     // Validate references
     const supplier = await supplierModel.findByPk(supplierId, { transaction });
     if (!supplier) {
@@ -123,7 +138,7 @@ const create = async (req) => {
     const purchase = await purchaseModel.create(
       {
         supplierId,
-        invoiceDate,
+        invoiceDate: new Date(`${parsedInvoiceDate.ymd}T00:00:00.000Z`),
         invoiceNumber: normalizedInvoiceNumber,
         paymentTerms,
         accountId,
@@ -499,7 +514,24 @@ const updateById = async (req) => {
     }
 
     if (supplierId) updateData.supplierId = supplierId;
-    if (invoiceDate) updateData.invoiceDate = invoiceDate;
+    if (invoiceDate) {
+      const parsedInvoiceDate = parseBusinessDate(invoiceDate, {
+        required: true,
+        label: "Invoice date",
+      });
+      if (!parsedInvoiceDate.ok) {
+        await transaction.rollback();
+        return {
+          status: 400,
+          success: false,
+          message: parsedInvoiceDate.error,
+          data: null,
+        };
+      }
+      updateData.invoiceDate = new Date(
+        `${parsedInvoiceDate.ymd}T00:00:00.000Z`,
+      );
+    }
     if (paymentTerms) updateData.paymentTerms = paymentTerms;
     if (accountId) updateData.accountId = accountId;
     if (discountAmount !== undefined)

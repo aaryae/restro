@@ -1,4 +1,5 @@
-import React, { lazy, Suspense, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import MenuPageToolbar from "@/components/MenuPageToolbar";
 import Table from "@/components/Table";
 import TableRowActions from "@/components/Table/TableRowActions";
@@ -6,7 +7,7 @@ import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
 import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
-import { PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
+import { Info, PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
 import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
@@ -37,6 +38,106 @@ const isLowStockItem = (row: {
     return false;
   }
   return Number(row.quantity || 0) <= Number(row.lowStockThreshold);
+};
+
+type SupplierBalance = {
+  supplierId?: number | null;
+  supplierName?: string | null;
+  quantity?: number | string | null;
+  quantityLabel?: string | null;
+};
+
+const supplierLines = (balances: SupplierBalance[] | undefined, symbol?: string) => {
+  const rows = balances || [];
+  const unnamed = rows.find((row) => !row.supplierId);
+  const named = rows.filter((row) => row.supplierId);
+  const noneLabel = unnamed?.quantityLabel || formatQty(unnamed?.quantity || 0, symbol);
+  return [
+    `${noneLabel} is not from a supplier`,
+    ...named.map((row) => {
+      const label = row.quantityLabel || formatQty(row.quantity || 0, symbol);
+      return `${label} is from ${row.supplierName || "this supplier"}`;
+    }),
+  ];
+};
+
+const supplierSummary = (balances: SupplierBalance[] | undefined, fallback?: string | null) => {
+  const named = (balances || []).filter((row) => row.supplierId && Number(row.quantity || 0) > 0);
+  if (named.length === 0) return fallback || "—";
+  if (named.length === 1) return named[0].supplierName || fallback || "—";
+  return `${named.length} suppliers`;
+};
+
+const SupplierNote = ({
+  balances,
+  symbol,
+}: {
+  balances?: SupplierBalance[];
+  symbol?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const lines = supplierLines(balances, symbol);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: Event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("[data-supplier-note]")) return;
+      setOpen(false);
+    };
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    document.addEventListener("mousedown", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("mousedown", close);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        type="button"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        title={lines.join("\n")}
+        aria-label="Supplier quantities"
+        data-supplier-note
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          const rect = event.currentTarget.getBoundingClientRect();
+          setPos({ top: rect.bottom + 6, left: Math.max(8, rect.right - 260) });
+          setOpen((value) => !value);
+        }}
+      >
+        <Info size={14} />
+      </button>
+      {open &&
+        createPortal(
+          <div
+            className="fixed z-[80] w-64 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg"
+            style={{ top: pos.top, left: pos.left }}
+            data-supplier-note
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Where this stock is from
+            </p>
+            <ul className="space-y-1.5">
+              {lines.map((line) => (
+                <li key={line} className="text-xs leading-snug text-slate-700">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
 };
 
 const StockItem: React.FC = () => {
@@ -175,20 +276,28 @@ const StockItem: React.FC = () => {
         <span className="text-slate-400">—</span>
       ),
       <span className="text-slate-700">{formatMoney(rate)}</span>,
-      <span className="text-slate-600">
-        {formatQty(r.openingQuantity, symbol)}
+      <span className="text-slate-600" title={r.equivalence || undefined}>
+        {r.openingLabel || formatQty(r.openingQuantity, symbol)}
       </span>,
       <span
         className={
           lowStock
-            ? "font-semibold text-amber-700"
-            : "font-medium text-slate-800"
+            ? "whitespace-nowrap font-semibold text-amber-700"
+            : "whitespace-nowrap font-medium text-slate-800"
+        }
+        title={
+          r.units?.length
+            ? `${formatQty(closing, symbol)} total${r.equivalence ? ` · ${r.equivalence}` : ""}`
+            : undefined
         }
       >
-        {formatQty(closing, symbol)}
+        {r.quantityLabel || formatQty(closing, symbol)}
       </span>,
       <span className="text-slate-700">{formatMoney(closing * rate)}</span>,
-      <span className="text-slate-600">{r.supplier?.name || "—"}</span>,
+      <span className="inline-flex items-center gap-1 text-slate-600">
+        {supplierSummary(r.supplierBalances, r.supplier?.name)}
+        <SupplierNote balances={r.supplierBalances} symbol={symbol} />
+      </span>,
     ];
 
     if (showActions) {
@@ -289,7 +398,7 @@ const StockItem: React.FC = () => {
         newButtonText="Add New"
         handleNewButton={openCreate}
         handleReloadButton={refreshAll}
-        subText="Track inventory quantities, value, and low stock."
+        subText="Quantities are kept in the base unit. Pack relations such as dozen, packet, and piece update together when a menu item is sold."
       />
 
       <div
@@ -408,6 +517,7 @@ const StockItem: React.FC = () => {
           onSuccess={refreshAll}
           itemId={adjustItem?.id ?? null}
           itemName={adjustItem?.name}
+          unitSymbol={adjustItem?.measuringUnit?.symbol}
           defaultRate={Number(adjustItem?.defaultPrice || 0)}
           defaultSupplierId={
             adjustItem?.supplierId != null

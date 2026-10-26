@@ -16,6 +16,8 @@ const typeLabel: Record<string, string> = {
   adjustment_in: "Adjustment In",
   adjustment_out: "Adjustment Out",
   waste: "Waste",
+  sale: "Sale",
+  sale_reversal: "Sale returned",
 };
 
 const formatMoney = (amount: number | string) =>

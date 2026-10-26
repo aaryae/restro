@@ -38,11 +38,14 @@ import Toast from "@/components/Toast";
 import TextArea from "@/components/TextArea";
 import { EntityForm, FieldHeader } from "@/components/EntityForm";
 import "./purchase.css";
+import { todayLocalYmd, toLocalDateString } from "@/utils/localDate";
 
 const StockItemModal = lazy(() => import("@/pages/StockItem/StockItemModal"));
 const AddPurchaseCategory = lazy(
   () => import("@/pages/PurchaseCategory/AddEditPurchaseCategory"),
 );
+
+const todayYmd = todayLocalYmd();
 
 const computeBackendPurchaseTotal = (items: PurchaseItemInput[]) =>
   items.reduce((total, item) => {
@@ -117,7 +120,7 @@ const AddEditPurchase: React.FC = () => {
   } = useForm<FormValues>({
     resolver: zodResolver(PurchaseSchema),
     defaultValues: {
-      invoiceDate: new Date().toISOString().slice(0, 10),
+      invoiceDate: todayYmd,
       supplierId: "",
       invoiceNumber: "",
       items: [
@@ -371,8 +374,9 @@ const AddEditPurchase: React.FC = () => {
     if (!isEdit || !purchaseFetched || !purchaseData?.data) return;
     const p = purchaseData.data as any;
     reset({
-      invoiceDate:
-        p.invoiceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+      invoiceDate: p.invoiceDate
+        ? toLocalDateString(p.invoiceDate)
+        : todayYmd,
       supplierId: String(p.supplierId || ""),
       invoiceNumber: p.invoiceNumber || "",
       items: (p.purchaseItems || []).map((it: any) => ({
@@ -556,6 +560,7 @@ const AddEditPurchase: React.FC = () => {
                 <input
                   type="date"
                   className={inputClass}
+                  max={todayYmd}
                   {...register("invoiceDate", {
                     required: "Invoice date is required",
                   })}

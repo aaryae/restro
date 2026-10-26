@@ -23,6 +23,18 @@ module.exports = (sequelize) => {
         foreignKey: "stockItemId",
         as: "purchaseItems",
       });
+      StockItem.hasMany(models.stockItemUnitModel, {
+        foreignKey: "stockItemId",
+        as: "units",
+      });
+      StockItem.hasMany(models.productRecipeModel, {
+        foreignKey: "stockItemId",
+        as: "recipes",
+      });
+      StockItem.hasMany(models.stockSupplierBalanceModel, {
+        foreignKey: "stockItemId",
+        as: "supplierBalances",
+      });
     }
   }
 

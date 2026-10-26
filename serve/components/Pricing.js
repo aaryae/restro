@@ -1,5 +1,4 @@
 'use client'
-'use client'
 import Link from 'next/link'
 import { useReveal } from './useReveal'
 
@@ -53,7 +52,10 @@ export default function Pricing() {
             style={{ background: 'rgba(196,118,58,0.06)' }} />
 
           <span className="relative z-10 inline-block bg-caramel/20 text-caramel font-dmono text-[0.72rem] tracking-[0.08em] uppercase px-3 py-1 rounded-full mb-5">One-Time Setup</span>
-          <div className="relative z-10 font-syne text-[2.8rem] font-extrabold tracking-[-0.04em] text-cream leading-none mb-1">NPR 5,000</div>
+          <div className="relative z-10 flex items-baseline gap-3 mb-1">
+            <span className="font-syne text-[1.35rem] font-bold tracking-[-0.02em] text-cream/40 line-through">NPR 30,000</span>
+            <span className="font-syne text-[2.8rem] font-extrabold tracking-[-0.04em] text-cream leading-none">NPR 15,000</span>
+          </div>
           <div className="relative z-10 text-[0.82rem] font-light mb-8" style={{ color: 'rgba(245,239,230,0.5)' }}>+ VAT &nbsp;|&nbsp; Includes 1 year hosting</div>
 
           <ul className="relative z-10 flex flex-col gap-3 mb-8 list-none">
@@ -80,7 +82,10 @@ export default function Pricing() {
             className="bg-white border border-caramel/12 rounded-[24px] p-8 hover:border-caramel/25
               hover:shadow-[0_8px_32px_rgba(26,15,10,0.07)] transition-all duration-300">
             <span className="inline-block bg-caramel/10 text-caramel font-dmono text-[0.72rem] tracking-[0.08em] uppercase px-3 py-1 rounded-full mb-5">Annual Maintenance</span>
-            <div className="font-syne text-[2.4rem] font-extrabold tracking-[-0.04em] text-ink leading-none mb-1">NPR 5,000</div>
+            <div className="flex items-baseline gap-3 mb-1">
+              <span className="font-syne text-[1.2rem] font-bold tracking-[-0.02em] text-muted/60 line-through">NPR 24,000</span>
+              <span className="font-syne text-[2.4rem] font-extrabold tracking-[-0.04em] text-ink leading-none">NPR 12,000</span>
+            </div>
             <div className="text-[0.82rem] text-muted font-light mb-6">+ VAT per year</div>
             <ul className="flex flex-col gap-3 list-none">
               {maintenance.map(item => (

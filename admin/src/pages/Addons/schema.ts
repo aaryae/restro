@@ -16,6 +16,24 @@ export const AddonSchema = z.object({
     .array(z.string().min(1, "Each Image URL must be valid"))
     .optional()
     .default([]),
+  recipes: z
+    .array(
+      z.object({
+        stockItemId: z.string().min(1, "Select an inventory item"),
+        measuringUnitId: z.string().min(1, "Select a unit"),
+        quantity: z.preprocess(
+          (v) =>
+            v === "" || v === null || v === undefined || Number.isNaN(v)
+              ? undefined
+              : v,
+          z.coerce
+            .number({ message: "Quantity must be a number" })
+            .positive("Quantity must be greater than 0"),
+        ),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export type AddonType = z.infer<typeof AddonSchema>;

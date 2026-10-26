@@ -1,6 +1,7 @@
 const {
   openItemModel,
   openItemMediaModel,
+  stockItemModel,
   sequelize,
 } = require("../../models");
 const paginate = require("../../utils/paginate");
@@ -8,10 +9,32 @@ const slugGenerator = require("../../utils/slugify");
 const httpStatus = require("http-status");
 const { Op } = require("sequelize");
 
+async function stockLink(body, transaction) {
+  const stockItemId = body.stockItemId ? Number(body.stockItemId) : null;
+  const stockQuantity =
+    body.stockQuantity != null && body.stockQuantity !== ""
+      ? Number(body.stockQuantity)
+      : null;
+  if (!stockItemId) return { stockItemId: null, stockQuantity: null };
+  const item = await stockItemModel.findByPk(stockItemId, { transaction });
+  if (!item) {
+    const error = new Error("Inventory item not found");
+    error.status = 400;
+    throw error;
+  }
+  if (!(stockQuantity > 0)) {
+    const error = new Error("Enter how much inventory one sale uses");
+    error.status = 400;
+    throw error;
+  }
+  return { stockItemId, stockQuantity };
+}
+
 const create = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     req.body.slug = slugGenerator(req.body.name);
+    Object.assign(req.body, await stockLink(req.body, transaction));
 
     const openItem = await openItemModel.create(req.body, { transaction });
 
@@ -46,6 +69,14 @@ const create = async (req) => {
     await transaction.rollback().catch((rollbackError) => {
       console.error("Rollback error:", rollbackError);
     });
+    if (error.status) {
+      return {
+        status: error.status,
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
     throw error;
   }
 };
@@ -98,7 +129,14 @@ const list = async (req) => {
 const getById = async (req) => {
   try {
     const openItem = await openItemModel.findByPk(+req.params.id, {
-      include: [{ model: openItemMediaModel, as: "mediaArr" }],
+      include: [
+        { model: openItemMediaModel, as: "mediaArr" },
+        {
+          model: stockItemModel,
+          as: "stockItem",
+          attributes: ["id", "name", "measuringUnitId"],
+        },
+      ],
     });
 
     if (!openItem) {
@@ -138,6 +176,9 @@ const updateById = async (req) => {
     }
 
     const { mediaArr, ...openItemData } = req.body;
+    if ("stockItemId" in req.body || "stockQuantity" in req.body) {
+      Object.assign(openItemData, await stockLink(req.body, transaction));
+    }
 
     // Update open item data
     const updated = await openItem.update(openItemData, { transaction });
@@ -195,6 +236,14 @@ const updateById = async (req) => {
     await transaction.rollback().catch((rollbackError) => {
       console.error("Rollback error:", rollbackError);
     });
+    if (error.status) {
+      return {
+        status: error.status,
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
     throw error;
   }
 };

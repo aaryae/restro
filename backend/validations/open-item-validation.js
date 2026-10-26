@@ -55,6 +55,17 @@ const openItemPostValidation = async (req, res, next) => {
       "array.base": "Media array must be an array",
       "string.base": "Each media item must be a string",
     }),
+    stockItemId: joi.number().integer().positive().optional().allow(null),
+    stockQuantity: joi.number().positive().optional().allow(null),
+  }).custom((value, helpers) => {
+    const hasItem = Boolean(value.stockItemId);
+    const hasQty = value.stockQuantity != null && value.stockQuantity !== "";
+    if (hasItem !== hasQty) {
+      return helpers.message(
+        "Choose an inventory item and how much one sale uses, or leave both blank",
+      );
+    }
+    return value;
   });
 
   const errors = await validateRequestBody(req, res, joiModel);
@@ -120,6 +131,21 @@ const openItemPutValidation = async (req, res, next) => {
       "array.base": "Media array must be an array",
       "string.base": "Each media item must be a string",
     }),
+    stockItemId: joi.number().integer().positive().optional().allow(null),
+    stockQuantity: joi.number().positive().optional().allow(null),
+  }).custom((value, helpers) => {
+    const hasItem = value.stockItemId != null && value.stockItemId !== "";
+    const hasQty = value.stockQuantity != null && value.stockQuantity !== "";
+    if (
+      (Object.prototype.hasOwnProperty.call(value, "stockItemId") ||
+        Object.prototype.hasOwnProperty.call(value, "stockQuantity")) &&
+      hasItem !== hasQty
+    ) {
+      return helpers.message(
+        "Choose an inventory item and how much one sale uses, or leave both blank",
+      );
+    }
+    return value;
   });
 
   const errors = await validateRequestBody(req, res, joiModel);

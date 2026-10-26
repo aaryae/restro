@@ -22,6 +22,7 @@ const {
 
 const { withTransaction } = require("../../helpers/order/transaction");
 const { awardLoyaltyPoints } = require("../../helpers/loyalty/award-points");
+const { syncOrderItemStock } = require("../../lib/order-stock");
 
 const paginate = require("../../utils/paginate");
 
@@ -511,6 +512,7 @@ const createOrder = async (req) => {
         const createdItem = await orderItemModel.create(orderItemData, {
           transaction,
         });
+        await syncOrderItemStock(createdItem, transaction);
         if (item.tempId) {
           createdItems.set(item.tempId, createdItem);
         }
@@ -550,6 +552,7 @@ const createOrder = async (req) => {
             },
             { transaction },
           );
+          await syncOrderItemStock(addonOrderItem, transaction);
 
           totalAmount += addonSubtotal;
         }
@@ -611,12 +614,12 @@ const createOrder = async (req) => {
       data: createdOrder,
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) await transaction.rollback();
     console.error("Create order error:", error);
     return {
-      status: 500,
+      status: error.status || 500,
       success: false,
-      message: "Failed to create order",
+      message: error.status ? error.message : "Failed to create order",
       error: error.message,
     };
   }
@@ -719,6 +722,7 @@ const updateOrderItems = async (req) => {
           },
           { transaction },
         );
+        await syncOrderItemStock(existing, transaction);
       }
 
       // Handle addons for existing item
@@ -729,12 +733,23 @@ const updateOrderItems = async (req) => {
           .filter(Boolean);
 
         // Delete addons not in incoming list (if not cancelled)
+        const removeWhere = {
+          parentOrderItemId: existing.id,
+          addonId: { [Op.notIn]: incomingAddonIds },
+          status: { [Op.ne]: "cancelled" },
+        };
+        const removedAddons = await orderItemModel.findAll({
+          where: removeWhere,
+          transaction,
+        });
+        for (const removed of removedAddons) {
+          await syncOrderItemStock(
+            { ...removed.get({ plain: true }), status: "cancelled" },
+            transaction,
+          );
+        }
         await orderItemModel.destroy({
-          where: {
-            parentOrderItemId: existing.id,
-            addonId: { [Op.notIn]: incomingAddonIds },
-            status: { [Op.ne]: "cancelled" },
-          },
+          where: removeWhere,
           transaction,
         });
 
@@ -781,11 +796,12 @@ const updateOrderItems = async (req) => {
                 },
                 { transaction },
               );
+              await syncOrderItemStock(existingAddon, transaction);
             }
           } else {
             // Create new addon
             const addonSubtotal = addonProduct.price * (addon.quantity || 1);
-            await orderItemModel.create(
+            const createdAddon = await orderItemModel.create(
               {
                 orderId,
                 kotId: existing.kotId, // Inherit from parent
@@ -802,6 +818,7 @@ const updateOrderItems = async (req) => {
               },
               { transaction },
             );
+            await syncOrderItemStock(createdAddon, transaction);
           }
         }
       }
@@ -915,6 +932,7 @@ const updateOrderItems = async (req) => {
             { transaction },
           );
           createdItems.set(item.tempId, createdItem);
+          await syncOrderItemStock(createdItem, transaction);
         }
       }
 
@@ -946,7 +964,7 @@ const updateOrderItems = async (req) => {
             }
 
             const addonSubtotal = addonProduct.price * (addon.quantity || 1);
-            await orderItemModel.create(
+            const createdAddon = await orderItemModel.create(
               {
                 orderId,
                 kotId: parentItem.kotId,
@@ -963,6 +981,7 @@ const updateOrderItems = async (req) => {
               },
               { transaction },
             );
+            await syncOrderItemStock(createdAddon, transaction);
           }
         }
       }
@@ -1073,12 +1092,12 @@ const updateOrderItems = async (req) => {
       data: updatedOrder,
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) await transaction.rollback();
     console.error("Update order items error:", error);
     return {
-      status: 500,
+      status: error.status || 500,
       success: false,
-      message: "Failed to update order items",
+      message: error.status ? error.message : "Failed to update order items",
       error: error.message,
     };
   }
@@ -2510,6 +2529,13 @@ const updateOrderStatus = async (req) => {
           },
         ),
       ]);
+      const cancelledItems = await orderItemModel.findAll({
+        where: { orderId: order.id },
+        transaction: t,
+      });
+      for (const item of cancelledItems) {
+        await syncOrderItemStock(item, t);
+      }
     }
 
     // If order is being cancelled and it's linked to a table
@@ -2668,6 +2694,12 @@ const updateOrderItemsStatus = async (req) => {
         transaction,
       },
     );
+    if (status === "cancelled") {
+      await syncOrderItemStock(
+        { ...orderItem.get({ plain: true }), status: "cancelled" },
+        transaction,
+      );
+    }
 
     // If cancelled, handle addons and KOT
     if (status === "cancelled") {
@@ -2786,12 +2818,14 @@ const updateOrderItemsStatus = async (req) => {
       data: [orderItem],
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) await transaction.rollback();
     console.error("Error updating order item status:", error);
     return {
-      status: 500,
+      status: error.status || 500,
       success: false,
-      message: "Error updating order item status",
+      message: error.status
+        ? error.message
+        : "Error updating order item status",
       error: error.message,
     };
   }

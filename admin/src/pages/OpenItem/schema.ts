@@ -29,7 +29,25 @@ export const OpenItemSchema = z.object({
   stockStatus: z
     .enum(["in_stock", "out_of_stock", "low_stock"])
     .default("in_stock"),
+  stockItemId: z.string().optional(),
+  stockQuantity: z.preprocess(
+    (v) =>
+      v === "" || v === null || v === undefined || Number.isNaN(v)
+        ? undefined
+        : v,
+    z.coerce.number().positive("Amount must be greater than 0").optional(),
+  ),
   mediaArr: z
     .array(z.string().min(1, "Each Image URL must be valid"))
     .optional(),
+}).superRefine((data, ctx) => {
+  const hasItem = Boolean(data.stockItemId);
+  const hasQty = data.stockQuantity != null;
+  if (hasItem !== hasQty) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Enter how much one sale uses",
+      path: [hasItem ? "stockQuantity" : "stockItemId"],
+    });
+  }
 });

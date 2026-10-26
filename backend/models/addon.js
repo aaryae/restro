@@ -10,6 +10,10 @@ module.exports = (sequelize) => {
         otherKey: "productId",
         as: "products",
       });
+      Addon.hasMany(models.addonRecipeModel, {
+        foreignKey: "addonId",
+        as: "recipes",
+      });
     }
   }
 

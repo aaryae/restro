@@ -9,6 +9,8 @@ const {
   stockHistoryModel,
 } = require("../models");
 
+const { receiveStock, takeSupplierQty } = require("./stock-suppliers");
+
 const REFERENCE_TYPE = "purchase";
 
 const toNumber = (value) => Number(value || 0);
@@ -96,8 +98,13 @@ const applyPurchaseToStock = async (
     const rate = toNumber(line.rate);
     if (qty <= 0) continue;
 
-    const nextQty = toNumber(stockItem.quantity) + qty;
-    await stockItem.update({ quantity: nextQty }, { transaction });
+    await receiveStock(
+      stockItem,
+      qty,
+      rate,
+      purchase.supplierId,
+      transaction,
+    );
 
     await stockHistoryModel.create(
       {
@@ -109,6 +116,9 @@ const applyPurchaseToStock = async (
         note,
         referenceType: REFERENCE_TYPE,
         referenceId: purchase.id,
+        supplierSplit: [
+          { supplierId: purchase.supplierId || null, quantity: qty },
+        ],
         createdBy: userId || null,
       },
       { transaction },
@@ -141,6 +151,9 @@ const reversePurchaseFromStock = async (
     return { reversed: false, reason: "nothing_to_reverse" };
   }
 
+  const purchase = await purchaseModel.findByPk(id, { transaction });
+  const purchaseSupplierId = purchase?.supplierId || null;
+
   for (const history of histories) {
     const stockItem = await stockItemModel.findByPk(history.stockItemId, {
       transaction,
@@ -160,6 +173,18 @@ const reversePurchaseFromStock = async (
       );
     }
 
+    const split = Array.isArray(history.supplierSplit)
+      ? history.supplierSplit
+      : [];
+    const preferredSupplierId =
+      split.find((part) => part && part.supplierId)?.supplierId ||
+      purchaseSupplierId;
+    await takeSupplierQty(
+      stockItem.id,
+      qty,
+      transaction,
+      preferredSupplierId,
+    );
     await stockItem.update(
       { quantity: currentQty - qty },
       { transaction },

@@ -28,6 +28,7 @@ import {
 } from "@/components/EntityForm";
 import {
   Banknote,
+  Calendar,
   CreditCard,
   FolderTree,
   Plus,
@@ -37,8 +38,11 @@ import {
 } from "lucide-react";
 import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
+import { todayLocalYmd, toLocalDateString } from "@/utils/localDate";
 
 export type ExpenseFormInput = z.infer<typeof ExpenseSchema>;
+
+const todayYmd = todayLocalYmd();
 
 type AddEditExpenseProps = {
   id?: number | string | null;
@@ -92,6 +96,7 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
   } = useForm<ExpenseFormInput>({
     resolver: zodResolver(ExpenseSchema),
     defaultValues: {
+      date: todayYmd,
       paymentMethod: undefined,
       categoryId: "",
       accountId: "",
@@ -161,6 +166,7 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
     if (!isEdit || !id || !expenseData?.data) return;
     const row = expenseData?.data as any;
     reset({
+      date: row?.createdAt ? toLocalDateString(row.createdAt) : todayYmd,
       categoryId: row?.categoryId ? String(row.categoryId) : "",
       paymentMethod: row?.paymentMethod,
       accountId: String(row.accountId),
@@ -207,6 +213,7 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
       categoryId: data.categoryId ? Number(data.categoryId) : null,
       supplierId: data.supplierId ? Number(data.supplierId) : null,
       remarks: data.remarks ?? null,
+      date: data.date,
     } as any;
 
     try {
@@ -230,6 +237,7 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
 
   const handleReset = () => {
     reset({
+      date: todayYmd,
       paymentMethod: undefined,
       categoryId: "",
       accountId: "",
@@ -245,7 +253,7 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
     <EntityForm
       title={isEdit ? "Edit Expense" : "Add Expense"}
       sectionTitle="Expense details"
-      description="Category, payment, amount, and optional supplier."
+      description="Date, category, payment, amount, and optional supplier."
       icon={Wallet}
       embedded={isComponent}
       maxWidthClass="max-w-5xl"
@@ -273,6 +281,16 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
         </button>
       }
     >
+      <Input
+        label="Date"
+        type="date"
+        max={todayYmd}
+        leftSection={<FieldIcon icon={Calendar} />}
+        {...register("date")}
+        error={errors.date?.message}
+        isRequired
+      />
+
       <Controller
         name="categoryId"
         control={control}

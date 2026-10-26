@@ -1,6 +1,14 @@
 import z from "zod";
+import { isFutureLocalDate } from "@/utils/localDate";
 
 export const ExpenseSchema = z.object({
+  date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: "Invalid date" })
+    .refine((v) => !isFutureLocalDate(v.slice(0, 10)), {
+      message: "Date cannot be in the future",
+    }),
   paymentMethod: z.enum(["cash", "card", "online"], {
     required_error: "Payment method is required",
   }),

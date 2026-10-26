@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isFutureLocalDate } from "@/utils/localDate";
 
 export const PurchaseItemSchema = z.object({
   particulars: z.string().min(1, "Particulars is required"),
@@ -59,6 +60,9 @@ export const PurchaseSchema = z.object({
     .min(1, "Invoice date is required")
     .refine((v) => !Number.isNaN(Date.parse(v)), {
       message: "Invalid invoice date",
+    })
+    .refine((v) => !isFutureLocalDate(v.slice(0, 10)), {
+      message: "Invoice date cannot be in the future",
     }),
   supplierId: z.string().min(1, "Select a supplier from the list"),
   invoiceNumber: z.string().optional().nullable(),
