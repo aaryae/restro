@@ -182,6 +182,7 @@ export default function OpenItemForm({
   const stockItems = (stockData?.data?.data || []) as {
     id: number;
     name: string;
+    isNewStock?: boolean;
     measuringUnit?: { symbol?: string };
   }[];
   const stockItemId = useWatch({ control, name: "stockItemId" });
@@ -296,7 +297,9 @@ export default function OpenItemForm({
               <Select
                 label="Stock item"
                 options={stockItems.map((item) => ({
-                  label: item.name,
+                  label: item.isNewStock
+                    ? `${item.name} (New stock)`
+                    : item.name,
                   value: String(item.id),
                 }))}
                 value={field.value || ""}

@@ -35,6 +35,7 @@ type GlobalUnit = UnitRef & {
 type StockRow = {
   id: number;
   name: string;
+  isNewStock?: boolean;
   measuringUnitId: number;
   measuringUnit?: UnitRef;
   units?: {
@@ -124,7 +125,7 @@ export default function ProductRecipes({
   const stockOptions = useMemo(
     () =>
       stockItems.map((item) => ({
-        label: item.name,
+        label: item.isNewStock ? `${item.name} (New stock)` : item.name,
         value: String(item.id),
       })),
     [stockItems],

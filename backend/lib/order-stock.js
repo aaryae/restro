@@ -11,6 +11,7 @@ const {
   stockItemUnitModel,
   stockHistoryModel,
   measuringUnitModel,
+  sequelize,
 } = require("../models");
 const {
   toNumber,
@@ -138,13 +139,32 @@ async function syncOrderItemStock(orderItem, transaction) {
   for (const recipe of recipes) {
     const stockItem = await stockItemModel.findByPk(recipe.stockItemId, {
       transaction,
-      lock: transaction.LOCK.UPDATE,
     });
     if (!stockItem) continue;
 
-    const [units, baseUnit] = await Promise.all([
+    const family = await stockItemModel.findAll({
+      where: {
+        measuringUnitId: stockItem.measuringUnitId,
+        [Op.and]: [
+          sequelize.where(
+            sequelize.fn(
+              "lower",
+              sequelize.fn("btrim", sequelize.col("name")),
+            ),
+            String(stockItem.name || "").trim().toLowerCase(),
+          ),
+        ],
+      },
+      order: [["id", "ASC"]],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    const batches = family.length ? family : [stockItem];
+    const batchIds = batches.map((batch) => batch.id);
+
+    const [unitRows, baseUnit] = await Promise.all([
       stockItemUnitModel.findAll({
-        where: { stockItemId: stockItem.id },
+        where: { stockItemId: { [Op.in]: batchIds } },
         include: [unitInclude],
         transaction,
       }),
@@ -153,83 +173,119 @@ async function syncOrderItemStock(orderItem, transaction) {
         transaction,
       }),
     ]);
+    const unitsByItem = new Map();
+    for (const row of unitRows) {
+      const list = unitsByItem.get(row.stockItemId) || [];
+      list.push(row);
+      unitsByItem.set(row.stockItemId, list);
+    }
+    const recipeUnits = unitsByItem.get(stockItem.id) || [];
 
     const perSale = toBaseQuantity(
       recipe.quantity,
       recipe.measuringUnitId,
       stockItem.measuringUnitId,
-      units,
+      recipeUnits,
       globalUnits,
     );
     const target = roundQty(perSale * soldQty);
 
     const history = await stockHistoryModel.findAll({
       where: {
-        stockItemId: stockItem.id,
+        stockItemId: { [Op.in]: batchIds },
         referenceType: "order_item",
         referenceId: orderItemId,
         type: { [Op.in]: ["sale", "sale_reversal"] },
       },
-      attributes: ["type", "quantity"],
+      attributes: ["stockItemId", "type", "quantity"],
       transaction,
     });
 
+    const netByItem = new Map();
     let net = 0;
     for (const row of history) {
       const qty = toNumber(row.quantity);
-      net += row.type === "sale" ? qty : -qty;
+      const signed = row.type === "sale" ? qty : -qty;
+      net = roundQty(net + signed);
+      netByItem.set(
+        row.stockItemId,
+        roundQty((netByItem.get(row.stockItemId) || 0) + signed),
+      );
     }
     const delta = roundQty(target - net);
     if (Math.abs(delta) < 0.001) continue;
 
-    const before = toNumber(stockItem.quantity);
-    const after = roundQty(before - delta);
-    if (delta > 0 && after < 0) {
+    const oldest = batches[0];
+    const onHand = toNumber(oldest.quantity);
+    if (delta > 0 && roundQty(onHand - delta) < 0) {
       throw new UnitChainError(
         stockShortageMessage({
-          stockName: stockItem.name,
+          stockName: oldest.name,
           productName: name,
-          before,
+          before: onHand,
           needed: delta,
           baseUnit,
-          levels: units,
+          levels: unitsByItem.get(oldest.id) || recipeUnits,
         }),
       );
     }
-    const rate = toNumber(stockItem.defaultPrice);
-    const moved = Math.abs(delta);
-    const supplierSplit =
-      delta > 0
-        ? await takeSupplierQty(stockItem.id, moved, transaction)
-        : await restoreSupplierQty(stockItem.id, moved, transaction, {
-            referenceType: "order_item",
-            referenceId: orderItemId,
-          });
 
-    await stockItem.update({ quantity: after }, { transaction });
-    await stockHistoryModel.create(
-      {
-        stockItemId: stockItem.id,
-        type: delta > 0 ? "sale" : "sale_reversal",
-        quantity: moved,
-        rate,
-        value: roundQty(moved * rate),
-        note: movementNote({
-          deltaBase: delta,
-          productName: name,
-          soldQty: toNumber(orderItem.quantity),
-          before,
-          after,
-          baseUnit,
-          levels: units,
-        }),
-        referenceType: "order_item",
-        referenceId: orderItemId,
-        supplierSplit,
-        createdBy: null,
-      },
-      { transaction },
-    );
+    const moves = [];
+    if (delta > 0) {
+      moves.push({ batch: oldest, signed: delta });
+    } else {
+      let left = Math.abs(delta);
+      for (const batch of [...batches].reverse()) {
+        if (left < 0.001) break;
+        const taken = netByItem.get(batch.id) || 0;
+        if (taken <= 0) continue;
+        const put = roundQty(Math.min(taken, left));
+        if (put < 0.001) continue;
+        moves.push({ batch, signed: -put });
+        left = roundQty(left - put);
+      }
+      if (left >= 0.001) {
+        moves.push({ batch: batches[0], signed: -left });
+      }
+    }
+
+    for (const move of moves) {
+      const before = toNumber(move.batch.quantity);
+      const after = roundQty(before - move.signed);
+      const moved = Math.abs(move.signed);
+      const supplierSplit =
+        move.signed > 0
+          ? await takeSupplierQty(move.batch.id, moved, transaction)
+          : await restoreSupplierQty(move.batch.id, moved, transaction, {
+              referenceType: "order_item",
+              referenceId: orderItemId,
+            });
+      await move.batch.update({ quantity: after }, { transaction });
+      const rate = toNumber(move.batch.defaultPrice);
+      await stockHistoryModel.create(
+        {
+          stockItemId: move.batch.id,
+          type: move.signed > 0 ? "sale" : "sale_reversal",
+          quantity: moved,
+          rate,
+          value: roundQty(moved * rate),
+          note: movementNote({
+            deltaBase: move.signed,
+            productName: name,
+            soldQty: toNumber(orderItem.quantity),
+            before,
+            after,
+            baseUnit,
+            levels: unitsByItem.get(move.batch.id) || recipeUnits,
+          }),
+          referenceType: "order_item",
+          referenceId: orderItemId,
+          supplierSplit,
+          createdBy: null,
+        },
+        { transaction },
+      );
+    }
   }
 }
 

@@ -10,7 +10,11 @@ import { PaginationType } from "@/types/commonTypes";
 import { Info, PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import { buildQueryString } from "@/utils/generalHelper";
-import { useDeleteApiMutation, useGetApiQuery } from "@/redux/services/crudApi";
+import {
+  useCreateApiMutation,
+  useDeleteApiMutation,
+  useGetApiQuery,
+} from "@/redux/services/crudApi";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { STOCK_ITEM_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
@@ -196,6 +200,7 @@ const StockItem: React.FC = () => {
     url: "stock-item/summary",
   });
   const [deleteApi] = useDeleteApiMutation();
+  const [syncApi, { isLoading: syncing }] = useCreateApiMutation();
 
   const rows: any[] = success ? (apiData?.data?.data ?? []) : [];
   const summary = summaryResp?.data || {
@@ -246,6 +251,34 @@ const StockItem: React.FC = () => {
     refetchSummary();
   };
 
+  const syncStock = async (row: {
+    id: number;
+    name?: string;
+    sameNameCount?: number;
+  }) => {
+    const count = Number(row.sameNameCount || 2);
+    const label = row.name || "this stock";
+    const ok = window.confirm(
+      `Sync ${count} ${label} rows into the oldest one? Quantities are added together and the rate becomes the weighted average. Sales already use the older stock first.`,
+    );
+    if (!ok) return;
+    try {
+      const res = await syncApi({
+        url: `${STOCK_ITEM_URL}${row.id}/sync`,
+        body: {},
+      }).unwrap();
+      handleResponse({
+        res: {
+          success: true,
+          msg: res?.message || res?.msg || `Synced into ${label}.`,
+        },
+        onSuccess: refreshAll,
+      });
+    } catch (error) {
+      handleError({ error });
+    }
+  };
+
   const toggleLowStockFilter = () => {
     setLowStockOnly((prev) => !prev);
     handlePagination({ page: 1, limit: query.limit });
@@ -259,6 +292,14 @@ const StockItem: React.FC = () => {
     const cells = [
       <span className="inline-flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-slate-800">{r.name}</span>
+        {r.isNewStock ? (
+          <span
+            className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800"
+            title="Newer stock with the same name. Orders use the older stock first until you sync."
+          >
+            New stock
+          </span>
+        ) : null}
         {lowStock ? (
           <span
             className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
@@ -303,6 +344,20 @@ const StockItem: React.FC = () => {
     if (showActions) {
       cells.push(
         <TableRowActions>
+          {Number(r.sameNameCount) > 1 &&
+            (accessList.includes("edit") ||
+              accessList.includes("adjust") ||
+              accessList.includes("sync")) && (
+              <button
+                type="button"
+                disabled={syncing}
+                onClick={() => syncStock(r)}
+                className="inline-flex h-8 items-center rounded-lg border border-violet-200 bg-violet-50 px-2 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
+                title="Combine every row with this name and unit into the oldest one. The rate becomes the weighted average."
+              >
+                Sync
+              </button>
+            )}
           {accessList.includes("adjust") && (
             <button
               type="button"
@@ -398,7 +453,7 @@ const StockItem: React.FC = () => {
         newButtonText="Add New"
         handleNewButton={openCreate}
         handleReloadButton={refreshAll}
-        subText="Quantities are kept in the base unit. Pack relations such as dozen, packet, and piece update together when a menu item is sold."
+        subText="A repeated name stays a separate row and is marked New stock. Orders use the older row first. Sync combines them and averages the rate."
       />
 
       <div

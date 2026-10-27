@@ -2059,6 +2059,14 @@
           "list": "Stock Item"
         },
         {
+          "title": "Sync Stock Item",
+          "key": "sync",
+          "clientPath": "/stock-item/:id/sync",
+          "serverPath": "/stock-item/:id/sync",
+          "requestMethod": "POST",
+          "list": "Stock Item"
+        },
+        {
           "title": "Import Stock Item",
           "key": "import",
           "clientPath": "/stock-item/import",

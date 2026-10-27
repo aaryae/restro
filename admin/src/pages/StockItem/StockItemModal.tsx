@@ -518,8 +518,8 @@ const StockItemModal: React.FC<Props> = ({
             <p className="mt-2 text-[11px] leading-snug text-[var(--serve-muted)]">
               Quantity is counted in the base unit
               {baseUnitLabel ? ` (${baseUnitLabel})` : ""}. Value is Quantity ×
-              Default Price. The same name, in any case, is added to the
-              existing item. Supplier is optional.
+              Default Price. Using a name that already exists creates a new
+              stock row. Supplier is optional.
             </p>
 
             {needsPayment ? (
@@ -528,7 +528,8 @@ const StockItemModal: React.FC<Props> = ({
                   A supplier is optional. With a supplier, this quantity is a
                   purchase and the account you choose is charged. Without a
                   supplier, the quantity is added and the info note shows it
-                  is not from a supplier. Meat and meat are the same item.
+                  is not from a supplier. A second Meat stays separate until
+                  you press Sync on the stock list.
                 </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Controller

@@ -4,6 +4,9 @@ const {
   stockHistoryModel,
   stockItemUnitModel,
   productRecipeModel,
+  addonRecipeModel,
+  openItemModel,
+  purchaseItemModel,
   measuringUnitModel,
   stockGroupModel,
   supplierModel,
@@ -125,6 +128,205 @@ const presentStockItem = (item) => {
   };
 };
 
+const nameKey = (name) => String(name || "").trim().toLowerCase();
+
+const sameNameWhere = (name, measuringUnitId) => ({
+  measuringUnitId,
+  [Op.and]: [
+    sequelize.where(
+      sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
+      nameKey(name),
+    ),
+  ],
+});
+
+async function annotateBatches(rows) {
+  const names = [
+    ...new Set(rows.map((row) => nameKey(row.name)).filter(Boolean)),
+  ];
+  if (!names.length) return rows;
+
+  const peers = await stockItemModel.findAll({
+    attributes: ["id", "name", "measuringUnitId"],
+    where: sequelize.where(
+      sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
+      { [Op.in]: names },
+    ),
+    raw: true,
+  });
+
+  const groups = new Map();
+  for (const peer of peers) {
+    const key = `${nameKey(peer.name)}|${peer.measuringUnitId}`;
+    const ids = groups.get(key) || [];
+    ids.push(Number(peer.id));
+    groups.set(key, ids);
+  }
+  for (const ids of groups.values()) ids.sort((a, b) => a - b);
+
+  return rows.map((row) => {
+    const ids =
+      groups.get(`${nameKey(row.name)}|${row.measuringUnitId}`) || [row.id];
+    const oldestId = ids[0];
+    return {
+      ...row,
+      isNewStock: ids.length > 1 && Number(row.id) !== oldestId,
+      sameNameCount: ids.length,
+      oldestStockId: oldestId,
+    };
+  });
+}
+
+async function moveRecipes(model, ownerKey, keepId, dupId, transaction) {
+  const recipes = await model.findAll({
+    where: { stockItemId: dupId },
+    transaction,
+  });
+  for (const recipe of recipes) {
+    const clash = await model.findOne({
+      where: { stockItemId: keepId, [ownerKey]: recipe[ownerKey] },
+      transaction,
+    });
+    if (clash) {
+      const quantity =
+        Math.round((toNumber(clash.quantity) + toNumber(recipe.quantity)) * 10000) /
+        10000;
+      await clash.update({ quantity }, { transaction });
+      await recipe.destroy({ transaction });
+    } else {
+      await recipe.update({ stockItemId: keepId }, { transaction });
+    }
+  }
+}
+
+async function mergeStockInto(keep, dup, transaction) {
+  const oldQty = toNumber(keep.quantity);
+  const addQty = toNumber(dup.quantity);
+  const nextQty = Math.round((oldQty + addQty) * 100) / 100;
+  const nextRate =
+    nextQty > 0
+      ? Math.round(
+          ((oldQty * toNumber(keep.defaultPrice) +
+            addQty * toNumber(dup.defaultPrice)) /
+            nextQty) *
+            100,
+        ) / 100
+      : toNumber(keep.defaultPrice);
+  const openingQuantity =
+    Math.round(
+      (toNumber(keep.openingQuantity) + toNumber(dup.openingQuantity)) * 100,
+    ) / 100;
+
+  await keep.update(
+    {
+      quantity: nextQty,
+      defaultPrice: nextRate,
+      openingQuantity,
+    },
+    { transaction },
+  );
+
+  await stockHistoryModel.update(
+    { stockItemId: keep.id },
+    { where: { stockItemId: dup.id }, transaction },
+  );
+  await purchaseItemModel.update(
+    { stockItemId: keep.id },
+    { where: { stockItemId: dup.id }, transaction },
+  );
+  await moveRecipes(productRecipeModel, "productId", keep.id, dup.id, transaction);
+  await moveRecipes(addonRecipeModel, "addonId", keep.id, dup.id, transaction);
+  await openItemModel.update(
+    { stockItemId: keep.id },
+    { where: { stockItemId: dup.id }, transaction },
+  );
+  await stockItemUnitModel.destroy({
+    where: { stockItemId: dup.id },
+    transaction,
+  });
+
+  const balances = await stockSupplierBalanceModel.findAll({
+    where: { stockItemId: dup.id },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  for (const balance of balances) {
+    const existing = await stockSupplierBalanceModel.findOne({
+      where: {
+        stockItemId: keep.id,
+        supplierId: balance.supplierId || null,
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (existing) {
+      await existing.update(
+        {
+          quantity:
+            Math.round(
+              (toNumber(existing.quantity) + toNumber(balance.quantity)) * 100,
+            ) / 100,
+        },
+        { transaction },
+      );
+      await balance.destroy({ transaction });
+    } else {
+      await balance.update({ stockItemId: keep.id }, { transaction });
+    }
+  }
+
+  await dup.destroy({ transaction });
+}
+
+const syncSameName = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const seed = await stockItemModel.findByPk(+req.params.id, { transaction });
+    if (!seed) {
+      await transaction.rollback();
+      return { ...generalConstant.EN.STOCK_ITEM.NOT_FOUND, data: null };
+    }
+
+    const family = await stockItemModel.findAll({
+      where: sameNameWhere(seed.name, seed.measuringUnitId),
+      order: [["id", "ASC"]],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (family.length < 2) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "There is no other stock with this name and unit to sync.",
+        data: null,
+      };
+    }
+
+    const keep = family[0];
+    for (const dup of family.slice(1)) {
+      await mergeStockInto(keep, dup, transaction);
+    }
+
+    await transaction.commit();
+    const full = await stockItemModel.findByPk(keep.id, {
+      include: itemIncludes,
+    });
+    const [presented] = await annotateBatches([presentStockItem(full)]);
+    return {
+      status: 200,
+      success: true,
+      message: `Synced into ${keep.name}. The rate is the weighted average of the quantities.`,
+      data: presented,
+    };
+  } catch (error) {
+    if (!transaction.finished) await transaction.rollback();
+    const response = stockWriteError(error);
+    if (response) return response;
+    throw error;
+  }
+};
+
 const stockWriteError = (error) => {
   if (error instanceof PurchaseStockSyncError) return error.toResponse();
   if (error instanceof UnitChainError) return error.toResponse();
@@ -180,55 +382,27 @@ const create = async (req) => {
       };
     }
 
-    const existing = await stockItemModel.findOne({
-      where: sequelize.where(
-        sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
-        trimmedName.toLowerCase(),
-      ),
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
+    const slug = await uniqueSlug(trimmedName, null, transaction);
+    const item = await stockItemModel.create(
+      {
+        name: trimmedName,
+        slug,
+        measuringUnitId,
+        stockGroupId: stockGroupId || null,
+        supplierId: supplierId || null,
+        defaultPrice: price,
+        openingQuantity: openingQty,
+        quantity: 0,
+        lowStockThreshold:
+          lowStockThreshold === undefined || lowStockThreshold === null
+            ? null
+            : toNumber(lowStockThreshold),
+      },
+      { transaction },
+    );
 
-    let item = existing;
-    let merged = false;
-
-    if (existing) {
-      if (Number(existing.measuringUnitId) !== Number(measuringUnitId)) {
-        await transaction.rollback();
-        return {
-          status: 400,
-          success: false,
-          message: `${existing.name} already exists in a different measuring unit`,
-          data: null,
-        };
-      }
-      merged = true;
-      if (supplierId && !existing.supplierId) {
-        await existing.update({ supplierId }, { transaction });
-      }
-    } else {
-      const slug = await uniqueSlug(trimmedName, null, transaction);
-      item = await stockItemModel.create(
-        {
-          name: trimmedName,
-          slug,
-          measuringUnitId,
-          stockGroupId: stockGroupId || null,
-          supplierId: supplierId || null,
-          defaultPrice: price,
-          openingQuantity: openingQty,
-          quantity: 0,
-          lowStockThreshold:
-            lowStockThreshold === undefined || lowStockThreshold === null
-              ? null
-              : toNumber(lowStockThreshold),
-        },
-        { transaction },
-      );
-
-      if (Array.isArray(units)) {
-        await saveStockUnits(item.id, item.measuringUnitId, units, transaction);
-      }
+    if (Array.isArray(units)) {
+      await saveStockUnits(item.id, item.measuringUnitId, units, transaction);
     }
 
     if (openingQty > 0 && paidOpening) {
@@ -240,7 +414,7 @@ const create = async (req) => {
         supplierId,
         paymentTerms: paymentTerms || "cash",
         enteredByUserId: req.user.id,
-        note: merged ? `Added to ${item.name}` : "Opening stock purchase",
+        note: "Opening stock purchase",
         transaction,
       });
       await applyPurchaseToStock(purchase.id, {
@@ -252,13 +426,11 @@ const create = async (req) => {
       await stockHistoryModel.create(
         {
           stockItemId: item.id,
-          type: merged ? "adjustment_in" : "opening",
+          type: "opening",
           quantity: openingQty,
           rate,
           value: openingQty * rate,
-          note: merged
-            ? `Added to ${item.name} with no supplier`
-            : "Opening stock",
+          note: "Opening stock",
           supplierSplit: [{ supplierId: null, quantity: openingQty }],
           createdBy: historyCreatedBy(),
         },
@@ -272,16 +444,11 @@ const create = async (req) => {
       include: itemIncludes,
     });
 
-    const message = merged
-      ? openingQty > 0
-        ? `Added to ${item.name}. The same name in any case is one stock item.`
-        : `${item.name} already exists.`
-      : generalConstant.EN.STOCK_ITEM.CREATE_SUCCESS.message;
+    const [presented] = await annotateBatches([presentStockItem(full)]);
 
     return {
       ...generalConstant.EN.STOCK_ITEM.CREATE_SUCCESS,
-      message,
-      data: presentStockItem(full),
+      data: presented,
     };
   } catch (error) {
     if (!transaction.finished) await transaction.rollback();
@@ -321,7 +488,9 @@ const list = async (req) => {
       ],
     });
 
-    result.data = (result.data || []).map(presentStockItem);
+    result.data = await annotateBatches(
+      (result.data || []).map(presentStockItem),
+    );
 
     return {
       ...generalConstant.EN.STOCK_ITEM.LIST_SUCCESS,
@@ -932,4 +1101,5 @@ module.exports = {
   summary,
   deleteById,
   importFromExcel,
+  syncSameName,
 };
