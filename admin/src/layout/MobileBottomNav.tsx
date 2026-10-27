@@ -94,6 +94,13 @@ const MORE_SECTIONS: MoreSection[] = [
     icon: ClipboardList,
     children: [
       { label: "Daily Reports", path: "/admin/daily-reports", icon: ClipboardPlus },
+      { label: "Business Report", path: "/admin/business-report", icon: ClipboardPlus },
+      { label: "Menu Performance", path: "/admin/menu-performance", icon: ClipboardPlus },
+      {
+        label: "Purchase vs Revenue",
+        path: "/admin/purchase-vs-revenue",
+        icon: ClipboardPlus,
+      },
       { label: "Table Report", path: "/admin/table-report", icon: ClipboardPlus },
     ],
   },

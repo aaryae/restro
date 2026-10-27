@@ -80,7 +80,19 @@ const quickLinks: QuickLink[] = [
     module: "Daily Reports",
     icon: FileText,
   },
-];
+  {
+    label: "Business Report",
+    path: "/admin/business-report",
+    module: "Daily Reports",
+    icon: FileText,
+  },
+  {
+    label: "Menu Performance",
+    path: "/admin/menu-performance",
+    module: "Daily Reports",
+    icon: FileText,
+  },
+]
 
 export default function DashboardQuickLinks() {
   const navigate = useNavigate();

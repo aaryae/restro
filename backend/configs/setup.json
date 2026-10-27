@@ -1883,6 +1883,30 @@
           "serverPath": "/report/counter-cash",
           "requestMethod": "GET",
           "list": "Reports"
+        },
+        {
+          "title": "Business Overview Report",
+          "key": "view-business-overview",
+          "clientPath": "/report/business-overview",
+          "serverPath": "/report/business-overview",
+          "requestMethod": "GET",
+          "list": "Reports"
+        },
+        {
+          "title": "Menu Performance Report",
+          "key": "view-menu-performance",
+          "clientPath": "/report/menu-performance",
+          "serverPath": "/report/menu-performance",
+          "requestMethod": "GET",
+          "list": "Reports"
+        },
+        {
+          "title": "Purchase vs Revenue Report",
+          "key": "view-purchase-vs-revenue",
+          "clientPath": "/report/purchase-vs-revenue",
+          "serverPath": "/report/purchase-vs-revenue",
+          "requestMethod": "GET",
+          "list": "Reports"
         }
       ]
     },
@@ -1897,6 +1921,48 @@
           "serverPath": "/daily-reports",
           "requestMethod": "GET",
           "list": "Daily Reports"
+        }
+      ]
+    },
+    {
+      "title": "Business Report",
+      "key": "business-report",
+      "actions": [
+        {
+          "title": "View Business Report",
+          "key": "view",
+          "clientPath": "/business-report",
+          "serverPath": "/business-report",
+          "requestMethod": "GET",
+          "list": "Business Report"
+        }
+      ]
+    },
+    {
+      "title": "Menu Performance",
+      "key": "menu-performance",
+      "actions": [
+        {
+          "title": "View Menu Performance",
+          "key": "view",
+          "clientPath": "/menu-performance",
+          "serverPath": "/menu-performance",
+          "requestMethod": "GET",
+          "list": "Menu Performance"
+        }
+      ]
+    },
+    {
+      "title": "Purchase vs Revenue",
+      "key": "purchase-vs-revenue",
+      "actions": [
+        {
+          "title": "View Purchase vs Revenue",
+          "key": "view",
+          "clientPath": "/purchase-vs-revenue",
+          "serverPath": "/purchase-vs-revenue",
+          "requestMethod": "GET",
+          "list": "Purchase vs Revenue"
         }
       ]
     },
@@ -2063,6 +2129,14 @@
           "key": "sync",
           "clientPath": "/stock-item/:id/sync",
           "serverPath": "/stock-item/:id/sync",
+          "requestMethod": "POST",
+          "list": "Stock Item"
+        },
+        {
+          "title": "Undo Sync Stock Item",
+          "key": "sync",
+          "clientPath": "/stock-item/:id/undo-sync",
+          "serverPath": "/stock-item/:id/undo-sync",
           "requestMethod": "POST",
           "list": "Stock Item"
         },

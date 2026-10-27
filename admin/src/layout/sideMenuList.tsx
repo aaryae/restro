@@ -151,6 +151,27 @@ export const SideMenuList: SideListMenuType[] = [
         path: "/admin/daily-reports",
       },
       {
+        key: 10.4,
+        name: "Daily Reports",
+        label: "Business Report",
+        icon: <ChartBarStacked size={12} />,
+        path: "/admin/business-report",
+      },
+      {
+        key: 10.5,
+        name: "Daily Reports",
+        label: "Menu Performance",
+        icon: <UtensilsCrossed size={12} />,
+        path: "/admin/menu-performance",
+      },
+      {
+        key: 10.6,
+        name: "Daily Reports",
+        label: "Purchase vs Revenue",
+        icon: <CircleDollarSign size={12} />,
+        path: "/admin/purchase-vs-revenue",
+      },
+      {
         key: 10.3,
         name: "Table Report",
         label: "Table Report",

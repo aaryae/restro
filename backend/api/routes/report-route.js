@@ -8,6 +8,9 @@ const {
   getDailyRevenueReport,
   getDailyTableSessions,
   getCounterCashSummary,
+  getBusinessOverview,
+  getMenuPerformance,
+  getPurchaseVsRevenue,
 } = require("../controllers/report-controller");
 
 router.get("/daily-summary", authentication, authorization, getDailySummary);
@@ -28,6 +31,24 @@ router.get(
   authentication,
   authorization,
   getCounterCashSummary,
+);
+router.get(
+  "/business-overview",
+  authentication,
+  authorization,
+  getBusinessOverview,
+);
+router.get(
+  "/menu-performance",
+  authentication,
+  authorization,
+  getMenuPerformance,
+);
+router.get(
+  "/purchase-vs-revenue",
+  authentication,
+  authorization,
+  getPurchaseVsRevenue,
 );
 
 module.exports = router;

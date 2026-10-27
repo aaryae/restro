@@ -69,6 +69,13 @@ const DailySummaryReport = lazy(() =>
   })),
 );
 const TableReport = lazy(() => import("@/pages/TableReport"));
+const BusinessReport = lazy(() => import("@/pages/BusinessReport"));
+const MenuPerformanceReport = lazy(
+  () => import("@/pages/MenuPerformanceReport"),
+);
+const PurchaseVsRevenueReport = lazy(
+  () => import("@/pages/PurchaseVsRevenueReport"),
+);
 const RecentlyDeleted = lazy(() => import("@/pages/RecentlyDeleted"));
 const MeasuringUnit = lazy(() => import("@/pages/MeasuringUnit"));
 const StockGroup = lazy(() => import("@/pages/StockGroup"));
@@ -407,6 +414,18 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
     element: <TableReport />,
   },
   {
+    path: "/business-report",
+    element: <BusinessReport />,
+  },
+  {
+    path: "/menu-performance",
+    element: <MenuPerformanceReport />,
+  },
+  {
+    path: "/purchase-vs-revenue",
+    element: <PurchaseVsRevenueReport />,
+  },
+  {
     path: "/measuring-unit/list",
     element: <MeasuringUnit />,
   },
@@ -478,6 +497,9 @@ const MODULE_RULES: { prefix: string; module: string; action?: string }[] = [
   { prefix: "/addons", module: "Addons" },
   { prefix: "/daily-report", module: "Daily Reports" },
   { prefix: "/daily-reports", module: "Daily Reports" },
+  { prefix: "/business-report", module: "Daily Reports" },
+  { prefix: "/menu-performance", module: "Daily Reports" },
+  { prefix: "/purchase-vs-revenue", module: "Daily Reports" },
   { prefix: "/measuring-unit", module: "Measuring Unit" },
   { prefix: "/stock-group", module: "Stock Group" },
   { prefix: "/stock-item", module: "Stock Item" },
