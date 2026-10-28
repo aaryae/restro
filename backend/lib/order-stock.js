@@ -142,16 +142,24 @@ async function syncOrderItemStock(orderItem, transaction) {
     });
     if (!stockItem) continue;
 
+    const seed =
+      stockItem.mergedIntoId
+        ? (await stockItemModel.findByPk(stockItem.mergedIntoId, {
+            transaction,
+          })) || stockItem
+        : stockItem;
+
     const family = await stockItemModel.findAll({
       where: {
-        measuringUnitId: stockItem.measuringUnitId,
+        measuringUnitId: seed.measuringUnitId,
+        mergedIntoId: null,
         [Op.and]: [
           sequelize.where(
             sequelize.fn(
               "lower",
               sequelize.fn("btrim", sequelize.col("name")),
             ),
-            String(stockItem.name || "").trim().toLowerCase(),
+            String(seed.name || "").trim().toLowerCase(),
           ),
         ],
       },
@@ -159,7 +167,7 @@ async function syncOrderItemStock(orderItem, transaction) {
       transaction,
       lock: transaction.LOCK.UPDATE,
     });
-    const batches = family.length ? family : [stockItem];
+    const batches = family.length ? family : [seed];
     const batchIds = batches.map((batch) => batch.id);
 
     const [unitRows, baseUnit] = await Promise.all([

@@ -316,7 +316,14 @@ const list = async (req) => {
       {
         model: purchaseItemModel,
         as: "purchaseItems",
-        include: [{ model: purchaseCategoryModel, as: "category" }],
+        include: [
+          { model: purchaseCategoryModel, as: "category" },
+          {
+            model: stockItemModel,
+            as: "stockItem",
+            attributes: ["id", "name", "quantity"],
+          },
+        ],
       },
     ];
     const order = [["createdAt", "DESC"]];

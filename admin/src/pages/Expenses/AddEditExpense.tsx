@@ -28,7 +28,6 @@ import {
 } from "@/components/EntityForm";
 import {
   Banknote,
-  Calendar,
   CreditCard,
   FolderTree,
   Plus,
@@ -281,15 +280,16 @@ const AddEditExpense: React.FC<AddEditExpenseProps> = ({
         </button>
       }
     >
-      <Input
-        label="Date"
-        type="date"
-        max={todayYmd}
-        leftSection={<FieldIcon icon={Calendar} />}
-        {...register("date")}
-        error={errors.date?.message}
-        isRequired
-      />
+      <div className="flex min-w-0 flex-col">
+        <FieldHeader label="Date" required />
+        <Input
+          type="date"
+          max={todayYmd}
+          {...register("date")}
+          error={errors.date?.message}
+          isRequired
+        />
+      </div>
 
       <Controller
         name="categoryId"

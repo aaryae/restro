@@ -89,6 +89,33 @@
   background: var(--serve-row-hover);
 }
 
+.body tr.lowStock td {
+  background: color-mix(in srgb, var(--serve-negative, #e11d48) 10%, var(--serve-surface));
+  color: var(--serve-fg);
+}
+
+.body tr.lowStock:hover td {
+  background: color-mix(in srgb, var(--serve-negative, #e11d48) 16%, var(--serve-surface));
+}
+
+.body tr.lowStock td:first-child {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--serve-negative, #e11d48) 75%, transparent);
+}
+
+/* Dark mode: keep a deep rose tint so remapped light text stays readable. */
+:global(html.dark) .body tr.lowStock td {
+  background: color-mix(in srgb, #fb7185 16%, var(--serve-surface));
+  color: var(--serve-fg);
+}
+
+:global(html.dark) .body tr.lowStock:hover td {
+  background: color-mix(in srgb, #fb7185 24%, var(--serve-surface));
+}
+
+:global(html.dark) .body tr.lowStock td:first-child {
+  box-shadow: inset 3px 0 0 #fb7185;
+}
+
 .body td.num {
   font-feature-settings: "tnum";
 }

@@ -7,8 +7,20 @@ import { EntityFormDialog } from "@/components/EntityForm";
 import usePagination from "@/hooks/usePagination";
 import { useFormModal } from "@/hooks/useFormModal";
 import { PaginationType } from "@/types/commonTypes";
-import { Info, PackageMinus, PackagePlus, SquarePen, Upload, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpDown,
+  Info,
+  Merge,
+  PackageMinus,
+  PackagePlus,
+  SquarePen,
+  Undo2,
+  Upload,
+  X,
+} from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
+import Select from "@/components/Select";
 import { buildQueryString } from "@/utils/generalHelper";
 import {
   useCreateApiMutation,
@@ -18,6 +30,32 @@ import {
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { STOCK_ITEM_URL } from "@/constants/apiUrlConstants";
 import { checkAccess } from "@/utils/accessHelper";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import styles from "@/components/Table/index.module.css";
+
+const SORT_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "nameAsc", label: "Name A–Z" },
+  { value: "nameDesc", label: "Name Z–A" },
+  { value: "lowStockFirst", label: "Low stock first" },
+  { value: "closingAsc", label: "Closing: low → high" },
+  { value: "closingDesc", label: "Closing: high → low" },
+  { value: "rateAsc", label: "Rate: low → high" },
+  { value: "rateDesc", label: "Rate: high → low" },
+  { value: "valueAsc", label: "Stock value: low → high" },
+  { value: "valueDesc", label: "Stock value: high → low" },
+  { value: "openingAsc", label: "Opening: low → high" },
+  { value: "openingDesc", label: "Opening: high → low" },
+];
 
 const StockItemModal = lazy(() => import("./StockItemModal"));
 const AdjustStockModal = lazy(() => import("./AdjustStockModal"));
@@ -49,6 +87,13 @@ type SupplierBalance = {
   supplierName?: string | null;
   quantity?: number | string | null;
   quantityLabel?: string | null;
+};
+
+type SyncPrompt = {
+  mode: "sync" | "undo";
+  id: number;
+  name: string;
+  count: number;
 };
 
 const supplierLines = (balances: SupplierBalance[] | undefined, symbol?: string) => {
@@ -147,10 +192,16 @@ const SupplierNote = ({
 const StockItem: React.FC = () => {
   const accessList = checkAccess("Stock Item");
   const canImport = accessList.includes("import");
+  const canSync =
+    accessList.includes("sync") ||
+    accessList.includes("edit") ||
+    accessList.includes("adjust");
   const [deleteModelOpen, setDeleteModelOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("default");
+  const [syncPrompt, setSyncPrompt] = useState<SyncPrompt | null>(null);
   const formModal = useFormModal();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustItem, setAdjustItem] = useState<any>(null);
@@ -188,6 +239,7 @@ const StockItem: React.FC = () => {
     limit: query.limit,
     search: {
       name: searchTerm,
+      sortBy,
       ...(lowStockOnly ? { lowStock: true } : {}),
     },
   });
@@ -224,7 +276,6 @@ const StockItem: React.FC = () => {
 
   const headers = [
     "Stock Item",
-    "Group",
     "Rate",
     "Opening",
     "Closing",
@@ -251,31 +302,30 @@ const StockItem: React.FC = () => {
     refetchSummary();
   };
 
-  const syncStock = async (row: {
-    id: number;
-    name?: string;
-    sameNameCount?: number;
-  }) => {
-    const count = Number(row.sameNameCount || 2);
-    const label = row.name || "this stock";
-    const ok = window.confirm(
-      `Sync ${count} ${label} rows into the oldest one? Quantities are added together and the rate becomes the weighted average. Sales already use the older stock first.`,
-    );
-    if (!ok) return;
+  const runSyncAction = async () => {
+    if (!syncPrompt) return;
+    const isUndo = syncPrompt.mode === "undo";
     try {
       const res = await syncApi({
-        url: `${STOCK_ITEM_URL}${row.id}/sync`,
+        url: `${STOCK_ITEM_URL}${syncPrompt.id}/${isUndo ? "undo-sync" : "sync"}`,
         body: {},
       }).unwrap();
       handleResponse({
         res: {
           success: true,
-          msg: res?.message || res?.msg || `Synced into ${label}.`,
+          msg:
+            res?.message ||
+            res?.msg ||
+            (isUndo
+              ? `Undid sync for ${syncPrompt.name}.`
+              : `Combined into ${syncPrompt.name}.`),
         },
         onSuccess: refreshAll,
       });
     } catch (error) {
       handleError({ error });
+    } finally {
+      setSyncPrompt(null);
     }
   };
 
@@ -284,55 +334,117 @@ const StockItem: React.FC = () => {
     handlePagination({ page: 1, limit: query.limit });
   };
 
-  const data = rows.map((r: any) => {
+  const mappedRows = rows.map((r: any) => {
     const symbol = r.measuringUnit?.symbol;
     const rate = Number(r.defaultPrice || 0);
     const closing = Number(r.quantity || 0);
     const lowStock = isLowStockItem(r);
+    const sameNameCount = Number(r.sameNameCount || 1);
+    const isNew = Boolean(r.isNewStock);
+    const canUndo = Boolean(r.canUndoSync);
+    const batchCount = Number(r.mergedBatchCount || 0);
+
+    const showBatchPair = sameNameCount > 1;
     const cells = [
-      <span className="inline-flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-slate-800">{r.name}</span>
-        {r.isNewStock ? (
+      <div className="inline-flex max-w-[18rem] items-center gap-2 whitespace-nowrap">
+        {isNew ? (
           <span
-            className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800"
-            title="Newer stock with the same name. Orders use the older stock first until you sync."
+            className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-600"
+            title="Newer stock — sold after the older row runs low"
           >
-            New stock
+            New
+          </span>
+        ) : showBatchPair ? (
+          <span
+            className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400"
+            title="Older stock — sales use this row first"
+          >
+            Old
           </span>
         ) : null}
-        {lowStock ? (
-          <span
-            className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
-            title={`At or below threshold (${formatQty(r.lowStockThreshold, symbol)})`}
-          >
-            Low stock
-          </span>
-        ) : null}
-      </span>,
-      r.stockGroup?.name ? (
-        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-          {r.stockGroup.name}
+        <span
+          className={`truncate text-sm font-semibold ${
+            isNew ? "text-slate-500" : "text-slate-800"
+          }`}
+        >
+          {isNew ? (
+            <span className="mr-1.5 text-slate-300" aria-hidden>
+              ↳
+            </span>
+          ) : null}
+          {r.name}
         </span>
-      ) : (
-        <span className="text-slate-400">—</span>
-      ),
+        {canSync && sameNameCount > 1 ? (
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={() =>
+              setSyncPrompt({
+                mode: "sync",
+                id: r.id,
+                name: r.name || "this stock",
+                count: sameNameCount,
+              })
+            }
+            className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-[11px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-900 disabled:opacity-50"
+            title={`Combine ${sameNameCount} batches into the oldest row. Rate becomes the weighted average.`}
+          >
+            <Merge size={12} strokeWidth={2.25} />
+            {sameNameCount}
+          </button>
+        ) : null}
+        {canSync && canUndo ? (
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={() =>
+              setSyncPrompt({
+                mode: "undo",
+                id: r.id,
+                name: r.name || "this stock",
+                count: batchCount || 1,
+              })
+            }
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-900 disabled:opacity-50"
+            title="Undo sync and restore separate batches"
+          >
+            <Undo2 size={12} strokeWidth={2.25} />
+          </button>
+        ) : null}
+      </div>,
       <span className="text-slate-700">{formatMoney(rate)}</span>,
       <span className="text-slate-600" title={r.equivalence || undefined}>
         {r.openingLabel || formatQty(r.openingQuantity, symbol)}
       </span>,
       <span
-        className={
-          lowStock
-            ? "whitespace-nowrap font-semibold text-amber-700"
-            : "whitespace-nowrap font-medium text-slate-800"
-        }
+        className="inline-flex items-center gap-2 whitespace-nowrap"
         title={
-          r.units?.length
-            ? `${formatQty(closing, symbol)} total${r.equivalence ? ` · ${r.equivalence}` : ""}`
-            : undefined
+          lowStock
+            ? `Low stock — at or below ${formatQty(r.lowStockThreshold, symbol)}${
+                r.units?.length
+                  ? ` · ${formatQty(closing, symbol)} total${r.equivalence ? ` · ${r.equivalence}` : ""}`
+                  : ""
+              }`
+            : r.units?.length
+              ? `${formatQty(closing, symbol)} total${r.equivalence ? ` · ${r.equivalence}` : ""}`
+              : undefined
         }
       >
-        {r.quantityLabel || formatQty(closing, symbol)}
+        <span
+          className={
+            lowStock
+              ? "font-semibold text-[var(--serve-negative)]"
+              : "font-medium text-slate-800"
+          }
+        >
+          {r.quantityLabel || formatQty(closing, symbol)}
+        </span>
+        {lowStock ? (
+          <span className="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_srgb,var(--serve-negative)_14%,transparent)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--serve-negative)]">
+            <AlertTriangle size={12} strokeWidth={2.25} />
+            Low stock
+          </span>
+        ) : null}
       </span>,
       <span className="text-slate-700">{formatMoney(closing * rate)}</span>,
       <span className="inline-flex items-center gap-1 text-slate-600">
@@ -344,20 +456,6 @@ const StockItem: React.FC = () => {
     if (showActions) {
       cells.push(
         <TableRowActions>
-          {Number(r.sameNameCount) > 1 &&
-            (accessList.includes("edit") ||
-              accessList.includes("adjust") ||
-              accessList.includes("sync")) && (
-              <button
-                type="button"
-                disabled={syncing}
-                onClick={() => syncStock(r)}
-                className="inline-flex h-8 items-center rounded-lg border border-violet-200 bg-violet-50 px-2 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
-                title="Combine every row with this name and unit into the oldest one. The rate becomes the weighted average."
-              >
-                Sync
-              </button>
-            )}
           {accessList.includes("adjust") && (
             <button
               type="button"
@@ -393,8 +491,14 @@ const StockItem: React.FC = () => {
       );
     }
 
-    return cells;
+    return {
+      cells,
+      rowClassName: lowStock ? styles.lowStock : undefined,
+    };
   });
+
+  const data = mappedRows.map((row) => row.cells);
+  const rowClassNames = mappedRows.map((row) => row.rowClassName);
 
   const kpiCards = [
     {
@@ -422,7 +526,7 @@ const StockItem: React.FC = () => {
       id: "low-stock",
       label: "Low Stock items",
       value: `${summary.lowStockItems ?? 0} item`,
-      icon: <PackageMinus className="h-4 w-4 text-amber-600" />,
+      icon: <AlertTriangle className="h-4 w-4 text-rose-600" />,
       clickable: true,
       active: lowStockOnly,
       onClick: toggleLowStockFilter,
@@ -435,7 +539,30 @@ const StockItem: React.FC = () => {
         title="Stock Items"
         searchPlaceholder="Search stock items..."
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          handlePagination({ page: 1, limit: query.limit });
+        }}
+        filters={
+          <div className="flex min-w-[12rem] items-center gap-2 sm:w-56">
+            <ArrowUpDown
+              size={14}
+              className="shrink-0 text-[var(--serve-muted)]"
+              aria-hidden
+            />
+            <Select
+              value={sortBy}
+              options={SORT_OPTIONS}
+              placeholder="Sort by"
+              onValueChange={(next) => {
+                setSortBy(String(next));
+                handlePagination({ page: 1, limit: query.limit });
+              }}
+              className="min-w-0 flex-1"
+              triggerClassName="h-9"
+            />
+          </div>
+        }
         extraActions={
           canImport ? (
             <button
@@ -453,7 +580,7 @@ const StockItem: React.FC = () => {
         newButtonText="Add New"
         handleNewButton={openCreate}
         handleReloadButton={refreshAll}
-        subText="A repeated name stays a separate row and is marked New stock. Orders use the older row first. Sync combines them and averages the rate."
+        subText="Sort the list as you like. Low stock rows are highlighted in red. Same name shows as Old and New — merge beside the name to combine."
       />
 
       <div
@@ -470,11 +597,11 @@ const StockItem: React.FC = () => {
               onClick={interactive ? card.onClick : undefined}
               className={`rounded-xl border bg-white p-4 text-left shadow-sm transition ${
                 card.active
-                  ? "border-amber-300 ring-2 ring-amber-100"
+                  ? "border-rose-300 ring-2 ring-rose-100"
                   : "border-slate-200"
               } ${
                 interactive
-                  ? "cursor-pointer hover:border-amber-300 hover:bg-amber-50/40"
+                  ? "cursor-pointer hover:border-rose-300 hover:bg-rose-50/40"
                   : ""
               }`}
               title={
@@ -491,7 +618,7 @@ const StockItem: React.FC = () => {
                 </p>
                 <span
                   className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
-                    card.active ? "bg-amber-100" : "bg-slate-50"
+                    card.active ? "bg-rose-100" : "bg-slate-50"
                   }`}
                 >
                   {card.icon}
@@ -499,7 +626,7 @@ const StockItem: React.FC = () => {
               </div>
               <p className="text-xl font-semibold text-slate-900">{card.value}</p>
               {interactive ? (
-                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                <p className="mt-1 text-[11px] font-medium text-[var(--serve-negative)]">
                   {lowStockOnly ? "Showing low stock · click to clear" : "Click to view"}
                 </p>
               ) : null}
@@ -509,12 +636,12 @@ const StockItem: React.FC = () => {
       </div>
 
       {lowStockOnly ? (
-        <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-800">
           Filtered to low stock items
           <button
             type="button"
             onClick={toggleLowStockFilter}
-            className="inline-flex h-5 w-5 items-center justify-center rounded-md text-amber-700 hover:bg-amber-100"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-md text-rose-700 hover:bg-rose-100"
             title="Clear filter"
           >
             <X size={12} strokeWidth={2.5} />
@@ -528,12 +655,66 @@ const StockItem: React.FC = () => {
           headers={headers}
           handlePagination={handlePagination}
           pagination={pagination}
+          rowClassNames={rowClassNames}
         />
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view stock items.
         </div>
       )}
+
+      <Dialog
+        open={Boolean(syncPrompt)}
+        onOpenChange={(next) => {
+          if (!next) setSyncPrompt(null);
+        }}
+      >
+        <DialogContent className="max-w-[360px] gap-3 p-4 sm:p-4">
+          <DialogHeader className="items-start space-y-1.5 text-left sm:items-start sm:text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                {syncPrompt?.mode === "undo" ? (
+                  <Undo2 size={16} strokeWidth={2.25} />
+                ) : (
+                  <Merge size={16} strokeWidth={2.25} />
+                )}
+              </span>
+              <DialogTitle className="text-[15px] leading-snug">
+                {syncPrompt?.mode === "undo"
+                  ? `Undo sync for ${syncPrompt?.name}?`
+                  : `Combine ${syncPrompt?.count} “${syncPrompt?.name}” batches?`}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-left text-[13px] leading-snug">
+              {syncPrompt?.mode === "undo"
+                ? "Separate batches come back. Quantities sold after the sync stay on the older row."
+                : "Quantities are added together and the rate becomes the weighted average. You can undo this later."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={() => setSyncPrompt(null)}
+              disabled={syncing}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-900 px-3.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+              onClick={runSyncAction}
+              disabled={syncing}
+            >
+              {syncing
+                ? "Working…"
+                : syncPrompt?.mode === "undo"
+                  ? "Undo sync"
+                  : "Combine batches"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <EntityFormDialog
         open={formModal.open}

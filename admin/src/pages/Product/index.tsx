@@ -3,7 +3,7 @@ import MenuItemCell from "@/components/MenuItemCell";
 import useTranslation from "@/locale/useTranslation";
 import { checkAccess } from "@/utils/accessHelper";
 import { lazy, Suspense, useState, useMemo } from "react";
-import { SquarePen, Upload } from "lucide-react";
+import { LayoutGrid, List, SquarePen, Upload } from "lucide-react";
 import DeleteModal from "@/components/DeleteModal";
 import TableRowActions from "@/components/Table/TableRowActions";
 import { handleError, handleResponse } from "@/utils/responseHandler";
@@ -20,9 +20,13 @@ import Loader from "@/components/Loader";
 import { useListAllProductCategoryQuery } from "@/redux/services/productCategory";
 import Select from "@/components/Select";
 import ToggleSwitch from "@/components/Switch";
+import MenuPreview from "./MenuPreview";
+import "./menuPreview.css";
 
 const DraggableTable = lazy(() => import("@/components/Table/dragableTable"));
 const BulkUploadModal = lazy(() => import("./BulkUploadModal"));
+
+type ViewMode = "table" | "menu";
 
 export default function Product() {
   const translate = useTranslation();
@@ -34,7 +38,9 @@ export default function Product() {
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const canImport = accessList.includes("add") || accessList.includes("import");
+  const listLimit = viewMode === "menu" ? 100 : query.limit;
 
   const { data: categoriesData } = useListAllProductCategoryQuery({
     page: 1,
@@ -51,8 +57,8 @@ export default function Product() {
   }, [categoriesData, translate]);
 
   const url = buildQueryString(`${PRODUCT_URL}list`, {
-    page: query.page,
-    limit: query.limit,
+    page: viewMode === "menu" ? 1 : query.page,
+    limit: listLimit,
     search: {
       name: productSearchTerm,
       category: selectedCategory,
@@ -204,17 +210,48 @@ export default function Product() {
           />
         }
         extraActions={
-          canImport ? (
-            <button
-              type="button"
-              data-tour="menu-bulk-upload"
-              onClick={() => setBulkUploadOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 text-[13px] font-medium text-[var(--serve-fg)] transition hover:border-[color-mix(in_srgb,var(--serve-accent)_24%,var(--serve-border))] hover:bg-[var(--serve-surface)]"
-            >
-              <Upload size={15} strokeWidth={2.25} />
-              {translate("Bulk Upload")}
-            </button>
-          ) : null
+          <>
+            <div className="menu-view-toggle" role="group" aria-label="View mode">
+              <button
+                type="button"
+                className={`menu-view-toggle__btn${
+                  viewMode === "table" ? " is-active" : ""
+                }`}
+                onClick={() => setViewMode("table")}
+                aria-pressed={viewMode === "table"}
+              >
+                <List size={14} strokeWidth={2.25} />
+                Table
+              </button>
+              <button
+                type="button"
+                className={`menu-view-toggle__btn${
+                  viewMode === "menu" ? " is-active" : ""
+                }`}
+                onClick={() => {
+                  setViewMode("menu");
+                  if (query.page !== 1) {
+                    handlePagination({ page: 1, limit: query.limit });
+                  }
+                }}
+                aria-pressed={viewMode === "menu"}
+              >
+                <LayoutGrid size={14} strokeWidth={2.25} />
+                Menu
+              </button>
+            </div>
+            {canImport ? (
+              <button
+                type="button"
+                data-tour="menu-bulk-upload"
+                onClick={() => setBulkUploadOpen(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 text-[13px] font-medium text-[var(--serve-fg)] transition hover:border-[color-mix(in_srgb,var(--serve-accent)_24%,var(--serve-border))] hover:bg-[var(--serve-surface)]"
+              >
+                <Upload size={15} strokeWidth={2.25} />
+                {translate("Bulk Upload")}
+              </button>
+            ) : null}
+          </>
         }
         hasAddButton={accessList.includes("add")}
         newButtonText={translate("Add New Items")}
@@ -235,19 +272,27 @@ export default function Product() {
       {!success ? (
         <Loader />
       ) : accessList.includes("view") ? (
-        <Suspense fallback={<Loader />}>
-          <DraggableTable
-            headers={tableHeaders}
-            data={tableData}
-            success={success}
-            loading={loading}
-            fetching={fetching}
-            url="product/update-order"
-            action={updateOrder}
-            pagination={pagination}
-            handlePagination={handlePagination}
+        viewMode === "menu" ? (
+          <MenuPreview
+            items={allProduct?.data?.data || []}
+            canEdit={accessList.includes("edit")}
+            onEdit={(id) => handleNewUser(id)}
           />
-        </Suspense>
+        ) : (
+          <Suspense fallback={<Loader />}>
+            <DraggableTable
+              headers={tableHeaders}
+              data={tableData}
+              success={success}
+              loading={loading}
+              fetching={fetching}
+              url="product/update-order"
+              action={updateOrder}
+              pagination={pagination}
+              handlePagination={handlePagination}
+            />
+          </Suspense>
+        )
       ) : (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-slate-500">
           You do not have permission to view items.

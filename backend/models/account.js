@@ -82,7 +82,8 @@ module.exports = (sequelize) => {
       modelName: "Account",
       tableName: "accounts",
       timestamps: true,
-      indexes: [{ fields: ["accountType"] }],
+      paranoid: true,
+      indexes: [{ fields: ["accountType"] }, { fields: ["deletedAt"] }],
     },
   );
 

@@ -78,5 +78,6 @@ module.exports = {
   summary: wrap(() => stockItemService.summary()),
   deleteById: wrap((req) => stockItemService.deleteById(req)),
   syncSameName: wrap((req) => stockItemService.syncSameName(req)),
+  undoSyncSameName: wrap((req) => stockItemService.undoSyncSameName(req)),
   importFromExcel,
 };

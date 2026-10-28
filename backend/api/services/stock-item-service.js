@@ -4,9 +4,6 @@ const {
   stockHistoryModel,
   stockItemUnitModel,
   productRecipeModel,
-  addonRecipeModel,
-  openItemModel,
-  purchaseItemModel,
   measuringUnitModel,
   stockGroupModel,
   supplierModel,
@@ -140,6 +137,10 @@ const sameNameWhere = (name, measuringUnitId) => ({
   ],
 });
 
+const activeStockWhere = { mergedIntoId: null };
+
+const roundMoney = (value) => Math.round(toNumber(value) * 100) / 100;
+
 async function annotateBatches(rows) {
   const names = [
     ...new Set(rows.map((row) => nameKey(row.name)).filter(Boolean)),
@@ -148,12 +149,31 @@ async function annotateBatches(rows) {
 
   const peers = await stockItemModel.findAll({
     attributes: ["id", "name", "measuringUnitId"],
-    where: sequelize.where(
-      sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
-      { [Op.in]: names },
-    ),
+    where: {
+      ...activeStockWhere,
+      [Op.and]: [
+        sequelize.where(
+          sequelize.fn("lower", sequelize.fn("btrim", sequelize.col("name"))),
+          { [Op.in]: names },
+        ),
+      ],
+    },
     raw: true,
   });
+
+  const rowIds = rows.map((row) => Number(row.id)).filter(Boolean);
+  const mergedChildren = rowIds.length
+    ? await stockItemModel.findAll({
+        attributes: ["id", "mergedIntoId"],
+        where: { mergedIntoId: { [Op.in]: rowIds } },
+        raw: true,
+      })
+    : [];
+  const undoCountByKeep = new Map();
+  for (const child of mergedChildren) {
+    const keepId = Number(child.mergedIntoId);
+    undoCountByKeep.set(keepId, (undoCountByKeep.get(keepId) || 0) + 1);
+  }
 
   const groups = new Map();
   for (const peer of peers) {
@@ -168,89 +188,50 @@ async function annotateBatches(rows) {
     const ids =
       groups.get(`${nameKey(row.name)}|${row.measuringUnitId}`) || [row.id];
     const oldestId = ids[0];
+    const mergedCount = undoCountByKeep.get(Number(row.id)) || 0;
     return {
       ...row,
       isNewStock: ids.length > 1 && Number(row.id) !== oldestId,
       sameNameCount: ids.length,
       oldestStockId: oldestId,
+      canUndoSync: mergedCount > 0,
+      mergedBatchCount: mergedCount,
     };
   });
 }
 
-async function moveRecipes(model, ownerKey, keepId, dupId, transaction) {
-  const recipes = await model.findAll({
-    where: { stockItemId: dupId },
-    transaction,
-  });
-  for (const recipe of recipes) {
-    const clash = await model.findOne({
-      where: { stockItemId: keepId, [ownerKey]: recipe[ownerKey] },
-      transaction,
-    });
-    if (clash) {
-      const quantity =
-        Math.round((toNumber(clash.quantity) + toNumber(recipe.quantity)) * 10000) /
-        10000;
-      await clash.update({ quantity }, { transaction });
-      await recipe.destroy({ transaction });
-    } else {
-      await recipe.update({ stockItemId: keepId }, { transaction });
-    }
-  }
-}
-
 async function mergeStockInto(keep, dup, transaction) {
-  const oldQty = toNumber(keep.quantity);
+  const keepBefore = {
+    quantity: toNumber(keep.quantity),
+    defaultPrice: toNumber(keep.defaultPrice),
+    openingQuantity: toNumber(keep.openingQuantity),
+  };
   const addQty = toNumber(dup.quantity);
-  const nextQty = Math.round((oldQty + addQty) * 100) / 100;
+  const nextQty = roundMoney(keepBefore.quantity + addQty);
   const nextRate =
     nextQty > 0
-      ? Math.round(
-          ((oldQty * toNumber(keep.defaultPrice) +
+      ? roundMoney(
+          (keepBefore.quantity * keepBefore.defaultPrice +
             addQty * toNumber(dup.defaultPrice)) /
-            nextQty) *
-            100,
-        ) / 100
-      : toNumber(keep.defaultPrice);
-  const openingQuantity =
-    Math.round(
-      (toNumber(keep.openingQuantity) + toNumber(dup.openingQuantity)) * 100,
-    ) / 100;
-
-  await keep.update(
-    {
-      quantity: nextQty,
-      defaultPrice: nextRate,
-      openingQuantity,
-    },
-    { transaction },
+            nextQty,
+        )
+      : keepBefore.defaultPrice;
+  const openingQuantity = roundMoney(
+    keepBefore.openingQuantity + toNumber(dup.openingQuantity),
   );
-
-  await stockHistoryModel.update(
-    { stockItemId: keep.id },
-    { where: { stockItemId: dup.id }, transaction },
-  );
-  await purchaseItemModel.update(
-    { stockItemId: keep.id },
-    { where: { stockItemId: dup.id }, transaction },
-  );
-  await moveRecipes(productRecipeModel, "productId", keep.id, dup.id, transaction);
-  await moveRecipes(addonRecipeModel, "addonId", keep.id, dup.id, transaction);
-  await openItemModel.update(
-    { stockItemId: keep.id },
-    { where: { stockItemId: dup.id }, transaction },
-  );
-  await stockItemUnitModel.destroy({
-    where: { stockItemId: dup.id },
-    transaction,
-  });
 
   const balances = await stockSupplierBalanceModel.findAll({
     where: { stockItemId: dup.id },
     transaction,
     lock: transaction.LOCK.UPDATE,
   });
+  const movedBalances = [];
   for (const balance of balances) {
+    const qty = toNumber(balance.quantity);
+    movedBalances.push({
+      supplierId: balance.supplierId || null,
+      quantity: qty,
+    });
     const existing = await stockSupplierBalanceModel.findOne({
       where: {
         stockItemId: keep.id,
@@ -261,12 +242,7 @@ async function mergeStockInto(keep, dup, transaction) {
     });
     if (existing) {
       await existing.update(
-        {
-          quantity:
-            Math.round(
-              (toNumber(existing.quantity) + toNumber(balance.quantity)) * 100,
-            ) / 100,
-        },
+        { quantity: roundMoney(toNumber(existing.quantity) + qty) },
         { transaction },
       );
       await balance.destroy({ transaction });
@@ -275,20 +251,128 @@ async function mergeStockInto(keep, dup, transaction) {
     }
   }
 
-  await dup.destroy({ transaction });
+  await keep.update(
+    {
+      quantity: nextQty,
+      defaultPrice: nextRate,
+      openingQuantity,
+    },
+    { transaction },
+  );
+
+  await dup.update(
+    {
+      quantity: 0,
+      openingQuantity: 0,
+      mergedIntoId: keep.id,
+      syncPayload: {
+        keepBefore,
+        quantity: addQty,
+        defaultPrice: toNumber(dup.defaultPrice),
+        openingQuantity: toNumber(dup.openingQuantity),
+        supplierBalances: movedBalances,
+      },
+    },
+    { transaction },
+  );
+}
+
+async function undoMergeFrom(keep, dup, transaction) {
+  const payload = dup.syncPayload || {};
+  const wantQty = toNumber(payload.quantity);
+  const wantOpening = toNumber(payload.openingQuantity);
+  const keepQty = toNumber(keep.quantity);
+  const restoreQty = roundMoney(Math.min(wantQty, Math.max(0, keepQty)));
+  const keepOpening = toNumber(keep.openingQuantity);
+  const restoreOpening = roundMoney(
+    Math.min(wantOpening, Math.max(0, keepOpening)),
+  );
+
+  const movedBalances = Array.isArray(payload.supplierBalances)
+    ? payload.supplierBalances
+    : [];
+  for (const moved of movedBalances) {
+    const take = roundMoney(Math.min(toNumber(moved.quantity), restoreQty || toNumber(moved.quantity)));
+    if (take <= 0) continue;
+    const keepBalance = await stockSupplierBalanceModel.findOne({
+      where: {
+        stockItemId: keep.id,
+        supplierId: moved.supplierId || null,
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (keepBalance) {
+      const left = roundMoney(toNumber(keepBalance.quantity) - take);
+      if (left <= 0.001) await keepBalance.destroy({ transaction });
+      else await keepBalance.update({ quantity: left }, { transaction });
+    }
+    const dupBalance = await stockSupplierBalanceModel.findOne({
+      where: {
+        stockItemId: dup.id,
+        supplierId: moved.supplierId || null,
+      },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (dupBalance) {
+      await dupBalance.update(
+        { quantity: roundMoney(toNumber(dupBalance.quantity) + take) },
+        { transaction },
+      );
+    } else {
+      await stockSupplierBalanceModel.create(
+        {
+          stockItemId: dup.id,
+          supplierId: moved.supplierId || null,
+          quantity: take,
+        },
+        { transaction },
+      );
+    }
+  }
+
+  await keep.update(
+    {
+      quantity: roundMoney(keepQty - restoreQty),
+      openingQuantity: roundMoney(keepOpening - restoreOpening),
+      defaultPrice:
+        payload.keepBefore && payload.keepBefore.defaultPrice != null
+          ? toNumber(payload.keepBefore.defaultPrice)
+          : toNumber(keep.defaultPrice),
+    },
+    { transaction },
+  );
+
+  await dup.update(
+    {
+      quantity: restoreQty,
+      openingQuantity: restoreOpening,
+      defaultPrice:
+        payload.defaultPrice != null
+          ? toNumber(payload.defaultPrice)
+          : toNumber(dup.defaultPrice),
+      mergedIntoId: null,
+      syncPayload: null,
+    },
+    { transaction },
+  );
 }
 
 const syncSameName = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const seed = await stockItemModel.findByPk(+req.params.id, { transaction });
-    if (!seed) {
+    if (!seed || seed.mergedIntoId) {
       await transaction.rollback();
       return { ...generalConstant.EN.STOCK_ITEM.NOT_FOUND, data: null };
     }
 
     const family = await stockItemModel.findAll({
-      where: sameNameWhere(seed.name, seed.measuringUnitId),
+      where: {
+        ...sameNameWhere(seed.name, seed.measuringUnitId),
+        ...activeStockWhere,
+      },
       order: [["id", "ASC"]],
       transaction,
       lock: transaction.LOCK.UPDATE,
@@ -316,7 +400,59 @@ const syncSameName = async (req) => {
     return {
       status: 200,
       success: true,
-      message: `Synced into ${keep.name}. The rate is the weighted average of the quantities.`,
+      message: `Combined into ${keep.name}. You can undo this sync anytime.`,
+      data: presented,
+    };
+  } catch (error) {
+    if (!transaction.finished) await transaction.rollback();
+    const response = stockWriteError(error);
+    if (response) return response;
+    throw error;
+  }
+};
+
+const undoSyncSameName = async (req) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const keep = await stockItemModel.findByPk(+req.params.id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!keep || keep.mergedIntoId) {
+      await transaction.rollback();
+      return { ...generalConstant.EN.STOCK_ITEM.NOT_FOUND, data: null };
+    }
+
+    const merged = await stockItemModel.findAll({
+      where: { mergedIntoId: keep.id },
+      order: [["id", "ASC"]],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!merged.length) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Nothing to undo. This stock has no synced batches.",
+        data: null,
+      };
+    }
+
+    for (const dup of [...merged].reverse()) {
+      await undoMergeFrom(keep, dup, transaction);
+      await keep.reload({ transaction, lock: transaction.LOCK.UPDATE });
+    }
+
+    await transaction.commit();
+    const full = await stockItemModel.findByPk(keep.id, {
+      include: itemIncludes,
+    });
+    const [presented] = await annotateBatches([presentStockItem(full)]);
+    return {
+      status: 200,
+      success: true,
+      message: `Undid sync for ${keep.name}. Newer batches are separate again.`,
       data: presented,
     };
   } catch (error) {
@@ -458,9 +594,94 @@ const create = async (req) => {
   }
 };
 
+const stockListOrder = (sortBy) => {
+  const key = String(sortBy || "default").trim();
+  const lowStockRank = sequelize.literal(
+    `CASE WHEN "StockItem"."lowStockThreshold" IS NOT NULL AND "StockItem"."quantity" <= "StockItem"."lowStockThreshold" THEN 0 ELSE 1 END`,
+  );
+  const stockValue = sequelize.literal(
+    `"StockItem"."quantity" * "StockItem"."defaultPrice"`,
+  );
+
+  switch (key) {
+    case "nameAsc":
+      return [
+        ["name", "ASC"],
+        ["id", "ASC"],
+      ];
+    case "nameDesc":
+      return [
+        ["name", "DESC"],
+        ["id", "DESC"],
+      ];
+    case "rateAsc":
+      return [
+        ["defaultPrice", "ASC"],
+        ["id", "DESC"],
+      ];
+    case "rateDesc":
+      return [
+        ["defaultPrice", "DESC"],
+        ["id", "DESC"],
+      ];
+    case "openingAsc":
+      return [
+        ["openingQuantity", "ASC"],
+        ["id", "DESC"],
+      ];
+    case "openingDesc":
+      return [
+        ["openingQuantity", "DESC"],
+        ["id", "DESC"],
+      ];
+    case "closingAsc":
+      return [
+        ["quantity", "ASC"],
+        ["id", "DESC"],
+      ];
+    case "closingDesc":
+      return [
+        ["quantity", "DESC"],
+        ["id", "DESC"],
+      ];
+    case "valueAsc":
+      return [
+        [stockValue, "ASC"],
+        ["id", "DESC"],
+      ];
+    case "valueDesc":
+      return [
+        [stockValue, "DESC"],
+        ["id", "DESC"],
+      ];
+    case "lowStockFirst":
+      return [
+        [lowStockRank, "ASC"],
+        ["quantity", "ASC"],
+        ["id", "DESC"],
+      ];
+    case "oldest":
+      return [
+        ["createdAt", "ASC"],
+        ["id", "ASC"],
+      ];
+    case "newest":
+      return [
+        ["createdAt", "DESC"],
+        ["id", "DESC"],
+      ];
+    case "default":
+    default:
+      return [
+        ["createdAt", "DESC"],
+        ["id", "DESC"],
+      ];
+  }
+};
+
 const list = async (req) => {
   try {
-    const { limit, page, name, stockGroupId, supplierId, lowStock } =
+    const { limit, page, name, stockGroupId, supplierId, lowStock, sortBy } =
       req.query;
     const filters = {};
     if (name) filters.name = { [Op.iLike]: `%${name}%` };
@@ -480,12 +701,9 @@ const list = async (req) => {
     const result = await paginate(stockItemModel, {
       limit,
       page,
-      filters,
+      filters: { ...filters, ...activeStockWhere },
       include: itemIncludes,
-      order: [
-        ["createdAt", "DESC"],
-        ["id", "DESC"],
-      ],
+      order: stockListOrder(sortBy),
     });
 
     result.data = await annotateBatches(
@@ -739,6 +957,7 @@ const summary = async () => {
   try {
     const items = await stockItemModel.findAll({
       attributes: ["id", "quantity", "defaultPrice", "lowStockThreshold"],
+      where: activeStockWhere,
       raw: true,
     });
 
@@ -798,6 +1017,16 @@ const deleteById = async (req) => {
       };
     }
 
+    if (item.mergedIntoId) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "This batch was synced into another stock item. Undo the sync first.",
+        data: null,
+      };
+    }
+
     const recipeLinks = await productRecipeModel.count({
       where: { stockItemId: item.id },
       transaction,
@@ -808,6 +1037,20 @@ const deleteById = async (req) => {
         status: 400,
         success: false,
         message: "This stock item is used by a menu item. Remove it from the menu item first",
+        data: null,
+      };
+    }
+
+    const merged = await stockItemModel.findAll({
+      where: { mergedIntoId: item.id },
+      transaction,
+    });
+    if (merged.length) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message: "Undo the sync first so each batch is separate, then delete.",
         data: null,
       };
     }
@@ -1102,4 +1345,5 @@ module.exports = {
   deleteById,
   importFromExcel,
   syncSameName,
+  undoSyncSameName,
 };

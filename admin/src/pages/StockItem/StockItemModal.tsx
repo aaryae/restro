@@ -361,7 +361,7 @@ const StockItemModal: React.FC<Props> = ({
       <EntityForm
         title={isEdit ? "Edit Stock Item" : "Create Stock Item"}
         sectionTitle="Stock item details"
-        description="Base unit, pack sizes, pricing, and opening stock."
+        description="Base unit, pack sizes, and pricing. Saved items appear in Purchase → Keep in inventory."
         icon={Package}
         embedded={isComponent}
         columns={2}
@@ -518,8 +518,8 @@ const StockItemModal: React.FC<Props> = ({
             <p className="mt-2 text-[11px] leading-snug text-[var(--serve-muted)]">
               Quantity is counted in the base unit
               {baseUnitLabel ? ` (${baseUnitLabel})` : ""}. Value is Quantity ×
-              Default Price. Using a name that already exists creates a new
-              stock row. Supplier is optional.
+              Default Price. A repeated name stays as its own batch. Supplier is
+              optional.
             </p>
 
             {needsPayment ? (
@@ -528,8 +528,8 @@ const StockItemModal: React.FC<Props> = ({
                   A supplier is optional. With a supplier, this quantity is a
                   purchase and the account you choose is charged. Without a
                   supplier, the quantity is added and the info note shows it
-                  is not from a supplier. A second Meat stays separate until
-                  you press Sync on the stock list.
+                  is not from a supplier. A second Meat stays a newer batch
+                  until you combine it on the stock list.
                 </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Controller

@@ -8,6 +8,7 @@ import {
   ChartPie,
   ShoppingCart,
   IndianRupee,
+  TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import { DASHBOARD_URL } from "@/constants/apiUrlConstants";
@@ -15,7 +16,7 @@ import { checkAccess } from "@/utils/accessHelper";
 import SummaryCard from "@/components/SummaryCard";
 import DashboardChartCard from "./DashboardChartCard";
 import { type ChartType } from "./ChartTypeTabs";
-import { useChartColors } from "../chartTheme";
+import { formatChartValue, useChartColors } from "../chartTheme";
 import { formatCurrencyAmount } from "@/utils/formatCurrency";
 import { toTrendData } from "../dashboardHelpers";
 
@@ -199,6 +200,57 @@ function OverviewCards() {
   );
 }
 
+type AllocationSlice = "Net Profit" | "Purchase" | "Expense";
+
+function formatMarginPct(value: number) {
+  const abs = Math.abs(value);
+  return `${abs.toFixed(abs % 1 ? 1 : 0)}%`;
+}
+
+function FiscalHealthBanner({
+  revenue,
+  profit,
+}: {
+  revenue: number;
+  profit: number;
+}) {
+  const marginPct = revenue > 0 ? (profit / revenue) * 100 : null;
+  const isProfit = profit > 0;
+  const isLoss = profit < 0;
+
+  if (marginPct == null) {
+    return (
+      <div className="mb-3 rounded-lg border border-[var(--serve-border)] bg-[var(--serve-surface-2)] px-3 py-2 text-[12px] font-medium text-[var(--serve-muted)]">
+        No revenue yet — allocation will appear once sales come in.
+      </div>
+    );
+  }
+
+  if (!isProfit && !isLoss) {
+    return (
+      <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-semibold text-slate-600">
+        Break-even · 0% of revenue
+      </div>
+    );
+  }
+
+  if (isProfit) {
+    return (
+      <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700">
+        <TrendingUp size={14} strokeWidth={2.25} aria-hidden />
+        Business profit {formatMarginPct(marginPct)} of revenue
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
+      <TrendingDown size={14} strokeWidth={2.25} aria-hidden />
+      Business loss {formatMarginPct(marginPct)} of revenue
+    </div>
+  );
+}
+
 function FiscalYearSummary({
   totalRevenue,
   totalPurchase,
@@ -215,36 +267,48 @@ function FiscalYearSummary({
   showSalesTrend: boolean;
 }) {
   const [chartType, setChartType] = useState<ChartType>("pie");
-  const { fiscal, brand } = useChartColors();
-  // Total collected = sales revenue brought in (never profit).
-  const collectedAmount = Number(totalRevenue) || 0;
+  const { allocation, brand } = useChartColors();
+  const revenue = Number(totalRevenue) || 0;
+  const purchase = Number(totalPurchase) || 0;
+  const expense = Number(totalExpense) || 0;
+  const net = Number(profit) || 0;
+  const isProfit = net > 0;
+  const isLoss = net < 0;
 
   const { data: dailySalesData } = useGetApiQuery(
     { url: `${DASHBOARD_URL}daily-sales?days=14` },
     { skip: !showSalesTrend || chartType !== "line" },
   );
 
-  const pieData = useMemo(
-    () =>
-      [
-        { name: "Revenue", value: Number(totalRevenue) || 0 },
-        { name: "Purchase", value: Number(totalPurchase) || 0 },
-        { name: "Expense", value: Number(totalExpense) || 0 },
-      ].filter((item) => item.value > 0),
-    [totalRevenue, totalPurchase, totalExpense],
+  /**
+   * Pie = how revenue was allocated.
+   * Profit: Net Profit + Purchase + Expense (= revenue when books balance).
+   * Loss: Purchase + Expense only — there is no profit slice to show.
+   */
+  const pieData = useMemo(() => {
+    const slices: { name: AllocationSlice; value: number }[] = [];
+    if (isProfit) slices.push({ name: "Net Profit", value: net });
+    if (purchase > 0) slices.push({ name: "Purchase", value: purchase });
+    if (expense > 0) slices.push({ name: "Expense", value: expense });
+    return slices;
+  }, [isProfit, net, purchase, expense]);
+
+  const pieColors = useMemo(
+    () => pieData.map((slice) => allocation[slice.name]),
+    [pieData, allocation],
   );
 
   const barData = useMemo(
     () => [
-      { name: "Revenue", amount: Number(totalRevenue) || 0 },
-      { name: "Purchase", amount: Number(totalPurchase) || 0 },
-      { name: "Expense", amount: Number(totalExpense) || 0 },
+      { name: "Revenue", amount: revenue },
+      { name: "Purchase", amount: purchase },
+      { name: "Expense", amount: expense },
       {
-        name: profit >= 0 ? "Profit" : "Loss",
-        amount: Math.abs(Number(profit) || 0),
+        name: isLoss ? "Loss" : "Profit",
+        amount: Math.abs(net),
       },
     ],
-    [totalRevenue, totalPurchase, totalExpense, profit],
+    [revenue, purchase, expense, net, isLoss],
   );
 
   const lineData = useMemo(() => {
@@ -269,15 +333,19 @@ function FiscalYearSummary({
         <div className="min-w-0 overflow-hidden">
           <Suspense fallback={<ChartFallback />}>
             {chartType === "pie" && (
-              <PieChartComponent
-                data={pieData}
-                responsive
-                height={280}
-                showLegend
-                colors={fiscal}
-                centerLabel={profit >= 0 ? "Net Profit" : "Net Loss"}
-                centerValue={profit}
-              />
+              <>
+                <FiscalHealthBanner revenue={revenue} profit={net} />
+                <PieChartComponent
+                  data={pieData}
+                  responsive
+                  height={280}
+                  showLegend
+                  colors={pieColors}
+                  centerLabel="Total Revenue"
+                  centerValue={revenue}
+                  centerTone="neutral"
+                />
+              </>
             )}
             {chartType === "bar" && (
               <BarChartComponent
@@ -308,8 +376,8 @@ function FiscalYearSummary({
         <SummaryCard
           title="Total Collected"
           tint="teal"
-          value={`${CurrencySign}${collectedAmount.toLocaleString()}`}
-          amount={collectedAmount}
+          value={`${CurrencySign}${revenue.toLocaleString()}`}
+          amount={revenue}
           Icon={PiggyBank}
         />
         <SummaryCard
@@ -320,11 +388,11 @@ function FiscalYearSummary({
           Icon={Landmark}
         />
         <SummaryCard
-          title="Net Profit"
-          tint="olive"
-          value={`${CurrencySign}${profit.toLocaleString()}`}
-          amount={profit}
-          Icon={TrendingUp}
+          title={isLoss ? "Net Loss" : "Net Profit"}
+          tint={isLoss ? "vermilion" : "olive"}
+          value={formatChartValue(net)}
+          amount={net}
+          Icon={isLoss ? TrendingDown : TrendingUp}
           signed
           dimWhenZero={false}
         />

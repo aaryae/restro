@@ -125,7 +125,7 @@ export default function ProductRecipes({
   const stockOptions = useMemo(
     () =>
       stockItems.map((item) => ({
-        label: item.isNewStock ? `${item.name} (New stock)` : item.name,
+        label: item.isNewStock ? `${item.name} · newer batch` : item.name,
         value: String(item.id),
       })),
     [stockItems],

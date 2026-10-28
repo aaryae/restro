@@ -2,6 +2,7 @@ import Input from "@/components/Input";
 import TextArea from "@/components/TextArea";
 import {
   EntityForm,
+  FieldHeader,
   FieldIcon,
 } from "@/components/EntityForm";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +29,6 @@ import type { RootState } from "@/redux/store/store";
 import { RevenueSchema } from "./schema";
 import {
   Banknote,
-  Calendar,
   CreditCard,
   Landmark,
   TrendingUp,
@@ -208,15 +208,16 @@ export default function AddEditRevenue({
       isLoading={isEditMode && revenueLoading && !revenueData}
       submitLabel={isEditMode ? "Update" : "Submit"}
     >
-      <Input
-        label="Date"
-        type="date"
-        max={todayYmd}
-        leftSection={<FieldIcon icon={Calendar} />}
-        {...register("date")}
-        error={errors.date?.message}
-        isRequired
-      />
+      <div className="flex min-w-0 flex-col">
+        <FieldHeader label="Date" required />
+        <Input
+          type="date"
+          max={todayYmd}
+          {...register("date")}
+          error={errors.date?.message}
+          isRequired
+        />
+      </div>
 
       <div className="relative min-w-0 sm:col-span-2 lg:col-span-2">
         <Input

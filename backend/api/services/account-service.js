@@ -1,7 +1,6 @@
 const { Op } = require("sequelize");
 const { startOfDay, endOfDay, parseISO } = require("date-fns");
 const { generateUUID } = require("../../utils/uuidGenerator");
-const { transferModel } = require("../../models");
 
 const {
   customerModel,
@@ -224,14 +223,7 @@ const deleteAccount = async (req) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const account = await accountModel.findByPk(id, {
-      include: [
-        { model: bankAccountModel, as: "bankAccount" },
-        { model: walletAccountModel, as: "walletAccount" },
-        { model: cashAccountModel, as: "cashAccount" },
-      ],
-      transaction,
-    });
+    const account = await accountModel.findByPk(id, { transaction });
     if (!account) {
       await transaction.rollback();
       return { status: 404, success: false, message: "Account not found" };
@@ -245,24 +237,19 @@ const deleteAccount = async (req) => {
       };
     }
 
-    const relatedTransfers = await transferModel.count({
-      where: {
-        [Op.or]: [{ fromAccountId: id }, { toAccountId: id }],
-      },
-      transaction,
-    });
-    if (relatedTransfers > 0) {
-      throw new Error(
-        "Cannot delete account: there are transfer records associated with this account.",
-      );
+    const balance = Number(account.currentBalance) || 0;
+    if (balance > 0) {
+      await transaction.rollback();
+      return {
+        status: 400,
+        success: false,
+        message:
+          "Transfer all balance to another account before deleting this account",
+        data: { currentBalance: balance },
+      };
     }
 
-    // Delete type-specific records first
-    if (account.bankAccount) await account.bankAccount.destroy({ transaction });
-    if (account.walletAccount)
-      await account.walletAccount.destroy({ transaction });
-    if (account.cashAccount) await account.cashAccount.destroy({ transaction });
-
+    // Soft-delete only (paranoid). Keeps transfer/expense history FKs intact.
     await account.destroy({ transaction });
 
     await transaction.commit();
@@ -279,7 +266,7 @@ const deleteAccount = async (req) => {
 };
 const getAccountByID = async (req) => {
   try {
-    const { accountId: id } = req.params;
+    const { id } = req.params;
     const account = await accountModel.findByPk(id, {
       include: [
         { model: bankAccountModel, as: "bankAccount" },

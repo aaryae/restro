@@ -477,12 +477,12 @@ const AddEditAccount: React.FC = () => {
                   />
                   <span>
                     <span className="block text-sm font-medium text-[var(--serve-fg)]">
-                      Show in checkout
+                      Primary · show in checkout
                     </span>
                     <span className="mt-0.5 block text-xs text-[var(--serve-muted)]">
                       {accountType === "cash"
-                        ? "This cash account will appear in checkout payment options."
-                        : "This bank will appear in checkout payment options."}
+                        ? "Mark as primary so this cash account appears in checkout. Uncheck to remove primary."
+                        : "Mark as primary so this bank appears in checkout. Uncheck to remove primary."}
                     </span>
                   </span>
                 </label>

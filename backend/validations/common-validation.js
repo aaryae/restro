@@ -148,6 +148,27 @@ const paginationValidation = async (req, res, next) => {
       .try(joi.boolean(), joi.string().valid("true", "false", "1", "0"))
       .optional()
       .label("lowStock"),
+    sortBy: joi
+      .string()
+      .optional()
+      .valid(
+        "default",
+        "newest",
+        "oldest",
+        "nameAsc",
+        "nameDesc",
+        "rateAsc",
+        "rateDesc",
+        "openingAsc",
+        "openingDesc",
+        "closingAsc",
+        "closingDesc",
+        "valueAsc",
+        "valueDesc",
+        "lowStockFirst",
+      )
+      .label("sortBy"),
+    sortDir: joi.string().optional().valid("asc", "desc", "ASC", "DESC").label("sortDir"),
   });
   const errors = await validateRequestQuery(req, res, joiModel);
   if (!isEmpty(errors)) {

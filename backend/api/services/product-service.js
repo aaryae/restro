@@ -142,6 +142,11 @@ const list = async (req) => {
     const include = [
       { model: productMediaModel, as: "mediaArr" },
       { model: addonModel, as: "addons" },
+      {
+        model: productCategoryModel,
+        as: "product_category",
+        attributes: ["id", "name"],
+      },
     ];
 
     if (slug) {

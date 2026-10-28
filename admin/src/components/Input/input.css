@@ -72,6 +72,44 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Keep native date/time controls the same height as text inputs / selects. */
+.input-wrapper:has(input[type="date"]),
+.input-wrapper:has(input[type="datetime-local"]),
+.input-wrapper:has(input[type="time"]),
+.input-wrapper:has(input[type="month"]),
+.input-wrapper:has(input[type="week"]) {
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.input-field[type="date"],
+.input-field[type="datetime-local"],
+.input-field[type="time"],
+.input-field[type="month"],
+.input-field[type="week"] {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.input-field[type="date"]::-webkit-calendar-picker-indicator,
+.input-field[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.input-field[type="time"]::-webkit-calendar-picker-indicator,
+.input-field[type="month"]::-webkit-calendar-picker-indicator,
+.input-field[type="week"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  margin: 0;
+}
+
 .input-error-field {
   border-color: #ef4444;
 }

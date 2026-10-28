@@ -274,22 +274,40 @@ const AddEditPurchase: React.FC = () => {
   }, [PurchaseCategoriesData]);
 
   const [stockItems, setStockItems] = useState<
-    { value: string; label: string; defaultPrice: number; name: string }[]
+    {
+      value: string;
+      label: string;
+      defaultPrice: number;
+      name: string;
+      quantity: number;
+    }[]
   >([]);
   const { data: StockItemsData, refetch: refetchStockItems } = useGetApiQuery({
-    url: `${STOCK_ITEM_URL}list?page=1&limit=200`,
+    url: `${STOCK_ITEM_URL}list?page=1&limit=500`,
   });
 
   useEffect(() => {
     const rows = StockItemsData?.data?.data;
     if (!Array.isArray(rows)) return;
     setStockItems(
-      rows.map((item: any) => ({
-        value: String(item.id),
-        label: item.name,
-        name: item.name,
-        defaultPrice: Number(item.defaultPrice || 0),
-      })),
+      rows.map((item: any) => {
+        const qty = Number(item.quantity || 0);
+        const unit =
+          item?.measuringUnit?.symbol ||
+          item?.measuringUnit?.name ||
+          item?.unit ||
+          "";
+        const qtyLabel = Number.isFinite(qty)
+          ? ` · ${qty}${unit ? ` ${unit}` : ""}`
+          : "";
+        return {
+          value: String(item.id),
+          label: `${item.name}${qtyLabel}`,
+          name: item.name,
+          defaultPrice: Number(item.defaultPrice || 0),
+          quantity: qty,
+        };
+      }),
     );
   }, [StockItemsData]);
 
@@ -865,9 +883,16 @@ const AddEditPurchase: React.FC = () => {
           {/* ── Purchase Items ── */}
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-[var(--serve-fg)]">
-                Purchase Items
-              </h3>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-[var(--serve-fg)]">
+                  Purchase Items
+                </h3>
+                <p className="mt-0.5 text-[11px] text-[var(--serve-muted)]">
+                  Leave <span className="font-medium">Inventory</span> as
+                  &quot;No inventory&quot; for one-off buys. Link or create a
+                  stock item only when this purchase should update inventory.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() =>
@@ -898,11 +923,11 @@ const AddEditPurchase: React.FC = () => {
                 <thead>
                   <tr>
                     <th className="pur-cell-center w-14">S.N</th>
-                    <th>Stock Item</th>
                     <th>Category</th>
                     <th>Particulars</th>
                     <th className="w-24">Qty</th>
                     <th className="w-28">Rate</th>
+                    <th className="min-w-[11rem]">Inventory</th>
                     <th className="pur-cell-center w-20">Taxable</th>
                     <th className="pur-cell-num w-28">Amount</th>
                     <th className="w-16" />
@@ -926,90 +951,19 @@ const AddEditPurchase: React.FC = () => {
                         <td>
                           <div className="flex items-center gap-1">
                             <Controller
-                              name={`items.${idx}.stockItemId`}
-                              control={control}
-                              render={({ field: stockField }) => (
-                                <Select
-                                  value={
-                                    stockField.value !== undefined &&
-                                    stockField.value !== null
-                                      ? String(stockField.value)
-                                      : ""
-                                  }
-                                  onBlur={stockField.onBlur}
-                                  name={stockField.name}
-                                  placeholder="Optional"
-                                  clearable
-                                  clearLabel="No stock link"
-                                  options={stockItems.map((option) => ({
-                                    value: option.value,
-                                    label: option.label,
-                                  }))}
-                                  onValueChange={(next) => {
-                                    const value = next ? Number(next) : "";
-                                    stockField.onChange(value);
-                                    if (!next) return;
-                                    const matched = stockItems.find(
-                                      (s) => s.value === String(next),
-                                    );
-                                    if (!matched) return;
-                                    const currentParticulars = String(
-                                      watch(`items.${idx}.particulars`) || "",
-                                    ).trim();
-                                    if (!currentParticulars) {
-                                      setValue(
-                                        `items.${idx}.particulars`,
-                                        matched.name,
-                                        { shouldValidate: true },
-                                      );
-                                    }
-                                    const currentRate = Number(
-                                      watch(`items.${idx}.rate`),
-                                    );
-                                    if (
-                                      !Number.isFinite(currentRate) ||
-                                      currentRate <= 0
-                                    ) {
-                                      setValue(
-                                        `items.${idx}.rate`,
-                                        matched.defaultPrice || 0,
-                                        { shouldValidate: true },
-                                      );
-                                    }
-                                  }}
-                                  triggerClassName="h-9 min-w-[120px]"
-                                  className="min-w-0 flex-1"
-                                />
-                              )}
-                            />
-                            <button
-                              type="button"
-                              className="pur-inline-add shrink-0"
-                              title="Add stock item for this line"
-                              onClick={() => {
-                                setLineForNewStock(idx);
-                                setStockDialogOpen(true);
-                              }}
-                            >
-                              <Plus size={12} strokeWidth={2.5} />
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-1">
-                            <Controller
                               name={`items.${idx}.categoryId`}
                               control={control}
-                              render={({ field }) => (
+                              render={({ field: catField }) => (
                                 <Select
                                   value={
-                                    field.value !== undefined &&
-                                    field.value !== null
-                                      ? String(field.value)
+                                    catField.value !== undefined &&
+                                    catField.value !== null &&
+                                    catField.value !== ""
+                                      ? String(catField.value)
                                       : ""
                                   }
-                                  onBlur={field.onBlur}
-                                  name={field.name}
+                                  onBlur={catField.onBlur}
+                                  name={catField.name}
                                   placeholder="Category"
                                   options={[
                                     { value: "", label: "Select" },
@@ -1019,8 +973,8 @@ const AddEditPurchase: React.FC = () => {
                                     })),
                                   ]}
                                   onValueChange={(next) =>
-                                    field.onChange(
-                                      next ? Number(next) : undefined,
+                                    catField.onChange(
+                                      next ? Number(next) : "",
                                     )
                                   }
                                   triggerClassName="h-9"
@@ -1094,6 +1048,79 @@ const AddEditPurchase: React.FC = () => {
                               {String(errors.items[idx]?.rate?.message)}
                             </span>
                           ) : null}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            <Controller
+                              name={`items.${idx}.stockItemId`}
+                              control={control}
+                              render={({ field: stockField }) => (
+                                <Select
+                                  value={
+                                    stockField.value !== undefined &&
+                                    stockField.value !== null &&
+                                    stockField.value !== ""
+                                      ? String(stockField.value)
+                                      : ""
+                                  }
+                                  onBlur={stockField.onBlur}
+                                  name={stockField.name}
+                                  placeholder="No inventory"
+                                  clearable
+                                  clearLabel="No inventory"
+                                  options={stockItems.map((option) => ({
+                                    value: option.value,
+                                    label: option.label,
+                                  }))}
+                                  onValueChange={(next) => {
+                                    const value = next ? Number(next) : "";
+                                    stockField.onChange(value);
+                                    if (!next) return;
+                                    const matched = stockItems.find(
+                                      (s) => s.value === String(next),
+                                    );
+                                    if (!matched) return;
+                                    const currentParticulars = String(
+                                      watch(`items.${idx}.particulars`) || "",
+                                    ).trim();
+                                    if (!currentParticulars) {
+                                      setValue(
+                                        `items.${idx}.particulars`,
+                                        matched.name,
+                                        { shouldValidate: true },
+                                      );
+                                    }
+                                    const currentRate = Number(
+                                      watch(`items.${idx}.rate`),
+                                    );
+                                    if (
+                                      !Number.isFinite(currentRate) ||
+                                      currentRate <= 0
+                                    ) {
+                                      setValue(
+                                        `items.${idx}.rate`,
+                                        matched.defaultPrice || 0,
+                                        { shouldValidate: true },
+                                      );
+                                    }
+                                  }}
+                                  triggerClassName="h-9 min-w-[120px]"
+                                  className="min-w-0 flex-1"
+                                />
+                              )}
+                            />
+                            <button
+                              type="button"
+                              className="pur-inline-add shrink-0"
+                              title="Create new inventory item for this line"
+                              onClick={() => {
+                                setLineForNewStock(idx);
+                                setStockDialogOpen(true);
+                              }}
+                            >
+                              <Plus size={12} strokeWidth={2.5} />
+                            </button>
+                          </div>
                         </td>
                         <td className="pur-cell-center pur-cell-taxable">
                           <input

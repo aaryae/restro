@@ -38,9 +38,18 @@ type Theme = "light" | "dark";
 export const getChartPalette = (theme: Theme) =>
   theme === "dark" ? PALETTE_DARK : PALETTE_LIGHT;
 
-/** Revenue / Purchase / Expense keep fixed slots so colours never shuffle. */
-export const getFiscalColors = (theme: Theme) =>
-  getChartPalette(theme).slice(0, 3);
+/**
+ * Revenue allocation pie: Net Profit → Purchase → Expense.
+ * Fixed slots so a missing Net Profit slice (loss) does not reshuffle hues.
+ */
+export const getAllocationColors = (theme: Theme) => {
+  const palette = getChartPalette(theme);
+  return {
+    "Net Profit": palette[5], // olive
+    Purchase: palette[6], // cerulean
+    Expense: palette[4], // vermilion
+  } as const;
+};
 
 export const getChartBrand = (theme: Theme) => getChartPalette(theme)[0];
 
@@ -54,7 +63,7 @@ export function useChartColors() {
   const t = theme as Theme;
   return {
     palette: getChartPalette(t),
-    fiscal: getFiscalColors(t),
+    allocation: getAllocationColors(t),
     brand: getChartBrand(t),
   };
 }
@@ -64,7 +73,6 @@ export function useChartColors() {
  * favour the light palette; anything theme-sensitive should use the hooks.
  */
 export const CHART_PALETTE = PALETTE_LIGHT;
-export const CHART_FISCAL_COLORS = PALETTE_LIGHT.slice(0, 3);
 export const CHART_PURCHASE_COLORS = PALETTE_LIGHT.slice(0, 4);
 export const CHART_EXPENSE_COLORS = PALETTE_LIGHT.slice(3, 7);
 export const CHART_BRAND = PALETTE_LIGHT[0];

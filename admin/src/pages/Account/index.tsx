@@ -7,7 +7,8 @@ import usePagination from "@/hooks/usePagination";
 import { useNavigate } from "react-router-dom";
 import { BANK_ADD_ROUTE } from "@/routes/routeNames";
 import { CurrencySign } from "@/constants";
-import { SquarePen, ArrowLeftRight, Power, PowerOff } from "lucide-react";import DeleteModal from "@/components/DeleteModal";
+import { SquarePen, ArrowLeftRight, Power, PowerOff } from "lucide-react";
+import DeleteModal from "@/components/DeleteModal";
 import PageFilterWrapper from "@/components/PageFilterWrapper";
 import PageFilterSample from "@/components/PageFilterSample";
 import { FilterInput } from "@/components/Input/filterInput";
@@ -37,6 +38,10 @@ const Account: React.FC = () => {
   const [deleteModelOpen, setDeleteModelOpen] = React.useState<boolean>(false);
   const [deleteId, setDeleteId] = React.useState<number | null>(null);
   const [transferOpen, setTransferOpen] = useState<boolean>(false);
+  const [closeAccountId, setCloseAccountId] = useState<number | null>(null);
+  const [pendingDeleteAfterTransfer, setPendingDeleteAfterTransfer] = useState<
+    number | null
+  >(null);
 
   const handleNewBank = (id: number | null) => {
     id === null ? navigate(BANK_ADD_ROUTE) : navigate(`${BANK_ADD_ROUTE}${id}`);
@@ -66,19 +71,29 @@ const Account: React.FC = () => {
     }
   };
 
-  const handleDeleteTrigger = (id: number) => {
+  const handleDeleteTrigger = (id: number, balance: number) => {
+    if (balance > 0) {
+      setPendingDeleteAfterTransfer(id);
+      setCloseAccountId(id);
+      setTransferOpen(true);
+      return;
+    }
     setDeleteId(id);
     setDeleteModelOpen(true);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (idOverride?: number | null) => {
+    const id = idOverride ?? deleteId;
+    if (id == null) return;
     try {
-      const res = await deleteAccount(`${ACCOUNT_URL}${deleteId}`).unwrap();
+      const res = await deleteAccount(`${ACCOUNT_URL}${id}`).unwrap();
       handleResponse({ res, onSuccess: () => refetch() });
     } catch (error) {
       handleError({ error });
     } finally {
       setDeleteModelOpen(false);
+      setDeleteId(null);
+      setPendingDeleteAfterTransfer(null);
     }
   };
 
@@ -182,61 +197,64 @@ const Account: React.FC = () => {
   const data =
     success && allAccount?.data?.data
       ? (allAccount?.data?.data as any[]).map((row: any) => {
+          const balance = Number(row?.currentBalance) || 0;
+          const deleteBlocked = Boolean(row?.isDefault);
+          const needsTransfer = !deleteBlocked && balance > 0;
           const cells = [
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
-            {row?.name || "-"}
-            {row?.isDefault ? (
-              <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-sky-200">
-                Primary
-              </span>
-            ) : null}
-          </span>,
-          <span className="capitalize text-slate-600">
-            {row?.accountType || "-"}
-          </span>,
-          <span className="font-semibold text-slate-800">
-            {row?.currentBalance != null
-              ? `${CurrencySign}${Number(row.currentBalance)}`
-              : "-"}
-          </span>,
-          <span
-            className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${
-              row?.status === "active"
-                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
-            }`}
-          >
-            {row?.status || "-"}
-          </span>,
-          accessList.includes("edit-default") ? (
-            <button
-              type="button"
-              className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
-                row?.status !== "active"
-                  ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
-                  : row?.isDefault
-                    ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+              {row?.name || "-"}
+              {row?.isDefault ? (
+                <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-sky-200">
+                  Primary
+                </span>
+              ) : null}
+            </span>,
+            <span className="capitalize text-slate-600">
+              {row?.accountType || "-"}
+            </span>,
+            <span className="font-semibold text-slate-800">
+              {row?.currentBalance != null
+                ? `${CurrencySign}${Number(row.currentBalance)}`
+                : "-"}
+            </span>,
+            <span
+              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${
+                row?.status === "active"
+                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                  : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
               }`}
-              onClick={() =>
-                row?.status === "active" && handleTogglePrimary(row?.id)
-              }
-              title={
-                row?.status !== "active"
-                  ? "Activate this account first to mark it as primary"
-                  : row?.isDefault
-                    ? "Remove from checkout payment options"
-                    : "Show in checkout payment options"
-              }
-              disabled={row?.status !== "active"}
             >
-              {row?.isDefault ? "Primary" : "Make Primary"}
-            </button>
-          ) : (
-            <span className="text-slate-500">
-              {row?.isDefault ? "Primary" : "—"}
-            </span>
-          ),
+              {row?.status || "-"}
+            </span>,
+            accessList.includes("edit-default") ? (
+              <button
+                type="button"
+                className={`h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${
+                  row?.status !== "active"
+                    ? "cursor-not-allowed border-slate-200 text-slate-400 opacity-50"
+                    : row?.isDefault
+                      ? "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                }`}
+                onClick={() =>
+                  row?.status === "active" && handleTogglePrimary(row?.id)
+                }
+                title={
+                  row?.status !== "active"
+                    ? "Activate this account first to mark it as primary"
+                    : row?.isDefault
+                      ? "Click to remove primary and hide from checkout"
+                      : "Mark as primary and show in checkout"
+                }
+                disabled={row?.status !== "active"}
+              >
+                {row?.isDefault ? "Remove Primary" : "Make Primary"}
+              </button>
+            ) : (
+              <span className="text-slate-500">
+                {row?.isDefault ? "Primary" : "—"}
+              </span>
+            ),
           ];
 
           if (showActions) {
@@ -262,7 +280,9 @@ const Account: React.FC = () => {
                           ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                           : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                     }`}
-                    onClick={() => !row?.isDefault && handleToggleStatus(row?.id)}
+                    onClick={() =>
+                      !row?.isDefault && handleToggleStatus(row?.id)
+                    }
                     title={
                       row?.isDefault
                         ? "Primary account cannot be deactivated"
@@ -286,13 +306,27 @@ const Account: React.FC = () => {
                     setOpen={setDeleteModelOpen}
                     itemId={row?.id}
                     activeId={deleteId}
-                    disabled={Boolean(row?.isDefault)}
-                    disabledTitle="Primary account cannot be deleted"
+                    disabled={
+                      deleteBlocked ||
+                      (needsTransfer && !transferAccess.includes("add"))
+                    }
+                    disabledTitle={
+                      deleteBlocked
+                        ? "Primary account cannot be deleted"
+                        : "Transfer all balance to another account before deleting"
+                    }
+                    description="Are you sure you want to delete this account? It will be removed from Cash and Banks."
                     handleDeleteTrigger={() => {
-                      if (row?.isDefault) return;
-                      handleDeleteTrigger(row?.id);
+                      if (deleteBlocked) return;
+                      if (
+                        needsTransfer &&
+                        !transferAccess.includes("add")
+                      ) {
+                        return;
+                      }
+                      handleDeleteTrigger(row?.id, balance);
                     }}
-                    handleConfirmDelete={handleDelete}
+                    handleConfirmDelete={() => handleDelete()}
                   />
                 )}
               </TableRowActions>,
@@ -302,6 +336,9 @@ const Account: React.FC = () => {
           return cells;
         })
       : [];
+
+  const closeTransferOpen = transferOpen && closeAccountId != null;
+  const generalTransferOpen = transferOpen && closeAccountId == null;
 
   return (
     <div className="min-w-0 max-w-full">
@@ -314,14 +351,18 @@ const Account: React.FC = () => {
         subText="Manage cash drawers, bank accounts, and wallet balances."
         extraActions={
           transferAccess.includes("add") ? (
-          <button
-            type="button"
-            onClick={() => setTransferOpen(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
-          >
-            <ArrowLeftRight size={16} />
-            Transfer
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCloseAccountId(null);
+                setPendingDeleteAfterTransfer(null);
+                setTransferOpen(true);
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[13px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+            >
+              <ArrowLeftRight size={16} />
+              Transfer
+            </button>
           ) : undefined
         }
       />
@@ -345,11 +386,39 @@ const Account: React.FC = () => {
       )}
 
       <TransferModel
-        isOpen={transferOpen}
+        isOpen={generalTransferOpen}
         onClose={() => setTransferOpen(false)}
         onSuccess={() => {
           setTransferOpen(false);
           refetch();
+        }}
+      />
+
+      <TransferModel
+        isOpen={closeTransferOpen}
+        prefillFromAccountId={closeAccountId}
+        transferFullBalance
+        title="Transfer balance before delete"
+        submitLabel="Transfer full balance"
+        onClose={() => {
+          setTransferOpen(false);
+          setCloseAccountId(null);
+          setPendingDeleteAfterTransfer(null);
+        }}
+        onSuccess={(result) => {
+          setTransferOpen(false);
+          setCloseAccountId(null);
+          refetch();
+          if (
+            result?.emptiedSource &&
+            pendingDeleteAfterTransfer != null &&
+            pendingDeleteAfterTransfer === result.fromAccountId
+          ) {
+            setDeleteId(result.fromAccountId);
+            setDeleteModelOpen(true);
+          } else {
+            setPendingDeleteAfterTransfer(null);
+          }
         }}
       />
     </div>

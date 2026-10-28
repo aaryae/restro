@@ -11,6 +11,8 @@ interface TableProps {
   pagination: PaginationType;
   isSN?: boolean;
   handlePagination: (pagination: PaginationType) => void;
+  /** Optional per-row class names (e.g. low-stock highlight). */
+  rowClassNames?: Array<string | undefined | null | false>;
 }
 
 function isActionsHeader(header: string, index: number, total: number) {
@@ -73,6 +75,7 @@ const Table: React.FC<TableProps> = ({
   pagination,
   isSN,
   handlePagination,
+  rowClassNames,
 }) => {
   const translate = useTranslation();
 
@@ -107,7 +110,7 @@ const Table: React.FC<TableProps> = ({
                 {isSN && <th className={styles.center}>S.N.</th>}
                 {headers.map((header: string, index: number) => (
                   <th key={index} className={columnClass(header, index)}>
-                    {translate(header)}
+                    {typeof header === "string" ? translate(header) : header}
                   </th>
                 ))}
               </tr>
@@ -115,7 +118,10 @@ const Table: React.FC<TableProps> = ({
             <tbody className={styles.body}>
               {Array.isArray(data) && data.length > 0 ? (
                 data.map((row, index) => (
-                  <tr key={index}>
+                  <tr
+                    key={index}
+                    className={rowClassNames?.[index] || undefined}
+                  >
                     {isSN && (
                       <td
                         className={`${styles.center} ${styles.num}`}

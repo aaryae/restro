@@ -37,6 +37,9 @@ const Purchase: React.FC = () => {
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
     null,
   );
+  const [dateCalendar, setDateCalendar] = useState<"AD" | "BS">("AD");
+  const toggleDateCalendar = () =>
+    setDateCalendar((prev) => (prev === "AD" ? "BS" : "AD"));
 
   const { control, handleSubmit, reset, setValue } =
     useForm<PurchaseFilterInput>({
@@ -231,8 +234,18 @@ const Purchase: React.FC = () => {
 
   const headers = [
     "S.N",
-    "Date (AD)",
-    "Date (BS)",
+    <button
+      key="date-calendar-toggle"
+      type="button"
+      onClick={toggleDateCalendar}
+      title="Click to switch between AD and BS"
+      className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-left font-inherit text-inherit transition hover:bg-slate-100"
+    >
+      <span>Date ({dateCalendar})</span>
+      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+        tap
+      </span>
+    </button>,
     "Particulars",
     "Category",
     "Supplier",
@@ -240,11 +253,12 @@ const Purchase: React.FC = () => {
     "Paid or Credit",
     "Status",
     "Payment Source",
+    "Remarks",
     (accessList.includes("view-one") ||
       accessList.includes("edit") ||
       accessList.includes("delete")) &&
       "Actions",
-  ].filter(Boolean) as string[];
+  ].filter(Boolean) as any[];
 
   const handleNewUser = (id: number | null) => {
     id === null
@@ -285,7 +299,9 @@ const Purchase: React.FC = () => {
     const dateAD = (r?.invoiceDate || r?.date || r?.createdAt || "")
       .toString()
       .slice(0, 10);
-    const dateBS = ADToBS(r?.createdAt);
+    const dateBS = dateAD ? ADToBS(dateAD) : ADToBS(r?.createdAt);
+    const dateDisplay = dateCalendar === "AD" ? dateAD || "-" : dateBS || "-";
+    const remarksText = String(r?.notes || r?.remarks || "").trim();
     const particulars = (() => {
       const items: any[] = r?.purchaseItems || r?.items || [];
       if (items.length > 0) {
@@ -353,8 +369,17 @@ const Purchase: React.FC = () => {
 
     const row = [
       index + 1 + (pagination.page - 1) * pagination.limit,
-      dateAD,
-      dateBS,
+      <button
+        type="button"
+        onClick={toggleDateCalendar}
+        title={`Showing ${dateCalendar}. Click to switch to ${dateCalendar === "AD" ? "BS" : "AD"}`}
+        className="inline-flex items-center gap-1.5 rounded-md text-left text-sm text-slate-700 transition hover:text-slate-900"
+      >
+        <span className="font-medium tabular-nums">{dateDisplay}</span>
+        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          {dateCalendar}
+        </span>
+      </button>,
       <span className="block max-w-full truncate" title={particulars}>
         {particulars}
       </span>,
@@ -367,6 +392,12 @@ const Purchase: React.FC = () => {
       paymentTermsDisplay,
       statusDisplay,
       paymentSourceName,
+      <span
+        className="block max-w-[12rem] truncate text-slate-600"
+        title={remarksText || undefined}
+      >
+        {remarksText || "—"}
+      </span>,
     ];
 
     if (showActions) {
@@ -543,6 +574,12 @@ const Purchase: React.FC = () => {
                             {d?.paymentTerms || d?.paymentStatus || "-"}
                           </div>
                         </div>
+                        <div className="col-span-2">
+                          <div className="text-xs text-slate-500">Remarks</div>
+                          <div className="text-sm font-medium text-slate-800 whitespace-pre-wrap">
+                            {d?.notes || d?.remarks || "—"}
+                          </div>
+                        </div>
                       </div>
 
                       <div>
@@ -560,6 +597,9 @@ const Purchase: React.FC = () => {
                                   Particulars
                                 </th>
                                 <th className="border-b border-slate-200 p-2">
+                                  Inventory
+                                </th>
+                                <th className="border-b border-slate-200 p-2">
                                   Qty
                                 </th>
                                 <th className="border-b border-slate-200 p-2">
@@ -575,7 +615,7 @@ const Purchase: React.FC = () => {
                                 <tr>
                                   <td
                                     className="p-3 text-center text-slate-500"
-                                    colSpan={5}
+                                    colSpan={6}
                                   >
                                     No items
                                   </td>
@@ -588,6 +628,19 @@ const Purchase: React.FC = () => {
                                     </td>
                                     <td className="border-b border-slate-100 p-2">
                                       {it.particulars || "-"}
+                                    </td>
+                                    <td className="border-b border-slate-100 p-2">
+                                      {it.stockItem?.name ||
+                                      it.stockItemId ? (
+                                        <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                          {it.stockItem?.name ||
+                                            `#${it.stockItemId}`}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400">
+                                          Not tracked
+                                        </span>
+                                      )}
                                     </td>
                                     <td className="border-b border-slate-100 p-2 text-right">
                                       {it.quantity ?? it.qty ?? 0}

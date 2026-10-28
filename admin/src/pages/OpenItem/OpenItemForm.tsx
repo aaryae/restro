@@ -298,7 +298,7 @@ export default function OpenItemForm({
                 label="Stock item"
                 options={stockItems.map((item) => ({
                   label: item.isNewStock
-                    ? `${item.name} (New stock)`
+                    ? `${item.name} · newer batch`
                     : item.name,
                   value: String(item.id),
                 }))}

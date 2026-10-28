@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store/store";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { createTransferSchema } from "./transferschema";
+import { CurrencySign } from "@/constants";
 
 type TransferFormInput = z.input<ReturnType<typeof createTransferSchema>>;
 type TransferFormValues = z.infer<ReturnType<typeof createTransferSchema>>;
@@ -18,7 +19,16 @@ type TransferFormValues = z.infer<ReturnType<typeof createTransferSchema>>;
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (payload?: {
+    fromAccountId: number;
+    emptiedSource: boolean;
+  }) => void;
+  /** Prefill / lock source account (e.g. close-account flow). */
+  prefillFromAccountId?: number | null;
+  /** Force amount to the full source balance and lock the field. */
+  transferFullBalance?: boolean;
+  title?: string;
+  submitLabel?: string;
 }
 
 const initialValues: TransferFormInput = {
@@ -28,11 +38,19 @@ const initialValues: TransferFormInput = {
   remarks: "",
 };
 
-const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
+const TransferModel: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  prefillFromAccountId = null,
+  transferFullBalance = false,
+  title = "Transfer",
+  submitLabel = "Transfer",
+}) => {
   const userId = useSelector((state: RootState) => state.auth.id);
 
-  const url = buildQueryString("account/list", { page: 1, limit: 25 });
-  const { data: accountsData } = useGetApiQuery({ url });
+  const url = buildQueryString("account/list", { page: 1, limit: 100 });
+  const { data: accountsData } = useGetApiQuery({ url }, { skip: !isOpen });
   const accounts = accountsData?.data?.data || [];
 
   const accountBalanceById = useMemo(() => {
@@ -55,6 +73,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TransferFormInput, unknown, TransferFormValues>({
     resolver: zodResolver(transferSchema),
@@ -64,18 +83,54 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   const watchedFromAccountId = watch("fromAccountId");
 
   useEffect(() => {
-    if (isOpen) {
-      reset(initialValues);
+    if (!isOpen) return;
+
+    const fromId =
+      prefillFromAccountId != null ? String(prefillFromAccountId) : "";
+    const balance = fromId ? accountBalanceById.get(fromId) : undefined;
+    const amount =
+      transferFullBalance && balance != null && balance > 0
+        ? String(balance)
+        : "";
+
+    reset({
+      ...initialValues,
+      fromAccountId: fromId,
+      amount,
+      remarks: transferFullBalance
+        ? "Transfer remaining balance before deleting account"
+        : "",
+    });
+  }, [
+    isOpen,
+    reset,
+    prefillFromAccountId,
+    transferFullBalance,
+    accountBalanceById,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen || !transferFullBalance || !watchedFromAccountId) return;
+    const balance = accountBalanceById.get(watchedFromAccountId);
+    if (balance != null && balance > 0) {
+      setValue("amount", String(balance), { shouldValidate: true });
     }
-  }, [isOpen, reset]);
+  }, [
+    isOpen,
+    transferFullBalance,
+    watchedFromAccountId,
+    accountBalanceById,
+    setValue,
+  ]);
 
   const accountOptions = useMemo(
     () =>
-      accounts.map((acc: any) => ({
-        value: String(acc.id),
-        label: `${acc.name} (${acc.accountType}) - Bal: ${Number(acc.currentBalance || 0).toFixed(2)}`,
-        disabled: acc.status !== "active",
-      })),
+      accounts
+        .filter((acc: any) => acc.status === "active")
+        .map((acc: any) => ({
+          value: String(acc.id),
+          label: `${acc.name} (${acc.accountType}) - Bal: ${Number(acc.currentBalance || 0).toFixed(2)}`,
+        })),
     [accounts],
   );
 
@@ -89,20 +144,30 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
     ? accountBalanceById.get(watchedFromAccountId)
     : undefined;
 
+  const sourceLocked = prefillFromAccountId != null;
+  const amountLocked = transferFullBalance;
+
   const [createTransfer, { isLoading }] = useCreateTransferMutation();
 
   const onSubmit = async (data: TransferFormValues) => {
     try {
       if (!userId) throw new Error("User not identified");
+      const amount = Number(data.amount);
+      const fromAccountId = Number(data.fromAccountId);
+      const sourceBal = accountBalanceById.get(String(fromAccountId)) ?? 0;
       const payload = {
-        fromAccountId: Number(data.fromAccountId),
+        fromAccountId,
         toAccountId: Number(data.toAccountId),
         userId: Number(userId),
-        amount: Number(data.amount),
+        amount,
         remarks: data.remarks.trim(),
       };
       const res = await createTransfer(payload).unwrap();
-      handleResponse({ res, onSuccess: () => onSuccess?.() });
+      const emptiedSource = amount >= sourceBal;
+      handleResponse({
+        res,
+        onSuccess: () => onSuccess?.({ fromAccountId, emptiedSource }),
+      });
       reset(initialValues);
       onClose();
     } catch (error) {
@@ -120,7 +185,13 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
         className="serve-modal flex w-[90%] max-w-2xl flex-col rounded-xl md:max-w-3xl"
       >
         <div className="px-6 md:px-8 py-4 md:py-5 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Transfer</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          {transferFullBalance ? (
+            <p className="mt-1 text-sm text-slate-500">
+              Move the full balance to another account. Delete becomes available
+              once the balance is {CurrencySign}0.
+            </p>
+          ) : null}
         </div>
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -139,6 +210,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
                 error={errors.fromAccountId?.message}
                 placeholder="Select source account"
                 onValueChange={field.onChange}
+                disabled={sourceLocked}
                 isRequired
               />
             )}
@@ -169,11 +241,13 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
             placeholder="0.00"
             {...register("amount")}
             error={errors.amount?.message}
+            disabled={amountLocked}
             isRequired
           />
           {sourceBalance != null ? (
             <p className="text-xs text-slate-500 -mt-2">
-              Available balance: {sourceBalance.toFixed(2)}
+              Available balance: {CurrencySign}
+              {sourceBalance.toFixed(2)}
             </p>
           ) : null}
           <Input
@@ -197,7 +271,7 @@ const TransferModel: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
               disabled={isSubmitting || isLoading}
               className="bg-[#36a77d] hover:bg-[#36a77d]/80 disabled:opacity-60 text-white px-6 py-2 rounded-md"
             >
-              {isSubmitting || isLoading ? "Processing..." : "Transfer"}
+              {isSubmitting || isLoading ? "Processing..." : submitLabel}
             </button>
           </div>
         </form>

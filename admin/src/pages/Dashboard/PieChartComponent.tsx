@@ -32,6 +32,8 @@ interface PieChartProps {
   centerLabel?: string;
   /** Override the idle donut-hole value (defaults to sum of slices). */
   centerValue?: number;
+  /** Idle center value colour for profit / loss context. */
+  centerTone?: "positive" | "negative" | "neutral";
 }
 
 const generateColors = (count: number, colorScale: string[]): string[] => {
@@ -72,10 +74,17 @@ const PieChartComponent: React.FC<PieChartProps> = ({
   showLegend = true,
   centerLabel,
   centerValue,
+  centerTone = "neutral",
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const themePalette = useChartPalette();
   const scale = colorScale ?? themePalette;
+  const centerValueClass =
+    centerTone === "positive"
+      ? "text-emerald-600"
+      : centerTone === "negative"
+        ? "text-rose-600"
+        : "text-[var(--serve-fg)]";
 
   const chartData = useMemo(
     () =>
@@ -158,16 +167,23 @@ const PieChartComponent: React.FC<PieChartProps> = ({
             {activeItem ? (
               <>
                 <p
-                  className="line-clamp-2 text-[11px] font-medium leading-tight text-[var(--serve-muted)]"
+                  className="line-clamp-2 text-[11px] font-medium leading-tight"
+                  style={{ color: colors[activeIndex!] }}
                   title={String(activeItem.name)}
                 >
                   {String(activeItem.name)}
                 </p>
-                <p className="mt-1 text-[15px] font-bold tabular-nums tracking-tight text-[var(--serve-fg)]">
+                <p
+                  className="mt-1 text-[15px] font-bold tabular-nums tracking-tight"
+                  style={{ color: colors[activeIndex!] }}
+                >
                   {formatChartValue(Number(activeItem.value) || 0)}
                 </p>
                 {activePct != null && (
-                  <p className="mt-0.5 text-[11px] font-medium tabular-nums text-[var(--serve-muted)]">
+                  <p
+                    className="mt-0.5 text-[11px] font-semibold tabular-nums"
+                    style={{ color: colors[activeIndex!] }}
+                  >
                     {activePct.toFixed(1)}%
                   </p>
                 )}
@@ -177,7 +193,9 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--serve-muted)]">
                   {centerLabel || "Total"}
                 </p>
-                <p className="mt-1 text-[17px] font-bold tabular-nums tracking-tight text-[var(--serve-fg)]">
+                <p
+                  className={`mt-1 text-[17px] font-bold tabular-nums tracking-tight ${centerValueClass}`}
+                >
                   {formatChartValue(
                     typeof centerValue === "number" ? centerValue : total,
                   )}
@@ -215,10 +233,16 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                   </span>
                 </div>
                 <div className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-[12.5px] font-semibold tabular-nums text-[var(--serve-fg)]">
+                  <span
+                    className="text-[12.5px] font-semibold tabular-nums"
+                    style={{ color: colors[index] }}
+                  >
                     {formatChartValue(item.value || 0)}
                   </span>
-                  <span className="w-[38px] text-right text-[11px] font-medium tabular-nums text-[var(--serve-muted)]">
+                  <span
+                    className="w-[38px] text-right text-[11px] font-semibold tabular-nums"
+                    style={{ color: colors[index] }}
+                  >
                     {pct.toFixed(1)}%
                   </span>
                 </div>

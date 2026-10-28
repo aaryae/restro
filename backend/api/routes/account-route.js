@@ -34,7 +34,7 @@ router.get(
   totalAndBalances,
 );
 router.get(
-  "/:accountId",
+  "/:id",
   authentication,
   authorization,
   idValidation,

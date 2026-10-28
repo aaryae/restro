@@ -23,6 +23,7 @@ const {
   deleteById,
   importFromExcel,
   syncSameName,
+  undoSyncSameName,
 } = require("../controllers/stock-item-controller");
 
 const uploadExcel = uploaderHelper.uploadXlsxDoc("excel", "single", "file");
@@ -43,6 +44,13 @@ router.post(
   authorization,
   idValidation,
   syncSameName,
+);
+router.post(
+  "/:id/undo-sync",
+  authentication,
+  authorization,
+  idValidation,
+  undoSyncSameName,
 );
 router.post(
   "/:id/adjust",

@@ -1,0 +1,355 @@
+.menu-preview {
+  --menu-ink: color-mix(in srgb, var(--serve-fg) 92%, #3a2418);
+  --menu-muted: color-mix(in srgb, var(--serve-muted) 88%, #8a6a4a);
+  --menu-paper: color-mix(in srgb, var(--serve-surface) 94%, #f3e6d4);
+  --menu-edge: color-mix(in srgb, var(--serve-border) 70%, #c4a882);
+  --menu-accent: var(--serve-accent, var(--primary-color));
+  animation: menuPreviewIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html.dark .menu-preview {
+  --menu-ink: color-mix(in srgb, var(--serve-fg) 96%, #f5e8d6);
+  --menu-muted: color-mix(in srgb, var(--serve-muted) 90%, #c9b08a);
+  --menu-paper: color-mix(in srgb, var(--serve-surface) 92%, #2a2118);
+  --menu-edge: color-mix(in srgb, var(--serve-border) 75%, #6a5538);
+}
+
+@keyframes menuPreviewIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-preview__board {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--menu-edge);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(
+      120% 80% at 8% 0%,
+      color-mix(in srgb, var(--menu-accent) 10%, transparent),
+      transparent 48%
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--menu-paper) 88%, #fff) 0%,
+      var(--menu-paper) 45%,
+      color-mix(in srgb, var(--menu-paper) 92%, #d9c4a4) 100%
+    );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 35%, transparent) inset,
+    0 18px 40px color-mix(in srgb, #1a1008 16%, transparent);
+  padding: 1.5rem 1.25rem 1.75rem;
+}
+
+html.dark .menu-preview__board {
+  background:
+    radial-gradient(
+      120% 80% at 8% 0%,
+      color-mix(in srgb, var(--menu-accent) 16%, transparent),
+      transparent 48%
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--menu-paper) 88%, #3a2c1e) 0%,
+      var(--menu-paper) 50%,
+      color-mix(in srgb, var(--menu-paper) 90%, #1a140e) 100%
+    );
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset,
+    0 18px 40px color-mix(in srgb, #000 35%, transparent);
+}
+
+.menu-preview__board::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--menu-edge) 55%, transparent);
+  border-radius: 0.9rem;
+  opacity: 0.55;
+}
+
+.menu-preview__header {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto 1.75rem;
+  max-width: 42rem;
+  text-align: center;
+}
+
+.menu-preview__eyebrow {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-english);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--menu-accent);
+}
+
+.menu-preview__title {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: clamp(1.7rem, 3.4vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--menu-ink);
+}
+
+.menu-preview__rule {
+  margin: 0.85rem auto 0;
+  width: min(12rem, 48%);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--menu-accent) 70%, var(--menu-edge)),
+    transparent
+  );
+}
+
+.menu-preview__sections {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.75rem;
+}
+
+@media (min-width: 960px) {
+  .menu-preview__sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2rem;
+    row-gap: 2rem;
+  }
+
+  .menu-preview__section:only-child {
+    grid-column: 1 / -1;
+    max-width: 36rem;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
+.menu-preview__section {
+  animation: menuSectionIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.menu-preview__section:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.menu-preview__section:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.menu-preview__section:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+@keyframes menuSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-preview__section-title {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-brand);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--menu-ink);
+}
+
+.menu-preview__section-title span {
+  display: inline-block;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid color-mix(in srgb, var(--menu-accent) 55%, transparent);
+}
+
+.menu-preview__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.menu-preview__item {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  width: 100%;
+  padding: 0.35rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: default;
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.menu-preview__item--clickable {
+  cursor: pointer;
+}
+
+.menu-preview__item--clickable:hover {
+  background: color-mix(in srgb, var(--menu-accent) 8%, transparent);
+  transform: translateY(-1px);
+}
+
+.menu-preview__item--clickable:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--menu-accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.menu-preview__photo {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--menu-edge) 80%, transparent);
+  box-shadow: 0 4px 10px color-mix(in srgb, #1a1008 12%, transparent);
+  background: color-mix(in srgb, var(--menu-paper) 80%, #fff);
+}
+
+.menu-preview__body {
+  min-width: 0;
+}
+
+.menu-preview__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.menu-preview__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--font-english);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--menu-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-preview__dots {
+  flex: 1 1 auto;
+  min-width: 1.25rem;
+  height: 0.7em;
+  border-bottom: 1.5px dotted color-mix(in srgb, var(--menu-muted) 55%, transparent);
+  transform: translateY(-0.15em);
+}
+
+.menu-preview__price {
+  flex: 0 0 auto;
+  font-family: var(--font-brand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--menu-ink);
+  white-space: nowrap;
+}
+
+.menu-preview__meta {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.menu-preview__desc {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--menu-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.menu-preview__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--menu-accent);
+  background: color-mix(in srgb, var(--menu-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--menu-accent) 28%, transparent);
+}
+
+.menu-preview__empty {
+  position: relative;
+  z-index: 1;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--menu-muted);
+  font-size: 0.9rem;
+}
+
+.menu-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface-2);
+}
+
+.menu-view-toggle__btn {
+  display: inline-flex;
+  height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--serve-muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.menu-view-toggle__btn:hover {
+  color: var(--serve-fg);
+}
+
+.menu-view-toggle__btn.is-active {
+  background: color-mix(in srgb, var(--serve-accent) 16%, var(--serve-surface));
+  color: var(--serve-accent);
+}
+
+html.dark .menu-view-toggle__btn.is-active {
+  background: color-mix(in srgb, var(--serve-accent) 22%, var(--serve-surface));
+}

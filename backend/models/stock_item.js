@@ -89,6 +89,15 @@ module.exports = (sequelize) => {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: true,
       },
+      mergedIntoId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: "stock_items", key: "id" },
+      },
+      syncPayload: {
+        type: DataTypes.JSON,
+        allowNull: true,
+      },
     },
     {
       sequelize,
