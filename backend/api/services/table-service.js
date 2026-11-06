@@ -1,7 +1,45 @@
-const { tableModel, orderModel, floorModel } = require("../../models");
+const {
+  tableModel,
+  orderModel,
+  floorModel,
+  sequelize,
+} = require("../../models");
 const { Op } = require("sequelize");
 const paginate = require("../../utils/paginate");
 const generateUUID = require("../../utils/uuidGenerator");
+const { createGuestToken } = require("../../lib/guest-token");
+
+async function ensureGuestToken(table) {
+  if (table.guestToken) return table.guestToken;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const token = createGuestToken();
+    try {
+      await table.update({ guestToken: token });
+      return token;
+    } catch (err) {
+      if (err?.name === "SequelizeUniqueConstraintError") continue;
+      throw err;
+    }
+  }
+  throw new Error("Could not allocate a guest QR token");
+}
+
+function buildGuestPortalUrl(req, token) {
+  const slug = req.tenant?.slug;
+  const baseDomain = String(process.env.TENANT_BASE_DOMAIN || "")
+    .trim()
+    .replace(/^\.+|\.+$/g, "");
+  if (slug && baseDomain) {
+    return `https://${slug}.${baseDomain}/g/${token}`;
+  }
+  const origin = String(
+    process.env.POS_PUBLIC_URL ||
+      req.get?.("origin") ||
+      `${req.protocol}://${req.get?.("host") || "localhost:7001"}`,
+  ).replace(/\/$/, "");
+  const query = slug ? `?tenant=${encodeURIComponent(slug)}` : "";
+  return `${origin}/g/${token}${query}`;
+}
 
 const ACTIVE_ORDER_STATUSES = ["completed", "cancelled"];
 
@@ -61,7 +99,11 @@ const create = async (req) => {
       };
     }
 
-    const result = await tableModel.create(req.body);
+    const payload = { ...req.body };
+    if (!payload.guestToken) {
+      payload.guestToken = createGuestToken();
+    }
+    const result = await tableModel.create(payload);
     if (!result) {
       return {
         status: 500,
@@ -394,6 +436,97 @@ const moveOrders = async (req) => {
   }
 };
 
+const getGuestQr = async (req) => {
+  try {
+    const table = await tableModel.findByPk(+req.params.id, {
+      include: [{ model: floorModel, as: "floor" }],
+    });
+    if (!table) {
+      return {
+        status: 404,
+        success: false,
+        message: "Table not found",
+        data: null,
+      };
+    }
+
+    const token = await ensureGuestToken(table);
+    return {
+      status: 200,
+      success: true,
+      message: "Guest QR ready",
+      data: {
+        tableId: table.id,
+        tableNo: table.tableNo,
+        floor: table.floor
+          ? {
+              id: table.floor.id,
+              floorNo: table.floor.floorNo,
+              name: table.floor.name,
+            }
+          : null,
+        guestToken: token,
+        guestUrl: buildGuestPortalUrl(req, token),
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+const regenerateGuestQr = async (req) => {
+  try {
+    const table = await tableModel.findByPk(+req.params.id, {
+      include: [{ model: floorModel, as: "floor" }],
+    });
+    if (!table) {
+      return {
+        status: 404,
+        success: false,
+        message: "Table not found",
+        data: null,
+      };
+    }
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const token = createGuestToken();
+      try {
+        await table.update({ guestToken: token });
+        return {
+          status: 200,
+          success: true,
+          message: "Guest QR regenerated. Old links will no longer work.",
+          data: {
+            tableId: table.id,
+            tableNo: table.tableNo,
+            floor: table.floor
+              ? {
+                  id: table.floor.id,
+                  floorNo: table.floor.floorNo,
+                  name: table.floor.name,
+                }
+              : null,
+            guestToken: token,
+            guestUrl: buildGuestPortalUrl(req, token),
+          },
+        };
+      } catch (err) {
+        if (err?.name === "SequelizeUniqueConstraintError") continue;
+        throw err;
+      }
+    }
+
+    return {
+      status: 500,
+      success: false,
+      message: "Could not regenerate guest QR",
+      data: null,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -401,4 +534,6 @@ module.exports = {
   updateTableStatus,
   deleteById,
   moveOrders,
+  getGuestQr,
+  regenerateGuestQr,
 };

@@ -1,9 +1,8 @@
 import { WEBSOCKET_URL } from "@/constants";
 import { setSocketNewMessage } from "@/redux/feature/socketSlice";
 import { getToken } from "@/utils/tokenHandler";
-import { useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-// import notificationSound from "@/assets/notification.mp3";
 
 interface WebSocketHook {
   connect: () => void;
@@ -17,96 +16,93 @@ export default function useWebSocket(
   const dispatch = useDispatch();
 
   const socketRef = useRef<WebSocket | null>(null);
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null); // To store the ping interval
-  const pongTimeoutRef = useRef<NodeJS.Timeout | null>(null); // To store pong timeout
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSocketConnected, setSocketConnected] = useState(false);
 
-  const token = getToken("token");
-
-  const connect = () => {
-    if (!socketRef.current) {
-      socketRef.current = new WebSocket(url, [`Admin${token}`]);
-
-      socketRef.current.onopen = () => {
-        setSocketConnected(true);
-      };
-
-      socketRef.current.onmessage = (event) => {
-        dispatch(setSocketNewMessage(event.data));
-
-        // Handle Pong response to reset timeout
-        if (event.data === "pong") {
-          console.log("Received Pong from server");
-          resetPongTimeout();
-        }
-      };
-
-      socketRef.current.onerror = (error) => {
-        console.log("Web socket error", error);
-      };
-
-      socketRef.current.onclose = () => {
-        setSocketConnected(false);
-        socketRef.current = null;
-        clearInterval(pingIntervalRef.current as NodeJS.Timeout);
-        clearTimeout(pongTimeoutRef.current as NodeJS.Timeout);
-      };
+  const clearTimers = useCallback(() => {
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
     }
-  };
+    if (pongTimeoutRef.current) {
+      clearTimeout(pongTimeoutRef.current);
+      pongTimeoutRef.current = null;
+    }
+  }, []);
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.close();
       socketRef.current = null;
-      clearInterval(pingIntervalRef.current as NodeJS.Timeout);
-      clearTimeout(pongTimeoutRef.current as NodeJS.Timeout);
     }
-  };
+    clearTimers();
+    setSocketConnected(false);
+  }, [clearTimers]);
 
-  // Function to send ping message every interval
-  const sendPing = () => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      console.log("Sending Ping to server");
-      socketRef.current.send("ping");
-    }
-  };
-
-  // Function to reset pong timeout whenever pong is received
-  const resetPongTimeout = () => {
+  const resetPongTimeout = useCallback(() => {
     if (pongTimeoutRef.current) {
       clearTimeout(pongTimeoutRef.current);
     }
-
     pongTimeoutRef.current = setTimeout(() => {
-      console.log("Pong timeout reached. Reconnecting...");
       disconnect();
-      connect();
-    }, 10000); // Reconnect after 10 seconds if pong is not received
-  };
+    }, 10000);
+  }, [disconnect]);
+
+  const connect = useCallback(() => {
+    const token = getToken("token");
+    if (socketRef.current || !token) return;
+
+    const socket = new WebSocket(url, [`Admin${token}`]);
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      setSocketConnected(true);
+    };
+
+    socket.onmessage = (event) => {
+      dispatch(setSocketNewMessage(event.data));
+      if (event.data === "pong") {
+        resetPongTimeout();
+      }
+    };
+
+    socket.onerror = () => {
+      // browser logs the underlying error; avoid noisy console spam
+    };
+
+    socket.onclose = () => {
+      setSocketConnected(false);
+      socketRef.current = null;
+      clearTimers();
+    };
+  }, [clearTimers, dispatch, resetPongTimeout, url]);
 
   useEffect(() => {
-    if (isSocketConnected) {
-      // Send ping every 30 seconds if connected
-      pingIntervalRef.current = setInterval(sendPing, 30000);
-    } else {
-      // Clean up when socket is disconnected
-      clearInterval(pingIntervalRef.current as NodeJS.Timeout);
+    if (!isSocketConnected) {
+      clearTimers();
+      return;
     }
+
+    pingIntervalRef.current = setInterval(() => {
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send("ping");
+      }
+    }, 30000);
 
     return () => {
-      // Clean up when the component is unmounted
-      clearInterval(pingIntervalRef.current as NodeJS.Timeout);
-      clearTimeout(pongTimeoutRef.current as NodeJS.Timeout);
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
     };
-  }, [isSocketConnected]);
+  }, [clearTimers, isSocketConnected]);
 
-  const sendMessage = (message: string) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+  const sendMessage = useCallback((message: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(message);
-    } else {
-      console.log("Socket is not connected to server");
     }
-  };
+  }, []);
 
   return {
     connect,

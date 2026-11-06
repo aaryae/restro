@@ -12,9 +12,10 @@ import { checkAccess } from "@/utils/accessHelper";
 import { buildQueryString } from "@/utils/generalHelper";
 import { handleError, handleResponse } from "@/utils/responseHandler";
 import { lazy, useState } from "react";
-import { Eye, SquarePen } from "lucide-react";
+import { Eye, QrCode, SquarePen } from "lucide-react";
 import ViewTable from "./ViewTable";
 import Spinner from "@/components/Spinner";
+import GuestQrModal from "./GuestQrModal";
 
 const AddEditTable = lazy(() => import("./AddEditTable"));
 
@@ -42,6 +43,10 @@ export default function OrderTable() {
 
   const [openDrawer, setOpenDrawer] = useState<boolean>(false);
   const [drawerId, setOpenDrawerId] = useState<number | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrTable, setQrTable] = useState<{ id: number; tableNo: string } | null>(
+    null,
+  );
 
   const url = buildQueryString(`${TABLE_URL}list`, {
     page: query.page,
@@ -99,7 +104,10 @@ export default function OrderTable() {
     "Table No",
     "Floor",
     "Status",
-    (accessList.includes("edit") || accessList.includes("delete")) && "Actions",
+    (accessList.includes("view") ||
+      accessList.includes("edit") ||
+      accessList.includes("delete")) &&
+      "Actions",
   ].filter(Boolean) as string[];
 
   const getStatusColor = (status: string) => {
@@ -143,6 +151,17 @@ export default function OrderTable() {
                   <Eye size={16} />
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  setQrTable({ id, tableNo });
+                  setQrOpen(true);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 transition hover:bg-amber-100"
+                title="Guest QR"
+              >
+                <QrCode size={16} />
+              </button>
               {accessList.includes("edit") && (
                 <button
                   type="button"
@@ -224,6 +243,13 @@ export default function OrderTable() {
           onSuccess={() => refetch()}
         />
       </EntityFormDialog>
+
+      <GuestQrModal
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        tableId={qrTable?.id ?? null}
+        tableNo={qrTable?.tableNo}
+      />
     </div>
   );
 }

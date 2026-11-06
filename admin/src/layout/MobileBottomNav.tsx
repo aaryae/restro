@@ -109,6 +109,7 @@ const MORE_SECTIONS: MoreSection[] = [
     icon: Settings,
     children: [
       { label: "Company Settings", path: "/admin/settings/list", icon: Settings },
+      { label: "Guest Portal", path: "/admin/guest-portal", icon: UtensilsCrossed },
       { label: "Ledger", path: "/admin/ledger/list", icon: ClipboardList },
       { label: "Recently Deleted", path: "/admin/recently-deleted", icon: Settings },
     ],

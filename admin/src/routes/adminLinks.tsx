@@ -27,6 +27,7 @@ const Roles = lazy(() => import("@/pages/Roles"));
 const Users = lazy(() => import("@/pages/Users"));
 const ApproveRequest = lazy(() => import("@/pages/ApproveRequest"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const GuestPortalAdmin = lazy(() => import("@/pages/GuestPortalAdmin"));
 const Ledger = lazy(() => import("@/pages/Ledger"));
 const EmailTemplate = lazy(() => import("@/pages/EmailTemplate"));
 const AddEditEmailTemplate = lazy(
@@ -126,6 +127,10 @@ const rawAdminLinks: { path: string; element: ReactNode; module?: string; action
   {
     path: "/settings/list",
     element: <Settings />,
+  },
+  {
+    path: "/guest-portal",
+    element: <GuestPortalAdmin />,
   },
   {
     path: "/ledger/list",
@@ -470,6 +475,7 @@ const MODULE_RULES: { prefix: string; module: string; action?: string }[] = [
   { prefix: "/media-category", module: "Media Category" },
   { prefix: "/media", module: "Media" },
   { prefix: "/settings", module: "Company Settings" },
+  { prefix: "/guest-portal", module: "Company Settings" },
   { prefix: "/ledger", module: "Ledger" },
   { prefix: "/recently-deleted", module: "Recently Deleted" },
   { prefix: "/email-template", module: "Email Template" },

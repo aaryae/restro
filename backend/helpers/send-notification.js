@@ -1,9 +1,32 @@
 const { notificationModel } = require("../models");
 const { WebSocket } = require("ws");
+const { getTenantContext } = require("../lib/tenant-context");
 
-// This clients map is defined solely here
-// (If it’s also needed for WebSocket logic, you might want to share it via a dedicated module)
+// Direct user notifications. Keyed by user id (can collide across cafes).
 const clients = new Map();
+// Every live staff socket — used for cafe-scoped broadcasts.
+const liveSockets = new Set();
+
+function registerSocket(ws) {
+  liveSockets.add(ws);
+}
+
+function unregisterSocket(ws) {
+  liveSockets.delete(ws);
+}
+
+/**
+ * Push a JSON event to staff sockets for one cafe.
+ * When slug is set, sockets bound to a different cafe are skipped.
+ */
+function broadcastToTenant(slug, payload) {
+  const message = JSON.stringify(payload);
+  for (const client of liveSockets) {
+    if (client.readyState !== WebSocket.OPEN) continue;
+    if (slug && client.tenant?.slug && client.tenant.slug !== slug) continue;
+    client.send(message);
+  }
+}
 
 /**
  * Send a notification to a specific user.
@@ -47,12 +70,15 @@ const sendNotification = async (
  * Push a real-time event to all connected admin clients (e.g. QR payment received).
  */
 const broadcastPaymentEvent = (payload) => {
-  const message = JSON.stringify(payload);
-  for (const [, client] of clients) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  }
+  const slug = getTenantContext()?.tenant?.slug || null;
+  broadcastToTenant(slug, payload);
 };
 
-module.exports = { sendNotification, clients, broadcastPaymentEvent };
+module.exports = {
+  sendNotification,
+  clients,
+  registerSocket,
+  unregisterSocket,
+  broadcastToTenant,
+  broadcastPaymentEvent,
+};

@@ -319,6 +319,9 @@ export default function SideMenu({
 
           const visibleSubItems =
             (each.menu as SideListMenuType[] | undefined)?.filter((item) => {
+              if (item.name === "Guest Portal") {
+                return viewAccess.includes("Company Settings");
+              }
               if (item.name === "Recently Deleted" || item.name === "Ledger") {
                 return (
                   viewAccess.includes("Company Settings") ||

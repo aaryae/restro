@@ -110,6 +110,42 @@ const moveOrders = async (req, res, next) => {
   }
 };
 
+const getGuestQr = async (req, res, next) => {
+  try {
+    const result = await tableService.getGuestQr(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
+const regenerateGuestQr = async (req, res, next) => {
+  try {
+    const result = await tableService.regenerateGuestQr(req);
+    return responseHelper.sendResponse(
+      res,
+      result.status,
+      result.success,
+      result.data,
+      result.errors,
+      result.message,
+      result.token,
+    );
+  } catch (err) {
+    logger.error(err);
+    next(err);
+  }
+};
+
 module.exports = {
   create,
   list,
@@ -117,4 +153,6 @@ module.exports = {
   updateTableStatus,
   deleteById,
   moveOrders,
+  getGuestQr,
+  regenerateGuestQr,
 };

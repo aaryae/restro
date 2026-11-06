@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { lazy, ReactNode, Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import App from "./App";
 import { adminLinks } from "./routes/adminLinks";
@@ -6,6 +6,8 @@ import Layout from "./layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundry";
 import ServeLoginRedirect from "./components/ServeLoginRedirect";
+
+const GuestPortal = lazy(() => import("./pages/GuestPortal"));
 
 interface adminLinksType {
   path: string;
@@ -29,6 +31,36 @@ export const Routes: RouteItem[] = [
   {
     path: "/login",
     element: <ServeLoginRedirect />,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: "/g",
+    element: (
+      <Suspense
+        fallback={
+          <main className="flex min-h-screen items-center justify-center bg-[#f7f1ea] text-sm text-[#6b5e54]">
+            Opening menu…
+          </main>
+        }
+      >
+        <GuestPortal />
+      </Suspense>
+    ),
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: "/g/:token",
+    element: (
+      <Suspense
+        fallback={
+          <main className="flex min-h-screen items-center justify-center bg-[#f7f1ea] text-sm text-[#6b5e54]">
+            Opening menu…
+          </main>
+        }
+      >
+        <GuestPortal />
+      </Suspense>
+    ),
     errorElement: <ErrorBoundary />,
   },
 

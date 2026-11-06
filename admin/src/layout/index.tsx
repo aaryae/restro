@@ -6,6 +6,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import { Suspense, useEffect, useState } from "react";
 import Loader from "@/components/Loader";
 import OnboardingHost from "@/components/Onboarding/OnboardingHost";
+import BillRequestHost from "@/components/BillRequestHost";
 
 const SIDEBAR_OPEN_KEY = "serve-sidebar-open";
 
@@ -95,6 +96,7 @@ export default function Layout() {
 
       <MobileBottomNav />
       <OnboardingHost />
+      <BillRequestHost />
     </div>
   );
 }

@@ -79,6 +79,31 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      wifiSsid: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
+      wifiPassword: {
+        type: DataTypes.STRING(128),
+        allowNull: true,
+      },
+      guestWelcome: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      guestHours: {
+        type: DataTypes.STRING(180),
+        allowNull: true,
+      },
+      guestInfoNote: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      guestMenuFontSize: {
+        type: DataTypes.STRING(8),
+        allowNull: true,
+        defaultValue: "md",
+      },
     },
     {
       timestamps: true,

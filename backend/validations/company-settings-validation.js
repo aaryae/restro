@@ -43,6 +43,16 @@ const companySettingsPutValidation = async (req, res, next) => {
       .allow(null),
     pan_vat_number: joi.string().optional().allow(null),
     openingBalance: joi.number().optional().allow(null),
+    wifiSsid: joi.string().max(64).optional().allow(null, ""),
+    wifiPassword: joi.string().max(128).optional().allow(null, ""),
+    guestWelcome: joi.string().max(500).optional().allow(null, ""),
+    guestHours: joi.string().max(180).optional().allow(null, ""),
+    guestInfoNote: joi.string().max(800).optional().allow(null, ""),
+    guestMenuFontSize: joi
+      .string()
+      .valid("md", "lg", "xl")
+      .optional()
+      .allow(null, ""),
   });
   const errors = await validateRequestBody(req, res, joiModel);
   if (!isEmpty(errors)) {

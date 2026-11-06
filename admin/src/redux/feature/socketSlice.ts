@@ -9,19 +9,22 @@ export const socketSlice = createSlice({
   initialState,
   reducers: {
     setSocketNewMessage: (state, action) => {
-      console.log(action.payload, "action payload");
-      // please refactor this code as message cannot be a parameter to check the condition
-      if (action.payload !== "Connected to WebSocket server") {
-        // first check if the data is as per required
+      if (action.payload === "Connected to WebSocket server") {
+        Object.assign(state, initialState);
+        return;
+      }
+      try {
         const receivedResponse = JSON.parse(action.payload);
         const formattedResponse = {
           ...receivedResponse,
-          id: receivedResponse.notificationId,
+          id:
+            receivedResponse.notificationId ??
+            receivedResponse.requestId ??
+            `${receivedResponse.type || "event"}-${Date.now()}`,
         };
-        // since data from socket comes in string
         state.message.push(formattedResponse);
-      } else {
-        Object.assign(state, initialState);
+      } catch {
+        // ignore non-JSON heartbeat / ping frames
       }
     },
   },

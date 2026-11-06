@@ -32,4 +32,10 @@ export const SettingSchema = z.object({
     ),
   pan_vat_number: z.string().optional().nullable(),
   openingBalance: z.coerce.number().optional().nullable(),
+  wifiSsid: z.string().max(64).optional().nullable(),
+  wifiPassword: z.string().max(128).optional().nullable(),
+  guestWelcome: z.string().max(500).optional().nullable(),
+  guestHours: z.string().max(180).optional().nullable(),
+  guestInfoNote: z.string().max(800).optional().nullable(),
+  guestMenuFontSize: z.enum(["md", "lg", "xl"]).optional().nullable(),
 });

@@ -106,13 +106,17 @@ async function tenantMiddleware(req, res, next) {
     }
 
     const payload = buildUnavailablePayload(tenant);
+    const guestFacing = url.includes("/guest");
+    const message = guestFacing
+      ? "This restaurant isn't taking guest visits right now."
+      : payload.message;
     return responseHelper.sendResponse(
       res,
       httpStatus.FORBIDDEN,
       false,
-      payload,
+      guestFacing ? { ...payload, message } : payload,
       null,
-      payload.message,
+      message,
       null,
     );
   }

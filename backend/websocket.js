@@ -1,7 +1,11 @@
 const { WebSocketServer } = require("ws");
 const { verifyToken } = require("./helpers/jwt-helper");
 const { findActiveSession } = require("./api/services/session-logs");
-const { clients } = require("./helpers/send-notification");
+const {
+  clients,
+  registerSocket,
+  unregisterSocket,
+} = require("./helpers/send-notification");
 const { tenantModel } = require("./models");
 const {
   runWithTenantContext,
@@ -91,6 +95,7 @@ const initWebSocket = (server) => {
       clients.set(userData.id, ws);
       ws.user = userData;
       ws.tenant = tenant;
+      registerSocket(ws);
       ws.send("Connected to WebSocket server");
 
       const pingInterval = 30000;
@@ -104,7 +109,8 @@ const initWebSocket = (server) => {
 
       ws.on("close", () => {
         clearInterval(pingPongInterval);
-        clients.delete(userData.id);
+        if (clients.get(userData.id) === ws) clients.delete(userData.id);
+        unregisterSocket(ws);
       });
     } catch (err) {
       console.log("Error in WebSocket connection:", err.message);

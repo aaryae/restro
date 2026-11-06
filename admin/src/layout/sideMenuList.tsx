@@ -276,6 +276,12 @@ export const SideMenuList: SideListMenuType[] = [
         icon: <Settings size={12} />,
       },
       {
+        key: 9.15,
+        name: "Guest Portal",
+        path: "/admin/guest-portal",
+        icon: <UtensilsCrossed size={12} />,
+      },
+      {
         key: 9.2,
         name: "Ledger",
         path: "/admin/ledger/list",

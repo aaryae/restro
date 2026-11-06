@@ -14,6 +14,12 @@ module.exports = (sequelize) => {
         as: "orders",
         onDelete: "SET NULL",
       });
+
+      Table.hasMany(models.serviceRequestModel, {
+        foreignKey: "tableId",
+        as: "serviceRequests",
+        onDelete: "CASCADE",
+      });
     }
   }
 
@@ -57,6 +63,11 @@ module.exports = (sequelize) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
+      guestToken: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+        unique: true,
+      },
     },
     {
       timestamps: true,
@@ -67,6 +78,7 @@ module.exports = (sequelize) => {
         { fields: ["floorId"] },
         { fields: ["status"] },
         { fields: ["tableNo", "floorId"], unique: true },
+        { fields: ["guestToken"], unique: true },
       ],
     },
   );
