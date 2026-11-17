@@ -3,11 +3,16 @@ import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
 import { buildQueryString } from "@/utils/generalHelper";
-import { Banknote, Building2, QrCode, Wallet } from "lucide-react";
+import {
+  Banknote,
+  Building2,
+  Check,
+  QrCode,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./SplitPayment.module.css";
-
-type AccountFilter = "all" | "cash" | "bank" | "wallet";
 
 interface SplitPaymentProps {
   grandTotal: number;
@@ -21,7 +26,6 @@ function SplitPayment({
   isMemberAssigned = false,
 }: SplitPaymentProps) {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
-  const [filter, setFilter] = useState<AccountFilter>("all");
   const [qrAccountId, setQrAccountId] = useState<number | null>(null);
 
   const url = buildQueryString("account/list", {
@@ -35,7 +39,6 @@ function SplitPayment({
   const accounts: any[] = useMemo(() => {
     const rows = accountSuccess ? allAccount?.data?.data ?? [] : [];
     // Match checkout cash/QR: only active primary accounts (isDefault).
-    // For banks this surfaces the primary bank only.
     return rows.filter(
       (a: any) => a?.status === "active" && Boolean(a?.isDefault),
     );
@@ -52,11 +55,6 @@ function SplitPayment({
     (qrAccountDetail?.data as any)?.walletAccount?.staticQrUrl ||
     null;
 
-  const filteredAccounts = useMemo(() => {
-    if (filter === "all") return accounts;
-    return accounts.filter((a) => a.accountType === filter);
-  }, [accounts, filter]);
-
   const totalPaid = useMemo(
     () =>
       Object.values(amounts).reduce(
@@ -68,10 +66,16 @@ function SplitPayment({
 
   const dueTotal = Number(grandTotal) || 0;
   const remaining = dueTotal - totalPaid;
+  const isOver = remaining < -0.01;
   const isSettled =
     dueTotal > 0 && remaining >= -0.01 && remaining <= 0.01;
   const allocatedPercent =
     dueTotal > 0 ? Math.min(100, (totalPaid / dueTotal) * 100) : 0;
+  const activeLineCount = useMemo(
+    () =>
+      Object.values(amounts).filter((v) => (parseFloat(v) || 0) > 0).length,
+    [amounts],
+  );
 
   const findPaymentType = (
     accountId: string,
@@ -96,10 +100,18 @@ function SplitPayment({
     }));
   };
 
+  const clearAmount = (accountId: string) => {
+    setAmounts((prev) => {
+      const next = { ...prev };
+      delete next[accountId];
+      return next;
+    });
+  };
+
   const accountIcon = (type: string) => {
-    if (type === "cash") return <Banknote size={14} />;
-    if (type === "wallet") return <Wallet size={14} />;
-    return <Building2 size={14} />;
+    if (type === "cash") return <Banknote size={15} />;
+    if (type === "wallet") return <Wallet size={15} />;
+    return <Building2 size={15} />;
   };
 
   useEffect(() => {
@@ -119,70 +131,91 @@ function SplitPayment({
     setSplitPaymentData(payments.length > 0 ? payments : null);
   }, [amounts, isSettled, dueTotal, setSplitPaymentData, accounts]);
 
-  const filters: { id: AccountFilter; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "cash", label: "Cash" },
-    { id: "bank", label: "Bank" },
-    { id: "wallet", label: "Wallet" },
-  ];
+  const statusMessage = (() => {
+    if (isSettled) {
+      return activeLineCount > 1
+        ? `Ready — split across ${activeLineCount} methods`
+        : "Ready — amount fully covered";
+    }
+    if (isOver) {
+      return `Over by ${CurrencySign} ${Math.abs(remaining).toFixed(2)} — reduce a line`;
+    }
+    if (totalPaid <= 0) {
+      return "Enter an amount on each method they are using";
+    }
+    return `${CurrencySign} ${remaining.toFixed(2)} still needed`;
+  })();
 
   return (
     <div className={styles.splitPanel}>
-      <div className={styles.splitHero}>
-        <div className={styles.splitHeroBlock}>
-          <span className={styles.splitHeroLabel}>To split</span>
-          <span className={styles.splitHeroValue}>
-            {CurrencySign} {dueTotal.toFixed(2)}
-          </span>
+      <div
+        className={`${styles.splitStatus} ${
+          isSettled
+            ? styles.splitStatusOk
+            : isOver
+              ? styles.splitStatusOver
+              : styles.splitStatusOpen
+        }`}
+      >
+        <div className={styles.splitStatusTop}>
+          <div className={styles.splitStatusDue}>
+            <span className={styles.splitStatusLabel}>Bill total</span>
+            <span className={styles.splitStatusTotal}>
+              {CurrencySign} {dueTotal.toFixed(2)}
+            </span>
+          </div>
+          <div className={styles.splitStatusRemain}>
+            <span className={styles.splitStatusLabel}>
+              {isSettled ? "Covered" : isOver ? "Over" : "Left to allocate"}
+            </span>
+            <span className={styles.splitStatusRemainValue}>
+              {isSettled ? (
+                <>
+                  <Check size={16} strokeWidth={2.5} /> Done
+                </>
+              ) : (
+                <>
+                  {CurrencySign} {Math.abs(remaining).toFixed(2)}
+                </>
+              )}
+            </span>
+          </div>
         </div>
-        <div className={styles.splitHeroBlock}>
-          <span className={styles.splitHeroLabel}>
-            {isSettled ? "Ready" : "Left"}
-          </span>
-          <span
-            className={`${styles.splitHeroValue} ${
-              isSettled ? styles.splitHeroLeftOk : styles.splitHeroLeft
-            }`}
-          >
-            {CurrencySign} {Math.abs(remaining).toFixed(2)}
-          </span>
-        </div>
-      </div>
 
-      <div className={styles.splitProgress}>
         <div
-          className={styles.splitProgressBar}
-          style={{ width: `${allocatedPercent}%` }}
-        />
-      </div>
-
-      <div className={styles.splitFilters}>
-        {filters.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            className={`${styles.splitFilterBtn} ${
-              filter === f.id ? styles.splitFilterBtnOn : ""
+          className={styles.splitProgress}
+          role="progressbar"
+          aria-valuenow={Math.round(allocatedPercent)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Amount allocated"
+        >
+          <div
+            className={`${styles.splitProgressBar} ${
+              isOver ? styles.splitProgressBarOver : ""
             }`}
-            onClick={() => setFilter(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
+            style={{ width: `${isOver ? 100 : allocatedPercent}%` }}
+          />
+        </div>
+
+        <p className={styles.splitStatusMsg}>{statusMessage}</p>
       </div>
 
       <div className={styles.splitList}>
         {!accountSuccess ? (
           <p className={styles.splitEmpty}>Loading accounts…</p>
-        ) : filteredAccounts.length === 0 ? (
+        ) : accounts.length === 0 ? (
           <p className={styles.splitEmpty}>
-            No primary accounts in this group. Mark accounts as primary in Cash
-            &amp; Banks.
+            No primary accounts set up. Mark accounts as primary in Cash &amp;
+            Banks.
           </p>
         ) : (
-          filteredAccounts.map((account: any) => {
+          accounts.map((account: any) => {
             const aid = String(account.id);
-            const hasAmount = (parseFloat(amounts[aid] || "0") || 0) > 0;
+            const amountValue = parseFloat(amounts[aid] || "0") || 0;
+            const hasAmount = amountValue > 0;
+            const canFill = remaining > 0.01;
+
             return (
               <div
                 key={account.id}
@@ -192,11 +225,17 @@ function SplitPayment({
               >
                 <div className={styles.splitRowMain}>
                   <div className={styles.splitRowInfo}>
-                    <span className={styles.splitRowName}>{account.name}</span>
-                    <span className={styles.splitRowType}>
-                      {accountIcon(account.accountType)} {account.accountType}
+                    <span className={styles.splitRowIcon} aria-hidden>
+                      {accountIcon(account.accountType)}
                     </span>
+                    <div className={styles.splitRowText}>
+                      <span className={styles.splitRowName}>{account.name}</span>
+                      <span className={styles.splitRowType}>
+                        {account.accountType}
+                      </span>
+                    </div>
                   </div>
+
                   <div className={styles.splitRowActions}>
                     {account.accountType !== "cash" && (
                       <button
@@ -210,10 +249,12 @@ function SplitPayment({
                           )
                         }
                         aria-label={`Show QR for ${account.name}`}
+                        title="Show QR"
                       >
                         <QrCode size={15} />
                       </button>
                     )}
+
                     <div className={styles.splitAmountWrap}>
                       <span className={styles.splitCurrency}>{CurrencySign}</span>
                       <input
@@ -221,21 +262,52 @@ function SplitPayment({
                         min="0"
                         step="0.01"
                         className={styles.splitAmountInput}
-                        placeholder="0"
+                        placeholder="0.00"
                         value={amounts[aid] || ""}
                         onChange={(e) => handleAmountChange(aid, e.target.value)}
+                        aria-label={`Amount for ${account.name}`}
                       />
                     </div>
-                    <button
-                      type="button"
-                      className={styles.splitRestBtn}
-                      disabled={remaining <= 0.01}
-                      onClick={() => fillRemaining(aid)}
-                    >
-                      Rest
-                    </button>
+
+                    {hasAmount ? (
+                      <button
+                        type="button"
+                        className={styles.splitClearBtn}
+                        onClick={() => clearAmount(aid)}
+                        aria-label={`Clear ${account.name}`}
+                        title="Clear"
+                      >
+                        <X size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.splitFillBtn}
+                        disabled={!canFill}
+                        onClick={() => fillRemaining(aid)}
+                        title={
+                          canFill
+                            ? `Put remaining ${CurrencySign} ${remaining.toFixed(2)} here`
+                            : "Nothing left to allocate"
+                        }
+                      >
+                        Fill left
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {hasAmount && canFill ? (
+                  <div className={styles.splitRowFooter}>
+                    <button
+                      type="button"
+                      className={styles.splitFillLink}
+                      onClick={() => fillRemaining(aid)}
+                    >
+                      Add remaining {CurrencySign} {remaining.toFixed(2)}
+                    </button>
+                  </div>
+                ) : null}
 
                 {qrAccountId === account.id && (
                   <div className={styles.splitQrPanel}>
@@ -246,12 +318,12 @@ function SplitPayment({
                         className={styles.splitQrImage}
                       />
                     ) : (
-                      <p className={styles.splitHintWarn}>
+                      <p className={styles.splitEmpty}>
                         No QR configured for this account.
                       </p>
                     )}
-                    <p className={styles.splitHint}>
-                      Customer scans, then enter the amount above.
+                    <p className={styles.splitQrHint}>
+                      Customer scans, then enter the paid amount above.
                     </p>
                   </div>
                 )}
@@ -261,18 +333,9 @@ function SplitPayment({
         )}
       </div>
 
-      {isSettled ? (
-        <p className={styles.splitReady}>Split matches total — tap Complete below.</p>
-      ) : (
-        <p className={styles.splitHint}>
-          Enter amounts across accounts. Use <strong>Rest</strong> to fill what is
-          left on a line.
-        </p>
-      )}
-
-      {!isMemberAssigned && !isSettled && dueTotal > 0 ? (
+      {!isMemberAssigned && !isSettled && dueTotal > 0 && totalPaid > 0 ? (
         <p className={styles.splitHintWarn}>
-          Full amount must be allocated before completing the sale.
+          Allocate the full bill before completing the sale.
         </p>
       ) : null}
     </div>
