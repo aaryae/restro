@@ -1492,6 +1492,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       key={selectedSubtotal.toFixed(2)}
                       grandTotal={selectedSubtotal}
                       setSplitPaymentData={setSplitPaymentData}
+                      memberName={
+                        checkoutType === "member" && selectedMember
+                          ? getMemberDisplayName(selectedMember)
+                          : null
+                      }
                     />
                   ) : (
                     <>
