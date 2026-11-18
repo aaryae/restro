@@ -1,14 +1,14 @@
 .splitPanel {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.75rem;
 }
 
 .splitStatus {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.85rem 0.9rem;
+  gap: 0.5rem;
+  padding: 0.8rem 0.85rem;
   border-radius: 0.75rem;
   border: 1px solid var(--serve-border);
   background: var(--serve-surface-2);
@@ -40,7 +40,7 @@
 .splitStatusRemain {
   display: flex;
   flex-direction: column;
-  gap: 0.12rem;
+  gap: 0.1rem;
   min-width: 0;
 }
 
@@ -58,7 +58,7 @@
 }
 
 .splitStatusTotal {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--serve-fg);
   font-variant-numeric: tabular-nums;
@@ -68,7 +68,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--serve-warning);
@@ -83,7 +83,7 @@
 }
 
 .splitProgress {
-  height: 0.4rem;
+  height: 0.35rem;
   border-radius: 9999px;
   background: color-mix(in srgb, var(--serve-border) 80%, transparent);
   overflow: hidden;
@@ -116,18 +116,68 @@
   color: var(--serve-negative);
 }
 
+.splitEqual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.splitEqualLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--serve-muted);
+}
+
+.splitEqualBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.splitEqualBtn {
+  padding: 0.4rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid var(--serve-border);
+  background: var(--serve-surface);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--serve-fg);
+  cursor: pointer;
+}
+
+.splitEqualBtn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary-color) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 8%, var(--serve-surface));
+}
+
+.splitEqualBtnOn {
+  border-color: color-mix(in srgb, var(--primary-color) 40%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--serve-surface));
+  color: var(--primary-ink);
+}
+
+.splitEqualBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .splitList {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 20rem;
+  max-height: 22rem;
   overflow-y: auto;
   padding-right: 0.1rem;
 }
 
 .splitRow {
   border: 1.5px solid var(--serve-border);
-  border-radius: 0.7rem;
+  border-radius: 0.75rem;
   overflow: hidden;
   background: var(--serve-surface);
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -140,65 +190,162 @@
 
 .splitRowMain {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.55rem;
-  padding: 0.65rem 0.7rem;
+  gap: 0.5rem;
+  padding: 0.7rem;
 }
 
-.splitRowInfo {
+.splitPerson {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.55rem;
   min-width: 0;
   flex: 1;
 }
 
-.splitRowIcon {
+.splitPersonBadge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.7rem;
+  height: 1.7rem;
   flex-shrink: 0;
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--serve-border) 55%, var(--serve-surface));
+  margin-top: 1.35rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--serve-border) 70%, var(--serve-surface));
   color: var(--serve-fg);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.splitRowActive .splitRowIcon {
-  background: color-mix(in srgb, var(--primary-color) 14%, var(--serve-surface));
+.splitRowActive .splitPersonBadge {
+  background: color-mix(in srgb, var(--primary-color) 18%, var(--serve-surface));
   color: var(--primary-ink);
 }
 
-.splitRowText {
+.splitPersonFields {
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
+  gap: 0.45rem;
   min-width: 0;
+  flex: 1;
 }
 
-.splitRowName {
-  font-size: 0.9rem;
+.splitFieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--serve-muted);
+}
+
+.splitSelectWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.55rem;
+  border: 1.5px solid var(--serve-border);
+  background: var(--serve-surface);
+}
+
+.splitSelectWrap:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.splitSelectIcon {
+  display: inline-flex;
+  color: var(--serve-fg);
+  flex-shrink: 0;
+}
+
+.splitSelect {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--serve-fg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
 }
 
-.splitRowType {
-  font-size: 0.7rem;
-  font-weight: 600;
+.splitSelect:focus {
+  outline: none;
+}
+
+.splitAmountWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.55rem;
+  border: 1.5px solid var(--serve-border);
+  background: var(--serve-surface);
+}
+
+.splitRowActive .splitAmountWrap {
+  border-color: color-mix(in srgb, var(--primary-color) 28%, var(--serve-border));
+}
+
+.splitAmountWrap:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.splitCurrency {
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--serve-muted);
-  text-transform: capitalize;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.splitAmountInput {
+  width: 100%;
+  min-width: 0;
+  padding: 0.35rem 0.1rem;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--serve-fg);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.splitAmountInput:focus {
+  outline: none;
+}
+
+.splitAmountInput::-webkit-outer-spin-button,
+.splitAmountInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.splitAmountInput[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .splitRowActions {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
   flex-shrink: 0;
+  padding-top: 1.2rem;
 }
 
 .splitQrBtn,
@@ -227,69 +374,18 @@
   color: var(--primary-ink);
 }
 
-.splitAmountWrap {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.4rem 0.15rem 0.5rem;
-  border-radius: 0.55rem;
-  border: 1.5px solid var(--serve-border);
-  background: var(--serve-surface);
-}
-
-.splitRowActive .splitAmountWrap {
-  border-color: color-mix(in srgb, var(--primary-color) 28%, var(--serve-border));
-}
-
-.splitAmountWrap:focus-within {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 18%, transparent);
-}
-
-.splitCurrency {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--serve-muted);
-}
-
-.splitAmountInput {
-  width: 5.25rem;
-  padding: 0.35rem 0.1rem;
-  border: none;
-  background: transparent;
-  font-size: 0.92rem;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--serve-fg);
-}
-
-.splitAmountInput:focus {
-  outline: none;
-}
-
-.splitAmountInput::-webkit-outer-spin-button,
-.splitAmountInput::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.splitAmountInput[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
 .splitFillBtn {
-  padding: 0.4rem 0.55rem;
-  border-radius: 0.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.45rem;
   border: none;
   background: var(--primary-color);
   color: var(--primary-fg);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   line-height: 1.1;
+  min-height: 2rem;
 }
 
 .splitFillBtn:hover:not(:disabled) {
@@ -301,26 +397,24 @@
   cursor: not-allowed;
 }
 
-.splitRowFooter {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 0.7rem 0.55rem;
-}
-
-.splitFillLink {
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
+.splitAddBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.7rem;
+  border: 1.5px dashed color-mix(in srgb, var(--primary-color) 35%, var(--serve-border));
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--serve-surface));
   color: var(--primary-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
 }
 
-.splitFillLink:hover {
-  opacity: 0.85;
+.splitAddBtn:hover {
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--serve-surface));
 }
 
 .splitQrPanel {
@@ -349,14 +443,6 @@
   text-align: center;
 }
 
-.splitHintWarn {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--serve-warning);
-  text-align: center;
-}
-
 .splitEmpty {
   margin: 0;
   padding: 1rem 0.75rem;
@@ -369,20 +455,16 @@
 @media (max-width: 420px) {
   .splitRowMain {
     flex-direction: column;
-    align-items: stretch;
+  }
+
+  .splitPersonBadge {
+    margin-top: 0.15rem;
   }
 
   .splitRowActions {
+    flex-direction: row;
     width: 100%;
     justify-content: flex-end;
-  }
-
-  .splitAmountInput {
-    width: 100%;
-    flex: 1;
-  }
-
-  .splitAmountWrap {
-    flex: 1;
+    padding-top: 0;
   }
 }

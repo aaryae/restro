@@ -2,31 +2,65 @@ import { CurrencySign } from "@/constants";
 import { POS_LIST_LIMIT } from "@/constants/listLimits";
 import { useGetApiQuery } from "@/redux/services/crudApi";
 import { buildAssetUrl } from "@/utils/buildAssetUrl";
+import { roundMoney } from "@/utils/checkoutPayload";
 import { buildQueryString } from "@/utils/generalHelper";
 import {
   Banknote,
   Building2,
   Check,
+  Plus,
   QrCode,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import styles from "./SplitPayment.module.css";
+
+type PayerLine = {
+  id: string;
+  accountId: string;
+  amount: string;
+};
 
 interface SplitPaymentProps {
   grandTotal: number;
   setSplitPaymentData: React.Dispatch<any>;
-  isMemberAssigned?: boolean;
+}
+
+function equalShareAmounts(total: number, people: number): string[] {
+  if (people <= 0) return [];
+  const cents = Math.round(total * 100);
+  const base = Math.floor(cents / people);
+  const remainder = cents - base * people;
+  return Array.from({ length: people }, (_, index) => {
+    const share = (base + (index < remainder ? 1 : 0)) / 100;
+    return share.toFixed(2);
+  });
+}
+
+function paymentMethodForType(
+  accountType: string | undefined,
+): "cash" | "card" | "online" {
+  if (accountType === "cash") return "cash";
+  if (accountType === "bank") return "card";
+  return "online";
+}
+
+function accountIcon(type: string) {
+  if (type === "cash") return <Banknote size={15} />;
+  if (type === "wallet") return <Wallet size={15} />;
+  return <Building2 size={15} />;
 }
 
 function SplitPayment({
   grandTotal,
   setSplitPaymentData,
-  isMemberAssigned = false,
 }: SplitPaymentProps) {
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
-  const [qrAccountId, setQrAccountId] = useState<number | null>(null);
+  const lineIdPrefix = useId();
+  const [lines, setLines] = useState<PayerLine[]>([]);
+  const [qrLineId, setQrLineId] = useState<string | null>(null);
+  const [seeded, setSeeded] = useState(false);
 
   const url = buildQueryString("account/list", {
     page: 1,
@@ -38,11 +72,33 @@ function SplitPayment({
 
   const accounts: any[] = useMemo(() => {
     const rows = accountSuccess ? allAccount?.data?.data ?? [] : [];
-    // Match checkout cash/QR: only active primary accounts (isDefault).
     return rows.filter(
       (a: any) => a?.status === "active" && Boolean(a?.isDefault),
     );
   }, [accountSuccess, allAccount]);
+
+  const defaultAccountId = useMemo(() => {
+    const cash = accounts.find((a) => a.accountType === "cash");
+    return String((cash ?? accounts[0])?.id ?? "");
+  }, [accounts]);
+
+  const makeLine = (accountId: string, amount = ""): PayerLine => ({
+    id: `${lineIdPrefix}-${Math.random().toString(36).slice(2, 9)}`,
+    accountId,
+    amount,
+  });
+
+  useEffect(() => {
+    if (seeded || !defaultAccountId) return;
+    setLines([makeLine(defaultAccountId)]);
+    setSeeded(true);
+  }, [defaultAccountId, seeded, lineIdPrefix]);
+
+  const qrAccountId = useMemo(() => {
+    if (!qrLineId) return null;
+    const line = lines.find((l) => l.id === qrLineId);
+    return line?.accountId ? Number(line.accountId) : null;
+  }, [qrLineId, lines]);
 
   const { data: qrAccountDetail } = useGetApiQuery(
     qrAccountId ? { url: `account/${qrAccountId}` } : ({} as any),
@@ -55,63 +111,63 @@ function SplitPayment({
     (qrAccountDetail?.data as any)?.walletAccount?.staticQrUrl ||
     null;
 
+  const dueTotal = Number(grandTotal) || 0;
   const totalPaid = useMemo(
     () =>
-      Object.values(amounts).reduce(
-        (sum, amount) => sum + (parseFloat(amount) || 0),
-        0,
-      ),
-    [amounts],
+      lines.reduce((sum, line) => sum + (parseFloat(line.amount) || 0), 0),
+    [lines],
   );
-
-  const dueTotal = Number(grandTotal) || 0;
   const remaining = dueTotal - totalPaid;
   const isOver = remaining < -0.01;
-  const isSettled =
-    dueTotal > 0 && remaining >= -0.01 && remaining <= 0.01;
+  const isSettled = dueTotal > 0 && remaining >= -0.01 && remaining <= 0.01;
   const allocatedPercent =
     dueTotal > 0 ? Math.min(100, (totalPaid / dueTotal) * 100) : 0;
-  const activeLineCount = useMemo(
-    () =>
-      Object.values(amounts).filter((v) => (parseFloat(v) || 0) > 0).length,
-    [amounts],
-  );
+  const activePeople = lines.filter(
+    (line) => (parseFloat(line.amount) || 0) > 0,
+  ).length;
+  const canFill = remaining > 0.01;
 
-  const findPaymentType = (
-    accountId: string,
-  ): "cash" | "card" | "online" => {
-    const type = accounts.find((a) => String(a.id) === accountId)?.accountType;
-    if (type === "cash") return "cash";
-    if (type === "bank") return "card";
-    return "online";
+  const updateLine = (id: string, patch: Partial<PayerLine>) => {
+    setLines((prev) =>
+      prev.map((line) => (line.id === id ? { ...line, ...patch } : line)),
+    );
   };
 
-  const handleAmountChange = (accountId: string, value: string) => {
+  const handleAmountChange = (id: string, value: string) => {
     if (value !== "" && Number.isNaN(Number(value))) return;
-    setAmounts((prev) => ({ ...prev, [accountId]: value }));
+    updateLine(id, { amount: value });
   };
 
-  const fillRemaining = (accountId: string) => {
-    if (remaining <= 0.01) return;
-    const current = parseFloat(amounts[accountId] || "0") || 0;
-    setAmounts((prev) => ({
-      ...prev,
-      [accountId]: (current + remaining).toFixed(2),
-    }));
+  const fillRemaining = (id: string) => {
+    if (!canFill) return;
+    const line = lines.find((l) => l.id === id);
+    if (!line) return;
+    const current = parseFloat(line.amount || "0") || 0;
+    updateLine(id, { amount: (current + remaining).toFixed(2) });
   };
 
-  const clearAmount = (accountId: string) => {
-    setAmounts((prev) => {
-      const next = { ...prev };
-      delete next[accountId];
-      return next;
+  const removeLine = (id: string) => {
+    setLines((prev) => {
+      if (prev.length <= 1) {
+        return prev.map((line) =>
+          line.id === id ? { ...line, amount: "" } : line,
+        );
+      }
+      return prev.filter((line) => line.id !== id);
     });
+    setQrLineId((prev) => (prev === id ? null : prev));
   };
 
-  const accountIcon = (type: string) => {
-    if (type === "cash") return <Banknote size={15} />;
-    if (type === "wallet") return <Wallet size={15} />;
-    return <Building2 size={15} />;
+  const addPerson = () => {
+    if (!defaultAccountId) return;
+    setLines((prev) => [...prev, makeLine(defaultAccountId)]);
+  };
+
+  const splitEqually = (people: number) => {
+    if (!defaultAccountId || people < 2) return;
+    const shares = equalShareAmounts(dueTotal, people);
+    setLines(shares.map((amount) => makeLine(defaultAccountId, amount)));
+    setQrLineId(null);
   };
 
   useEffect(() => {
@@ -120,28 +176,44 @@ function SplitPayment({
       return;
     }
 
-    const payments = Object.entries(amounts)
-      .map(([accountId, amount]) => ({
-        paymentMethod: findPaymentType(accountId),
-        amount: Math.round((parseFloat(amount) || 0) * 100) / 100,
-        accountId: Number(accountId),
-      }))
-      .filter((p) => p.amount > 0);
+    const merged = new Map<
+      number,
+      {
+        paymentMethod: "cash" | "card" | "online";
+        amount: number;
+        accountId: number;
+      }
+    >();
 
+    for (const line of lines) {
+      const amount = roundMoney(parseFloat(line.amount) || 0);
+      const accountId = Number(line.accountId);
+      if (amount <= 0 || !Number.isFinite(accountId) || accountId <= 0) continue;
+      const account = accounts.find((a) => String(a.id) === line.accountId);
+      const paymentMethod = paymentMethodForType(account?.accountType);
+      const existing = merged.get(accountId);
+      if (existing) {
+        existing.amount = roundMoney(existing.amount + amount);
+      } else {
+        merged.set(accountId, { paymentMethod, amount, accountId });
+      }
+    }
+
+    const payments = [...merged.values()];
     setSplitPaymentData(payments.length > 0 ? payments : null);
-  }, [amounts, isSettled, dueTotal, setSplitPaymentData, accounts]);
+  }, [lines, isSettled, dueTotal, setSplitPaymentData, accounts]);
 
   const statusMessage = (() => {
     if (isSettled) {
-      return activeLineCount > 1
-        ? `Ready — split across ${activeLineCount} methods`
+      return activePeople > 1
+        ? `Ready — ${activePeople} people covered the bill`
         : "Ready — amount fully covered";
     }
     if (isOver) {
-      return `Over by ${CurrencySign} ${Math.abs(remaining).toFixed(2)} — reduce a line`;
+      return `Over by ${CurrencySign} ${Math.abs(remaining).toFixed(2)} — reduce a person`;
     }
     if (totalPaid <= 0) {
-      return "Enter an amount on each method they are using";
+      return "Add each person and how they are paying";
     }
     return `${CurrencySign} ${remaining.toFixed(2)} still needed`;
   })();
@@ -166,7 +238,7 @@ function SplitPayment({
           </div>
           <div className={styles.splitStatusRemain}>
             <span className={styles.splitStatusLabel}>
-              {isSettled ? "Covered" : isOver ? "Over" : "Left to allocate"}
+              {isSettled ? "Covered" : isOver ? "Over" : "Left"}
             </span>
             <span className={styles.splitStatusRemainValue}>
               {isSettled ? (
@@ -201,6 +273,27 @@ function SplitPayment({
         <p className={styles.splitStatusMsg}>{statusMessage}</p>
       </div>
 
+      <div className={styles.splitEqual}>
+        <span className={styles.splitEqualLabel}>
+          <Users size={14} /> Split equally
+        </span>
+        <div className={styles.splitEqualBtns}>
+          {[2, 3, 4].map((count) => (
+            <button
+              key={count}
+              type="button"
+              className={`${styles.splitEqualBtn} ${
+                lines.length === count && isSettled ? styles.splitEqualBtnOn : ""
+              }`}
+              disabled={!defaultAccountId || dueTotal <= 0}
+              onClick={() => splitEqually(count)}
+            >
+              {count} people
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className={styles.splitList}>
         {!accountSuccess ? (
           <p className={styles.splitEmpty}>Loading accounts…</p>
@@ -210,111 +303,126 @@ function SplitPayment({
             Banks.
           </p>
         ) : (
-          accounts.map((account: any) => {
-            const aid = String(account.id);
-            const amountValue = parseFloat(amounts[aid] || "0") || 0;
-            const hasAmount = amountValue > 0;
-            const canFill = remaining > 0.01;
+          lines.map((line, index) => {
+            const account = accounts.find(
+              (a) => String(a.id) === line.accountId,
+            );
+            const hasAmount = (parseFloat(line.amount || "0") || 0) > 0;
+            const showQr = account && account.accountType !== "cash";
 
             return (
               <div
-                key={account.id}
+                key={line.id}
                 className={`${styles.splitRow} ${
                   hasAmount ? styles.splitRowActive : ""
                 }`}
               >
                 <div className={styles.splitRowMain}>
-                  <div className={styles.splitRowInfo}>
-                    <span className={styles.splitRowIcon} aria-hidden>
-                      {accountIcon(account.accountType)}
+                  <div className={styles.splitPerson}>
+                    <span className={styles.splitPersonBadge}>
+                      {index + 1}
                     </span>
-                    <div className={styles.splitRowText}>
-                      <span className={styles.splitRowName}>{account.name}</span>
-                      <span className={styles.splitRowType}>
-                        {account.accountType}
-                      </span>
+                    <div className={styles.splitPersonFields}>
+                      <label className={styles.splitFieldLabel}>
+                        Pays with
+                        <span className={styles.splitSelectWrap}>
+                          <span className={styles.splitSelectIcon} aria-hidden>
+                            {accountIcon(account?.accountType || "cash")}
+                          </span>
+                          <select
+                            className={styles.splitSelect}
+                            value={line.accountId}
+                            onChange={(e) =>
+                              updateLine(line.id, {
+                                accountId: e.target.value,
+                              })
+                            }
+                            aria-label={`Payment method for person ${index + 1}`}
+                          >
+                            {accounts.map((a) => (
+                              <option key={a.id} value={String(a.id)}>
+                                {a.name}
+                              </option>
+                            ))}
+                          </select>
+                        </span>
+                      </label>
+
+                      <label className={styles.splitFieldLabel}>
+                        Amount
+                        <span className={styles.splitAmountWrap}>
+                          <span className={styles.splitCurrency}>
+                            {CurrencySign}
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className={styles.splitAmountInput}
+                            placeholder="0.00"
+                            value={line.amount}
+                            onChange={(e) =>
+                              handleAmountChange(line.id, e.target.value)
+                            }
+                            aria-label={`Amount for person ${index + 1}`}
+                          />
+                        </span>
+                      </label>
                     </div>
                   </div>
 
                   <div className={styles.splitRowActions}>
-                    {account.accountType !== "cash" && (
+                    {showQr ? (
                       <button
                         type="button"
                         className={`${styles.splitQrBtn} ${
-                          qrAccountId === account.id ? styles.splitQrBtnOn : ""
+                          qrLineId === line.id ? styles.splitQrBtnOn : ""
                         }`}
                         onClick={() =>
-                          setQrAccountId((prev) =>
-                            prev === account.id ? null : account.id,
+                          setQrLineId((prev) =>
+                            prev === line.id ? null : line.id,
                           )
                         }
-                        aria-label={`Show QR for ${account.name}`}
+                        aria-label={`Show QR for person ${index + 1}`}
                         title="Show QR"
                       >
                         <QrCode size={15} />
                       </button>
-                    )}
+                    ) : null}
 
-                    <div className={styles.splitAmountWrap}>
-                      <span className={styles.splitCurrency}>{CurrencySign}</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className={styles.splitAmountInput}
-                        placeholder="0.00"
-                        value={amounts[aid] || ""}
-                        onChange={(e) => handleAmountChange(aid, e.target.value)}
-                        aria-label={`Amount for ${account.name}`}
-                      />
-                    </div>
-
-                    {hasAmount ? (
-                      <button
-                        type="button"
-                        className={styles.splitClearBtn}
-                        onClick={() => clearAmount(aid)}
-                        aria-label={`Clear ${account.name}`}
-                        title="Clear"
-                      >
-                        <X size={14} />
-                      </button>
-                    ) : (
+                    {canFill ? (
                       <button
                         type="button"
                         className={styles.splitFillBtn}
-                        disabled={!canFill}
-                        onClick={() => fillRemaining(aid)}
-                        title={
-                          canFill
-                            ? `Put remaining ${CurrencySign} ${remaining.toFixed(2)} here`
-                            : "Nothing left to allocate"
-                        }
+                        onClick={() => fillRemaining(line.id)}
+                        title={`Put remaining ${CurrencySign} ${remaining.toFixed(2)} here`}
                       >
                         Fill left
                       </button>
-                    )}
+                    ) : null}
+
+                    <button
+                      type="button"
+                      className={styles.splitClearBtn}
+                      onClick={() => removeLine(line.id)}
+                      aria-label={
+                        lines.length <= 1
+                          ? `Clear person ${index + 1}`
+                          : `Remove person ${index + 1}`
+                      }
+                      title={lines.length <= 1 ? "Clear" : "Remove"}
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
                 </div>
 
-                {hasAmount && canFill ? (
-                  <div className={styles.splitRowFooter}>
-                    <button
-                      type="button"
-                      className={styles.splitFillLink}
-                      onClick={() => fillRemaining(aid)}
-                    >
-                      Add remaining {CurrencySign} {remaining.toFixed(2)}
-                    </button>
-                  </div>
-                ) : null}
-
-                {qrAccountId === account.id && (
+                {qrLineId === line.id && (
                   <div className={styles.splitQrPanel}>
                     {staticQrUrl ? (
                       <img
                         src={buildAssetUrl(staticQrUrl)}
-                        alt={`${account.name} QR`}
+                        alt={`${account?.name || "Account"} QR`}
                         className={styles.splitQrImage}
                       />
                     ) : (
@@ -323,7 +431,7 @@ function SplitPayment({
                       </p>
                     )}
                     <p className={styles.splitQrHint}>
-                      Customer scans, then enter the paid amount above.
+                      Person {index + 1} scans, then confirm the amount above.
                     </p>
                   </div>
                 )}
@@ -333,10 +441,15 @@ function SplitPayment({
         )}
       </div>
 
-      {!isMemberAssigned && !isSettled && dueTotal > 0 && totalPaid > 0 ? (
-        <p className={styles.splitHintWarn}>
-          Allocate the full bill before completing the sale.
-        </p>
+      {accounts.length > 0 ? (
+        <button
+          type="button"
+          className={styles.splitAddBtn}
+          onClick={addPerson}
+        >
+          <Plus size={15} />
+          Add person
+        </button>
       ) : null}
     </div>
   );
