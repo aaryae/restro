@@ -1,0 +1,1 @@
+import{j as a}from"./vendor-react-BNqBt-Xi.js";function n({children:t}){return a.jsx("div",{className:"table-row-actions relative z-10 mx-auto flex w-max max-w-none items-center justify-center gap-2",onPointerDown:o=>o.stopPropagation(),onClick:o=>o.stopPropagation(),children:t})}export{n as T};

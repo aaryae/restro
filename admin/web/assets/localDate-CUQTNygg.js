@@ -1,0 +1,1 @@
+function o(t=new Date){const e=t instanceof Date?t:new Date(t);if(Number.isNaN(e.getTime()))return"";const n=e.getFullYear(),a=String(e.getMonth()+1).padStart(2,"0"),r=String(e.getDate()).padStart(2,"0");return`${n}-${a}-${r}`}function i(){return o(new Date)}function c(t){return/^\d{4}-\d{2}-\d{2}$/.test(t)?t>i():!0}export{o as a,c as i,i as t};

@@ -1,0 +1,1 @@
+import{j as t,r as s}from"./vendor-react-BNqBt-Xi.js";function n(){return t.jsx("span",{className:"ml-0.5 text-red-500","aria-hidden":"true",children:"*"})}function d(e){const r=s.useId();return e||r}export{n as R,d as u};
